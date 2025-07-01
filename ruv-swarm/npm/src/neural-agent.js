@@ -5,6 +5,9 @@
 
 import { EventEmitter } from 'events';
 
+// Import these after class definitions to avoid circular dependency
+let MemoryOptimizer, PATTERN_MEMORY_CONFIG;
+
 // Cognitive diversity patterns for different agent types
 const COGNITIVE_PATTERNS = {
   CONVERGENT: 'convergent',    // Focused problem-solving, analytical
@@ -63,21 +66,25 @@ const AGENT_COGNITIVE_PROFILES = {
  * Neural Network wrapper for agent cognitive processing
  */
 class NeuralNetwork {
-  constructor(config) {
+  constructor(config, memoryOptimizer = null) {
     this.config = config;
     this.layers = config.networkLayers;
     this.activationFunction = config.activationFunction;
     this.learningRate = config.learningRate;
     this.momentum = config.momentum;
+    this.memoryOptimizer = memoryOptimizer;
+    
+    // Memory-optimized storage
     this.weights = [];
     this.biases = [];
     this.previousWeightDeltas = [];
+    this.memoryAllocations = [];
     
     this._initializeNetwork();
   }
 
   _initializeNetwork() {
-    // Initialize weights and biases between layers
+    // Initialize weights and biases between layers with memory optimization
     for (let i = 0; i < this.layers.length - 1; i++) {
       const inputSize = this.layers[i];
       const outputSize = this.layers[i + 1];
@@ -85,6 +92,20 @@ class NeuralNetwork {
       // Xavier/Glorot initialization
       const limit = Math.sqrt(6 / (inputSize + outputSize));
       
+      // Try to allocate from memory pool if available
+      if (this.memoryOptimizer && this.memoryOptimizer.isPoolInitialized()) {
+        const weightSize = outputSize * inputSize * 4; // 4 bytes per float32
+        const biasSize = outputSize * 4;
+        
+        const weightAlloc = this.memoryOptimizer.allocateFromPool('weights', weightSize, this.config.cognitivePattern || 'default');
+        const biasAlloc = this.memoryOptimizer.allocateFromPool('weights', biasSize, this.config.cognitivePattern || 'default');
+        
+        if (weightAlloc && biasAlloc) {
+          this.memoryAllocations.push(weightAlloc, biasAlloc);
+        }
+      }
+      
+      // Create matrices (in optimized implementation, these would use pooled memory)
       this.weights[i] = this._createMatrix(outputSize, inputSize, -limit, limit);
       this.biases[i] = this._createVector(outputSize, -0.1, 0.1);
       this.previousWeightDeltas[i] = this._createMatrix(outputSize, inputSize, 0, 0);
@@ -238,14 +259,21 @@ class NeuralNetwork {
  * Neural Agent class that enhances base agents with neural network capabilities
  */
 class NeuralAgent extends EventEmitter {
-  constructor(agent, agentType) {
+  constructor(agent, agentType, memoryOptimizer = null) {
     super();
     this.agent = agent;
     this.agentType = agentType;
     this.cognitiveProfile = AGENT_COGNITIVE_PROFILES[agentType];
+    this.memoryOptimizer = memoryOptimizer || new MemoryOptimizer();
     
-    // Initialize neural network for this agent type
-    this.neuralNetwork = new NeuralNetwork(this.cognitiveProfile);
+    // Add cognitive pattern to neural network config for memory optimization
+    const networkConfig = {
+      ...this.cognitiveProfile,
+      cognitivePattern: this.cognitiveProfile.primary
+    };
+    
+    // Initialize neural network with memory optimizer
+    this.neuralNetwork = new NeuralNetwork(networkConfig, this.memoryOptimizer);
     
     // Learning history for feedback loops
     this.learningHistory = [];
@@ -254,7 +282,8 @@ class NeuralAgent extends EventEmitter {
       accuracy: 0,
       speed: 0,
       creativity: 0,
-      efficiency: 0
+      efficiency: 0,
+      memoryEfficiency: 0
     };
     
     // Cognitive state
@@ -264,6 +293,15 @@ class NeuralAgent extends EventEmitter {
       confidence: 0.5,
       exploration: 0.5
     };
+    
+    // Track memory usage
+    this.memoryUsage = {
+      baseline: 0,
+      current: 0,
+      peak: 0
+    };
+    
+    this._initializeMemoryTracking();
   }
 
   /**
@@ -536,6 +574,12 @@ class NeuralAgent extends EventEmitter {
       (1 - alpha) * this.performanceMetrics.creativity + alpha * performance.creativity;
     this.performanceMetrics.efficiency = 
       (1 - alpha) * this.performanceMetrics.efficiency + alpha * performance.efficiency;
+    
+    // Calculate memory efficiency based on task completion vs memory usage
+    const memoryRatio = this.memoryUsage.baseline / this.getCurrentMemoryUsage();
+    const taskEfficiency = performance.overall;
+    this.performanceMetrics.memoryEfficiency = 
+      (1 - alpha) * this.performanceMetrics.memoryEfficiency + alpha * (memoryRatio * taskEfficiency);
   }
 
   /**
@@ -613,14 +657,66 @@ class NeuralAgent extends EventEmitter {
    */
   rest(duration = 1000) {
     return new Promise((resolve) => {
-      setTimeout(() => {
+      setTimeout(async () => {
         this.cognitiveState.fatigue = Math.max(0, this.cognitiveState.fatigue - 0.3);
         this.cognitiveState.attention = Math.min(1.0, this.cognitiveState.attention + 0.2);
+        
+        // Perform garbage collection on memory pools during rest
+        if (this.memoryOptimizer && this.memoryOptimizer.isPoolInitialized()) {
+          const collected = await this.memoryOptimizer.garbageCollect();
+          if (collected > 0) {
+            // Recalculate memory usage after GC
+            const patternConfig = PATTERN_MEMORY_CONFIG[this.cognitiveProfile.primary];
+            this.memoryUsage.current = patternConfig.baseMemory * (1 - patternConfig.poolSharing * 0.5);
+          }
+        }
+        
         resolve();
       }, duration);
     });
   }
 
+  /**
+   * Initialize memory tracking for the agent
+   */
+  _initializeMemoryTracking() {
+    const patternConfig = PATTERN_MEMORY_CONFIG[this.cognitiveProfile.primary] || PATTERN_MEMORY_CONFIG.convergent;
+    this.memoryUsage.baseline = patternConfig.baseMemory;
+    this.memoryUsage.current = patternConfig.baseMemory;
+    
+    // Initialize memory pools if not already done
+    if (!this.memoryOptimizer.isPoolInitialized()) {
+      this.memoryOptimizer.initializePools().then(() => {
+        // Recalculate memory usage with pooling
+        this.memoryUsage.current = patternConfig.baseMemory * (1 - patternConfig.poolSharing * 0.5);
+      });
+    }
+  }
+  
+  /**
+   * Get current memory usage for this agent
+   */
+  getCurrentMemoryUsage() {
+    const patternConfig = PATTERN_MEMORY_CONFIG[this.cognitiveProfile.primary] || PATTERN_MEMORY_CONFIG.convergent;
+    let memoryUsage = this.memoryUsage.current;
+    
+    // Adjust based on current activity
+    if (this.cognitiveState.fatigue > 0.5) {
+      memoryUsage *= 1.1; // 10% more memory when fatigued
+    }
+    
+    if (this.taskHistory.length > 100) {
+      memoryUsage *= 1.05; // 5% more for large history
+    }
+    
+    // Update peak if necessary
+    if (memoryUsage > this.memoryUsage.peak) {
+      this.memoryUsage.peak = memoryUsage;
+    }
+    
+    return memoryUsage;
+  }
+  
   /**
    * Get agent status including neural state
    */
@@ -632,7 +728,13 @@ class NeuralAgent extends EventEmitter {
         cognitiveState: this.cognitiveState,
         performanceMetrics: this.performanceMetrics,
         learningHistory: this.learningHistory.length,
-        taskHistory: this.taskHistory.length
+        taskHistory: this.taskHistory.length,
+        memoryUsage: {
+          current: this.getCurrentMemoryUsage().toFixed(0) + ' MB',
+          baseline: this.memoryUsage.baseline.toFixed(0) + ' MB',
+          peak: this.memoryUsage.peak.toFixed(0) + ' MB',
+          efficiency: this.performanceMetrics.memoryEfficiency.toFixed(2)
+        }
       }
     };
   }
@@ -677,12 +779,22 @@ class NeuralAgent extends EventEmitter {
  * Neural Agent Factory
  */
 class NeuralAgentFactory {
+  static memoryOptimizer = null;
+  
+  static async initializeFactory() {
+    if (!this.memoryOptimizer) {
+      this.memoryOptimizer = new MemoryOptimizer();
+      await this.memoryOptimizer.initializePools();
+    }
+  }
+  
   static createNeuralAgent(baseAgent, agentType) {
     if (!AGENT_COGNITIVE_PROFILES[agentType]) {
       throw new Error(`Unknown agent type: ${agentType}`);
     }
     
-    return new NeuralAgent(baseAgent, agentType);
+    // Use shared memory optimizer for all agents
+    return new NeuralAgent(baseAgent, agentType, this.memoryOptimizer);
   }
 
   static getCognitiveProfiles() {
@@ -694,7 +806,14 @@ class NeuralAgentFactory {
   }
 }
 
-export {
+// Lazy load to avoid circular dependency
+setImmediate(() => {
+  const neural = require('./neural');
+  MemoryOptimizer = neural.MemoryOptimizer;
+  PATTERN_MEMORY_CONFIG = neural.PATTERN_MEMORY_CONFIG;
+});
+
+module.exports = {
   NeuralAgent,
   NeuralAgentFactory,
   NeuralNetwork,

@@ -548,6 +548,90 @@ Agent Activity:
 └── 🟢 coordinator: Monitoring progress...
 ```
 
+## 🐝 GitHub Multi-Swarm Collaboration
+
+### Quick Setup for Team Coordination
+
+When multiple Claude Code users work on the same repository, use GitHub issues and labels for coordination:
+
+```bash
+# 1. Add GitHub MCP (if not already added)
+claude mcp add github "npx @modelcontextprotocol/server-github"
+
+# 2. Set your swarm ID
+export CLAUDE_SWARM_ID="swarm-$(whoami)-$(date +%s)"
+```
+
+### Essential Collaboration Commands
+
+```bash
+# See what everyone is working on
+/github status
+
+# Find available work
+/github tasks --priority high
+
+# Claim a task
+/github claim 123
+
+# Update progress
+/github update 123 "Implemented fix, testing now"
+
+# Complete or release
+/github complete 123 --pr 456
+/github release 123 "Need help with WASM"
+```
+
+### Coordination Labels
+
+The system uses GitHub labels to prevent conflicts:
+- `available` - Tasks ready to claim
+- `swarm-claimed` - Currently being worked on
+- `priority: critical/high/medium/low` - Task importance
+- `area: core/mcp/neural/wasm` - Component areas
+
+### Best Practices for Multi-Swarm Work
+
+1. **Before Starting**: Check `/github conflicts` to avoid overlapping work
+2. **Claim Atomically**: Only claim tasks you can complete within 24 hours
+3. **Update Regularly**: Post progress every 30-60 minutes
+4. **Coordinate Conflicts**: Use `/github coordinate split` for large tasks
+5. **Release When Blocked**: Don't hold tasks you can't complete
+
+### Advanced Coordination
+
+```bash
+# Check for conflicts with other swarms
+/github conflicts --resolve
+
+# See who's working on what
+/github swarms
+
+# Propose splitting a large task
+/github coordinate split 789
+
+# Sync latest changes
+/github sync --conflicts
+```
+
+### Visual Coordination Example
+
+```
+🐝 Active Swarms:
+├── swarm-alice-123: Working on #45 (Memory optimization)
+├── swarm-bob-456: Working on #52 (Neural fixes)
+└── swarm-carol-789: Working on #48 (Documentation)
+
+📋 Available Tasks: #53, #54, #55
+⚠️ Potential Conflict: Alice and Bob both editing neural-agent.js
+```
+
+### Full Documentation
+
+- **Command Reference**: `.claude/commands/github/` - All GitHub coordination commands
+- **Collaboration Guide**: `ruv-swarm/SWARM_COLLABORATION_GUIDE.md` - Complete workflow
+- **Helper Script**: `ruv-swarm/scripts/swarm-helper.sh` - CLI automation tool
+
 ## Support
 
 - Documentation: https://github.com/ruvnet/ruv-FANN/tree/main/ruv-swarm

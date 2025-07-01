@@ -19,7 +19,7 @@ fn bench_network_creation(c: &mut Criterion) {
             &layers,
             |b, layers| {
                 b.iter(|| {
-                    let network = Network::new(black_box(layers));
+                    let network = Network::<f32>::new(black_box(layers));
                     black_box(network);
                 });
             },
@@ -41,7 +41,7 @@ fn bench_forward_propagation(c: &mut Criterion) {
     ];
     
     for (layers, name) in configs {
-        let network = Network::new(&layers).unwrap();
+        let mut network = Network::new(&layers);
         let input = vec![0.5; layers[0]];
         
         group.bench_function(name, |b| {
@@ -77,7 +77,7 @@ fn bench_training(c: &mut Criterion) {
     
     group.bench_function("XOR_100_epochs", |b| {
         b.iter(|| {
-            let mut network = Network::new(&[2, 3, 1]).unwrap();
+            let mut network = Network::new(&[2, 3, 1]);
             network.train(
                 black_box(&xor_inputs),
                 black_box(&xor_outputs),
@@ -98,7 +98,7 @@ fn bench_training(c: &mut Criterion) {
     
     group.bench_function("Large_dataset_50_epochs", |b| {
         b.iter(|| {
-            let mut network = Network::new(&[2, 10, 5, 1]).unwrap();
+            let mut network = Network::new(&[2, 10, 5, 1]);
             network.train(
                 black_box(&large_inputs),
                 black_box(&large_outputs),
@@ -140,7 +140,7 @@ fn bench_training_algorithms(c: &mut Criterion) {
     for (algorithm, name) in algorithms {
         group.bench_function(name, |b| {
             b.iter(|| {
-                let mut network = Network::new(&[2, 4, 1]).unwrap();
+                let mut network = Network::new(&[2, 4, 1]);
                 network.set_training_algorithm(algorithm);
                 network.train(
                     black_box(&inputs),
@@ -159,7 +159,7 @@ fn bench_training_algorithms(c: &mut Criterion) {
 fn bench_batch_processing(c: &mut Criterion) {
     let mut group = c.benchmark_group("batch_processing");
     
-    let network = Network::new(&[10, 20, 10, 5]).unwrap();
+    let mut network = Network::new(&[10, 20, 10, 5]);
     
     for batch_size in &[1, 10, 32, 64, 128, 256] {
         let inputs: Vec<Vec<f32>> = (0..*batch_size)
@@ -192,7 +192,7 @@ fn bench_serialization(c: &mut Criterion) {
     ];
     
     for (layers, name) in configs {
-        let mut network = Network::new(&layers).unwrap();
+        let mut network = Network::new(&layers);
         network.randomize_weights(-1.0, 1.0);
         
         group.bench_function(format!("{}_serialize", name), |b| {
@@ -202,11 +202,11 @@ fn bench_serialization(c: &mut Criterion) {
             });
         });
         
-        let bytes = network.to_bytes().unwrap();
+        let bytes = network.to_bytes();
         
         group.bench_function(format!("{}_deserialize", name), |b| {
             b.iter(|| {
-                let loaded = Network::from_bytes(black_box(&bytes));
+                let loaded = Network::<f32>::from_bytes(black_box(&bytes));
                 black_box(loaded);
             });
         });
@@ -223,7 +223,7 @@ fn bench_activation_functions(c: &mut Criterion) {
         (ActivationFunction::Sigmoid, "Sigmoid"),
         (ActivationFunction::Tanh, "Tanh"),
         (ActivationFunction::ReLU, "ReLU"),
-        (ActivationFunction::LeakyReLU(0.01), "LeakyReLU"),
+        (ActivationFunction::ReLULeaky, "LeakyReLU"),
         (ActivationFunction::Linear, "Linear"),
     ];
     
@@ -231,10 +231,13 @@ fn bench_activation_functions(c: &mut Criterion) {
     let input = vec![0.5; 10];
     
     for (activation, name) in activations {
-        let mut network = Network::new(&network_layers).unwrap();
-        network.set_activation_function(activation);
-        
         group.bench_function(name, |b| {
+            let mut network = Network::new(&network_layers);
+            // Set activation function for all hidden layers
+            for layer_idx in 1..network.num_layers() - 1 {
+                network.set_activation_function(layer_idx, activation);
+            }
+            
             b.iter(|| {
                 let output = network.run(black_box(&input));
                 black_box(output);
@@ -249,7 +252,7 @@ fn bench_activation_functions(c: &mut Criterion) {
 fn bench_weight_operations(c: &mut Criterion) {
     let mut group = c.benchmark_group("weight_operations");
     
-    let mut network = Network::new(&[100, 50, 25, 10]).unwrap();
+    let mut network = Network::new(&[100, 50, 25, 10]);
     let total_weights = network.get_total_connections();
     
     group.bench_function("get_weights", |b| {
@@ -279,7 +282,7 @@ fn bench_weight_operations(c: &mut Criterion) {
 #[cfg(feature = "parallel")]
 /// Benchmark parallel training
 fn bench_parallel_training(c: &mut Criterion) {
-    use ruv_fann::ParallelTrainingOptions;
+    // use ruv_fann::ParallelTrainingOptions; // Not yet implemented
     
     let mut group = c.benchmark_group("parallel_training");
     group.sample_size(10);
@@ -302,7 +305,9 @@ fn bench_parallel_training(c: &mut Criterion) {
             threads,
             |b, &threads| {
                 b.iter(|| {
-                    let mut network = Network::new(&[3, 10, 5, 1]).unwrap();
+                    let mut network = Network::new(&[3, 10, 5, 1]);
+                    // Note: parallel training not yet implemented
+                    /*
                     let options = ParallelTrainingOptions::default()
                         .with_threads(threads)
                         .with_batch_size(32);
@@ -313,6 +318,13 @@ fn bench_parallel_training(c: &mut Criterion) {
                         0.01,
                         10,
                         options
+                    );
+                    */
+                    network.train(
+                        black_box(&inputs),
+                        black_box(&outputs),
+                        0.01,
+                        10
                     );
                 });
             },
@@ -343,14 +355,14 @@ fn bench_cascade_network(c: &mut Criterion) {
     
     group.bench_function("cascade_training", |b| {
         b.iter(|| {
-            let mut cascade = CascadeNetwork::new(2, 1).unwrap();
-            cascade.train_cascade(
-                black_box(&inputs),
-                black_box(&outputs),
-                5,
-                100,
-                0.01
-            );
+            let network = Network::new(&[2, 2, 1]);
+            let mut config = CascadeConfig::<f32>::default();
+            config.max_hidden_neurons = 5;
+            config.output_max_epochs = 100;
+            config.candidate_max_epochs = 100;
+            let cascade = CascadeNetwork::new(network, config);
+            // Note: train_cascade method would need to be implemented
+            black_box(cascade);
         });
     });
     

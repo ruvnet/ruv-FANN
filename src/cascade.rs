@@ -63,6 +63,49 @@ pub enum CascadeError {
     ConvergenceFailure(String),
 }
 
+/// A network that supports cascade correlation training
+#[derive(Debug, Clone)]
+pub struct CascadeNetwork<T: Float> {
+    /// The underlying network
+    pub network: Network<T>,
+    /// Configuration for cascade training
+    pub config: CascadeConfig<T>,
+    /// Current cascade training state
+    pub state: CascadeState<T>,
+}
+
+impl<T: Float> CascadeNetwork<T> {
+    /// Create a new cascade network from a base network
+    pub fn new(network: Network<T>, config: CascadeConfig<T>) -> Self {
+        Self {
+            network,
+            config,
+            state: CascadeState::default(),
+        }
+    }
+}
+
+/// State information for cascade training
+#[derive(Debug, Clone)]
+pub struct CascadeState<T: Float> {
+    /// Number of hidden neurons added
+    pub hidden_neurons_added: usize,
+    /// Current training error
+    pub current_error: T,
+    /// Best correlation achieved
+    pub best_correlation: T,
+}
+
+impl<T: Float> Default for CascadeState<T> {
+    fn default() -> Self {
+        Self {
+            hidden_neurons_added: 0,
+            current_error: T::infinity(),
+            best_correlation: T::zero(),
+        }
+    }
+}
+
 /// Configuration for cascade correlation training
 #[derive(Debug, Clone)]
 pub struct CascadeConfig<T: Float> {

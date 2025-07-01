@@ -12,10 +12,21 @@ pub use network::{Network, NetworkBuilder, NetworkError};
 pub use neuron::Neuron;
 
 // Re-export training types
-pub use training::{TrainingAlgorithm, TrainingData, TrainingError, TrainingState};
+pub use training::{TrainingAlgorithm as TrainingAlgorithmTrait, TrainingData, TrainingError, TrainingState, ParallelTrainingOptions};
+
+/// Enumeration of available training algorithms
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum TrainingAlgorithm {
+    IncrementalBackprop,
+    BatchBackprop,
+    Batch,  // Alias for BatchBackprop
+    Backpropagation,  // Alias for IncrementalBackprop
+    RProp,
+    QuickProp,
+}
 
 // Re-export cascade training types
-pub use cascade::{CascadeTrainer, CascadeConfig, CascadeError};
+pub use cascade::{CascadeTrainer, CascadeConfig, CascadeError, CascadeNetwork};
 
 // Re-export comprehensive error handling
 pub use errors::{RuvFannError, ErrorCategory, ValidationError};

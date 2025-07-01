@@ -22,6 +22,30 @@ pub struct TrainingData<T: Float> {
     pub outputs: Vec<Vec<T>>,
 }
 
+/// Options for parallel training
+#[derive(Debug, Clone)]
+pub struct ParallelTrainingOptions {
+    /// Number of threads to use (0 = use all available cores)
+    pub num_threads: usize,
+    /// Batch size for parallel processing
+    pub batch_size: usize,
+    /// Whether to use parallel gradient computation
+    pub parallel_gradients: bool,
+    /// Whether to use parallel error calculation
+    pub parallel_error_calc: bool,
+}
+
+impl Default for ParallelTrainingOptions {
+    fn default() -> Self {
+        Self {
+            num_threads: 0,  // Use all available cores
+            batch_size: 32,
+            parallel_gradients: true,
+            parallel_error_calc: true,
+        }
+    }
+}
+
 /// Error types for training operations
 #[derive(Error, Debug)]
 pub enum TrainingError {

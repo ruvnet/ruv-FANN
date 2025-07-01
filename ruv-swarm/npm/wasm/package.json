@@ -1,5 +1,6 @@
 {
   "name": "ruv-swarm-wasm",
+  "type": "module",
   "collaborators": [
     "rUv Contributors"
   ],

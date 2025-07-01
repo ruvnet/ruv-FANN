@@ -1,0 +1,87 @@
+name: Swarm Coordination
+on:
+  issues:
+    types: [labeled, unlabeled, commented]
+  issue_comment:
+    types: [created]
+
+jobs:
+  check-stale-claims:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for stale swarm claims
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const issues = await github.rest.issues.listForRepo({
+              owner,
+              repo,
+              labels: 'swarm-claimed',
+              state: 'open'
+            });
+            
+            const now = new Date();
+            const staleHours = 24;
+            
+            for (const issue of issues.data) {
+              const lastUpdate = new Date(issue.updated_at);
+              const hoursSinceUpdate = (now - lastUpdate) / (1000 * 60 * 60);
+              
+              if (hoursSinceUpdate > staleHours) {
+                // Add stale label
+                await github.rest.issues.addLabels({
+                  owner,
+                  repo,
+                  issue_number: issue.number,
+                  labels: ['stale-claim']
+                });
+                
+                // Add comment
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number: issue.number,
+                  body: `⏰ This task has been claimed for over ${staleHours} hours without updates. \n\nIf you're still working on this, please post an update. Otherwise, this claim will be released in 6 hours to allow others to contribute.`
+                });
+              }
+            }
+
+  auto-label-priority:
+    if: github.event_name == 'issues' && github.event.action == 'opened'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Auto-label based on keywords
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const issue = context.payload.issue;
+            const title = issue.title.toLowerCase();
+            const body = (issue.body || '').toLowerCase();
+            const text = title + ' ' + body;
+            
+            const labels = [];
+            
+            // Priority detection
+            if (text.includes('urgent') || text.includes('critical') || text.includes('blocker')) {
+              labels.push('priority: critical');
+            } else if (text.includes('important') || text.includes('high priority')) {
+              labels.push('priority: high');
+            }
+            
+            // Area detection
+            if (text.includes('mcp')) labels.push('area: mcp');
+            if (text.includes('neural') || text.includes('ai')) labels.push('area: neural');
+            if (text.includes('wasm') || text.includes('webassembly')) labels.push('area: wasm');
+            if (text.includes('test')) labels.push('area: tests');
+            if (text.includes('doc')) labels.push('area: docs');
+            
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number: issue.number,
+                labels
+              });
+            }

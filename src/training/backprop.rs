@@ -6,7 +6,7 @@ use num_traits::Float;
 
 /// Incremental (online) backpropagation
 /// Updates weights after each training pattern
-pub struct IncrementalBackprop<T: Float + Send> {
+pub struct IncrementalBackprop<T: Float + Send + Default> {
     learning_rate: T,
     momentum: T,
     error_function: Box<dyn ErrorFunction<T>>,
@@ -15,7 +15,7 @@ pub struct IncrementalBackprop<T: Float + Send> {
     callback: Option<TrainingCallback<T>>,
 }
 
-impl<T: Float + Send> IncrementalBackprop<T> {
+impl<T: Float + Send + Default> IncrementalBackprop<T> {
     pub fn new(learning_rate: T) -> Self {
         Self {
             learning_rate,
@@ -55,27 +55,55 @@ impl<T: Float + Send> IncrementalBackprop<T> {
     }
 }
 
-impl<T: Float + Send> TrainingAlgorithm<T> for IncrementalBackprop<T> {
+impl<T: Float + Send + Default> TrainingAlgorithm<T> for IncrementalBackprop<T> {
     fn train_epoch(&mut self, network: &mut Network<T>, data: &TrainingData<T>) -> Result<T, TrainingError> {
+        use super::helpers::*;
+        
         self.initialize_deltas(network);
         
         let mut total_error = T::zero();
         
+        // Convert network to simplified form for easier manipulation
+        let simple_network = network_to_simple(network);
+        
         for (input, desired_output) in data.inputs.iter().zip(data.outputs.iter()) {
-            // Forward propagation
-            let output = network.run(input);
+            // Forward propagation to get all layer activations
+            let activations = forward_propagate(&simple_network, input);
+            
+            // Get output from last layer
+            let output = &activations[activations.len() - 1];
             
             // Calculate error
-            total_error = total_error + self.error_function.calculate(&output, desired_output);
+            total_error = total_error + self.error_function.calculate(output, desired_output);
             
-            // Backward propagation and weight update would go here
-            // This is a simplified implementation for now
+            // Calculate gradients using backpropagation
+            let (weight_gradients, bias_gradients) = calculate_gradients(
+                &simple_network,
+                &activations,
+                desired_output,
+                self.error_function.as_ref()
+            );
             
-            // Update weights with momentum
-            let learning_rate = self.learning_rate;
-            let momentum = self.momentum;
+            // Update weights and biases immediately (incremental/online learning)
+            // Apply momentum
+            for layer_idx in 0..weight_gradients.len() {
+                // Update weight deltas with momentum
+                for (i, &grad) in weight_gradients[layer_idx].iter().enumerate() {
+                    let delta = self.learning_rate * grad + 
+                               self.momentum * self.previous_weight_deltas[layer_idx][i];
+                    self.previous_weight_deltas[layer_idx][i] = delta;
+                }
+                
+                // Update bias deltas with momentum
+                for (i, &grad) in bias_gradients[layer_idx].iter().enumerate() {
+                    let delta = self.learning_rate * grad + 
+                               self.momentum * self.previous_bias_deltas[layer_idx][i];
+                    self.previous_bias_deltas[layer_idx][i] = delta;
+                }
+            }
             
-            // Placeholder for actual backprop implementation
+            // Apply the updates to the actual network
+            apply_updates_to_network(network, &self.previous_weight_deltas, &self.previous_bias_deltas);
         }
         
         Ok(total_error / T::from(data.inputs.len()).unwrap())

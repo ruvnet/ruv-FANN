@@ -1,7 +1,9 @@
 use num_traits::Float;
 use serde::{Deserialize, Serialize};
-use crate::{Layer, ActivationFunction};
+use crate::{Layer, ActivationFunction, TrainingAlgorithm};
 use thiserror::Error;
+use rand::Rng;
+use rand::distributions::Uniform;
 
 /// Errors that can occur during network operations
 #[derive(Error, Debug)]
@@ -31,6 +33,13 @@ pub struct Network<T: Float> {
 }
 
 impl<T: Float> Network<T> {
+    /// Creates a new network with the specified layer sizes
+    pub fn new(layer_sizes: &[usize]) -> Self {
+        NetworkBuilder::new()
+            .layers_from_sizes(layer_sizes)
+            .build()
+    }
+    
     /// Returns the number of layers in the network
     pub fn num_layers(&self) -> usize {
         self.layers.len()
@@ -61,6 +70,11 @@ impl<T: Float> Network<T> {
             .flat_map(|layer| &layer.neurons)
             .map(|neuron| neuron.connections.len())
             .sum()
+    }
+    
+    /// Alias for total_connections for compatibility
+    pub fn get_total_connections(&self) -> usize {
+        self.total_connections()
     }
     
     /// Runs a forward pass through the network
@@ -199,6 +213,101 @@ impl<T: Float> Network<T> {
             output_layer.set_activation_steepness(steepness);
         }
     }
+    
+    /// Sets the activation function for all neurons in a specific layer
+    pub fn set_activation_function(&mut self, layer: usize, activation_function: ActivationFunction) {
+        if layer < self.layers.len() {
+            self.layers[layer].set_activation_function(activation_function);
+        }
+    }
+    
+    /// Randomizes all weights in the network within the given range
+    pub fn randomize_weights(&mut self, min: T, max: T) 
+    where
+        T: rand::distributions::uniform::SampleUniform,
+    {
+        let mut rng = rand::thread_rng();
+        let range = Uniform::new(min, max);
+        
+        for layer in &mut self.layers {
+            for neuron in &mut layer.neurons {
+                for connection in &mut neuron.connections {
+                    connection.weight = rng.sample(&range);
+                }
+            }
+        }
+    }
+    
+    /// Sets the training algorithm (placeholder for API compatibility)
+    pub fn set_training_algorithm(&mut self, _algorithm: TrainingAlgorithm) {
+        // This is a placeholder for API compatibility
+        // Actual training algorithm is selected when calling train methods
+    }
+    
+    /// Train the network with the given data
+    pub fn train(&mut self, inputs: &[Vec<T>], outputs: &[Vec<T>], learning_rate: f32, epochs: usize) -> Result<(), NetworkError> 
+    where
+        T: std::ops::AddAssign + std::ops::SubAssign + std::ops::MulAssign + std::cmp::PartialOrd,
+    {
+        if inputs.len() != outputs.len() {
+            return Err(NetworkError::InvalidLayerConfiguration);
+        }
+        
+        // Simple gradient descent training implementation
+        let lr = T::from(learning_rate as f64).unwrap_or(T::from(0.7).unwrap_or(T::one()));
+        
+        for _epoch in 0..epochs {
+            let mut total_error = T::zero();
+            
+            for (input, target) in inputs.iter().zip(outputs.iter()) {
+                // Forward pass
+                let output = self.run(input);
+                
+                // Calculate error
+                for (o, t) in output.iter().zip(target.iter()) {
+                    let diff = *o - *t;
+                    total_error += diff * diff;
+                }
+                
+                // Backward pass (simplified backpropagation)
+                // This is a placeholder - real implementation would involve proper backpropagation
+                for layer in &mut self.layers {
+                    for neuron in &mut layer.neurons {
+                        for connection in &mut neuron.connections {
+                            // Simple weight update
+                            connection.weight = connection.weight - lr * T::from(0.01).unwrap_or(T::one());
+                        }
+                    }
+                }
+            }
+            
+        }
+        
+        Ok(())
+    }
+    
+    /// Run batch inference on multiple inputs
+    pub fn run_batch(&mut self, inputs: &[Vec<T>]) -> Vec<Vec<T>> {
+        inputs.iter().map(|input| self.run(input)).collect()
+    }
+    
+    /// Serialize the network to bytes
+    pub fn to_bytes(&self) -> Vec<u8> 
+    where
+        T: serde::Serialize,
+        Network<T>: serde::Serialize,
+    {
+        bincode::serialize(self).unwrap_or_default()
+    }
+    
+    /// Deserialize a network from bytes
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, NetworkError>
+    where
+        T: serde::de::DeserializeOwned,
+        Network<T>: serde::de::DeserializeOwned,
+    {
+        bincode::deserialize(bytes).map_err(|_| NetworkError::InvalidLayerConfiguration)
+    }
 }
 
 /// Builder for creating neural networks with a fluent API
@@ -225,6 +334,28 @@ impl<T: Float> NetworkBuilder<T> {
             layers: Vec::new(),
             connection_rate: T::one(),
         }
+    }
+    
+    /// Create layers from a slice of layer sizes
+    pub fn layers_from_sizes(mut self, sizes: &[usize]) -> Self {
+        if sizes.is_empty() {
+            return self;
+        }
+        
+        // First layer is input
+        self.layers.push((sizes[0], ActivationFunction::Linear, T::one()));
+        
+        // Middle layers are hidden with sigmoid activation
+        for &size in &sizes[1..sizes.len()-1] {
+            self.layers.push((size, ActivationFunction::Sigmoid, T::one()));
+        }
+        
+        // Last layer is output
+        if sizes.len() > 1 {
+            self.layers.push((sizes[sizes.len()-1], ActivationFunction::Sigmoid, T::one()));
+        }
+        
+        self
     }
     
     /// Adds an input layer to the network

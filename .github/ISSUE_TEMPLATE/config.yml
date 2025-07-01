@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: ruv-swarm Documentation
+    url: https://github.com/ruvnet/ruv-FANN/tree/main/ruv-swarm
+    about: Please check the documentation first
+  - name: Discussions
+    url: https://github.com/ruvnet/ruv-FANN/discussions
+    about: Ask questions and discuss ideas
