@@ -62,7 +62,7 @@
   },
   "homepage": "https://github.com/ruvnet/ruv-FANN#readme",
   "dependencies": {
-    "better-sqlite3": "^9.2.2",
+    "better-sqlite3": "^12.2.0",
     "ws": "^8.14.0",
     "uuid": "^9.0.1"
   },
