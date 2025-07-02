@@ -175,8 +175,8 @@ async function testAgentTaskBinding() {
 }
 
 // Run the test
-// Direct execution block
-{
+// Direct execution
+if (require.main === module) {
   testAgentTaskBinding()
     .then(success => {
       process.exit(success ? 0 : 1);

@@ -216,7 +216,7 @@ describe('Async Operations Edge Cases', () => {
         yield 1;
         yield 2;
         throw new Error('Generator error');
-        yield 3; // Never reached
+        // yield 3; // Never reached - commented out to fix unreachable code
       }
 
       const results = [];

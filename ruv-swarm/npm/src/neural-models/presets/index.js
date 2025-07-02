@@ -108,7 +108,7 @@ export const searchPresetsByAccuracy = (minAccuracy) => {
       const accuracyMatch = accuracyStr.match(/(\d+)-?(\d+)?%/);
 
       if (accuracyMatch) {
-        const minAcc = parseInt(accuracyMatch[1]);
+        const minAcc = parseInt(accuracyMatch[1], 10);
         if (minAcc >= minAccuracy) {
           results.push({
             category,
@@ -134,7 +134,7 @@ export const searchPresetsByInferenceTime = (maxTimeMs) => {
       const timeMatch = timeStr.match(/(\d+)ms/);
 
       if (timeMatch) {
-        const timeMs = parseInt(timeMatch[1]);
+        const timeMs = parseInt(timeMatch[1], 10);
         if (timeMs <= maxTimeMs) {
           results.push({
             category,
@@ -183,7 +183,7 @@ export const getPresetStatistics = () => {
       const accuracyStr = preset.performance.expectedAccuracy;
       const accuracyMatch = accuracyStr.match(/(\d+)-?(\d+)?%/);
       if (accuracyMatch) {
-        const minAcc = parseInt(accuracyMatch[1]);
+        const minAcc = parseInt(accuracyMatch[1], 10);
         if (minAcc >= 90) {
           stats.accuracyRanges['90-100%']++;
         } else if (minAcc >= 80) {
@@ -199,7 +199,7 @@ export const getPresetStatistics = () => {
       const timeStr = preset.performance.inferenceTime;
       const timeMatch = timeStr.match(/(\d+)ms/);
       if (timeMatch) {
-        const timeMs = parseInt(timeMatch[1]);
+        const timeMs = parseInt(timeMatch[1], 10);
         if (timeMs < 10) {
           stats.inferenceTimeRanges['under-10ms']++;
         } else if (timeMs < 50) {

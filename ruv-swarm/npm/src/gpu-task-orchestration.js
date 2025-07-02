@@ -12,7 +12,7 @@ import { GPUMCPTools } from './mcp-gpu-tools.js';
  */
 export const GPU_TASK_TYPES = {
   TRAINING: 'gpu_training_task',
-  INFERENCE: 'gpu_inference_task', 
+  INFERENCE: 'gpu_inference_task',
   OPTIMIZATION: 'gpu_optimization_task',
   MEMORY_MANAGEMENT: 'gpu_memory_task',
   BATCH_PROCESSING: 'gpu_batch_task',
@@ -69,15 +69,15 @@ export class GPUTask {
     if (!validStates.includes(newState)) {
       throw new Error(`Invalid task state: ${newState}`);
     }
-    
+
     this.state = newState;
-    
+
     if (newState === 'running') {
       this.startTime = Date.now();
     } else if (['completed', 'failed', 'cancelled'].includes(newState)) {
       this.endTime = Date.now();
     }
-    
+
     Object.assign(this.metrics, metadata.metrics || {});
   }
 
@@ -85,7 +85,9 @@ export class GPUTask {
    * Calculate task execution time
    */
   getExecutionTime() {
-    if (!this.startTime) return 0;
+    if (!this.startTime) {
+      return 0;
+    }
     const endTime = this.endTime || Date.now();
     return endTime - this.startTime;
   }
@@ -118,7 +120,7 @@ export class GPUTrainingTask extends GPUTask {
         ...config.requirements,
       },
     });
-    
+
     this.trainingConfig = {
       networkLayers: config.networkLayers || [784, 128, 10],
       batchSize: config.batchSize || 32,
@@ -137,15 +139,15 @@ export class GPUTrainingTask extends GPUTask {
     if (!Array.isArray(this.trainingConfig.networkLayers) || this.trainingConfig.networkLayers.length < 2) {
       throw new Error('Network layers must be an array with at least 2 layers');
     }
-    
+
     if (this.trainingConfig.batchSize < 1 || this.trainingConfig.batchSize > 1024) {
       throw new Error('Batch size must be between 1 and 1024');
     }
-    
+
     if (this.trainingConfig.learningRate <= 0 || this.trainingConfig.learningRate > 1) {
       throw new Error('Learning rate must be between 0 and 1');
     }
-    
+
     return true;
   }
 
@@ -154,12 +156,14 @@ export class GPUTrainingTask extends GPUTask {
    */
   estimateRequirements() {
     const totalParams = this.trainingConfig.networkLayers.reduce((sum, layer, i) => {
-      if (i === 0) return sum;
-      return sum + (this.trainingConfig.networkLayers[i-1] * layer);
+      if (i === 0) {
+        return sum;
+      }
+      return sum + (this.trainingConfig.networkLayers[i - 1] * layer);
     }, 0);
-    
+
     const batchMemoryMB = (totalParams * 4 * this.trainingConfig.batchSize) / (1024 * 1024);
-    
+
     return {
       memoryMB: Math.max(512, Math.ceil(batchMemoryMB * 2.5)), // Include gradient and optimizer states
       computeUnits: Math.min(8, Math.ceil(totalParams / 100000)),
@@ -185,7 +189,7 @@ export class GPUInferenceTask extends GPUTask {
         ...config.requirements,
       },
     });
-    
+
     this.inferenceConfig = {
       modelPath: config.modelPath,
       inputShape: config.inputShape || [1, 784],
@@ -228,7 +232,7 @@ export class GPUOptimizationTask extends GPUTask {
         ...config.requirements,
       },
     });
-    
+
     this.optimizationConfig = {
       algorithm: config.algorithm || 'genetic',
       populationSize: config.populationSize || 100,
@@ -257,7 +261,7 @@ export class GPUMemoryTask extends GPUTask {
         ...config.requirements,
       },
     });
-    
+
     this.memoryOperation = {
       type: config.operation || 'cleanup', // cleanup, defragment, allocate, deallocate
       targetMemoryMB: config.targetMemoryMB || 0,
@@ -273,7 +277,7 @@ export class GPUMemoryTask extends GPUTask {
 export class GPUResourceCoordinator extends EventEmitter {
   constructor(maxMemoryMB = 8192, maxComputeUnits = 16) {
     super();
-    
+
     this.resources = {
       totalMemoryMB: maxMemoryMB,
       availableMemoryMB: maxMemoryMB,
@@ -281,7 +285,7 @@ export class GPUResourceCoordinator extends EventEmitter {
       availableComputeUnits: maxComputeUnits,
       state: GPU_RESOURCE_STATES.AVAILABLE,
     };
-    
+
     this.allocations = new Map(); // agentId -> allocation
     this.taskQueue = []; // GPU tasks waiting for resources
     this.runningTasks = new Map(); // taskId -> task
@@ -293,7 +297,7 @@ export class GPUResourceCoordinator extends EventEmitter {
       peakMemoryUsage: 0,
       conflictResolutions: 0,
     };
-    
+
     // Resource monitoring interval
     this.monitoringInterval = setInterval(() => {
       this.updateResourceMetrics();
@@ -313,19 +317,19 @@ export class GPUResourceCoordinator extends EventEmitter {
       allocatedAt: Date.now(),
       lastUsed: Date.now(),
     };
-    
+
     // Check resource availability
     if (!this.canAllocate(allocation)) {
       throw new Error(`Insufficient GPU resources for agent ${agentId}`);
     }
-    
+
     // Allocate resources
     this.resources.availableMemoryMB -= allocation.memoryMB;
     this.resources.availableComputeUnits -= allocation.computeUnits;
     this.allocations.set(agentId, allocation);
-    
+
     this.emit('resourceAllocated', { agentId, allocation });
-    
+
     return allocation;
   }
 
@@ -337,17 +341,17 @@ export class GPUResourceCoordinator extends EventEmitter {
     if (!allocation) {
       throw new Error(`No allocation found for agent ${agentId}`);
     }
-    
+
     // Release resources
     this.resources.availableMemoryMB += allocation.memoryMB;
     this.resources.availableComputeUnits += allocation.computeUnits;
     this.allocations.delete(agentId);
-    
+
     this.emit('resourceReleased', { agentId, allocation });
-    
+
     // Process queued tasks
     this.processTaskQueue();
-    
+
     return allocation;
   }
 
@@ -358,7 +362,7 @@ export class GPUResourceCoordinator extends EventEmitter {
     if (requirements.exclusive && this.allocations.size > 0) {
       return false;
     }
-    
+
     return (
       this.resources.availableMemoryMB >= requirements.memoryMB &&
       this.resources.availableComputeUnits >= requirements.computeUnits
@@ -372,26 +376,26 @@ export class GPUResourceCoordinator extends EventEmitter {
     if (!(task instanceof GPUTask)) {
       throw new Error('Task must be an instance of GPUTask');
     }
-    
+
     // Validate task requirements
     if (task.validate && !task.validate()) {
       throw new Error(`Task validation failed for task ${task.id}`);
     }
-    
+
     task.updateState('pending');
     this.taskQueue.push(task);
-    
+
     // Sort by priority
     this.taskQueue.sort((a, b) => {
       const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
       return priorityOrder[b.priority] - priorityOrder[a.priority];
     });
-    
+
     this.emit('taskQueued', { task });
-    
+
     // Try to execute immediately
     this.processTaskQueue();
-    
+
     return task;
   }
 
@@ -401,15 +405,15 @@ export class GPUResourceCoordinator extends EventEmitter {
   async processTaskQueue() {
     while (this.taskQueue.length > 0) {
       const task = this.taskQueue[0];
-      
+
       // Check if task can be allocated
       if (!this.canAllocate(task.requirements)) {
         break; // Wait for resources to be freed
       }
-      
+
       // Remove from queue
       this.taskQueue.shift();
-      
+
       // Allocate resources and execute
       try {
         const allocation = this.allocateResources(task.agentId, task.requirements);
@@ -428,30 +432,30 @@ export class GPUResourceCoordinator extends EventEmitter {
   async executeTask(task, allocation) {
     task.updateState('allocated');
     this.runningTasks.set(task.id, task);
-    
+
     try {
       task.updateState('running');
       this.emit('taskStarted', { task, allocation });
-      
+
       // Execute the task based on its type
       let result;
       switch (task.type) {
-        case GPU_TASK_TYPES.TRAINING:
-          result = await this.executeTrainingTask(task);
-          break;
-        case GPU_TASK_TYPES.INFERENCE:
-          result = await this.executeInferenceTask(task);
-          break;
-        case GPU_TASK_TYPES.OPTIMIZATION:
-          result = await this.executeOptimizationTask(task);
-          break;
-        case GPU_TASK_TYPES.MEMORY_MANAGEMENT:
-          result = await this.executeMemoryTask(task);
-          break;
-        default:
-          throw new Error(`Unknown task type: ${task.type}`);
+      case GPU_TASK_TYPES.TRAINING:
+        result = await this.executeTrainingTask(task);
+        break;
+      case GPU_TASK_TYPES.INFERENCE:
+        result = await this.executeInferenceTask(task);
+        break;
+      case GPU_TASK_TYPES.OPTIMIZATION:
+        result = await this.executeOptimizationTask(task);
+        break;
+      case GPU_TASK_TYPES.MEMORY_MANAGEMENT:
+        result = await this.executeMemoryTask(task);
+        break;
+      default:
+        throw new Error(`Unknown task type: ${task.type}`);
       }
-      
+
       task.result = result;
       task.updateState('completed', {
         metrics: {
@@ -461,9 +465,9 @@ export class GPUResourceCoordinator extends EventEmitter {
           throughput: result.throughput || 0,
         },
       });
-      
+
       this.emit('taskCompleted', { task, result });
-      
+
     } catch (error) {
       task.error = error.message;
       task.updateState('failed');
@@ -473,7 +477,7 @@ export class GPUResourceCoordinator extends EventEmitter {
       this.runningTasks.delete(task.id);
       this.completedTasks.set(task.id, task);
       this.releaseResources(task.agentId);
-      
+
       // Update metrics
       this.updateTaskMetrics(task);
     }
@@ -484,19 +488,21 @@ export class GPUResourceCoordinator extends EventEmitter {
    */
   async executeTrainingTask(task) {
     const { networkLayers, batchSize, epochs, learningRate } = task.trainingConfig;
-    
+
     // Simulate training with realistic timing
     const totalParams = networkLayers.reduce((sum, layer, i) => {
-      if (i === 0) return sum;
-      return sum + (networkLayers[i-1] * layer);
+      if (i === 0) {
+        return sum;
+      }
+      return sum + (networkLayers[i - 1] * layer);
     }, 0);
-    
+
     const trainingTimeMs = Math.max(100, totalParams * epochs * 0.001);
-    
+
     // Simulate training progress
     for (let epoch = 0; epoch < epochs; epoch++) {
       await new Promise(resolve => setTimeout(resolve, trainingTimeMs / epochs));
-      
+
       // Emit progress updates
       this.emit('trainingProgress', {
         taskId: task.id,
@@ -506,10 +512,10 @@ export class GPUResourceCoordinator extends EventEmitter {
         accuracy: Math.min(0.99, (epoch / epochs) * 0.8 + Math.random() * 0.1),
       });
     }
-    
+
     return {
       type: 'training_result',
-      epochs: epochs,
+      epochs,
       finalLoss: Math.random() * 0.1,
       finalAccuracy: 0.85 + Math.random() * 0.1,
       trainingTime: trainingTimeMs,
@@ -523,18 +529,18 @@ export class GPUResourceCoordinator extends EventEmitter {
    */
   async executeInferenceTask(task) {
     const { batchSize, precision } = task.inferenceConfig;
-    
+
     // Simulate inference timing based on batch size
     const inferenceTimeMs = Math.max(10, batchSize * 2);
     await new Promise(resolve => setTimeout(resolve, inferenceTimeMs));
-    
+
     return {
       type: 'inference_result',
       predictions: Array(batchSize).fill(0).map(() => Math.random()),
       confidence: 0.8 + Math.random() * 0.2,
       inferenceTime: inferenceTimeMs,
       throughput: batchSize / (inferenceTimeMs / 1000), // samples/second
-      precision: precision,
+      precision,
     };
   }
 
@@ -543,13 +549,13 @@ export class GPUResourceCoordinator extends EventEmitter {
    */
   async executeOptimizationTask(task) {
     const { populationSize, generations } = task.optimizationConfig;
-    
+
     // Simulate optimization progress
     const optimizationTimeMs = generations * populationSize * 10;
-    
+
     for (let gen = 0; gen < generations; gen++) {
       await new Promise(resolve => setTimeout(resolve, optimizationTimeMs / generations));
-      
+
       this.emit('optimizationProgress', {
         taskId: task.id,
         generation: gen + 1,
@@ -558,12 +564,12 @@ export class GPUResourceCoordinator extends EventEmitter {
         averageFitness: Math.random() * 0.5 * (gen + 1) / generations,
       });
     }
-    
+
     return {
       type: 'optimization_result',
       bestSolution: Array(10).fill(0).map(() => Math.random()),
       bestFitness: Math.random(),
-      generations: generations,
+      generations,
       optimizationTime: optimizationTimeMs,
       convergenceRate: 0.8 + Math.random() * 0.2,
     };
@@ -574,29 +580,29 @@ export class GPUResourceCoordinator extends EventEmitter {
    */
   async executeMemoryTask(task) {
     const { type, targetMemoryMB, forceGC } = task.memoryOperation;
-    
+
     // Simulate memory operation
     await new Promise(resolve => setTimeout(resolve, 200));
-    
+
     let freedMemoryMB = 0;
     let defragmented = false;
-    
+
     switch (type) {
-      case 'cleanup':
-        freedMemoryMB = Math.random() * 500 + 100;
-        break;
-      case 'defragment':
-        defragmented = true;
-        freedMemoryMB = Math.random() * 200 + 50;
-        break;
-      case 'allocate':
-        // Allocate memory for future use
-        break;
-      case 'deallocate':
-        freedMemoryMB = targetMemoryMB;
-        break;
+    case 'cleanup':
+      freedMemoryMB = Math.random() * 500 + 100;
+      break;
+    case 'defragment':
+      defragmented = true;
+      freedMemoryMB = Math.random() * 200 + 50;
+      break;
+    case 'allocate':
+      // Allocate memory for future use
+      break;
+    case 'deallocate':
+      freedMemoryMB = targetMemoryMB;
+      break;
     }
-    
+
     return {
       type: 'memory_result',
       operation: type,
@@ -616,19 +622,19 @@ export class GPUResourceCoordinator extends EventEmitter {
       const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
       return priorityOrder[b.priority] - priorityOrder[a.priority];
     });
-    
+
     const winner = tasks[0];
     const losers = tasks.slice(1);
-    
+
     // Reschedule lower priority tasks
     losers.forEach(task => {
       task.updateState('pending');
       this.taskQueue.unshift(task); // Add back to front of queue
     });
-    
+
     this.metrics.conflictResolutions++;
     this.emit('conflictResolved', { winner, losers });
-    
+
     return winner;
   }
 
@@ -638,13 +644,13 @@ export class GPUResourceCoordinator extends EventEmitter {
   updateResourceMetrics() {
     const memoryUtilization = 1 - (this.resources.availableMemoryMB / this.resources.totalMemoryMB);
     const computeUtilization = 1 - (this.resources.availableComputeUnits / this.resources.totalComputeUnits);
-    
+
     this.metrics.averageUtilization = (memoryUtilization + computeUtilization) / 2;
     this.metrics.peakMemoryUsage = Math.max(
       this.metrics.peakMemoryUsage,
-      this.resources.totalMemoryMB - this.resources.availableMemoryMB
+      this.resources.totalMemoryMB - this.resources.availableMemoryMB,
     );
-    
+
     this.emit('metricsUpdated', this.metrics);
   }
 
@@ -681,13 +687,13 @@ export class GPUResourceCoordinator extends EventEmitter {
       clearInterval(this.monitoringInterval);
       this.monitoringInterval = null;
     }
-    
+
     // Cancel all running tasks
     for (const task of this.runningTasks.values()) {
       task.updateState('cancelled');
       this.releaseResources(task.agentId);
     }
-    
+
     this.runningTasks.clear();
     this.taskQueue.length = 0;
     this.allocations.clear();
@@ -700,22 +706,22 @@ export class GPUResourceCoordinator extends EventEmitter {
 export class GPUTaskOrchestrator extends EventEmitter {
   constructor(ruvSwarmInstance, options = {}) {
     super();
-    
+
     this.ruvSwarm = ruvSwarmInstance;
     this.gpuMCPTools = new GPUMCPTools(ruvSwarmInstance);
     this.resourceCoordinator = new GPUResourceCoordinator(
       options.maxMemoryMB || 8192,
-      options.maxComputeUnits || 16
+      options.maxComputeUnits || 16,
     );
-    
+
     this.agentTaskCounts = new Map(); // agentId -> task count
     this.performanceProfile = new Map(); // agentId -> performance data
     this.loadBalancingStrategy = options.loadBalancingStrategy || 'round_robin';
     this.maxConcurrentTasks = options.maxConcurrentTasks || 10;
-    
+
     // Bind events
     this.setupEventHandlers();
-    
+
     // Performance monitoring
     this.performanceMetrics = {
       tasksPerSecond: 0,
@@ -724,7 +730,7 @@ export class GPUTaskOrchestrator extends EventEmitter {
       gpuUtilization: 0,
       memoryEfficiency: 0,
     };
-    
+
     this.startPerformanceMonitoring();
   }
 
@@ -736,12 +742,12 @@ export class GPUTaskOrchestrator extends EventEmitter {
       this.emit('taskCompleted', { task, result });
       this.updateAgentPerformance(task.agentId, task, result);
     });
-    
+
     this.resourceCoordinator.on('taskFailed', ({ task, error }) => {
       this.emit('taskFailed', { task, error });
       this.updateAgentPerformance(task.agentId, task, null, error);
     });
-    
+
     this.resourceCoordinator.on('conflictResolved', ({ winner, losers }) => {
       this.emit('resourceConflict', { winner, losers });
     });
@@ -754,30 +760,30 @@ export class GPUTaskOrchestrator extends EventEmitter {
     if (!Array.isArray(agents) || agents.length === 0) {
       throw new Error('At least one agent must be provided for task orchestration');
     }
-    
+
     // Create GPU task based on type
     let task;
     switch (taskConfig.type) {
-      case GPU_TASK_TYPES.TRAINING:
-        task = new GPUTrainingTask(taskConfig);
-        break;
-      case GPU_TASK_TYPES.INFERENCE:
-        task = new GPUInferenceTask(taskConfig);
-        break;
-      case GPU_TASK_TYPES.OPTIMIZATION:
-        task = new GPUOptimizationTask(taskConfig);
-        break;
-      case GPU_TASK_TYPES.MEMORY_MANAGEMENT:
-        task = new GPUMemoryTask(taskConfig);
-        break;
-      default:
-        task = new GPUTask(taskConfig);
+    case GPU_TASK_TYPES.TRAINING:
+      task = new GPUTrainingTask(taskConfig);
+      break;
+    case GPU_TASK_TYPES.INFERENCE:
+      task = new GPUInferenceTask(taskConfig);
+      break;
+    case GPU_TASK_TYPES.OPTIMIZATION:
+      task = new GPUOptimizationTask(taskConfig);
+      break;
+    case GPU_TASK_TYPES.MEMORY_MANAGEMENT:
+      task = new GPUMemoryTask(taskConfig);
+      break;
+    default:
+      task = new GPUTask(taskConfig);
     }
-    
+
     // Select optimal agent for the task
     const selectedAgent = this.selectOptimalAgent(task, agents);
     task.agentId = selectedAgent.id;
-    
+
     // Queue task for execution
     return this.resourceCoordinator.queueTask(task);
   }
@@ -787,20 +793,20 @@ export class GPUTaskOrchestrator extends EventEmitter {
    */
   selectOptimalAgent(task, agents) {
     switch (this.loadBalancingStrategy) {
-      case 'round_robin':
-        return this.selectRoundRobin(agents);
-      
-      case 'least_loaded':
-        return this.selectLeastLoaded(agents);
-      
-      case 'performance_based':
-        return this.selectPerformanceBased(task, agents);
-      
-      case 'resource_aware':
-        return this.selectResourceAware(task, agents);
-      
-      default:
-        return agents[0];
+    case 'round_robin':
+      return this.selectRoundRobin(agents);
+
+    case 'least_loaded':
+      return this.selectLeastLoaded(agents);
+
+    case 'performance_based':
+      return this.selectPerformanceBased(task, agents);
+
+    case 'resource_aware':
+      return this.selectResourceAware(task, agents);
+
+    default:
+      return agents[0];
     }
   }
 
@@ -811,7 +817,7 @@ export class GPUTaskOrchestrator extends EventEmitter {
     if (!this.roundRobinIndex) {
       this.roundRobinIndex = 0;
     }
-    
+
     const agent = agents[this.roundRobinIndex % agents.length];
     this.roundRobinIndex++;
     return agent;
@@ -834,20 +840,22 @@ export class GPUTaskOrchestrator extends EventEmitter {
   selectPerformanceBased(task, agents) {
     let bestAgent = agents[0];
     let bestScore = 0;
-    
+
     for (const agent of agents) {
       const performance = this.performanceProfile.get(agent.id);
-      if (!performance) continue;
-      
+      if (!performance) {
+        continue;
+      }
+
       const taskTypePerf = performance.byTaskType[task.type] || { successRate: 0.5, avgLatency: 1000 };
       const score = taskTypePerf.successRate / (taskTypePerf.avgLatency / 1000);
-      
+
       if (score > bestScore) {
         bestScore = score;
         bestAgent = agent;
       }
     }
-    
+
     return bestAgent;
   }
 
@@ -856,18 +864,18 @@ export class GPUTaskOrchestrator extends EventEmitter {
    */
   selectResourceAware(task, agents) {
     const allocation = this.resourceCoordinator.allocations;
-    
+
     for (const agent of agents) {
       const currentAllocation = allocation.get(agent.id);
       if (!currentAllocation) {
         return agent; // Agent with no current allocation
       }
-      
+
       if (task.isCompatibleWith(currentAllocation)) {
         return agent;
       }
     }
-    
+
     // Fallback to least loaded
     return this.selectLeastLoaded(agents);
   }
@@ -884,15 +892,15 @@ export class GPUTaskOrchestrator extends EventEmitter {
         byTaskType: {},
       });
     }
-    
+
     const profile = this.performanceProfile.get(agentId);
     profile.totalTasks++;
     profile.totalLatency += task.getExecutionTime();
-    
+
     if (!error) {
       profile.successfulTasks++;
     }
-    
+
     // Update task type specific metrics
     if (!profile.byTaskType[task.type]) {
       profile.byTaskType[task.type] = {
@@ -903,18 +911,18 @@ export class GPUTaskOrchestrator extends EventEmitter {
         avgLatency: 0,
       };
     }
-    
+
     const taskTypeProfile = profile.byTaskType[task.type];
     taskTypeProfile.count++;
     taskTypeProfile.totalLatency += task.getExecutionTime();
-    
+
     if (!error) {
       taskTypeProfile.successful++;
     }
-    
+
     taskTypeProfile.successRate = taskTypeProfile.successful / taskTypeProfile.count;
     taskTypeProfile.avgLatency = taskTypeProfile.totalLatency / taskTypeProfile.count;
-    
+
     // Update task count
     this.agentTaskCounts.set(agentId, (this.agentTaskCounts.get(agentId) || 0) + 1);
   }
@@ -924,7 +932,7 @@ export class GPUTaskOrchestrator extends EventEmitter {
    */
   getPerformanceMetrics() {
     const resourceStatus = this.resourceCoordinator.getResourceStatus();
-    
+
     return {
       ...this.performanceMetrics,
       resourceUtilization: resourceStatus.metrics.averageUtilization,
@@ -940,12 +948,14 @@ export class GPUTaskOrchestrator extends EventEmitter {
    * Calculate load balance metric across agents
    */
   calculateLoadBalanceMetric() {
-    if (this.agentTaskCounts.size === 0) return 1.0;
-    
+    if (this.agentTaskCounts.size === 0) {
+      return 1.0;
+    }
+
     const taskCounts = Array.from(this.agentTaskCounts.values());
     const avg = taskCounts.reduce((sum, count) => sum + count, 0) / taskCounts.length;
     const variance = taskCounts.reduce((sum, count) => sum + Math.pow(count - avg, 2), 0) / taskCounts.length;
-    
+
     // Return value between 0 (unbalanced) and 1 (perfectly balanced)
     return Math.max(0, 1 - (Math.sqrt(variance) / avg));
   }
@@ -956,12 +966,12 @@ export class GPUTaskOrchestrator extends EventEmitter {
   calculateAverageLatency() {
     let totalLatency = 0;
     let totalTasks = 0;
-    
+
     for (const profile of this.performanceProfile.values()) {
       totalLatency += profile.totalLatency;
       totalTasks += profile.totalTasks;
     }
-    
+
     return totalTasks > 0 ? totalLatency / totalTasks : 0;
   }
 
@@ -978,17 +988,17 @@ export class GPUTaskOrchestrator extends EventEmitter {
    * Update performance metrics
    */
   updatePerformanceMetrics() {
-    const metrics = this.resourceCoordinator.getResourceStatus().metrics;
-    
+    const { metrics } = this.resourceCoordinator.getResourceStatus();
+
     this.performanceMetrics = {
       tasksPerSecond: metrics.totalTasksProcessed / (metrics.totalExecutionTime / 1000) || 0,
       averageLatency: this.calculateAverageLatency(),
       successRate: this.calculateSuccessRate(),
       gpuUtilization: metrics.averageUtilization,
-      memoryEfficiency: metrics.peakMemoryUsage > 0 ? 
+      memoryEfficiency: metrics.peakMemoryUsage > 0 ?
         (metrics.peakMemoryUsage / this.resourceCoordinator.resources.totalMemoryMB) : 0,
     };
-    
+
     this.emit('performanceUpdate', this.performanceMetrics);
   }
 
@@ -998,12 +1008,12 @@ export class GPUTaskOrchestrator extends EventEmitter {
   calculateSuccessRate() {
     let totalTasks = 0;
     let successfulTasks = 0;
-    
+
     for (const profile of this.performanceProfile.values()) {
       totalTasks += profile.totalTasks;
       successfulTasks += profile.successfulTasks;
     }
-    
+
     return totalTasks > 0 ? successfulTasks / totalTasks : 0;
   }
 
@@ -1015,7 +1025,7 @@ export class GPUTaskOrchestrator extends EventEmitter {
       clearInterval(this.performanceInterval);
       this.performanceInterval = null;
     }
-    
+
     this.resourceCoordinator.cleanup();
   }
 
@@ -1039,13 +1049,5 @@ export function createGPUTaskOrchestrator(ruvSwarmInstance, options = {}) {
   return new GPUTaskOrchestrator(ruvSwarmInstance, options);
 }
 
-// Export all classes and constants
-export {
-  GPUTask,
-  GPUTrainingTask,
-  GPUInferenceTask,
-  GPUOptimizationTask,
-  GPUMemoryTask,
-  GPUResourceCoordinator,
-  GPUTaskOrchestrator,
-};
+// Re-export GPUTask class to resolve duplicate export
+export { GPUTask as GPUTaskClass };

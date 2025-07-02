@@ -57,7 +57,8 @@ describe('PersistenceManager Edge Cases', () => {
       });
 
       await expect(async() => {
-        new PersistenceManager();
+        const _manager = new PersistenceManager();
+        return _manager;
       }).rejects.toThrow('Cannot open database');
     });
 

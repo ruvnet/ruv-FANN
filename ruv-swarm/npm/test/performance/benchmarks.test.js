@@ -539,8 +539,8 @@ describe('Performance Benchmarks', () => {
 });
 
 // Run benchmarks
-// Direct execution block
-{
+// Direct execution
+if (require.main === module) {
   console.log('Running Performance Benchmarks...');
   console.log('This may take a few minutes...\n');
   require('../../node_modules/.bin/jest');

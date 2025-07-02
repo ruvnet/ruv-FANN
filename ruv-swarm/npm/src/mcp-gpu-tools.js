@@ -421,7 +421,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
   // Helper methods for GPU operations
 
   async checkWebGPUSupport() {
-    if (typeof navigator !== 'undefined' && navigator.gpu) {
+    if (typeof window !== 'undefined' && typeof navigator !== 'undefined' && navigator.gpu) {
       try {
         const adapter = await navigator.gpu.requestAdapter();
         return adapter !== null;
@@ -442,7 +442,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
     try {
       const gpuAvailable = await this.checkWebGPUSupport();
 
-      if (gpuAvailable) {
+      if (gpuAvailable && typeof window !== 'undefined' && typeof navigator !== 'undefined' && navigator.gpu) {
         const adapter = await navigator.gpu.requestAdapter();
         const device = await adapter.requestDevice();
 

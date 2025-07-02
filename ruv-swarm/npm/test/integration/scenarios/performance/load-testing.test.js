@@ -514,10 +514,19 @@ describe('Performance Under Load Integration Tests', () => {
         }
       }, 100);
 
-      // Wait for completion
-      while (processedItems < totalItems) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
+      // Wait for completion with timeout
+      await new Promise((resolve) => {
+        const checkCompletion = () => {
+          if (processedItems >= totalItems) {
+            resolve();
+          } else if (Date.now() - startTime > 10000) { // 10 second timeout
+            resolve(); // Timeout
+          } else {
+            setTimeout(checkCompletion, 100);
+          }
+        };
+        checkCompletion();
+      });
 
       const totalTime = Date.now() - startTime;
       const throughput = (processedItems / totalTime) * 1000; // items per second

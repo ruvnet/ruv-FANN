@@ -117,7 +117,9 @@ export class MCPBenchmarks {
         }
         // Force some operations on the arrays
         let total = 0;
-        tempArrays.forEach(arr => total += arr.length);
+        tempArrays.forEach(arr => {
+          total += arr.length;
+        });
         tempArrays = null; // Release for GC
         benchmarks.garbage_collection.push(performance.now() - start);
 

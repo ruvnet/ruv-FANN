@@ -4,7 +4,7 @@
  */
 
 import assert from 'assert';
-import { v4: uuidv4  } from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 
 // Neural Network simulation (in production, this would use actual FANN)
 class NeuralNetwork {
@@ -943,8 +943,7 @@ export {
 };
 
 // Run tests if called directly
-// Direct execution block
-{
+if (require.main === module) {
   runNeuralIntegrationTests()
     .then(passed => process.exit(passed ? 0 : 1))
     .catch(error => {
