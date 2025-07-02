@@ -1,0 +1,413 @@
+name: Comprehensive Testing Pipeline
+
+on:
+  push:
+    branches: [ main, develop, 'ruv-swarm-*' ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  NODE_VERSION: '18'
+  RUST_VERSION: 'stable'
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      should_run_tests: ${{ steps.changes.outputs.should_run }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      
+      - name: Check for relevant changes
+        id: changes
+        run: |
+          if git diff --name-only HEAD~1 | grep -E '\.(js|ts|rs|toml|json)$|test/|src/'; then
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_run=false" >> $GITHUB_OUTPUT
+          fi
+
+  code-quality:
+    needs: setup
+    if: needs.setup.outputs.should_run_tests == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'ruv-swarm/npm/package-lock.json'
+      
+      - name: Install dependencies
+        working-directory: ruv-swarm/npm
+        run: npm ci
+      
+      - name: Run linting
+        working-directory: ruv-swarm/npm
+        run: npm run lint:check
+      
+      - name: Upload lint results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-results
+          path: ruv-swarm/npm/eslint-report.json
+
+  unit-tests:
+    needs: setup
+    if: needs.setup.outputs.should_run_tests == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'ruv-swarm/npm/package-lock.json'
+      
+      - name: Install dependencies
+        working-directory: ruv-swarm/npm
+        run: npm ci
+      
+      - name: Run unit tests with coverage
+        working-directory: ruv-swarm/npm
+        run: npm run test:coverage
+      
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          file: ruv-swarm/npm/coverage/lcov.info
+          directory: ruv-swarm/npm/coverage
+          flags: unittests
+          name: codecov-umbrella
+      
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: |
+            ruv-swarm/npm/coverage/
+            ruv-swarm/npm/test-results/
+
+  performance-tests:
+    needs: [setup, code-quality]
+    if: needs.setup.outputs.should_run_tests == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'ruv-swarm/npm/package-lock.json'
+      
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: rustfmt, clippy
+          target: wasm32-unknown-unknown
+      
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      
+      - name: Install dependencies
+        working-directory: ruv-swarm/npm
+        run: npm ci
+      
+      - name: Build WASM modules
+        working-directory: ruv-swarm/npm
+        run: npm run build:wasm
+      
+      - name: Run performance validation
+        working-directory: ruv-swarm/npm
+        run: npm run test:performance
+      
+      - name: Upload performance results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-test-results
+          path: |
+            ruv-swarm/npm/test/validation-report.json
+            ruv-swarm/npm/test/baseline-performance.json
+
+  load-testing:
+    needs: [setup, code-quality]
+    if: needs.setup.outputs.should_run_tests == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'ruv-swarm/npm/package-lock.json'
+      
+      - name: Install dependencies
+        working-directory: ruv-swarm/npm
+        run: npm ci
+      
+      - name: Run load testing
+        working-directory: ruv-swarm/npm
+        run: npm run test:load
+      
+      - name: Upload load test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-test-results
+          path: ruv-swarm/npm/test/load-test-report.json
+
+  security-audit:
+    needs: [setup, code-quality]
+    if: needs.setup.outputs.should_run_tests == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'ruv-swarm/npm/package-lock.json'
+      
+      - name: Install dependencies
+        working-directory: ruv-swarm/npm
+        run: npm ci
+      
+      - name: Run npm audit
+        working-directory: ruv-swarm/npm
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+      
+      - name: Run security audit
+        working-directory: ruv-swarm/npm
+        run: npm run test:security
+      
+      - name: Upload security results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-audit-results
+          path: ruv-swarm/npm/test/security-audit-report.json
+
+  cross-platform:
+    needs: setup
+    if: needs.setup.outputs.should_run_tests == 'true'
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: ['16', '18', '20']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: 'ruv-swarm/npm/package-lock.json'
+      
+      - name: Install dependencies
+        working-directory: ruv-swarm/npm
+        run: npm ci
+      
+      - name: Run basic tests
+        working-directory: ruv-swarm/npm
+        run: npm test
+      
+      - name: Test WASM compatibility
+        working-directory: ruv-swarm/npm
+        run: node -e "const { RuvSwarm } = require('./src/index-enhanced'); RuvSwarm.initialize().then(rs => rs.detectSIMDSupport()).then(console.log)"
+
+  regression-analysis:
+    needs: [unit-tests, performance-tests, load-testing, security-audit]
+    if: always() && needs.setup.outputs.should_run_tests == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'ruv-swarm/npm/package-lock.json'
+      
+      - name: Install dependencies
+        working-directory: ruv-swarm/npm
+        run: npm ci
+      
+      - name: Download all test artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ruv-swarm/npm/test-artifacts
+      
+      - name: Run regression analysis
+        working-directory: ruv-swarm/npm
+        run: npm run test:regression
+        continue-on-error: true
+      
+      - name: Upload regression results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-analysis-results
+          path: |
+            ruv-swarm/npm/test/regression-pipeline-report.json
+            ruv-swarm/npm/test/github-outputs.txt
+            ruv-swarm/npm/test/regression-results.xml
+
+  comprehensive-validation:
+    needs: [unit-tests, performance-tests, load-testing, security-audit, cross-platform, regression-analysis]
+    if: always() && needs.setup.outputs.should_run_tests == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      deployment_ready: ${{ steps.validation.outputs.deployment_ready }}
+      overall_status: ${{ steps.validation.outputs.overall_status }}
+      validation_score: ${{ steps.validation.outputs.validation_score }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'ruv-swarm/npm/package-lock.json'
+      
+      - name: Install dependencies
+        working-directory: ruv-swarm/npm
+        run: npm ci
+      
+      - name: Download all test artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ruv-swarm/npm/test-artifacts
+      
+      - name: Run comprehensive validation
+        id: validation
+        working-directory: ruv-swarm/npm
+        run: |
+          npm run test:comprehensive || true
+          
+          # Extract outputs if available
+          if [ -f test/github-outputs.txt ]; then
+            cat test/github-outputs.txt >> $GITHUB_OUTPUT
+          fi
+          
+          # Set default values if files don't exist
+          if [ ! -f test/FINAL_VALIDATION_REPORT.json ]; then
+            echo "deployment_ready=false" >> $GITHUB_OUTPUT
+            echo "overall_status=FAILED" >> $GITHUB_OUTPUT
+            echo "validation_score=0" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Upload comprehensive results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: comprehensive-validation-results
+          path: |
+            ruv-swarm/npm/test/FINAL_VALIDATION_REPORT.json
+            ruv-swarm/npm/test/VALIDATION_SUMMARY.md
+            ruv-swarm/npm/test/comprehensive-test-report.json
+      
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let summary = '# 🧪 Comprehensive Test Results\n\n';
+            
+            try {
+              const summaryPath = 'ruv-swarm/npm/test/VALIDATION_SUMMARY.md';
+              if (fs.existsSync(summaryPath)) {
+                summary += fs.readFileSync(summaryPath, 'utf8');
+              } else {
+                summary += '⚠️ Validation summary not available\n';
+              }
+            } catch (error) {
+              summary += `❌ Error reading validation results: ${error.message}\n`;
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+
+  deployment-gate:
+    needs: comprehensive-validation
+    if: always() && needs.setup.outputs.should_run_tests == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check deployment readiness
+        run: |
+          echo "Deployment ready: ${{ needs.comprehensive-validation.outputs.deployment_ready }}"
+          echo "Overall status: ${{ needs.comprehensive-validation.outputs.overall_status }}"
+          echo "Validation score: ${{ needs.comprehensive-validation.outputs.validation_score }}"
+          
+          if [ "${{ needs.comprehensive-validation.outputs.deployment_ready }}" = "true" ] && 
+             [ "${{ needs.comprehensive-validation.outputs.overall_status }}" = "PASSED" ]; then
+            echo "✅ All tests passed - deployment approved"
+            exit 0
+          else
+            echo "❌ Tests failed or incomplete - deployment blocked"
+            exit 1
+          fi
+      
+      - name: Create deployment gate status
+        if: github.ref == 'refs/heads/main' && success()
+        run: |
+          echo "🚀 Ready for production deployment"
+          echo "- All comprehensive tests passed"
+          echo "- Performance targets met"
+          echo "- Security requirements satisfied"
+          echo "- Cross-platform compatibility verified"
+
+  publish-results:
+    needs: [comprehensive-validation]
+    if: always() && needs.setup.outputs.should_run_tests == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download comprehensive results
+        uses: actions/download-artifact@v4
+        with:
+          name: comprehensive-validation-results
+          path: results
+      
+      - name: Publish test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: 'Comprehensive Test Results'
+          path: 'results/*.xml'
+          reporter: 'java-junit'
+      
+      - name: Update README badge
+        if: github.ref == 'refs/heads/main'
+        run: |
+          # This would update a status badge in README.md
+          echo "Badge update would go here"

@@ -154,7 +154,7 @@ export class NeuralTrainer {
     network: NeuralNetwork,
     data: TrainingDataConfig,
     targetError: number,
-    maxEpochs: number
+    maxEpochs: number,
   ): Promise<TrainingResult> {
     return this.trainer.train_until_target(network.network, data, targetError, maxEpochs);
   }

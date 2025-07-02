@@ -24,7 +24,7 @@ export function getDefaultCognitiveProfile(type: AgentType): CognitiveProfile {
       systematic: 0.8,
       intuitive: 0.5,
       collaborative: 0.7,
-      independent: 0.8
+      independent: 0.8,
     },
     coder: {
       analytical: 0.8,
@@ -32,7 +32,7 @@ export function getDefaultCognitiveProfile(type: AgentType): CognitiveProfile {
       systematic: 0.9,
       intuitive: 0.4,
       collaborative: 0.6,
-      independent: 0.7
+      independent: 0.7,
     },
     analyst: {
       analytical: 0.95,
@@ -40,7 +40,7 @@ export function getDefaultCognitiveProfile(type: AgentType): CognitiveProfile {
       systematic: 0.9,
       intuitive: 0.3,
       collaborative: 0.6,
-      independent: 0.8
+      independent: 0.8,
     },
     architect: {
       analytical: 0.8,
@@ -48,7 +48,7 @@ export function getDefaultCognitiveProfile(type: AgentType): CognitiveProfile {
       systematic: 0.85,
       intuitive: 0.7,
       collaborative: 0.8,
-      independent: 0.6
+      independent: 0.6,
     },
     reviewer: {
       analytical: 0.85,
@@ -56,7 +56,7 @@ export function getDefaultCognitiveProfile(type: AgentType): CognitiveProfile {
       systematic: 0.9,
       intuitive: 0.4,
       collaborative: 0.7,
-      independent: 0.7
+      independent: 0.7,
     },
     debugger: {
       analytical: 0.9,
@@ -64,7 +64,7 @@ export function getDefaultCognitiveProfile(type: AgentType): CognitiveProfile {
       systematic: 0.85,
       intuitive: 0.6,
       collaborative: 0.5,
-      independent: 0.8
+      independent: 0.8,
     },
     tester: {
       analytical: 0.8,
@@ -72,7 +72,7 @@ export function getDefaultCognitiveProfile(type: AgentType): CognitiveProfile {
       systematic: 0.95,
       intuitive: 0.3,
       collaborative: 0.6,
-      independent: 0.7
+      independent: 0.7,
     },
     documenter: {
       analytical: 0.7,
@@ -80,7 +80,7 @@ export function getDefaultCognitiveProfile(type: AgentType): CognitiveProfile {
       systematic: 0.85,
       intuitive: 0.4,
       collaborative: 0.8,
-      independent: 0.6
+      independent: 0.6,
     },
     optimizer: {
       analytical: 0.9,
@@ -88,7 +88,7 @@ export function getDefaultCognitiveProfile(type: AgentType): CognitiveProfile {
       systematic: 0.8,
       intuitive: 0.5,
       collaborative: 0.5,
-      independent: 0.8
+      independent: 0.8,
     },
     custom: {
       analytical: 0.5,
@@ -96,8 +96,8 @@ export function getDefaultCognitiveProfile(type: AgentType): CognitiveProfile {
       systematic: 0.5,
       intuitive: 0.5,
       collaborative: 0.5,
-      independent: 0.5
-    }
+      independent: 0.5,
+    },
   };
 
   return profiles[type];
@@ -108,7 +108,7 @@ export function getDefaultCognitiveProfile(type: AgentType): CognitiveProfile {
  */
 export function calculateCognitiveDiversity(
   profile1: CognitiveProfile,
-  profile2: CognitiveProfile
+  profile2: CognitiveProfile,
 ): number {
   const dimensions = Object.keys(profile1) as (keyof CognitiveProfile)[];
   let totalDifference = 0;
@@ -127,7 +127,7 @@ export function calculateCognitiveDiversity(
 export function recommendTopology(
   agentCount: number,
   taskComplexity: 'low' | 'medium' | 'high',
-  coordinationNeeds: 'minimal' | 'moderate' | 'extensive'
+  coordinationNeeds: 'minimal' | 'moderate' | 'extensive',
 ): SwarmTopology {
   if (agentCount <= 5) {
     return 'mesh';
@@ -156,7 +156,7 @@ export function priorityToNumber(priority: TaskPriority): number {
     low: 1,
     medium: 2,
     high: 3,
-    critical: 4
+    critical: 4,
   };
   return priorityMap[priority];
 }
@@ -266,7 +266,7 @@ export function deepClone<T>(obj: T): T {
 export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   maxRetries: number = 3,
-  initialDelay: number = 100
+  initialDelay: number = 100,
 ): Promise<T> {
   let lastError: Error;
   

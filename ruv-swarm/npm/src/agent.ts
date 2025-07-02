@@ -7,11 +7,9 @@ import {
   AgentConfig,
   AgentState,
   AgentStatus,
-  AgentPerformance,
   Task,
   Message,
   MessageType,
-  CognitiveProfile
 } from './types';
 import { generateId, getDefaultCognitiveProfile } from './utils';
 
@@ -29,7 +27,7 @@ export class BaseAgent implements Agent {
     this.config = {
       ...config,
       id: this.id,
-      cognitiveProfile: config.cognitiveProfile || getDefaultCognitiveProfile(config.type)
+      cognitiveProfile: config.cognitiveProfile || getDefaultCognitiveProfile(config.type),
     };
     
     this.state = {
@@ -39,8 +37,8 @@ export class BaseAgent implements Agent {
         tasksCompleted: 0,
         tasksFailed: 0,
         averageExecutionTime: 0,
-        successRate: 0
-      }
+        successRate: 0,
+      },
     };
 
     this.setupMessageHandlers();
@@ -87,7 +85,7 @@ export class BaseAgent implements Agent {
       taskId: task.id,
       agentId: this.id,
       result: `Task completed by ${this.config.type} agent`,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
@@ -174,7 +172,7 @@ export class ResearcherAgent extends BaseAgent {
       results.push({
         phase,
         timestamp: Date.now(),
-        findings: `${phase} completed for ${task.description}`
+        findings: `${phase} completed for ${task.description}`,
       });
     }
     
@@ -184,7 +182,7 @@ export class ResearcherAgent extends BaseAgent {
       type: 'research_report',
       phases: results,
       summary: `Research completed on: ${task.description}`,
-      recommendations: ['Further investigation needed', 'Consider alternative approaches']
+      recommendations: ['Further investigation needed', 'Consider alternative approaches'],
     };
   }
 }
@@ -209,7 +207,7 @@ export class CoderAgent extends BaseAgent {
       codeArtifacts.push({
         step,
         timestamp: Date.now(),
-        artifact: `${step}_${task.id}.ts`
+        artifact: `${step}_${task.id}.ts`,
       });
     }
     
@@ -221,8 +219,8 @@ export class CoderAgent extends BaseAgent {
       summary: `Implementation completed for: ${task.description}`,
       metrics: {
         linesOfCode: Math.floor(Math.random() * 500) + 100,
-        complexity: Math.floor(Math.random() * 10) + 1
-      }
+        complexity: Math.floor(Math.random() * 10) + 1,
+      },
     };
   }
 }
@@ -247,14 +245,14 @@ export class AnalystAgent extends BaseAgent {
       type: 'analysis_report',
       metrics: {
         dataPoints: Math.floor(Math.random() * 1000) + 100,
-        confidence: Math.random() * 0.3 + 0.7
+        confidence: Math.random() * 0.3 + 0.7,
       },
       insights: [
         'Pattern detected in data',
         'Anomaly found at timestamp X',
-        'Recommendation for optimization'
+        'Recommendation for optimization',
       ],
-      visualizations: ['chart_1.png', 'graph_2.svg']
+      visualizations: ['chart_1.png', 'graph_2.svg'],
     };
   }
 }
@@ -264,14 +262,14 @@ export class AnalystAgent extends BaseAgent {
  */
 export function createAgent(config: AgentConfig): Agent {
   switch (config.type) {
-    case 'researcher':
-      return new ResearcherAgent(config);
-    case 'coder':
-      return new CoderAgent(config);
-    case 'analyst':
-      return new AnalystAgent(config);
-    default:
-      return new BaseAgent(config);
+  case 'researcher':
+    return new ResearcherAgent(config);
+  case 'coder':
+    return new CoderAgent(config);
+  case 'analyst':
+    return new AnalystAgent(config);
+  default:
+    return new BaseAgent(config);
   }
 }
 

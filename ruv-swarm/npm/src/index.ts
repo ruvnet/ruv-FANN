@@ -15,7 +15,7 @@ import {
   MessageType,
   SwarmMetrics,
   Connection,
-  WasmModule
+  WasmModule,
 } from './types';
 
 import {
@@ -23,13 +23,13 @@ import {
   validateSwarmOptions,
   formatMetrics,
   recommendTopology,
-  priorityToNumber
+  priorityToNumber,
 } from './utils';
 
 import {
   BaseAgent,
   createAgent,
-  AgentPool
+  AgentPool,
 } from './agent';
 
 export * from './types';
@@ -60,7 +60,7 @@ export class RuvSwarm implements SwarmEventEmitter {
       maxAgents: options.maxAgents || 10,
       connectionDensity: options.connectionDensity || 0.5,
       syncInterval: options.syncInterval || 1000,
-      wasmPath: options.wasmPath || './wasm/ruv_swarm_wasm.js'
+      wasmPath: options.wasmPath || './wasm/ruv_swarm_wasm.js',
     };
 
     this.agentPool = new AgentPool();
@@ -77,8 +77,8 @@ export class RuvSwarm implements SwarmEventEmitter {
         failedTasks: 0,
         averageCompletionTime: 0,
         agentUtilization: new Map(),
-        throughput: 0
-      }
+        throughput: 0,
+      },
     };
   }
 
@@ -174,7 +174,7 @@ export class RuvSwarm implements SwarmEventEmitter {
     
     // Remove connections
     this.state.connections = this.state.connections.filter(
-      conn => conn.from !== agentId && conn.to !== agentId
+      conn => conn.from !== agentId && conn.to !== agentId,
     );
 
     this.emit('agent:removed', { agentId });
@@ -191,7 +191,7 @@ export class RuvSwarm implements SwarmEventEmitter {
     const fullTask: Task = {
       ...task,
       id: generateId('task'),
-      status: 'pending'
+      status: 'pending',
     };
 
     this.state.tasks.set(fullTask.id, fullTask);
@@ -319,7 +319,7 @@ export class RuvSwarm implements SwarmEventEmitter {
       to: agent.id,
       type: 'task_assignment',
       payload: task,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     await agent.communicate(message);
@@ -363,48 +363,48 @@ export class RuvSwarm implements SwarmEventEmitter {
     const agents = Array.from(this.state.agents.keys());
     
     switch (this.options.topology) {
-      case 'mesh':
-        // Connect to all other agents
-        for (const agentId of agents) {
-          if (agentId !== newAgentId) {
-            this.state.connections.push({
-              from: newAgentId,
-              to: agentId,
-              weight: 1,
-              type: 'coordination'
-            });
-          }
-        }
-        break;
-        
-      case 'hierarchical':
-        // Connect to parent/children based on position
-        if (agents.length > 1) {
-          const parentIndex = Math.floor((agents.indexOf(newAgentId) - 1) / 2);
-          if (parentIndex >= 0) {
-            this.state.connections.push({
-              from: newAgentId,
-              to: agents[parentIndex],
-              weight: 1,
-              type: 'control'
-            });
-          }
-        }
-        break;
-        
-      case 'distributed':
-        // Random connections based on density
-        const numConnections = Math.floor(agents.length * this.options.connectionDensity);
-        const shuffled = agents.filter(id => id !== newAgentId).sort(() => Math.random() - 0.5);
-        for (let i = 0; i < Math.min(numConnections, shuffled.length); i++) {
+    case 'mesh':
+      // Connect to all other agents
+      for (const agentId of agents) {
+        if (agentId !== newAgentId) {
           this.state.connections.push({
             from: newAgentId,
-            to: shuffled[i],
-            weight: Math.random(),
-            type: 'data'
+            to: agentId,
+            weight: 1,
+            type: 'coordination',
           });
         }
-        break;
+      }
+      break;
+        
+    case 'hierarchical':
+      // Connect to parent/children based on position
+      if (agents.length > 1) {
+        const parentIndex = Math.floor((agents.indexOf(newAgentId) - 1) / 2);
+        if (parentIndex >= 0) {
+          this.state.connections.push({
+            from: newAgentId,
+            to: agents[parentIndex],
+            weight: 1,
+            type: 'control',
+          });
+        }
+      }
+      break;
+        
+    case 'distributed':
+      // Random connections based on density
+      const numConnections = Math.floor(agents.length * this.options.connectionDensity);
+      const shuffled = agents.filter(id => id !== newAgentId).sort(() => Math.random() - 0.5);
+      for (let i = 0; i < Math.min(numConnections, shuffled.length); i++) {
+        this.state.connections.push({
+          from: newAgentId,
+          to: shuffled[i],
+          weight: Math.random(),
+          type: 'data',
+        });
+      }
+      break;
     }
   }
 
@@ -444,7 +444,7 @@ export class RuvSwarm implements SwarmEventEmitter {
       for (const agent of this.state.agents.values()) {
         this.state.metrics.agentUtilization.set(
           agent.id,
-          agent.state.status === 'busy' ? 1 : 0
+          agent.state.status === 'busy' ? 1 : 0,
         );
       }
     }, this.options.syncInterval);

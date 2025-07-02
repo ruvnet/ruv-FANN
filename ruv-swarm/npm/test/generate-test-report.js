@@ -4,9 +4,14 @@
  * Generate comprehensive test report for ruv-swarm
  */
 
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
+import fs from 'fs';
+import path from 'path';
+import { execSync  } from 'child_process';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 class TestReportGenerator {
   constructor() {
@@ -26,9 +31,9 @@ class TestReportGenerator {
           lines: 0,
           statements: 0,
           functions: 0,
-          branches: 0
-        }
-      }
+          branches: 0,
+        },
+      },
     };
   }
 
@@ -50,18 +55,18 @@ class TestReportGenerator {
     this.generateHTMLReport();
 
     console.log('\n✅ Test report generation complete!');
-    console.log(`   - Markdown: test-report.md`);
-    console.log(`   - JSON: test-report.json`);
-    console.log(`   - HTML: test-report.html`);
-    console.log(`   - Coverage: coverage/lcov-report/index.html`);
+    console.log('   - Markdown: test-report.md');
+    console.log('   - JSON: test-report.json');
+    console.log('   - HTML: test-report.html');
+    console.log('   - Coverage: coverage/lcov-report/index.html');
   }
 
   countTestFiles() {
     const testDirs = [
       'test/unit',
-      'test/integration', 
+      'test/integration',
       'test/performance',
-      'test'
+      'test',
     ];
 
     let totalFiles = 0;
@@ -72,7 +77,7 @@ class TestReportGenerator {
         totalFiles += files.length;
         this.reportData.testSuites[dir] = {
           files: files.length,
-          fileList: files.map(f => path.relative(path.join(__dirname, '..'), f))
+          fileList: files.map(f => path.relative(path.join(__dirname, '..'), f)),
         };
       }
     }
@@ -98,14 +103,14 @@ class TestReportGenerator {
 
   async runTestsWithCoverage() {
     console.log('Running tests with coverage...');
-    
+
     try {
       const output = execSync('npm test -- --coverage --json --outputFile=test-results.json', {
         cwd: path.join(__dirname, '..'),
         encoding: 'utf8',
-        stdio: 'pipe'
+        stdio: 'pipe',
       });
-      
+
       // Parse test results
       if (fs.existsSync(path.join(__dirname, '..', 'test-results.json'))) {
         const results = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'test-results.json'), 'utf8'));
@@ -130,17 +135,17 @@ class TestReportGenerator {
 
   parseCoverageReport() {
     const coveragePath = path.join(__dirname, '..', 'coverage', 'coverage-summary.json');
-    
+
     if (fs.existsSync(coveragePath)) {
       const coverage = JSON.parse(fs.readFileSync(coveragePath, 'utf8'));
-      
+
       if (coverage.total) {
         this.reportData.coverage = coverage;
         this.reportData.summary.coverage = {
           lines: coverage.total.lines.pct,
           statements: coverage.total.statements.pct,
           functions: coverage.total.functions.pct,
-          branches: coverage.total.branches.pct
+          branches: coverage.total.branches.pct,
         };
       }
     }
@@ -148,7 +153,7 @@ class TestReportGenerator {
 
   generateMarkdownReport() {
     const reportPath = path.join(__dirname, '..', 'test-report.md');
-    
+
     let markdown = `# Test Report for ruv-swarm
 
 Generated: ${this.reportData.generated}  
@@ -179,7 +184,7 @@ Version: ${this.reportData.version}
     for (const [suite, data] of Object.entries(this.reportData.testSuites)) {
       markdown += `### ${suite}\n\n`;
       markdown += `- Files: ${data.files}\n`;
-      markdown += `- Test files:\n`;
+      markdown += '- Test files:\n';
       for (const file of data.fileList) {
         markdown += `  - ${file}\n`;
       }
@@ -191,10 +196,10 @@ Version: ${this.reportData.version}
 `;
 
     if (this.reportData.coverage) {
-      markdown += `### File Coverage\n\n`;
-      markdown += `| File | Lines | Statements | Functions | Branches |\n`;
-      markdown += `|------|-------|------------|-----------|----------|\n`;
-      
+      markdown += '### File Coverage\n\n';
+      markdown += '| File | Lines | Statements | Functions | Branches |\n';
+      markdown += '|------|-------|------------|-----------|----------|\n';
+
       for (const [file, data] of Object.entries(this.reportData.coverage)) {
         if (file !== 'total' && data.lines) {
           const relPath = file.replace(process.cwd(), '.');
@@ -208,16 +213,16 @@ Version: ${this.reportData.version}
 `;
 
     if (this.reportData.summary.coverage.lines < 80) {
-      markdown += `- ⚠️ Line coverage is below 80%. Consider adding more unit tests.\n`;
+      markdown += '- ⚠️ Line coverage is below 80%. Consider adding more unit tests.\n';
     }
     if (this.reportData.summary.coverage.branches < 80) {
-      markdown += `- ⚠️ Branch coverage is below 80%. Ensure all code paths are tested.\n`;
+      markdown += '- ⚠️ Branch coverage is below 80%. Ensure all code paths are tested.\n';
     }
     if (this.reportData.summary.totalFailed > 0) {
       markdown += `- ❌ There are ${this.reportData.summary.totalFailed} failing tests that need to be fixed.\n`;
     }
     if (this.reportData.summary.coverage.lines >= 80) {
-      markdown += `- ✅ Good job! Line coverage meets the 80% threshold.\n`;
+      markdown += '- ✅ Good job! Line coverage meets the 80% threshold.\n';
     }
 
     fs.writeFileSync(reportPath, markdown);
@@ -230,7 +235,7 @@ Version: ${this.reportData.version}
 
   generateHTMLReport() {
     const reportPath = path.join(__dirname, '..', 'test-report.html');
-    
+
     const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -338,7 +343,7 @@ Version: ${this.reportData.version}
       const value = this.reportData.summary.coverage[metric];
       const status = this.getCoverageStatus(value);
       const color = status === '✅' ? '#4CAF50' : '#FF9800';
-      
+
       html += `
         <div>
             <strong>${metric.charAt(0).toUpperCase() + metric.slice(1)}: ${value.toFixed(2)}%</strong>
@@ -355,17 +360,19 @@ Version: ${this.reportData.version}
 
   generateSuitesHTML() {
     let html = '<table><tr><th>Suite</th><th>Files</th></tr>';
-    
+
     for (const [suite, data] of Object.entries(this.reportData.testSuites)) {
       html += `<tr><td>${suite}</td><td>${data.files}</td></tr>`;
     }
-    
+
     html += '</table>';
     return html;
   }
 
   calculateSuccessRate() {
-    if (this.reportData.summary.totalTests === 0) return 0;
+    if (this.reportData.summary.totalTests === 0) {
+      return 0;
+    }
     return ((this.reportData.summary.totalPassed / this.reportData.summary.totalTests) * 100).toFixed(2);
   }
 
@@ -375,7 +382,8 @@ Version: ${this.reportData.version}
 }
 
 // Run report generation
-if (require.main === module) {
+// Direct execution block
+{
   const generator = new TestReportGenerator();
   generator.generate().catch(error => {
     console.error('Error generating report:', error);

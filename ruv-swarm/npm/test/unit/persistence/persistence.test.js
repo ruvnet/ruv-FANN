@@ -2,10 +2,15 @@
  * Unit tests for SwarmPersistence module
  */
 
-const { SwarmPersistence } = require('../../../src/persistence');
-const assert = require('assert');
-const fs = require('fs');
-const path = require('path');
+import { SwarmPersistence  } from '../../../src/persistence';
+import assert from 'assert';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 describe('SwarmPersistence Tests', () => {
   let persistence;
@@ -40,7 +45,7 @@ describe('SwarmPersistence Tests', () => {
         WHERE type='table' 
         ORDER BY name
       `).all();
-      
+
       const expectedTables = [
         'agent_memory',
         'agents',
@@ -49,9 +54,9 @@ describe('SwarmPersistence Tests', () => {
         'neural_networks',
         'swarms',
         'task_results',
-        'tasks'
+        'tasks',
       ];
-      
+
       const tableNames = tables.map(t => t.name);
       expectedTables.forEach(table => {
         assert(tableNames.includes(table), `Missing table: ${table}`);
@@ -64,7 +69,7 @@ describe('SwarmPersistence Tests', () => {
         WHERE type='index' 
         ORDER BY name
       `).all();
-      
+
       assert(indexes.length > 0);
     });
   });
@@ -76,7 +81,7 @@ describe('SwarmPersistence Tests', () => {
       topology: 'mesh',
       maxAgents: 10,
       strategy: 'balanced',
-      metadata: { test: true }
+      metadata: { test: true },
     };
 
     it('should create swarm', () => {
@@ -89,9 +94,9 @@ describe('SwarmPersistence Tests', () => {
       persistence.createSwarm({
         ...testSwarm,
         id: 'swarm-test-456',
-        name: 'Another Swarm'
+        name: 'Another Swarm',
       });
-      
+
       const swarms = persistence.getActiveSwarms();
       assert.strictEqual(swarms.length, 2);
       assert.strictEqual(swarms[0].name, 'Test Swarm');
@@ -104,10 +109,10 @@ describe('SwarmPersistence Tests', () => {
         metadata: {
           config: { enableML: true },
           tags: ['production', 'high-priority'],
-          version: 2.0
-        }
+          version: 2.0,
+        },
       };
-      
+
       persistence.createSwarm(swarmWithComplexMetadata);
       const swarms = persistence.getActiveSwarms();
       assert.deepStrictEqual(swarms[0].metadata, swarmWithComplexMetadata.metadata);
@@ -123,7 +128,7 @@ describe('SwarmPersistence Tests', () => {
       type: 'researcher',
       capabilities: ['research', 'analysis'],
       neuralConfig: { layers: [10, 20, 10] },
-      metrics: { tasksCompleted: 0 }
+      metrics: { tasksCompleted: 0 },
     };
 
     beforeEach(() => {
@@ -132,7 +137,7 @@ describe('SwarmPersistence Tests', () => {
         id: testSwarmId,
         name: 'Test Swarm',
         topology: 'mesh',
-        maxAgents: 10
+        maxAgents: 10,
       });
     });
 
@@ -145,7 +150,7 @@ describe('SwarmPersistence Tests', () => {
       persistence.createAgent(testAgent);
       const result = persistence.updateAgentStatus(testAgent.id, 'busy');
       assert(result.changes === 1);
-      
+
       const agent = persistence.getAgent(testAgent.id);
       assert.strictEqual(agent.status, 'busy');
     });
@@ -153,7 +158,7 @@ describe('SwarmPersistence Tests', () => {
     it('should get agent by id', () => {
       persistence.createAgent(testAgent);
       const agent = persistence.getAgent(testAgent.id);
-      
+
       assert.strictEqual(agent.id, testAgent.id);
       assert.strictEqual(agent.name, testAgent.name);
       assert.deepStrictEqual(agent.capabilities, testAgent.capabilities);
@@ -166,9 +171,9 @@ describe('SwarmPersistence Tests', () => {
         ...testAgent,
         id: 'agent-test-456',
         name: 'Another Agent',
-        type: 'coder'
+        type: 'coder',
       });
-      
+
       const agents = persistence.getSwarmAgents(testSwarmId);
       assert.strictEqual(agents.length, 2);
     });
@@ -178,11 +183,11 @@ describe('SwarmPersistence Tests', () => {
       persistence.createAgent({
         ...testAgent,
         id: 'agent-test-456',
-        name: 'Busy Agent'
+        name: 'Busy Agent',
       });
-      
+
       persistence.updateAgentStatus('agent-test-456', 'busy');
-      
+
       const busyAgents = persistence.getSwarmAgents(testSwarmId, 'busy');
       assert.strictEqual(busyAgents.length, 1);
       assert.strictEqual(busyAgents[0].id, 'agent-test-456');
@@ -197,7 +202,7 @@ describe('SwarmPersistence Tests', () => {
       description: 'Test task',
       priority: 'high',
       status: 'pending',
-      assignedAgents: ['agent-1', 'agent-2']
+      assignedAgents: ['agent-1', 'agent-2'],
     };
 
     beforeEach(() => {
@@ -205,7 +210,7 @@ describe('SwarmPersistence Tests', () => {
         id: testSwarmId,
         name: 'Test Swarm',
         topology: 'mesh',
-        maxAgents: 10
+        maxAgents: 10,
       });
     });
 
@@ -216,17 +221,17 @@ describe('SwarmPersistence Tests', () => {
 
     it('should update task', () => {
       persistence.createTask(testTask);
-      
+
       const updates = {
         status: 'completed',
         result: { success: true, output: 'Task completed' },
         completed_at: new Date().toISOString(),
-        execution_time_ms: 5000
+        execution_time_ms: 5000,
       };
-      
+
       const result = persistence.updateTask(testTask.id, updates);
       assert(result.changes === 1);
-      
+
       const task = persistence.getTask(testTask.id);
       assert.strictEqual(task.status, 'completed');
       assert.deepStrictEqual(task.result, updates.result);
@@ -236,7 +241,7 @@ describe('SwarmPersistence Tests', () => {
     it('should get task by id', () => {
       persistence.createTask(testTask);
       const task = persistence.getTask(testTask.id);
-      
+
       assert.strictEqual(task.id, testTask.id);
       assert.strictEqual(task.description, testTask.description);
       assert.deepStrictEqual(task.assigned_agents, testTask.assignedAgents);
@@ -248,9 +253,9 @@ describe('SwarmPersistence Tests', () => {
         ...testTask,
         id: 'task-test-456',
         description: 'Another task',
-        status: 'in_progress'
+        status: 'in_progress',
       });
-      
+
       const tasks = persistence.getSwarmTasks(testSwarmId);
       assert.strictEqual(tasks.length, 2);
     });
@@ -260,9 +265,9 @@ describe('SwarmPersistence Tests', () => {
       persistence.createTask({
         ...testTask,
         id: 'task-test-456',
-        status: 'completed'
+        status: 'completed',
       });
-      
+
       const pendingTasks = persistence.getSwarmTasks(testSwarmId, 'pending');
       assert.strictEqual(pendingTasks.length, 1);
       assert.strictEqual(pendingTasks[0].id, testTask.id);
@@ -278,13 +283,13 @@ describe('SwarmPersistence Tests', () => {
         id: swarmId,
         name: 'Test Swarm',
         topology: 'mesh',
-        maxAgents: 10
+        maxAgents: 10,
       });
       persistence.createAgent({
         id: testAgentId,
-        swarmId: swarmId,
+        swarmId,
         name: 'Test Agent',
-        type: 'researcher'
+        type: 'researcher',
       });
     });
 
@@ -297,7 +302,7 @@ describe('SwarmPersistence Tests', () => {
     it('should update existing memory', () => {
       persistence.storeAgentMemory(testAgentId, 'test-key', { value: 1 });
       persistence.storeAgentMemory(testAgentId, 'test-key', { value: 2 });
-      
+
       const memory = persistence.getAgentMemory(testAgentId, 'test-key');
       assert.deepStrictEqual(memory.value, { value: 2 });
     });
@@ -305,7 +310,7 @@ describe('SwarmPersistence Tests', () => {
     it('should get agent memory by key', () => {
       const data = { test: 'data' };
       persistence.storeAgentMemory(testAgentId, 'specific-key', data);
-      
+
       const memory = persistence.getAgentMemory(testAgentId, 'specific-key');
       assert.strictEqual(memory.agent_id, testAgentId);
       assert.strictEqual(memory.key, 'specific-key');
@@ -316,7 +321,7 @@ describe('SwarmPersistence Tests', () => {
       persistence.storeAgentMemory(testAgentId, 'key1', { a: 1 });
       persistence.storeAgentMemory(testAgentId, 'key2', { b: 2 });
       persistence.storeAgentMemory(testAgentId, 'key3', { c: 3 });
-      
+
       const memories = persistence.getAgentMemory(testAgentId);
       assert.strictEqual(memories.length, 3);
       assert(memories.some(m => m.key === 'key1'));
@@ -331,11 +336,11 @@ describe('SwarmPersistence Tests', () => {
       agentId: testAgentId,
       architecture: {
         layers: [10, 20, 10],
-        activationFunction: 'sigmoid'
+        activationFunction: 'sigmoid',
       },
       weights: [[0.1, 0.2], [0.3, 0.4]],
       trainingData: { epochs: 100, loss: 0.01 },
-      performanceMetrics: { accuracy: 0.95 }
+      performanceMetrics: { accuracy: 0.95 },
     };
 
     beforeEach(() => {
@@ -344,13 +349,13 @@ describe('SwarmPersistence Tests', () => {
         id: swarmId,
         name: 'Test Swarm',
         topology: 'mesh',
-        maxAgents: 10
+        maxAgents: 10,
       });
       persistence.createAgent({
         id: testAgentId,
-        swarmId: swarmId,
+        swarmId,
         name: 'Test Agent',
-        type: 'researcher'
+        type: 'researcher',
       });
     });
 
@@ -362,19 +367,19 @@ describe('SwarmPersistence Tests', () => {
     it('should update neural network', () => {
       const result = persistence.storeNeuralNetwork(testNetwork);
       const networkId = result.lastInsertRowid;
-      
+
       const updates = {
         weights: [[0.5, 0.6], [0.7, 0.8]],
-        performance_metrics: { accuracy: 0.98 }
+        performance_metrics: { accuracy: 0.98 },
       };
-      
+
       // Get the actual ID from the insert
       const networks = persistence.getAgentNeuralNetworks(testAgentId);
       const actualId = networks[0].id;
-      
+
       const updateResult = persistence.updateNeuralNetwork(actualId, updates);
       assert(updateResult.changes === 1);
-      
+
       const updatedNetworks = persistence.getAgentNeuralNetworks(testAgentId);
       assert.deepStrictEqual(updatedNetworks[0].weights, updates.weights);
       assert.deepStrictEqual(updatedNetworks[0].performance_metrics, updates.performance_metrics);
@@ -384,9 +389,9 @@ describe('SwarmPersistence Tests', () => {
       persistence.storeNeuralNetwork(testNetwork);
       persistence.storeNeuralNetwork({
         ...testNetwork,
-        architecture: { layers: [5, 10, 5] }
+        architecture: { layers: [5, 10, 5] },
       });
-      
+
       const networks = persistence.getAgentNeuralNetworks(testAgentId);
       assert.strictEqual(networks.length, 2);
       assert.strictEqual(networks[0].agent_id, testAgentId);
@@ -404,7 +409,7 @@ describe('SwarmPersistence Tests', () => {
       persistence.recordMetric('swarm', 'swarm-123', 'agents_active', 5);
       persistence.recordMetric('swarm', 'swarm-123', 'agents_active', 7);
       persistence.recordMetric('swarm', 'swarm-123', 'tasks_completed', 10);
-      
+
       const metrics = persistence.getMetrics('swarm', 'swarm-123');
       assert(metrics.length >= 3);
     });
@@ -413,7 +418,7 @@ describe('SwarmPersistence Tests', () => {
       persistence.recordMetric('agent', 'agent-123', 'memory_usage', 100);
       persistence.recordMetric('agent', 'agent-123', 'memory_usage', 150);
       persistence.recordMetric('agent', 'agent-123', 'cpu_usage', 25);
-      
+
       const memoryMetrics = persistence.getMetrics('agent', 'agent-123', 'memory_usage');
       assert.strictEqual(memoryMetrics.length, 2);
       assert(memoryMetrics.every(m => m.metric_name === 'memory_usage'));
@@ -427,9 +432,9 @@ describe('SwarmPersistence Tests', () => {
       const eventData = {
         action: 'agent_spawned',
         agentId: 'agent-123',
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
-      
+
       const result = persistence.logEvent(testSwarmId, 'agent_spawn', eventData);
       assert(result.changes === 1);
     });
@@ -438,7 +443,7 @@ describe('SwarmPersistence Tests', () => {
       persistence.logEvent(testSwarmId, 'swarm_created', { name: 'Test Swarm' });
       persistence.logEvent(testSwarmId, 'agent_spawn', { agentId: 'agent-1' });
       persistence.logEvent(testSwarmId, 'task_orchestrated', { taskId: 'task-1' });
-      
+
       const events = persistence.getSwarmEvents(testSwarmId);
       assert.strictEqual(events.length, 3);
       assert(events[0].timestamp > events[2].timestamp); // Should be ordered desc
@@ -448,7 +453,7 @@ describe('SwarmPersistence Tests', () => {
       for (let i = 0; i < 10; i++) {
         persistence.logEvent(testSwarmId, 'test_event', { index: i });
       }
-      
+
       const events = persistence.getSwarmEvents(testSwarmId, 5);
       assert.strictEqual(events.length, 5);
     });
@@ -457,20 +462,20 @@ describe('SwarmPersistence Tests', () => {
   describe('Cleanup Operations', () => {
     it('should cleanup old data', () => {
       const swarmId = 'swarm-test-123';
-      
+
       // Insert old event (manually with old timestamp)
       const oldTimestamp = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString();
       persistence.db.prepare(`
         INSERT INTO events (swarm_id, event_type, event_data, timestamp)
         VALUES (?, ?, ?, ?)
       `).run(swarmId, 'old_event', '{}', oldTimestamp);
-      
+
       // Insert recent event
       persistence.logEvent(swarmId, 'recent_event', {});
-      
+
       // Run cleanup
       persistence.cleanup();
-      
+
       // Check that old event is gone
       const events = persistence.getSwarmEvents(swarmId);
       assert(events.every(e => e.event_type !== 'old_event'));
@@ -483,9 +488,9 @@ describe('SwarmPersistence Tests', () => {
         id: 'agent-invalid',
         swarmId: 'non-existent-swarm',
         name: 'Invalid Agent',
-        type: 'researcher'
+        type: 'researcher',
       };
-      
+
       assert.throws(() => {
         persistence.createAgent(invalidAgent);
       }, /FOREIGN KEY constraint failed/);
@@ -494,33 +499,33 @@ describe('SwarmPersistence Tests', () => {
     it('should handle unique constraints', () => {
       const swarmId = 'swarm-test-123';
       const agentId = 'agent-test-123';
-      
+
       persistence.createSwarm({
         id: swarmId,
         name: 'Test Swarm',
         topology: 'mesh',
-        maxAgents: 10
+        maxAgents: 10,
       });
-      
+
       persistence.createAgent({
         id: agentId,
-        swarmId: swarmId,
+        swarmId,
         name: 'Test Agent',
-        type: 'researcher'
+        type: 'researcher',
       });
-      
+
       // Store memory twice with same key (should update, not error)
       persistence.storeAgentMemory(agentId, 'duplicate-key', { value: 1 });
       const result = persistence.storeAgentMemory(agentId, 'duplicate-key', { value: 2 });
       assert(result.changes === 1);
-      
+
       const memory = persistence.getAgentMemory(agentId, 'duplicate-key');
       assert.deepStrictEqual(memory.value, { value: 2 });
     });
   });
 });
 
-// Run tests
+// Run tests when this file is executed directly
 if (require.main === module) {
   console.log('Running SwarmPersistence Unit Tests...');
   require('../../../node_modules/.bin/jest');

@@ -33,7 +33,7 @@ class WASMLoader {
           0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
           0x01, 0x05, 0x01, 0x60, 0x00, 0x01, 0x7b, 0x03,
           0x02, 0x01, 0x00, 0x0a, 0x0a, 0x01, 0x08, 0x00,
-          0x41, 0x00, 0xfd, 0x0f, 0x26, 0x0b
+          0x41, 0x00, 0xfd, 0x0f, 0x26, 0x0b,
         ]);
         return WebAssembly.validate(simdTest);
       }
@@ -81,8 +81,8 @@ class WASMLoader {
       const imports = {
         // Add any required imports here
         env: {
-          memory: new WebAssembly.Memory({ initial: 256, maximum: 4096 })
-        }
+          memory: new WebAssembly.Memory({ initial: 256, maximum: 4096 }),
+        },
       };
 
       const result = await WebAssembly.instantiate(wasmBuffer, imports);
@@ -112,11 +112,13 @@ class WorkerPool {
   }
 
   async initialize() {
-    if (this.initialized) return;
+    if (this.initialized) {
+      return;
+    }
 
     // In Node.js, use worker_threads
     if (typeof window === 'undefined') {
-      const { Worker } = require('worker_threads');
+      // const { Worker } = require('worker_threads');
       for (let i = 0; i < this.size; i++) {
         // TODO: Create worker thread
       }
@@ -162,12 +164,12 @@ class RuvSwarm {
 
   static async initialize(options = {}) {
     const loader = new WASMLoader(options);
-    const wasmResult = await loader.loadModule();
+    // const wasmResult = await loader.loadModule();
 
     // Load the WASM bindings (ES module import with proper file URL)
     const wasmJsPath = path.join(loader.wasmPath, 'ruv_swarm_wasm.js');
     const bindings = await import(path.resolve(wasmJsPath));
-    
+
     // Initialize WASM module with file buffer for Node.js
     if (bindings.default) {
       const wasmPath = path.join(loader.wasmPath, 'ruv_swarm_wasm_bg.wasm');
@@ -181,7 +183,7 @@ class RuvSwarm {
       console.log('Runtime features:', {
         simd: features.simd_available,
         threads: features.threads_available,
-        memoryLimit: features.memory_limit
+        memoryLimit: features.memory_limit,
       });
     }
 
@@ -197,12 +199,12 @@ class RuvSwarm {
     if (!wasmInstance) {
       throw new Error('RuvSwarm not initialized. Call RuvSwarm.initialize() first.');
     }
-    
+
     const features = new wasmInstance.exports.RuntimeFeatures();
     return {
       simdAvailable: features.simd_available,
       threadsAvailable: features.threads_available,
-      memoryLimit: features.memory_limit
+      memoryLimit: features.memory_limit,
     };
   }
 
@@ -254,14 +256,14 @@ class SwarmWrapper {
   }
 
   async spawn(config) {
-    return await this._retryOperation(async () => {
+    return await this._retryOperation(async() => {
       const agent = await this._swarm.spawn(config);
       return new AgentWrapper(agent, this._options);
     });
   }
 
   async orchestrate(task) {
-    return await this._retryOperation(async () => {
+    return await this._retryOperation(async() => {
       return await this._swarm.orchestrate(task);
     });
   }
@@ -276,7 +278,7 @@ class SwarmWrapper {
 
   async _retryOperation(operation) {
     let lastError;
-    
+
     for (let attempt = 0; attempt < this._retryAttempts; attempt++) {
       try {
         return await operation();
@@ -287,7 +289,7 @@ class SwarmWrapper {
         }
       }
     }
-    
+
     throw lastError;
   }
 }
@@ -372,7 +374,7 @@ import {
   NeuralAgentFactory,
   NeuralNetwork,
   COGNITIVE_PATTERNS,
-  AGENT_COGNITIVE_PROFILES
+  AGENT_COGNITIVE_PROFILES,
 } from './neural-agent.js';
 
 // Legacy exports - these are now provided by index-enhanced.js
@@ -388,5 +390,5 @@ export {
   NeuralAgentFactory,
   NeuralNetwork,
   COGNITIVE_PATTERNS,
-  AGENT_COGNITIVE_PROFILES
+  AGENT_COGNITIVE_PROFILES,
 };

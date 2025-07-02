@@ -6,27 +6,27 @@ import fs from 'fs/promises';
 import path from 'path';
 
 class AdvancedCommandsGenerator {
-    constructor(options = {}) {
-        this.workingDir = options.workingDir || process.cwd();
-    }
+  constructor(options = {}) {
+    this.workingDir = options.workingDir || process.cwd();
+  }
 
-    /**
+  /**
      * Generate advanced optimization command documentation
      */
-    async generateAdvancedCommands() {
-        const commandsDir = path.join(this.workingDir, '.claude', 'commands');
-        
-        // Create subdirectories
-        const subdirs = ['optimization', 'analysis', 'training', 'automation'];
-        for (const subdir of subdirs) {
-            await fs.mkdir(path.join(commandsDir, subdir), { recursive: true });
-        }
+  async generateAdvancedCommands() {
+    const commandsDir = path.join(this.workingDir, '.claude', 'commands');
 
-        const commands = {
-            // Optimization commands
-            'optimization/auto-topology.md': {
-                title: 'Automatic Topology Selection',
-                content: `# Automatic Topology Selection
+    // Create subdirectories
+    const subdirs = ['optimization', 'analysis', 'training', 'automation'];
+    for (const subdir of subdirs) {
+      await fs.mkdir(path.join(commandsDir, subdir), { recursive: true });
+    }
+
+    const commands = {
+      // Optimization commands
+      'optimization/auto-topology.md': {
+        title: 'Automatic Topology Selection',
+        content: `# Automatic Topology Selection
 
 ## Purpose
 Automatically select the optimal swarm topology based on task complexity analysis.
@@ -75,12 +75,12 @@ The pre-task hook automatically handles topology selection:
 {
   "command": "npx ruv-swarm hook pre-task --auto-spawn-agents --optimize-topology"
 }
-\`\`\``
-            },
+\`\`\``,
+      },
 
-            'optimization/parallel-execution.md': {
-                title: 'Parallel Task Execution',
-                content: `# Parallel Task Execution
+      'optimization/parallel-execution.md': {
+        title: 'Parallel Task Execution',
+        content: `# Parallel Task Execution
 
 ## Purpose
 Execute independent subtasks in parallel for maximum efficiency.
@@ -123,13 +123,13 @@ Tool: mcp__ruv-swarm__swarm_monitor
 Parameters: {"interval": 1, "duration": 10}
 \`\`\`
 
-Watch real-time parallel execution progress!`
-            },
+Watch real-time parallel execution progress!`,
+      },
 
-            // Analysis commands
-            'analysis/performance-bottlenecks.md': {
-                title: 'Performance Bottleneck Analysis',
-                content: `# Performance Bottleneck Analysis
+      // Analysis commands
+      'analysis/performance-bottlenecks.md': {
+        title: 'Performance Bottleneck Analysis',
+        content: `# Performance Bottleneck Analysis
 
 ## Purpose
 Identify and resolve performance bottlenecks in your development workflow.
@@ -187,12 +187,12 @@ Result includes:
 \`\`\`
 
 ## Continuous Optimization
-The system learns from each task to prevent future bottlenecks!`
-            },
+The system learns from each task to prevent future bottlenecks!`,
+      },
 
-            'analysis/token-efficiency.md': {
-                title: 'Token Usage Optimization',
-                content: `# Token Usage Optimization
+      'analysis/token-efficiency.md': {
+        title: 'Token Usage Optimization',
+        content: `# Token Usage Optimization
 
 ## Purpose
 Reduce token consumption while maintaining quality through intelligent coordination.
@@ -235,13 +235,13 @@ npx ruv-swarm hook session-end --export-metrics
 - 📉 32.3% average token reduction
 - 🎯 More focused operations
 - 🔄 Intelligent result reuse
-- 📊 Cumulative improvements`
-            },
+- 📊 Cumulative improvements`,
+      },
 
-            // Training commands
-            'training/neural-patterns.md': {
-                title: 'Neural Pattern Training',
-                content: `# Neural Pattern Training
+      // Training commands
+      'training/neural-patterns.md': {
+        title: 'Neural Pattern Training',
+        content: `# Neural Pattern Training
 
 ## Purpose
 Continuously improve coordination through neural network learning.
@@ -289,12 +289,12 @@ Result: {
 - 🧠 Learns your coding style
 - 📈 Improves with each use
 - 🎯 Better task predictions
-- ⚡ Faster coordination`
-            },
+- ⚡ Faster coordination`,
+      },
 
-            'training/specialization.md': {
-                title: 'Agent Specialization Training',
-                content: `# Agent Specialization Training
+      'training/specialization.md': {
+        title: 'Agent Specialization Training',
+        content: `# Agent Specialization Training
 
 ## Purpose
 Train agents to become experts in specific domains for better performance.
@@ -346,13 +346,13 @@ Result shows expertise levels:
 \`\`\`
 
 ## Continuous Improvement
-Agents share learnings across sessions for cumulative expertise!`
-            },
+Agents share learnings across sessions for cumulative expertise!`,
+      },
 
-            // Automation commands
-            'automation/smart-agents.md': {
-                title: 'Smart Agent Auto-Spawning',
-                content: `# Smart Agent Auto-Spawning
+      // Automation commands
+      'automation/smart-agents.md': {
+        title: 'Smart Agent Auto-Spawning',
+        content: `# Smart Agent Auto-Spawning
 
 ## Purpose
 Automatically spawn the right agents at the right time without manual intervention.
@@ -396,12 +396,12 @@ Already enabled in settings.json:
 - 🤖 Zero manual agent management
 - 🎯 Perfect agent selection
 - 📈 Dynamic scaling
-- 💾 Resource efficiency`
-            },
+- 💾 Resource efficiency`,
+      },
 
-            'automation/self-healing.md': {
-                title: 'Self-Healing Workflows',
-                content: `# Self-Healing Workflows
+      'automation/self-healing.md': {
+        title: 'Self-Healing Workflows',
+        content: `# Self-Healing Workflows
 
 ## Purpose
 Automatically detect and recover from errors without interrupting your flow.
@@ -461,12 +461,12 @@ Each recovery improves future prevention:
 - 🛡️ Resilient workflows
 - 🔄 Automatic recovery
 - 📚 Learns from errors
-- ⏱️ Saves debugging time`
-            },
+- ⏱️ Saves debugging time`,
+      },
 
-            'automation/session-memory.md': {
-                title: 'Cross-Session Memory',
-                content: `# Cross-Session Memory
+      'automation/session-memory.md': {
+        title: 'Cross-Session Memory',
+        content: `# Cross-Session Memory
 
 ## Purpose
 Maintain context and learnings across Claude Code sessions for continuous improvement.
@@ -526,25 +526,25 @@ export RUV_SWARM_MEMORY_PERSIST=false
 - 🧠 Contextual awareness
 - 📈 Cumulative learning
 - ⚡ Faster task completion
-- 🎯 Personalized optimization`
-            }
-        };
+- 🎯 Personalized optimization`,
+      },
+    };
 
-        const createdFiles = [];
-        
-        // Generate command files
-        for (const [filepath, config] of Object.entries(commands)) {
-            const content = config.content || this.generateCommandContent(config);
-            const filePath = path.join(commandsDir, filepath);
-            await fs.writeFile(filePath, content);
-            createdFiles.push(filepath);
-        }
+    const createdFiles = [];
 
-        return { files: createdFiles, success: true };
+    // Generate command files
+    for (const [filepath, config] of Object.entries(commands)) {
+      const content = config.content || this.generateCommandContent(config);
+      const filePath = path.join(commandsDir, filepath);
+      await fs.writeFile(filePath, content);
+      createdFiles.push(filepath);
     }
 
-    generateCommandContent(config) {
-        return `# ${config.title}
+    return { files: createdFiles, success: true };
+  }
+
+  generateCommandContent(config) {
+    return `# ${config.title}
 
 ## 🎯 Key Features
 ${config.description || 'Advanced swarm optimization capability'}
@@ -555,7 +555,7 @@ ${config.usage || 'See main documentation for details'}
 ## Benefits
 ${config.benefits || '- Improved performance\n- Automated workflows\n- Intelligent coordination'}
 `;
-    }
+  }
 }
 
 export { AdvancedCommandsGenerator };

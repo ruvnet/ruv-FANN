@@ -8,6 +8,7 @@ members = [
     "crates/ruv-swarm-ml",
     "crates/ruv-swarm-mcp",
     "crates/ruv-swarm-wasm",
+    "crates/ruv-swarm-daa",          # DAA integration for autonomous agents
     "crates/swe-bench-adapter",      # SWE-Bench adapter for evaluation
     "crates/ruv-swarm-cli",
     "ml-training",

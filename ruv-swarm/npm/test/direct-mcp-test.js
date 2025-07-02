@@ -4,14 +4,14 @@
  * Tests MCP tools by calling them directly
  */
 
-const { exec } = require('child_process');
-const util = require('util');
+import { exec  } from 'child_process';
+import util from 'util';
 const execPromise = util.promisify(exec);
 
 // Test each MCP tool
 async function testMcpTools() {
   console.log('🚀 Testing MCP Tools Directly\n');
-  
+
   const tests = [
     {
       name: 'features_detect',
@@ -20,10 +20,10 @@ async function testMcpTools() {
         method: 'tools/call',
         params: {
           name: 'features_detect',
-          arguments: { category: 'all' }
+          arguments: { category: 'all' },
         },
-        id: 1
-      }
+        id: 1,
+      },
     },
     {
       name: 'memory_usage',
@@ -32,10 +32,10 @@ async function testMcpTools() {
         method: 'tools/call',
         params: {
           name: 'memory_usage',
-          arguments: { detail: 'summary' }
+          arguments: { detail: 'summary' },
         },
-        id: 2
-      }
+        id: 2,
+      },
     },
     {
       name: 'swarm_init',
@@ -44,10 +44,10 @@ async function testMcpTools() {
         method: 'tools/call',
         params: {
           name: 'swarm_init',
-          arguments: { topology: 'mesh', maxAgents: 5, strategy: 'balanced' }
+          arguments: { topology: 'mesh', maxAgents: 5, strategy: 'balanced' },
         },
-        id: 3
-      }
+        id: 3,
+      },
     },
     {
       name: 'swarm_status',
@@ -56,10 +56,10 @@ async function testMcpTools() {
         method: 'tools/call',
         params: {
           name: 'swarm_status',
-          arguments: { verbose: false }
+          arguments: { verbose: false },
         },
-        id: 4
-      }
+        id: 4,
+      },
     },
     {
       name: 'agent_spawn',
@@ -68,20 +68,20 @@ async function testMcpTools() {
         method: 'tools/call',
         params: {
           name: 'agent_spawn',
-          arguments: { type: 'researcher', name: 'test-researcher' }
+          arguments: { type: 'researcher', name: 'test-researcher' },
         },
-        id: 5
-      }
-    }
+        id: 5,
+      },
+    },
   ];
 
   for (const test of tests) {
     console.log(`Testing ${test.name}...`);
-    
+
     try {
       const cmd = `echo '${JSON.stringify(test.request)}' | node bin/ruv-swarm.js mcp start --protocol=stdio 2>/dev/null`;
       const { stdout, stderr } = await execPromise(cmd, { cwd: '/workspaces/ruv-FANN/ruv-swarm/npm' });
-      
+
       if (stdout) {
         const lines = stdout.trim().split('\n');
         for (const line of lines) {
@@ -104,7 +104,7 @@ async function testMcpTools() {
     } catch (error) {
       console.log(`❌ ${test.name}: FAILED - ${error.message}`);
     }
-    
+
     console.log('');
   }
 }
@@ -112,10 +112,10 @@ async function testMcpTools() {
 // Test parallel agent creation
 async function testParallelAgents() {
   console.log('\n🤖 Testing Parallel Agent Creation\n');
-  
+
   const agentTypes = ['researcher', 'coder', 'analyst', 'optimizer', 'coordinator'];
   const promises = [];
-  
+
   for (let i = 0; i < agentTypes.length; i++) {
     const request = {
       jsonrpc: '2.0',
@@ -125,20 +125,20 @@ async function testParallelAgents() {
         arguments: {
           type: agentTypes[i],
           name: `agent-${i + 1}`,
-          capabilities: [`skill-${i + 1}`]
-        }
+          capabilities: [`skill-${i + 1}`],
+        },
       },
-      id: 100 + i
+      id: 100 + i,
     };
-    
+
     const cmd = `echo '${JSON.stringify(request)}' | node bin/ruv-swarm.js mcp start --protocol=stdio 2>/dev/null | grep -E "jsonrpc|result"`;
     promises.push(execPromise(cmd, { cwd: '/workspaces/ruv-FANN/ruv-swarm/npm' }));
   }
-  
+
   try {
     const results = await Promise.all(promises);
     console.log(`✅ Created ${results.length} agents in parallel`);
-    
+
     results.forEach((result, i) => {
       if (result.stdout && result.stdout.includes('jsonrpc')) {
         console.log(`   Agent ${i + 1}: ${agentTypes[i]}`);
@@ -153,7 +153,7 @@ async function testParallelAgents() {
 async function runAllTests() {
   await testMcpTools();
   await testParallelAgents();
-  
+
   console.log('\n✨ Test completed!');
 }
 

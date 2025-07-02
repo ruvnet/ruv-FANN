@@ -4,8 +4,13 @@
  * Tests all 12 MCP tools with a 5-agent swarm
  */
 
-const { spawn } = require('child_process');
-const path = require('path');
+import { spawn  } from 'child_process';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Colors for output
 const colors = {
@@ -14,7 +19,7 @@ const colors = {
   red: '\x1b[31m',
   yellow: '\x1b[33m',
   blue: '\x1b[34m',
-  cyan: '\x1b[36m'
+  cyan: '\x1b[36m',
 };
 
 function log(message, color = 'reset') {
@@ -29,14 +34,14 @@ async function executeMcpTool(toolName, args = {}) {
       method: 'tools/call',
       params: {
         name: toolName,
-        arguments: args
+        arguments: args,
       },
-      id: Date.now()
+      id: Date.now(),
     };
 
     const mcpPath = path.join(__dirname, '..', 'mcp-server.sh');
     const mcp = spawn(mcpPath, [], {
-      stdio: ['pipe', 'pipe', 'pipe']
+      stdio: ['pipe', 'pipe', 'pipe'],
     });
 
     let output = '';
@@ -73,7 +78,7 @@ async function executeMcpTool(toolName, args = {}) {
     });
 
     // Send request
-    mcp.stdin.write(JSON.stringify(request) + '\n');
+    mcp.stdin.write(`${JSON.stringify(request) }\n`);
     mcp.stdin.end();
   });
 }
@@ -82,11 +87,11 @@ async function executeMcpTool(toolName, args = {}) {
 async function testAllMcpTools() {
   log('\n🚀 Starting Comprehensive MCP Tools Test Suite', 'cyan');
   log('=' .repeat(60), 'cyan');
-  
+
   const results = {
     passed: 0,
     failed: 0,
-    tools: {}
+    tools: {},
   };
 
   // Test 1: Initialize Swarm
@@ -95,7 +100,7 @@ async function testAllMcpTools() {
     const result = await executeMcpTool('swarm_init', {
       topology: 'mesh',
       maxAgents: 10,
-      strategy: 'balanced'
+      strategy: 'balanced',
     });
     log('✅ swarm_init: PASSED', 'green');
     log(`   Swarm ID: ${result.content[0].text}`, 'green');
@@ -111,12 +116,12 @@ async function testAllMcpTools() {
   // Test 2: Create 5 Agents in Parallel
   log('\n2. Creating 5-agent swarm in parallel...', 'blue');
   const agentTypes = ['researcher', 'coder', 'analyst', 'optimizer', 'coordinator'];
-  const agentPromises = agentTypes.map((type, index) => 
+  const agentPromises = agentTypes.map((type, index) =>
     executeMcpTool('agent_spawn', {
       type,
       name: `agent-${type}-${index + 1}`,
-      capabilities: [`capability-${index + 1}`, `capability-${index + 2}`]
-    })
+      capabilities: [`capability-${index + 1}`, `capability-${index + 2}`],
+    }),
   );
 
   try {
@@ -171,7 +176,7 @@ async function testAllMcpTools() {
       task: 'Analyze system performance and generate optimization report',
       priority: 'high',
       strategy: 'adaptive',
-      maxAgents: 3
+      maxAgents: 3,
     });
     log('✅ task_orchestrate: PASSED', 'green');
     log(`   ${result.content[0].text.split('\n')[0]}`, 'green');
@@ -248,7 +253,7 @@ async function testAllMcpTools() {
   try {
     const result = await executeMcpTool('benchmark_run', {
       type: 'wasm',
-      iterations: 5
+      iterations: 5,
     });
     log('✅ benchmark_run: PASSED', 'green');
     results.passed++;
@@ -265,7 +270,7 @@ async function testAllMcpTools() {
   try {
     const result = await executeMcpTool('swarm_monitor', {
       duration: 2,
-      interval: 1
+      interval: 1,
     });
     log('✅ swarm_monitor: PASSED', 'green');
     results.passed++;
@@ -283,12 +288,12 @@ async function testAllMcpTools() {
     // First get a task ID from task_status
     const statusResult = await executeMcpTool('task_status', {});
     const taskIdMatch = statusResult.content[0].text.match(/task_[\w]+/);
-    
+
     if (taskIdMatch) {
       const taskId = taskIdMatch[0];
       const result = await executeMcpTool('task_results', {
         taskId,
-        format: 'detailed'
+        format: 'detailed',
       });
       log('✅ task_results: PASSED', 'green');
       results.passed++;
@@ -305,13 +310,13 @@ async function testAllMcpTools() {
   }
 
   // Summary
-  log('\n' + '=' .repeat(60), 'cyan');
+  log(`\n${ '=' .repeat(60)}`, 'cyan');
   log('📊 Test Summary', 'cyan');
   log('=' .repeat(60), 'cyan');
   log(`Total Tests: ${results.passed + results.failed}`, 'blue');
   log(`Passed: ${results.passed}`, 'green');
   log(`Failed: ${results.failed}`, results.failed > 0 ? 'red' : 'green');
-  
+
   // Tool-by-tool summary
   log('\nTool Results:', 'blue');
   Object.entries(results.tools).forEach(([tool, result]) => {
@@ -328,7 +333,7 @@ async function testAllMcpTools() {
   }
 
   // Final result
-  log('\n' + '=' .repeat(60), 'cyan');
+  log(`\n${ '=' .repeat(60)}`, 'cyan');
   if (results.failed === 0) {
     log('🎉 All MCP tools are working correctly!', 'green');
     log('✨ The 5-agent swarm was successfully created and tested.', 'green');
@@ -338,7 +343,7 @@ async function testAllMcpTools() {
   log('=' .repeat(60), 'cyan');
 
   // Save detailed results
-  const fs = require('fs');
+  import fs from 'fs';
   const resultsPath = path.join(__dirname, 'mcp-test-results.json');
   fs.writeFileSync(resultsPath, JSON.stringify(results, null, 2));
   log(`\n📄 Detailed results saved to: ${resultsPath}`, 'cyan');

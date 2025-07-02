@@ -5,207 +5,212 @@
  * Comprehensive metrics collection for post-fix evaluation
  */
 
-const { spawn } = require('child_process');
-const fs = require('fs').promises;
-const path = require('path');
+import { spawn } from 'child_process';
+import fs from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 class PerformanceAnalyzer {
-    constructor() {
-        this.results = {
-            version: '0.2.1',
-            timestamp: new Date().toISOString(),
-            improvements: {},
-            metrics: {},
-            fixes: []
-        };
+  constructor() {
+    this.results = {
+      version: '0.2.1',
+      timestamp: new Date().toISOString(),
+      improvements: {},
+      metrics: {},
+      fixes: [],
+    };
+  }
+
+  async runCommand(cmd, args = []) {
+    return new Promise((resolve) => {
+      const child = spawn(cmd, args, { shell: true });
+      let output = '';
+      let error = '';
+
+      child.stdout.on('data', (data) => output += data.toString());
+      child.stderr.on('data', (data) => error += data.toString());
+
+      child.on('close', (code) => {
+        resolve({ code, output, error });
+      });
+    });
+  }
+
+  async testModuleWarnings() {
+    console.log('🔍 Testing Module Warning Fixes...');
+    const result = await this.runCommand('npx', ['ruv-swarm', 'neural', 'status']);
+
+    const hasModuleWarning = result.error.includes('MODULE_TYPELESS_PACKAGE_JSON');
+    this.results.fixes.push({
+      issue: 'Module type warnings',
+      fixed: !hasModuleWarning,
+      impact: hasModuleWarning ? 'Performance overhead still present' : 'Eliminated performance overhead',
+      recommendation: hasModuleWarning ? 'Add "type": "module" to wasm/package.json' : 'Successfully fixed',
+    });
+
+    return !hasModuleWarning;
+  }
+
+  async testNeuralPerformance() {
+    console.log('🧠 Testing Neural Performance...');
+
+    // Test training performance
+    const trainStart = Date.now();
+    const trainResult = await this.runCommand('npx', ['ruv-swarm', 'neural', 'train', '--iterations', '10']);
+    const trainTime = Date.now() - trainStart;
+
+    // Extract metrics from output
+    const accuracyMatch = trainResult.output.match(/Final Accuracy: ([\d.]+)%/);
+    const lossMatch = trainResult.output.match(/Final Loss: ([\d.]+)/);
+
+    this.results.metrics.neuralTraining = {
+      duration: trainTime,
+      accuracy: accuracyMatch ? parseFloat(accuracyMatch[1]) : 0,
+      loss: lossMatch ? parseFloat(lossMatch[1]) : 0,
+      iterationsPerSecond: 10000 / trainTime,
+    };
+
+    // Test pattern recognition
+    const patternResult = await this.runCommand('npx', ['ruv-swarm', 'neural', 'patterns', '--pattern', 'all']);
+    const hasPatternErrors = patternResult.output.includes('Error') || patternResult.error.length > 0;
+
+    this.results.metrics.patternRecognition = {
+      functional: !hasPatternErrors,
+      patternsDetected: (patternResult.output.match(/•/g) || []).length,
+    };
+
+    return true;
+  }
+
+  async testBenchmarks() {
+    console.log('📊 Running Comprehensive Benchmarks...');
+
+    const benchResult = await this.runCommand('npx', ['ruv-swarm', 'benchmark', 'run', '--type', 'neural', '--iterations', '20']);
+
+    // Extract benchmark metrics
+    const scoreMatch = benchResult.output.match(/Overall Score: (\d+)%/);
+    const wasmMatch = benchResult.output.match(/WASM Module Loading.*?(\d+)ms/);
+    const swarmMatch = benchResult.output.match(/Swarm Init.*?Average: ([\d.]+)ms/);
+    const agentMatch = benchResult.output.match(/Agent Spawn.*?Average: ([\d.]+)ms/);
+    const neuralMatch = benchResult.output.match(/Neural Processing.*?(\d+) ops\/sec/);
+
+    this.results.metrics.benchmarks = {
+      overallScore: scoreMatch ? parseInt(scoreMatch[1], 10) : 0,
+      wasmLoadTime: wasmMatch ? parseInt(wasmMatch[1], 10) : 0,
+      swarmInitTime: swarmMatch ? parseFloat(swarmMatch[1]) : 0,
+      agentSpawnTime: agentMatch ? parseFloat(agentMatch[1]) : 0,
+      neuralOpsPerSec: neuralMatch ? parseInt(neuralMatch[1], 10) : 0,
+    };
+
+    return true;
+  }
+
+  async testPersistence() {
+    console.log('💾 Testing Persistence Functionality...');
+
+    // Test session save
+    const sessionId = `test-${Date.now()}`;
+    const saveResult = await this.runCommand('npx', ['ruv-swarm', 'hook', 'session-end', '--session-id', sessionId, '--export-metrics', 'true']);
+
+    // Test session restore
+    const restoreResult = await this.runCommand('npx', ['ruv-swarm', 'hook', 'session-restore', '--session-id', sessionId, '--load-memory', 'true']);
+
+    const saveSuccess = saveResult.output.includes('"continue": true');
+    const restoreSuccess = restoreResult.output.includes('"restored"');
+
+    this.results.metrics.persistence = {
+      sessionSave: saveSuccess,
+      sessionRestore: restoreSuccess,
+      crossSessionMemory: saveSuccess && restoreSuccess,
+    };
+
+    this.results.fixes.push({
+      issue: 'Cross-session persistence',
+      fixed: saveSuccess && restoreSuccess,
+      impact: 'Enables continuous learning across sessions',
+      functionality: saveSuccess && restoreSuccess ? 'Fully operational' : 'Requires fixes',
+    });
+
+    return true;
+  }
+
+  async testInputValidation() {
+    console.log('🛡️ Testing Input Validation...');
+
+    // Test with invalid inputs
+    const invalidTests = [
+      { cmd: 'npx ruv-swarm neural train --iterations -5', expectError: true },
+      { cmd: 'npx ruv-swarm benchmark run --iterations 1000', expectError: true },
+      { cmd: 'npx ruv-swarm neural patterns --pattern invalid', expectError: false },
+    ];
+
+    let validationScore = 0;
+    for (const test of invalidTests) {
+      const result = await this.runCommand('sh', ['-c', test.cmd]);
+      const hasError = result.error.length > 0 || result.output.includes('Error');
+      if ((test.expectError && hasError) || (!test.expectError && !hasError)) {
+        validationScore++;
+      }
     }
 
-    async runCommand(cmd, args = []) {
-        return new Promise((resolve) => {
-            const child = spawn(cmd, args, { shell: true });
-            let output = '';
-            let error = '';
+    this.results.metrics.inputValidation = {
+      score: validationScore / invalidTests.length,
+      testsRun: invalidTests.length,
+      testsPassed: validationScore,
+    };
 
-            child.stdout.on('data', (data) => output += data.toString());
-            child.stderr.on('data', (data) => error += data.toString());
+    return true;
+  }
 
-            child.on('close', (code) => {
-                resolve({ code, output, error });
-            });
-        });
-    }
+  async analyzeImprovements() {
+    console.log('📈 Analyzing v0.2.1 Improvements...');
 
-    async testModuleWarnings() {
-        console.log('🔍 Testing Module Warning Fixes...');
-        const result = await this.runCommand('npx', ['ruv-swarm', 'neural', 'status']);
-        
-        const hasModuleWarning = result.error.includes('MODULE_TYPELESS_PACKAGE_JSON');
-        this.results.fixes.push({
-            issue: 'Module type warnings',
-            fixed: !hasModuleWarning,
-            impact: hasModuleWarning ? 'Performance overhead still present' : 'Eliminated performance overhead',
-            recommendation: hasModuleWarning ? 'Add "type": "module" to wasm/package.json' : 'Successfully fixed'
-        });
+    // Compare with v0.2.0 baseline (simulated)
+    const v020Baseline = {
+      neuralAccuracy: 85.0,
+      trainingSpeed: 8.5,
+      benchmarkScore: 75,
+      moduleWarnings: true,
+      persistenceWorking: false,
+    };
 
-        return !hasModuleWarning;
-    }
+    this.results.improvements = {
+      neuralAccuracy: {
+        before: v020Baseline.neuralAccuracy,
+        after: this.results.metrics.neuralTraining?.accuracy || 0,
+        improvement: `${((this.results.metrics.neuralTraining?.accuracy || 0) - v020Baseline.neuralAccuracy).toFixed(1)}%`,
+      },
+      trainingSpeed: {
+        before: v020Baseline.trainingSpeed,
+        after: this.results.metrics.neuralTraining?.iterationsPerSecond || 0,
+        improvement: `${(((this.results.metrics.neuralTraining?.iterationsPerSecond || 0) / v020Baseline.trainingSpeed - 1) * 100).toFixed(1)}%`,
+      },
+      benchmarkScore: {
+        before: v020Baseline.benchmarkScore,
+        after: this.results.metrics.benchmarks?.overallScore || 0,
+        improvement: `${(this.results.metrics.benchmarks?.overallScore || 0) - v020Baseline.benchmarkScore}%`,
+      },
+      moduleWarnings: {
+        before: 'Present',
+        after: this.results.fixes[0]?.fixed ? 'Fixed' : 'Still Present',
+        impact: this.results.fixes[0]?.fixed ? 'Eliminated performance overhead' : 'Performance overhead remains',
+      },
+      persistence: {
+        before: 'Non-functional',
+        after: this.results.metrics.persistence?.crossSessionMemory ? 'Fully operational' : 'Partially working',
+        impact: 'Enables continuous learning and state management',
+      },
+    };
+  }
 
-    async testNeuralPerformance() {
-        console.log('🧠 Testing Neural Performance...');
-        
-        // Test training performance
-        const trainStart = Date.now();
-        const trainResult = await this.runCommand('npx', ['ruv-swarm', 'neural', 'train', '--iterations', '10']);
-        const trainTime = Date.now() - trainStart;
+  async generateReport() {
+    console.log('📝 Generating Comprehensive Report...');
 
-        // Extract metrics from output
-        const accuracyMatch = trainResult.output.match(/Final Accuracy: ([\d.]+)%/);
-        const lossMatch = trainResult.output.match(/Final Loss: ([\d.]+)/);
-
-        this.results.metrics.neuralTraining = {
-            duration: trainTime,
-            accuracy: accuracyMatch ? parseFloat(accuracyMatch[1]) : 0,
-            loss: lossMatch ? parseFloat(lossMatch[1]) : 0,
-            iterationsPerSecond: 10000 / trainTime
-        };
-
-        // Test pattern recognition
-        const patternResult = await this.runCommand('npx', ['ruv-swarm', 'neural', 'patterns', '--pattern', 'all']);
-        const hasPatternErrors = patternResult.output.includes('Error') || patternResult.error.length > 0;
-
-        this.results.metrics.patternRecognition = {
-            functional: !hasPatternErrors,
-            patternsDetected: (patternResult.output.match(/•/g) || []).length
-        };
-
-        return true;
-    }
-
-    async testBenchmarks() {
-        console.log('📊 Running Comprehensive Benchmarks...');
-        
-        const benchResult = await this.runCommand('npx', ['ruv-swarm', 'benchmark', 'run', '--type', 'neural', '--iterations', '20']);
-        
-        // Extract benchmark metrics
-        const scoreMatch = benchResult.output.match(/Overall Score: (\d+)%/);
-        const wasmMatch = benchResult.output.match(/WASM Module Loading.*?(\d+)ms/);
-        const swarmMatch = benchResult.output.match(/Swarm Init.*?Average: ([\d.]+)ms/);
-        const agentMatch = benchResult.output.match(/Agent Spawn.*?Average: ([\d.]+)ms/);
-        const neuralMatch = benchResult.output.match(/Neural Processing.*?(\d+) ops\/sec/);
-
-        this.results.metrics.benchmarks = {
-            overallScore: scoreMatch ? parseInt(scoreMatch[1]) : 0,
-            wasmLoadTime: wasmMatch ? parseInt(wasmMatch[1]) : 0,
-            swarmInitTime: swarmMatch ? parseFloat(swarmMatch[1]) : 0,
-            agentSpawnTime: agentMatch ? parseFloat(agentMatch[1]) : 0,
-            neuralOpsPerSec: neuralMatch ? parseInt(neuralMatch[1]) : 0
-        };
-
-        return true;
-    }
-
-    async testPersistence() {
-        console.log('💾 Testing Persistence Functionality...');
-        
-        // Test session save
-        const sessionId = `test-${Date.now()}`;
-        const saveResult = await this.runCommand('npx', ['ruv-swarm', 'hook', 'session-end', '--session-id', sessionId, '--export-metrics', 'true']);
-        
-        // Test session restore
-        const restoreResult = await this.runCommand('npx', ['ruv-swarm', 'hook', 'session-restore', '--session-id', sessionId, '--load-memory', 'true']);
-        
-        const saveSuccess = saveResult.output.includes('"continue": true');
-        const restoreSuccess = restoreResult.output.includes('"restored"');
-
-        this.results.metrics.persistence = {
-            sessionSave: saveSuccess,
-            sessionRestore: restoreSuccess,
-            crossSessionMemory: saveSuccess && restoreSuccess
-        };
-
-        this.results.fixes.push({
-            issue: 'Cross-session persistence',
-            fixed: saveSuccess && restoreSuccess,
-            impact: 'Enables continuous learning across sessions',
-            functionality: saveSuccess && restoreSuccess ? 'Fully operational' : 'Requires fixes'
-        });
-
-        return true;
-    }
-
-    async testInputValidation() {
-        console.log('🛡️ Testing Input Validation...');
-        
-        // Test with invalid inputs
-        const invalidTests = [
-            { cmd: 'npx ruv-swarm neural train --iterations -5', expectError: true },
-            { cmd: 'npx ruv-swarm benchmark run --iterations 1000', expectError: true },
-            { cmd: 'npx ruv-swarm neural patterns --pattern invalid', expectError: false }
-        ];
-
-        let validationScore = 0;
-        for (const test of invalidTests) {
-            const result = await this.runCommand('sh', ['-c', test.cmd]);
-            const hasError = result.error.length > 0 || result.output.includes('Error');
-            if ((test.expectError && hasError) || (!test.expectError && !hasError)) {
-                validationScore++;
-            }
-        }
-
-        this.results.metrics.inputValidation = {
-            score: validationScore / invalidTests.length,
-            testsRun: invalidTests.length,
-            testsPassed: validationScore
-        };
-
-        return true;
-    }
-
-    async analyzeImprovements() {
-        console.log('📈 Analyzing v0.2.1 Improvements...');
-
-        // Compare with v0.2.0 baseline (simulated)
-        const v020Baseline = {
-            neuralAccuracy: 85.0,
-            trainingSpeed: 8.5,
-            benchmarkScore: 75,
-            moduleWarnings: true,
-            persistenceWorking: false
-        };
-
-        this.results.improvements = {
-            neuralAccuracy: {
-                before: v020Baseline.neuralAccuracy,
-                after: this.results.metrics.neuralTraining?.accuracy || 0,
-                improvement: `${((this.results.metrics.neuralTraining?.accuracy || 0) - v020Baseline.neuralAccuracy).toFixed(1)}%`
-            },
-            trainingSpeed: {
-                before: v020Baseline.trainingSpeed,
-                after: this.results.metrics.neuralTraining?.iterationsPerSecond || 0,
-                improvement: `${(((this.results.metrics.neuralTraining?.iterationsPerSecond || 0) / v020Baseline.trainingSpeed - 1) * 100).toFixed(1)}%`
-            },
-            benchmarkScore: {
-                before: v020Baseline.benchmarkScore,
-                after: this.results.metrics.benchmarks?.overallScore || 0,
-                improvement: `${(this.results.metrics.benchmarks?.overallScore || 0) - v020Baseline.benchmarkScore}%`
-            },
-            moduleWarnings: {
-                before: 'Present',
-                after: this.results.fixes[0]?.fixed ? 'Fixed' : 'Still Present',
-                impact: this.results.fixes[0]?.fixed ? 'Eliminated performance overhead' : 'Performance overhead remains'
-            },
-            persistence: {
-                before: 'Non-functional',
-                after: this.results.metrics.persistence?.crossSessionMemory ? 'Fully operational' : 'Partially working',
-                impact: 'Enables continuous learning and state management'
-            }
-        };
-    }
-
-    async generateReport() {
-        console.log('📝 Generating Comprehensive Report...');
-
-        const report = `# ruv-swarm v0.2.1 Performance Analysis Report
+    const report = `# ruv-swarm v0.2.1 Performance Analysis Report
 
 Generated: ${this.results.timestamp}
 
@@ -292,53 +297,51 @@ The system is now more robust, with ${(this.results.metrics.inputValidation?.sco
 *Generated by ruv-swarm Performance Analyzer v0.2.1*
 `;
 
-        await fs.writeFile(
-            path.join(__dirname, 'v0.2.1-performance-report.md'),
-            report
-        );
+    await fs.writeFile(
+      path.join(__dirname, 'v0.2.1-performance-report.md'),
+      report,
+    );
 
-        // Also save raw data
-        await fs.writeFile(
-            path.join(__dirname, 'v0.2.1-performance-data.json'),
-            JSON.stringify(this.results, null, 2)
-        );
+    // Also save raw data
+    await fs.writeFile(
+      path.join(__dirname, 'v0.2.1-performance-data.json'),
+      JSON.stringify(this.results, null, 2),
+    );
 
-        console.log('✅ Report generated: v0.2.1-performance-report.md');
-        console.log('📊 Raw data saved: v0.2.1-performance-data.json');
+    console.log('✅ Report generated: v0.2.1-performance-report.md');
+    console.log('📊 Raw data saved: v0.2.1-performance-data.json');
 
-        return report;
+    return report;
+  }
+
+  async run() {
+    console.log('🚀 Starting v0.2.1 Performance Analysis...\n');
+
+    try {
+      await this.testModuleWarnings();
+      await this.testNeuralPerformance();
+      await this.testBenchmarks();
+      await this.testPersistence();
+      await this.testInputValidation();
+      await this.analyzeImprovements();
+
+      const report = await this.generateReport();
+
+      console.log('\n✅ Analysis Complete!');
+      console.log('\n📊 Summary:');
+      console.log(`- Neural Accuracy: ${this.results.metrics.neuralTraining?.accuracy}%`);
+      console.log(`- Benchmark Score: ${this.results.metrics.benchmarks?.overallScore}%`);
+      console.log(`- Fixes Applied: ${this.results.fixes.filter(f => f.fixed).length}/${this.results.fixes.length}`);
+
+    } catch (error) {
+      console.error('❌ Analysis failed:', error);
+      process.exit(1);
     }
-
-    async run() {
-        console.log('🚀 Starting v0.2.1 Performance Analysis...\n');
-
-        try {
-            await this.testModuleWarnings();
-            await this.testNeuralPerformance();
-            await this.testBenchmarks();
-            await this.testPersistence();
-            await this.testInputValidation();
-            await this.analyzeImprovements();
-            
-            const report = await this.generateReport();
-            
-            console.log('\n✅ Analysis Complete!');
-            console.log('\n📊 Summary:');
-            console.log(`- Neural Accuracy: ${this.results.metrics.neuralTraining?.accuracy}%`);
-            console.log(`- Benchmark Score: ${this.results.metrics.benchmarks?.overallScore}%`);
-            console.log(`- Fixes Applied: ${this.results.fixes.filter(f => f.fixed).length}/${this.results.fixes.length}`);
-            
-        } catch (error) {
-            console.error('❌ Analysis failed:', error);
-            process.exit(1);
-        }
-    }
+  }
 }
 
 // Run analysis
-if (require.main === module) {
-    const analyzer = new PerformanceAnalyzer();
-    analyzer.run();
-}
+const analyzer = new PerformanceAnalyzer();
+analyzer.run();
 
-module.exports = PerformanceAnalyzer;
+export default PerformanceAnalyzer;

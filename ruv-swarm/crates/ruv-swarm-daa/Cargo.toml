@@ -1,0 +1,64 @@
+[package]
+name = "ruv-swarm-daa"
+version = "1.0.4"
+edition = "2021"
+description = "Decentralized Autonomous Agents (DAA) integration for ruv-swarm"
+authors = ["ruvnet <ruv@ruvnet.com>"]
+license = "MIT"
+repository = "https://github.com/ruvnet/ruv-FANN"
+documentation = "https://docs.rs/ruv-swarm-daa"
+keywords = ["daa", "autonomous-agents", "swarm", "coordination", "ai"]
+categories = ["science", "simulation", "algorithms"]
+
+[dependencies]
+ruv-swarm-core = { path = "../ruv-swarm-core", version = "1.0.4" }
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+async-trait = "0.1"
+wasm-bindgen = { version = "0.2", optional = true }
+js-sys = { version = "0.3", optional = true }
+web-sys = { version = "0.3", optional = true }
+anyhow = "1.0"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+tracing = "0.1"
+futures = "0.3"
+dashmap = "5.4"
+parking_lot = "0.12"
+
+# Neural Network dependencies
+tch = { version = "0.13", optional = true }
+candle-core = { version = "0.3", optional = true }
+candle-nn = { version = "0.3", optional = true }
+
+# Performance optimization
+rayon = { version = "1.7", optional = true }
+crossbeam = { version = "0.8", optional = true }
+
+# CLI dependencies for binary
+clap = { version = "4.0", features = ["derive"] }
+env_logger = "0.10"
+chrono = { version = "0.4", features = ["serde"] }
+
+[features]
+default = ["neural-networks", "autonomous-learning"]
+wasm = ["wasm-bindgen", "js-sys", "web-sys"]
+neural-networks = ["tch", "candle-core", "candle-nn"]
+autonomous-learning = []
+performance = ["rayon", "crossbeam"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "daa-coordinator"
+required-features = ["autonomous-learning"]
+
+[package.metadata.wasm-pack.profile.release]
+wee-alloc = false
+debug-assertions = false
+overflow-checks = false
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

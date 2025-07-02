@@ -753,16 +753,16 @@ async function handleMcpRequest(request, mcpTools) {
 
 async function handleHook(args) {
     // Hook handler for Claude Code integration
-    const hooksCLI = require('../src/hooks/cli');
+    const { main: hooksCLIMain } = await import('../src/hooks/cli.js');
     
     // Pass through to hooks CLI with 'hook' already consumed
     process.argv = ['node', 'ruv-swarm', 'hook', ...args];
     
-    return hooksCLI.main();
+    return hooksCLIMain();
 }
 
 async function handleNeural(args) {
-    const { neuralCLI } = require('../src/neural');
+    const { neuralCLI } = await import('../src/neural.js');
     const subcommand = args[0] || 'help';
     
     try {
@@ -797,7 +797,7 @@ Examples:
 }
 
 async function handleBenchmark(args) {
-    const { benchmarkCLI } = require('../src/benchmark');
+    const { benchmarkCLI } = await import('../src/benchmark.js');
     const subcommand = args[0] || 'help';
     
     try {
@@ -825,7 +825,7 @@ Examples:
 }
 
 async function handlePerformance(args) {
-    const { performanceCLI } = require('../src/performance');
+    const { performanceCLI } = await import('../src/performance.js');
     const subcommand = args[0] || 'help';
     
     try {

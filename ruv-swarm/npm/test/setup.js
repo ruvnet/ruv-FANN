@@ -14,7 +14,7 @@ if (!process.env.DEBUG) {
     info: jest.fn(),
     warn: jest.fn(),
     // Keep error for debugging failed tests
-    error: console.error
+    error: console.error,
   };
 }
 
@@ -22,7 +22,7 @@ if (!process.env.DEBUG) {
 global.testUtils = {
   // Wait for async operations
   wait: (ms) => new Promise(resolve => setTimeout(resolve, ms)),
-  
+
   // Create mock data
   createMockSwarmConfig: (overrides = {}) => ({
     name: 'test-swarm',
@@ -31,17 +31,17 @@ global.testUtils = {
     maxAgents: 10,
     enableCognitiveDiversity: true,
     enableNeuralAgents: true,
-    ...overrides
+    ...overrides,
   }),
-  
+
   createMockAgentConfig: (overrides = {}) => ({
     type: 'researcher',
     name: 'test-agent',
     capabilities: ['research', 'analysis'],
     enableNeuralNetwork: true,
-    ...overrides
+    ...overrides,
   }),
-  
+
   createMockTaskConfig: (overrides = {}) => ({
     description: 'Test task',
     priority: 'medium',
@@ -49,8 +49,8 @@ global.testUtils = {
     maxAgents: null,
     estimatedDuration: null,
     requiredCapabilities: [],
-    ...overrides
-  })
+    ...overrides,
+  }),
 };
 
 // Mock WebAssembly if not available
@@ -60,13 +60,13 @@ if (typeof WebAssembly === 'undefined') {
     instantiate: jest.fn(() => Promise.resolve({
       module: {},
       instance: {
-        exports: {}
-      }
+        exports: {},
+      },
     })),
     Module: jest.fn(),
     Instance: jest.fn(),
     Memory: jest.fn(() => ({ buffer: new ArrayBuffer(1024) })),
-    Table: jest.fn()
+    Table: jest.fn(),
   };
 }
 
@@ -77,13 +77,13 @@ if (typeof performance === 'undefined') {
     memory: {
       usedJSHeapSize: 1000000,
       totalJSHeapSize: 2000000,
-      jsHeapSizeLimit: 4000000
-    }
+      jsHeapSizeLimit: 4000000,
+    },
   };
 }
 
 // Clean up function for tests
-global.cleanupTest = async () => {
+global.cleanupTest = async() => {
   // Reset global state
   if (global._ruvSwarmInstance) {
     if (global._ruvSwarmInstance.persistence) {
@@ -92,7 +92,7 @@ global.cleanupTest = async () => {
     global._ruvSwarmInstance = null;
   }
   global._ruvSwarmInitialized = 0;
-  
+
   // Clear all mocks
   jest.clearAllMocks();
 };
@@ -106,30 +106,30 @@ expect.extend({
         message: () => `expected ${received} not to be within range ${floor} - ${ceiling}`,
         pass: true,
       };
-    } else {
-      return {
-        message: () => `expected ${received} to be within range ${floor} - ${ceiling}`,
-        pass: false,
-      };
     }
+    return {
+      message: () => `expected ${received} to be within range ${floor} - ${ceiling}`,
+      pass: false,
+    };
+
   },
-  
+
   toHaveValidId(received) {
-    const pass = typeof received === 'string' && 
-                 received.length > 0 && 
+    const pass = typeof received === 'string' &&
+                 received.length > 0 &&
                  (received.includes('-') || received.includes('_'));
     if (pass) {
       return {
         message: () => `expected ${received} not to be a valid ID`,
         pass: true,
       };
-    } else {
-      return {
-        message: () => `expected ${received} to be a valid ID (string with separator)`,
-        pass: false,
-      };
     }
-  }
+    return {
+      message: () => `expected ${received} to be a valid ID (string with separator)`,
+      pass: false,
+    };
+
+  },
 });
 
 // Handle unhandled promise rejections

@@ -1,0 +1,15 @@
+{
+  "version": "1.0.70",
+  "project": {
+    "name": "test-init-fixed",
+    "type": "claude-flow",
+    "created": "2025-07-01T23:22:02.593Z"
+  },
+  "features": {
+    "swarm": true,
+    "sparc": true,
+    "memory": true,
+    "terminal": true,
+    "mcp": true
+  }
+}

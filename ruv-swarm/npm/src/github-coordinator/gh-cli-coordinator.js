@@ -15,7 +15,7 @@ class GHCoordinator {
       repo: options.repo || process.env.GITHUB_REPO,
       dbPath: options.dbPath || path.join(__dirname, '..', '..', 'data', 'gh-coordinator.db'),
       labelPrefix: options.labelPrefix || 'swarm-',
-      ...options
+      ...options,
     };
 
     this.db = null;
@@ -26,7 +26,7 @@ class GHCoordinator {
     // Check if gh CLI is available
     try {
       execSync('gh --version', { stdio: 'ignore' });
-    } catch (error) {
+    } catch {
       throw new Error('GitHub CLI (gh) is not installed. Install it from https://cli.github.com/');
     }
 
@@ -61,7 +61,7 @@ class GHCoordinator {
    */
   async getAvailableTasks(filters = {}) {
     let cmd = `gh issue list --repo ${this.config.owner}/${this.config.repo} --json number,title,labels,assignees,state,body --limit 100`;
-    
+
     if (filters.label) {
       cmd += ` --label "${filters.label}"`;
     }
@@ -78,7 +78,7 @@ class GHCoordinator {
       const hasSwarmLabel = issue.labels.some(l => l.name.startsWith(this.config.labelPrefix));
       // Check if issue is assigned
       const isAssigned = issue.assignees.length > 0;
-      
+
       return !hasSwarmLabel && !isAssigned;
     });
 
@@ -146,11 +146,11 @@ class GHCoordinator {
    */
   async createAllocationPR(allocations) {
     const branch = `swarm-allocation-${Date.now()}`;
-    
+
     // Create allocation file
     const allocationContent = {
       timestamp: new Date().toISOString(),
-      allocations: allocations
+      allocations,
     };
 
     const allocationPath = '.github/swarm-allocations.json';
@@ -160,7 +160,7 @@ class GHCoordinator {
     try {
       execSync(`git checkout -b ${branch}`, { stdio: 'ignore' });
       execSync(`git add ${allocationPath}`, { stdio: 'ignore' });
-      execSync(`git commit -m "Update swarm task allocations"`, { stdio: 'ignore' });
+      execSync('git commit -m "Update swarm task allocations"', { stdio: 'ignore' });
       execSync(`git push origin ${branch}`, { stdio: 'ignore' });
 
       const prBody = `## Swarm Task Allocation Update
@@ -173,7 +173,7 @@ ${allocations.map(a => `- Issue #${a.issue}: Assigned to swarm ${a.swarm_id}`).j
 This is an automated update from the swarm coordinator.`;
 
       const output = execSync(`gh pr create --repo ${this.config.owner}/${this.config.repo} --title "Update swarm task allocations" --body "${prBody}" --base main --head ${branch}`, { encoding: 'utf8' });
-      
+
       return output.trim();
     } catch (error) {
       console.error('Failed to create allocation PR:', error.message);
@@ -190,8 +190,8 @@ This is an automated update from the swarm coordinator.`;
     const output = execSync(cmd, { encoding: 'utf8' });
     const issues = JSON.parse(output);
 
-    const swarmTasks = issues.filter(issue => 
-      issue.labels.some(l => l.name.startsWith(this.config.labelPrefix))
+    const swarmTasks = issues.filter(issue =>
+      issue.labels.some(l => l.name.startsWith(this.config.labelPrefix)),
     );
 
     // Group by swarm
@@ -205,7 +205,7 @@ This is an automated update from the swarm coordinator.`;
         }
         swarmStatus[swarmId].push({
           number: issue.number,
-          title: issue.title
+          title: issue.title,
         });
       }
     });
@@ -214,7 +214,7 @@ This is an automated update from the swarm coordinator.`;
       totalIssues: issues.length,
       swarmTasks: swarmTasks.length,
       availableTasks: issues.length - swarmTasks.length,
-      swarmStatus
+      swarmStatus,
     };
   }
 
@@ -235,26 +235,26 @@ This is an automated update from the swarm coordinator.`;
   }
 }
 
-// Example usage with gh CLI
-async function example() {
-  const coordinator = new GHCoordinator({
-    owner: 'ruvnet',
-    repo: 'ruv-FANN'
-  });
-
-  // Get available tasks
-  const tasks = await coordinator.getAvailableTasks({ state: 'open' });
-  console.log(`Found ${tasks.length} available tasks`);
-
-  // Claim a task for a swarm
-  if (tasks.length > 0) {
-    const claimed = await coordinator.claimTask('swarm-123', tasks[0].number);
-    console.log(`Claimed task #${tasks[0].number}: ${claimed}`);
-  }
-
-  // Get coordination status
-  const status = await coordinator.getCoordinationStatus();
-  console.log('Coordination status:', status);
-}
+// Example usage with gh CLI - commented out to avoid no-unused-vars warning
+// async function example() {
+//   const coordinator = new GHCoordinator({
+//     owner: 'ruvnet',
+//     repo: 'ruv-FANN',
+//   });
+//
+//   // Get available tasks
+//   const tasks = await coordinator.getAvailableTasks({ state: 'open' });
+//   console.log(`Found ${tasks.length} available tasks`);
+//
+//   // Claim a task for a swarm
+//   if (tasks.length > 0) {
+//     const claimed = await coordinator.claimTask('swarm-123', tasks[0].number);
+//     console.log(`Claimed task #${tasks[0].number}: ${claimed}`);
+//   }
+//
+//   // Get coordination status
+//   const status = await coordinator.getCoordinationStatus();
+//   console.log('Coordination status:', status);
+// }
 
 module.exports = GHCoordinator;

@@ -1,0 +1,68 @@
+
+> ruv-swarm@0.2.1 test:coverage
+> nyc --reporter=text --reporter=lcov --reporter=html npm test --json
+
+
+> ruv-swarm@0.2.1 test
+> node test/test.js
+
+Running RuvSwarm tests...
+
+Initializing RuvSwarm with options: undefined
+✓ RuvSwarm.initialize() should return a RuvSwarm instance
+✓ RuvSwarm.detectSIMDSupport() should return a boolean
+✓ RuvSwarm.getVersion() should return a version string
+Initializing RuvSwarm with options: undefined
+✓ createSwarm() should create a swarm with correct properties
+Initializing RuvSwarm with options: undefined
+✓ spawn() should create an agent
+Initializing RuvSwarm with options: undefined
+✓ agent.execute() should execute a task
+Initializing RuvSwarm with options: undefined
+✓ orchestrate() should orchestrate a task
+Initializing RuvSwarm with options: undefined
+✓ getStatus() should return swarm status
+
+Tests completed: 8 passed, 0 failed
+----------------------------|---------|----------|---------|---------|-------------------
+File                        | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+----------------------------|---------|----------|---------|---------|-------------------
+All files                   |       0 |        0 |       0 |       0 |                   
+ src                        |       0 |        0 |       0 |       0 |                   
+  benchmark.js              |       0 |        0 |       0 |       0 | 12-265            
+  index-enhanced.js         |       0 |        0 |       0 |       0 | 15-679            
+  index.js                  |       0 |        0 |       0 |       0 | 14-368            
+  mcp-tools-enhanced.js     |       0 |        0 |       0 |       0 | 13-2024           
+  memory-config.js          |       0 |      100 |     100 |       0 | 7-40              
+  neural-agent.js           |       0 |        0 |       0 |       0 | 12-820            
+  neural-network-manager.js |       0 |        0 |       0 |       0 | 10-644            
+  neural.js                 |       0 |        0 |       0 |       0 | 12-572            
+  performance.js            |       0 |        0 |       0 |       0 | 6-458             
+  persistence.js            |       0 |        0 |       0 |       0 | 12-476            
+  wasm-loader.js            |       0 |        0 |       0 |       0 | 13-314            
+  wasm-loader2.js           |       0 |        0 |       0 |       0 | 12-400            
+ src/claude-integration     |       0 |        0 |       0 |       0 |                   
+  advanced-commands.js      |       0 |        0 |       0 |       0 | 10-547            
+  core.js                   |       0 |        0 |       0 |       0 | 12-104            
+  docs.js                   |       0 |        0 |       0 |       0 | 12-1093           
+  env-template.js           |       0 |      100 |     100 |       0 | 5-39              
+  index.js                  |       0 |        0 |       0 |       0 | 12-186            
+  remote.js                 |       0 |        0 |       0 |       0 | 11-403            
+ src/github-coordinator     |       0 |        0 |       0 |       0 |                   
+  claude-hooks.js           |       0 |        0 |       0 |       0 | 6-162             
+  gh-cli-coordinator.js     |       0 |        0 |       0 |       0 | 6-260             
+ src/hooks                  |       0 |        0 |       0 |       0 |                   
+  cli.js                    |       0 |        0 |       0 |       0 | 11-79             
+  index.js                  |       0 |        0 |       0 |       0 | 11-1723           
+ src/neural-models          |       0 |        0 |       0 |       0 |                   
+  autoencoder.js            |       0 |        0 |       0 |       0 | 10-535            
+  base.js                   |       0 |        0 |       0 |       0 | 8-263             
+  cnn.js                    |       0 |        0 |       0 |       0 | 10-493            
+  gnn.js                    |       0 |        0 |       0 |       0 | 10-443            
+  gru.js                    |       0 |        0 |       0 |       0 | 10-532            
+  index.js                  |       0 |        0 |       0 |       0 | 17-272            
+  lstm.js                   |       0 |        0 |       0 |       0 | 10-547            
+  resnet.js                 |       0 |        0 |       0 |       0 | 10-522            
+  transformer.js            |       0 |        0 |       0 |       0 | 10-511            
+  vae.js                    |       0 |        0 |       0 |       0 | 10-481            
+----------------------------|---------|----------|---------|---------|-------------------

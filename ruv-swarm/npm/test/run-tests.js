@@ -4,32 +4,37 @@
  * Comprehensive test runner for ruv-swarm
  */
 
-const { spawn } = require('child_process');
-const path = require('path');
-const fs = require('fs');
+import { spawn  } from 'child_process';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Test categories
 const testSuites = {
   unit: {
     name: 'Unit Tests',
     pattern: 'test/unit/**/*.test.js',
-    timeout: 30000
+    timeout: 30000,
   },
   integration: {
-    name: 'Integration Tests', 
+    name: 'Integration Tests',
     pattern: 'test/integration/**/*.test.js',
-    timeout: 60000
+    timeout: 60000,
   },
   performance: {
     name: 'Performance Benchmarks',
     pattern: 'test/performance/**/*.test.js',
-    timeout: 300000
+    timeout: 300000,
   },
   existing: {
     name: 'Existing Tests',
     pattern: 'test/*.test.js',
-    timeout: 60000
-  }
+    timeout: 60000,
+  },
 };
 
 // Colors for output
@@ -41,7 +46,7 @@ const colors = {
   yellow: '\x1b[33m',
   blue: '\x1b[34m',
   magenta: '\x1b[35m',
-  cyan: '\x1b[36m'
+  cyan: '\x1b[36m',
 };
 
 function log(message, color = 'reset') {
@@ -49,9 +54,9 @@ function log(message, color = 'reset') {
 }
 
 function logSection(title) {
-  console.log('\n' + '='.repeat(80));
+  console.log(`\n${ '='.repeat(80)}`);
   log(title, 'bright');
-  console.log('='.repeat(80) + '\n');
+  console.log(`${'='.repeat(80) }\n`);
 }
 
 async function runJest(suite, coverage = false) {
@@ -59,7 +64,7 @@ async function runJest(suite, coverage = false) {
     const args = [
       '--testMatch', `**/${suite.pattern}`,
       '--testTimeout', suite.timeout.toString(),
-      '--forceExit'
+      '--forceExit',
     ];
 
     if (coverage) {
@@ -68,13 +73,13 @@ async function runJest(suite, coverage = false) {
         '--coverageDirectory', 'coverage',
         '--collectCoverageFrom', 'src/**/*.js',
         '--coveragePathIgnorePatterns', '/node_modules/',
-        '--coverageReporters', 'text', 'lcov', 'html'
+        '--coverageReporters', 'text', 'lcov', 'html',
       );
     }
 
     const jest = spawn('npx', ['jest', ...args], {
       stdio: 'inherit',
-      cwd: path.join(__dirname, '..')
+      cwd: path.join(__dirname, '..'),
     });
 
     jest.on('close', (code) => {
@@ -93,12 +98,12 @@ async function runJest(suite, coverage = false) {
 
 async function runTestSuite(suiteName, suite, options = {}) {
   logSection(`Running ${suite.name}`);
-  
+
   try {
     const startTime = Date.now();
     await runJest(suite, options.coverage);
     const duration = Date.now() - startTime;
-    
+
     log(`✓ ${suite.name} completed in ${(duration / 1000).toFixed(2)}s`, 'green');
     return { success: true, duration };
   } catch (error) {
@@ -114,9 +119,9 @@ async function generateTestReport(results) {
       total: Object.keys(results).length,
       passed: 0,
       failed: 0,
-      totalDuration: 0
+      totalDuration: 0,
     },
-    suites: results
+    suites: results,
   };
 
   for (const [name, result] of Object.entries(results)) {
@@ -130,7 +135,7 @@ async function generateTestReport(results) {
 
   const reportPath = path.join(__dirname, `test-report-${Date.now()}.json`);
   fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
-  
+
   return report;
 }
 
@@ -174,7 +179,7 @@ async function main() {
   log(`Passed: ${report.summary.passed}`, 'green');
   log(`Failed: ${report.summary.failed}`, report.summary.failed > 0 ? 'red' : 'green');
   log(`Total Duration: ${(report.summary.totalDuration / 1000).toFixed(2)}s`, 'cyan');
-  
+
   if (runCoverage) {
     log('\nCoverage report generated in ./coverage/', 'yellow');
   }

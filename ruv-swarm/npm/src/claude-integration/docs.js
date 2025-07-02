@@ -8,16 +8,16 @@ import path from 'path';
 import { AdvancedCommandsGenerator } from './advanced-commands.js';
 
 class ClaudeDocsGenerator {
-    constructor(options = {}) {
-        this.workingDir = options.workingDir || process.cwd();
-        this.advancedGenerator = new AdvancedCommandsGenerator(options);
-    }
+  constructor(options = {}) {
+    this.workingDir = options.workingDir || process.cwd();
+    this.advancedGenerator = new AdvancedCommandsGenerator(options);
+  }
 
-    /**
+  /**
      * Generate main claude.md configuration file
      */
-    async generateClaudeMd() {
-        const content = `# Claude Code Configuration for ruv-swarm
+  async generateClaudeMd() {
+    const content = `# Claude Code Configuration for ruv-swarm
 
 ## 🎯 IMPORTANT: Separation of Responsibilities
 
@@ -578,120 +578,120 @@ Agent Activity:
 Remember: **ruv-swarm coordinates, Claude Code creates!** Start with \`mcp__ruv-swarm__swarm_init\` to enhance your development workflow.
 `;
 
-        const filePath = path.join(this.workingDir, 'CLAUDE.md');
-        await fs.writeFile(filePath, content);
-        return { file: 'CLAUDE.md', success: true };
-    }
+    const filePath = path.join(this.workingDir, 'CLAUDE.md');
+    await fs.writeFile(filePath, content);
+    return { file: 'CLAUDE.md', success: true };
+  }
 
-    /**
+  /**
      * Generate command documentation files in organized subdirectories
      */
-    async generateCommandDocs() {
-        const commandsDir = path.join(this.workingDir, '.claude', 'commands');
-        await fs.mkdir(commandsDir, { recursive: true });
+  async generateCommandDocs() {
+    const commandsDir = path.join(this.workingDir, '.claude', 'commands');
+    await fs.mkdir(commandsDir, { recursive: true });
 
-        // Create subdirectories
-        const subdirs = ['coordination', 'monitoring', 'memory', 'workflows', 'hooks', 
-                        'optimization', 'analysis', 'training', 'automation'];
-        for (const subdir of subdirs) {
-            await fs.mkdir(path.join(commandsDir, subdir), { recursive: true });
-        }
+    // Create subdirectories
+    const subdirs = ['coordination', 'monitoring', 'memory', 'workflows', 'hooks',
+      'optimization', 'analysis', 'training', 'automation'];
+    for (const subdir of subdirs) {
+      await fs.mkdir(path.join(commandsDir, subdir), { recursive: true });
+    }
 
-        const commands = {
-            // Coordination commands
-            'coordination/init.md': {
-                title: 'Initialize Coordination Framework',
-                tool: 'mcp__ruv-swarm__swarm_init',
-                params: '{"topology": "mesh", "maxAgents": 5, "strategy": "balanced"}',
-                description: 'Set up a coordination topology to guide Claude Code\'s approach to complex tasks',
-                details: `This tool creates a coordination framework that helps Claude Code:
+    const commands = {
+      // Coordination commands
+      'coordination/init.md': {
+        title: 'Initialize Coordination Framework',
+        tool: 'mcp__ruv-swarm__swarm_init',
+        params: '{"topology": "mesh", "maxAgents": 5, "strategy": "balanced"}',
+        description: 'Set up a coordination topology to guide Claude Code\'s approach to complex tasks',
+        details: `This tool creates a coordination framework that helps Claude Code:
 - Break down complex problems systematically
 - Approach tasks from multiple perspectives
 - Maintain consistency across large projects
 - Work more efficiently through structured coordination
 
-Remember: This does NOT create actual coding agents. It creates a coordination pattern for Claude Code to follow.`
-            },
-            'coordination/spawn.md': {
-                title: 'Create Cognitive Patterns',
-                tool: 'mcp__ruv-swarm__agent_spawn',
-                params: '{"type": "researcher", "name": "Literature Analysis", "capabilities": ["deep-analysis"]}',
-                description: 'Define cognitive patterns that represent different approaches Claude Code can take',
-                details: `Agent types represent thinking patterns, not actual coders:
+Remember: This does NOT create actual coding agents. It creates a coordination pattern for Claude Code to follow.`,
+      },
+      'coordination/spawn.md': {
+        title: 'Create Cognitive Patterns',
+        tool: 'mcp__ruv-swarm__agent_spawn',
+        params: '{"type": "researcher", "name": "Literature Analysis", "capabilities": ["deep-analysis"]}',
+        description: 'Define cognitive patterns that represent different approaches Claude Code can take',
+        details: `Agent types represent thinking patterns, not actual coders:
 - **researcher**: Systematic exploration approach
 - **coder**: Implementation-focused thinking
 - **analyst**: Data-driven decision making
 - **architect**: Big-picture system design
 - **reviewer**: Quality and consistency checking
 
-These patterns guide how Claude Code approaches different aspects of your task.`
-            },
-            'coordination/orchestrate.md': {
-                title: 'Coordinate Task Execution',
-                tool: 'mcp__ruv-swarm__task_orchestrate',
-                params: '{"task": "Implement authentication system", "strategy": "parallel", "priority": "high"}',
-                description: 'Break down and coordinate complex tasks for systematic execution by Claude Code',
-                details: `Orchestration strategies:
+These patterns guide how Claude Code approaches different aspects of your task.`,
+      },
+      'coordination/orchestrate.md': {
+        title: 'Coordinate Task Execution',
+        tool: 'mcp__ruv-swarm__task_orchestrate',
+        params: '{"task": "Implement authentication system", "strategy": "parallel", "priority": "high"}',
+        description: 'Break down and coordinate complex tasks for systematic execution by Claude Code',
+        details: `Orchestration strategies:
 - **parallel**: Claude Code works on independent components simultaneously
 - **sequential**: Step-by-step execution for dependent tasks
 - **adaptive**: Dynamically adjusts based on task complexity
 
-The orchestrator creates a plan that Claude Code follows using its native tools.`
-            },
+The orchestrator creates a plan that Claude Code follows using its native tools.`,
+      },
 
-            // Monitoring commands
-            'monitoring/status.md': {
-                title: 'Check Coordination Status',
-                tool: 'mcp__ruv-swarm__swarm_status',
-                params: '{"verbose": true}',
-                description: 'Monitor the effectiveness of current coordination patterns',
-                details: `Shows:
+      // Monitoring commands
+      'monitoring/status.md': {
+        title: 'Check Coordination Status',
+        tool: 'mcp__ruv-swarm__swarm_status',
+        params: '{"verbose": true}',
+        description: 'Monitor the effectiveness of current coordination patterns',
+        details: `Shows:
 - Active coordination topologies
 - Current cognitive patterns in use
 - Task breakdown and progress
 - Resource utilization for coordination
-- Overall system health`
-            },
-            'monitoring/agents.md': {
-                title: 'List Active Patterns',
-                tool: 'mcp__ruv-swarm__agent_list',
-                params: '{"filter": "active"}',
-                description: 'View all active cognitive patterns and their current focus areas',
-                details: `Filters:
+- Overall system health`,
+      },
+      'monitoring/agents.md': {
+        title: 'List Active Patterns',
+        tool: 'mcp__ruv-swarm__agent_list',
+        params: '{"filter": "active"}',
+        description: 'View all active cognitive patterns and their current focus areas',
+        details: `Filters:
 - **all**: Show all defined patterns
 - **active**: Currently engaged patterns
 - **idle**: Available but unused patterns
-- **busy**: Patterns actively coordinating tasks`
-            },
+- **busy**: Patterns actively coordinating tasks`,
+      },
 
-            // Memory commands
-            'memory/usage.md': {
-                title: 'Memory Management',
-                tool: 'mcp__ruv-swarm__memory_usage',
-                params: '{"detail": "detailed"}',
-                description: 'Track persistent memory usage across Claude Code sessions',
-                details: `Memory helps Claude Code:
+      // Memory commands
+      'memory/usage.md': {
+        title: 'Memory Management',
+        tool: 'mcp__ruv-swarm__memory_usage',
+        params: '{"detail": "detailed"}',
+        description: 'Track persistent memory usage across Claude Code sessions',
+        details: `Memory helps Claude Code:
 - Maintain context between sessions
 - Remember project decisions
 - Track implementation patterns
-- Store coordination strategies that worked well`
-            },
-            'memory/neural.md': {
-                title: 'Neural Pattern Training',
-                tool: 'mcp__ruv-swarm__neural_train',
-                params: '{"iterations": 10}',
-                description: 'Improve coordination patterns through neural network training',
-                details: `Training improves:
+- Store coordination strategies that worked well`,
+      },
+      'memory/neural.md': {
+        title: 'Neural Pattern Training',
+        tool: 'mcp__ruv-swarm__neural_train',
+        params: '{"iterations": 10}',
+        description: 'Improve coordination patterns through neural network training',
+        details: `Training improves:
 - Task breakdown effectiveness
 - Coordination pattern selection
 - Resource allocation strategies
-- Overall coordination efficiency`
-            },
+- Overall coordination efficiency`,
+      },
 
-            // Workflow examples
-            'workflows/research.md': {
-                title: 'Research Workflow Coordination',
-                content: `# Research Workflow Coordination
+      // Workflow examples
+      'workflows/research.md': {
+        title: 'Research Workflow Coordination',
+        content: `# Research Workflow Coordination
 
 ## Purpose
 Coordinate Claude Code's research activities for comprehensive, systematic exploration.
@@ -729,11 +729,11 @@ Parameters: {"task": "Research modern web frameworks performance", "strategy": "
 4. Synthesizes findings using coordination patterns
 5. Stores insights in memory for future reference
 
-Remember: The swarm coordinates HOW Claude Code researches, not WHAT it finds.`
-            },
-            'workflows/development.md': {
-                title: 'Development Workflow Coordination',
-                content: `# Development Workflow Coordination
+Remember: The swarm coordinates HOW Claude Code researches, not WHAT it finds.`,
+      },
+      'workflows/development.md': {
+        title: 'Development Workflow Coordination',
+        content: `# Development Workflow Coordination
 
 ## Purpose
 Structure Claude Code's approach to complex development tasks for maximum efficiency.
@@ -771,13 +771,13 @@ Parameters: {"task": "Build REST API with authentication", "strategy": "parallel
 4. Uses **TodoWrite** tool for task tracking
 5. Follows coordination patterns for systematic implementation
 
-Remember: All code is written by Claude Code using its native tools!`
-            },
-            
-            // Hook commands
-            'hooks/overview.md': {
-                title: 'Claude Code Hooks Overview',
-                content: `# Claude Code Hooks for ruv-swarm
+Remember: All code is written by Claude Code using its native tools!`,
+      },
+
+      // Hook commands
+      'hooks/overview.md': {
+        title: 'Claude Code Hooks Overview',
+        content: `# Claude Code Hooks for ruv-swarm
 
 ## Purpose
 Automatically coordinate, format, and learn from Claude Code operations using hooks.
@@ -834,11 +834,11 @@ Hooks are configured in \`.claude/settings.json\`:
 ## See Also
 - [Pre-Edit Hook](./pre-edit.md)
 - [Post-Edit Hook](./post-edit.md)
-- [Session End Hook](./session-end.md)`
-            },
-            'hooks/setup.md': {
-                title: 'Setting Up Hooks',
-                content: `# Setting Up ruv-swarm Hooks
+- [Session End Hook](./session-end.md)`,
+      },
+      'hooks/setup.md': {
+        title: 'Setting Up Hooks',
+        content: `# Setting Up ruv-swarm Hooks
 
 ## Quick Start
 
@@ -940,22 +940,22 @@ Already configured by default for common file types.
     "command": "test -f '\${tool.params.file_path%.js}.test.js' && npm test '\${tool.params.file_path%.js}.test.js'"
   }]
 }
-\`\`\``
-            }
-        };
+\`\`\``,
+      },
+    };
 
-        const createdFiles = [];
-        
-        // Generate command files
-        for (const [filepath, config] of Object.entries(commands)) {
-            let content;
-            
-            if (config.content) {
-                // Use provided content for workflow files
-                content = config.content;
-            } else {
-                // Generate content for tool documentation
-                content = `# ${config.title}
+    const createdFiles = [];
+
+    // Generate command files
+    for (const [filepath, config] of Object.entries(commands)) {
+      let content;
+
+      if (config.content) {
+        // Use provided content for workflow files
+        ({ content } = config);
+      } else {
+        // Generate content for tool documentation
+        content = `# ${config.title}
 
 ## 🎯 Key Principle
 **This tool coordinates Claude Code's actions. It does NOT write code or create content.**
@@ -994,105 +994,105 @@ ${config.details}
 - Other commands in this category
 - Workflow examples in /workflows/
 `;
-            }
+      }
 
-            const filePath = path.join(commandsDir, filepath);
-            await fs.writeFile(filePath, content);
-            createdFiles.push(filepath);
-        }
-
-        return { files: createdFiles, success: true };
+      const filePath = path.join(commandsDir, filepath);
+      await fs.writeFile(filePath, content);
+      createdFiles.push(filepath);
     }
 
-    /**
+    return { files: createdFiles, success: true };
+  }
+
+  /**
      * Generate settings.json with hook configurations
      */
-    async generateSettingsJson() {
-        const settings = {
-            env: {
-                RUV_SWARM_AUTO_COMMIT: "false",
-                RUV_SWARM_AUTO_PUSH: "false",
-                RUV_SWARM_HOOKS_ENABLED: "false",
-                RUV_SWARM_TELEMETRY_ENABLED: "true",
-                RUV_SWARM_REMOTE_EXECUTION: "true"
-            },
-            permissions: {
-                allow: [
-                    "Bash(npx ruv-swarm *)",
-                    "Bash(npm run lint)",
-                    "Bash(npm run test:*)",
-                    "Bash(npm test *)",
-                    "Bash(git status)",
-                    "Bash(git diff *)",
-                    "Bash(git log *)",
-                    "Bash(git add *)",
-                    "Bash(git commit *)",
-                    "Bash(git push)",
-                    "Bash(git config *)",
-                    "Bash(node *)",
-                    "Bash(which *)",
-                    "Bash(pwd)",
-                    "Bash(ls *)"
-                ],
-                deny: [
-                    "Bash(rm -rf /)",
-                    "Bash(curl * | bash)",
-                    "Bash(wget * | sh)",
-                    "Bash(eval *)"
-                ]
-            },
-            hooks: {},
-            mcpServers: {
-                "ruv-swarm": {
-                    command: "npx",
-                    args: ["ruv-swarm", "mcp", "start"],
-                    env: {
-                        RUV_SWARM_HOOKS_ENABLED: "false",
-                        RUV_SWARM_TELEMETRY_ENABLED: "true",
-                        RUV_SWARM_REMOTE_READY: "true"
-                    }
-                }
-            },
-            includeCoAuthoredBy: true
-        };
+  async generateSettingsJson() {
+    const settings = {
+      env: {
+        RUV_SWARM_AUTO_COMMIT: 'false',
+        RUV_SWARM_AUTO_PUSH: 'false',
+        RUV_SWARM_HOOKS_ENABLED: 'false',
+        RUV_SWARM_TELEMETRY_ENABLED: 'true',
+        RUV_SWARM_REMOTE_EXECUTION: 'true',
+      },
+      permissions: {
+        allow: [
+          'Bash(npx ruv-swarm *)',
+          'Bash(npm run lint)',
+          'Bash(npm run test:*)',
+          'Bash(npm test *)',
+          'Bash(git status)',
+          'Bash(git diff *)',
+          'Bash(git log *)',
+          'Bash(git add *)',
+          'Bash(git commit *)',
+          'Bash(git push)',
+          'Bash(git config *)',
+          'Bash(node *)',
+          'Bash(which *)',
+          'Bash(pwd)',
+          'Bash(ls *)',
+        ],
+        deny: [
+          'Bash(rm -rf /)',
+          'Bash(curl * | bash)',
+          'Bash(wget * | sh)',
+          'Bash(eval *)',
+        ],
+      },
+      hooks: {},
+      mcpServers: {
+        'ruv-swarm': {
+          command: 'npx',
+          args: ['ruv-swarm', 'mcp', 'start'],
+          env: {
+            RUV_SWARM_HOOKS_ENABLED: 'false',
+            RUV_SWARM_TELEMETRY_ENABLED: 'true',
+            RUV_SWARM_REMOTE_READY: 'true',
+          },
+        },
+      },
+      includeCoAuthoredBy: true,
+    };
 
-        const filePath = path.join(this.workingDir, '.claude', 'settings.json');
-        await fs.mkdir(path.dirname(filePath), { recursive: true });
-        await fs.writeFile(filePath, JSON.stringify(settings, null, 2));
-        
-        return { file: '.claude/settings.json', success: true };
-    }
+    const filePath = path.join(this.workingDir, '.claude', 'settings.json');
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, JSON.stringify(settings, null, 2));
 
-    /**
+    return { file: '.claude/settings.json', success: true };
+  }
+
+  /**
      * Generate all documentation files
      */
-    async generateAll() {
-        console.log('📚 Generating Claude Code documentation...');
-        
-        try {
-            const results = {
-                claudeMd: await this.generateClaudeMd(),
-                commands: await this.generateCommandDocs(),
-                advancedCommands: await this.advancedGenerator.generateAdvancedCommands(),
-                settings: await this.generateSettingsJson(),
-                success: true
-            };
+  async generateAll() {
+    console.log('📚 Generating Claude Code documentation...');
 
-            const totalCommands = results.commands.files.length + results.advancedCommands.files.length;
+    try {
+      const results = {
+        claudeMd: await this.generateClaudeMd(),
+        commands: await this.generateCommandDocs(),
+        advancedCommands: await this.advancedGenerator.generateAdvancedCommands(),
+        settings: await this.generateSettingsJson(),
+        success: true,
+      };
 
-            console.log('✅ Documentation generated successfully');
-            console.log('   - CLAUDE.md');
-            console.log('   - .claude/settings.json (with enhanced hooks)');
-            console.log('   - .claude/commands/ directory with ' + totalCommands + ' files');
-            console.log('     • Basic commands: ' + results.commands.files.length);
-            console.log('     • Advanced optimization: ' + results.advancedCommands.files.length);
-            
-            return results;
-        } catch (error) {
-            console.error('❌ Failed to generate documentation:', error.message);
-            throw error;
-        }
+      const totalCommands = results.commands.files.length + results.advancedCommands.files.length;
+
+      console.log('✅ Documentation generated successfully');
+      console.log('   - CLAUDE.md');
+      console.log('   - .claude/settings.json (with enhanced hooks)');
+      console.log(`   - .claude/commands/ directory with ${ totalCommands } files`);
+      console.log(`     • Basic commands: ${ results.commands.files.length}`);
+      console.log(`     • Advanced optimization: ${ results.advancedCommands.files.length}`);
+
+      return results;
+    } catch (error) {
+      console.error('❌ Failed to generate documentation:', error.message);
+      throw error;
     }
+  }
 }
 
 export { ClaudeDocsGenerator };

@@ -15,8 +15,8 @@ module.exports = {
       failedTasks: 0,
       averageCompletionTime: 0,
       agentUtilization: new Map(),
-      throughput: 0
-    }
+      throughput: 0,
+    },
   }),
-  destroy: jest.fn()
+  destroy: jest.fn(),
 };
