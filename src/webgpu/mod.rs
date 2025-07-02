@@ -18,6 +18,8 @@ pub mod shaders;
 pub mod device;
 #[cfg(feature = "gpu")]
 pub mod webgpu_backend;
+#[cfg(feature = "gpu")]
+pub mod compute_context;
 
 #[cfg(feature = "gpu")]
 pub use backend::{ComputeBackend, BackendSelector, BackendType};
@@ -29,6 +31,8 @@ pub use error::{ComputeError, ComputeResult};
 pub use device::{GpuDevice, DeviceInfo};
 #[cfg(feature = "gpu")]
 pub use webgpu_backend::WebGpuBackend;
+#[cfg(feature = "gpu")]
+pub use compute_context::{ComputeContext, ComputePerformanceStats};
 
 #[cfg(not(feature = "gpu"))]
 pub use crate::network::Network as GpuNetwork;

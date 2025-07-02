@@ -22,9 +22,9 @@ pub struct WebGpuBackend {
 
 /// Cache of compiled compute pipelines
 struct ComputePipelines {
-    matrix_multiply: Option<wgpu::ComputePipeline>,
-    activation_functions: std::collections::HashMap<String, wgpu::ComputePipeline>,
-    vector_operations: Option<wgpu::ComputePipeline>,
+    matrix_multiply: Option<Arc<wgpu::ComputePipeline>>,
+    activation_functions: std::collections::HashMap<String, Arc<wgpu::ComputePipeline>>,
+    vector_operations: Option<Arc<wgpu::ComputePipeline>>,
 }
 
 impl std::fmt::Debug for ComputePipelines {
@@ -81,7 +81,7 @@ impl WebGpuBackend {
     }
 
     /// Get or create matrix multiply compute pipeline
-    async fn get_matrix_multiply_pipeline(&mut self) -> ComputeResult<&wgpu::ComputePipeline> {
+    async fn get_matrix_multiply_pipeline(&mut self) -> ComputeResult<Arc<wgpu::ComputePipeline>> {
         if self.compute_pipelines.matrix_multiply.is_none() {
             let shader_source = include_str!("shaders/matrix_operations.wgsl");
             let shader = self.device.create_compute_shader(shader_source, Some("matrix_multiply_shader"))?;
@@ -149,10 +149,10 @@ impl WebGpuBackend {
                 entry_point: "matrix_vector_multiply",
             });
 
-            self.compute_pipelines.matrix_multiply = Some(pipeline);
+            self.compute_pipelines.matrix_multiply = Some(Arc::new(pipeline));
         }
 
-        Ok(self.compute_pipelines.matrix_multiply.as_ref().unwrap())
+        Ok(self.compute_pipelines.matrix_multiply.as_ref().unwrap().clone())
     }
 
     /// Create a buffer with data
