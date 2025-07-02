@@ -54,13 +54,15 @@
 #[cfg(feature = "gpu")]
 pub mod webgpu_impl {
     use num_traits::Float;
-    
-    use crate::ActivationFunction;
-    use crate::webgpu::backend::{ComputeBackend, VectorOps, MemoryManager, BackendType, BackendCapabilities};
+
+    use crate::webgpu::backend::{
+        BackendCapabilities, BackendType, ComputeBackend, MemoryManager, VectorOps,
+    };
     use crate::webgpu::error::ComputeError;
     use crate::webgpu::memory::{BufferHandle, MemoryStats};
     use crate::webgpu::shaders::webgpu_shaders::ShaderManager;
-    
+    use crate::ActivationFunction;
+
     /// WebGPU compute backend
     ///
     /// High-performance GPU-accelerated backend for neural network computations.
@@ -92,7 +94,7 @@ pub mod webgpu_impl {
         /// Phantom data for type safety
         _phantom: std::marker::PhantomData<T>,
     }
-    
+
     impl<T: Float + std::fmt::Debug + Send + Sync + 'static> WebGPUBackend<T> {
         /// Initialize WebGPU backend asynchronously
         ///
@@ -127,17 +129,20 @@ pub mod webgpu_impl {
             }
 
             // Step 2: Initialize shader manager with error handling
-            let shader_manager = ShaderManager::new()
-                .map_err(|e| ComputeError::InitializationError(
-                    format!("Failed to initialize shader manager: {:?}", e)
-                ))?;
+            let shader_manager = ShaderManager::new().map_err(|e| {
+                ComputeError::InitializationError(format!(
+                    "Failed to initialize shader manager: {:?}",
+                    e
+                ))
+            })?;
 
             // Step 3: Detect actual device capabilities
-            let capabilities = Self::detect_capabilities()
-                .await
-                .map_err(|e| ComputeError::InitializationError(
-                    format!("Failed to detect device capabilities: {:?}", e)
-                ))?;
+            let capabilities = Self::detect_capabilities().await.map_err(|e| {
+                ComputeError::InitializationError(format!(
+                    "Failed to detect device capabilities: {:?}",
+                    e
+                ))
+            })?;
 
             // Step 4: Validate minimum requirements
             Self::validate_capabilities(&capabilities)?;
@@ -148,7 +153,7 @@ pub mod webgpu_impl {
                 _phantom: std::marker::PhantomData,
             })
         }
-        
+
         /// Check if WebGPU is available on the current platform
         ///
         /// This method performs a quick check for WebGPU support without
@@ -183,10 +188,10 @@ pub mod webgpu_impl {
             // For now, return conservative defaults
             Ok(BackendCapabilities {
                 max_buffer_size: 1024 * 1024 * 1024, // 1GB - conservative limit
-                supports_f64: false, // WebGPU typically doesn't support f64
-                supports_f32: true,  // All WebGPU implementations support f32
-                max_compute_units: 256, // Reasonable default for modern GPUs
-                memory_bandwidth_gbps: 500.0, // Conservative estimate
+                supports_f64: false,                 // WebGPU typically doesn't support f64
+                supports_f32: true,                  // All WebGPU implementations support f32
+                max_compute_units: 256,              // Reasonable default for modern GPUs
+                memory_bandwidth_gbps: 500.0,        // Conservative estimate
                 shader_model: Some("WGSL 1.0".to_string()),
             })
         }
@@ -199,56 +204,62 @@ pub mod webgpu_impl {
             const MIN_BANDWIDTH_GBPS: f32 = 50.0;
 
             if caps.max_buffer_size < MIN_BUFFER_SIZE {
-                return Err(ComputeError::InitializationError(
-                    format!("Insufficient buffer size: {} < {}", 
-                           caps.max_buffer_size, MIN_BUFFER_SIZE)
-                ));
+                return Err(ComputeError::InitializationError(format!(
+                    "Insufficient buffer size: {} < {}",
+                    caps.max_buffer_size, MIN_BUFFER_SIZE
+                )));
             }
 
             if !caps.supports_f32 {
                 return Err(ComputeError::InitializationError(
-                    "Device does not support f32 operations".to_string()
+                    "Device does not support f32 operations".to_string(),
                 ));
             }
 
             if caps.max_compute_units < MIN_COMPUTE_UNITS {
-                return Err(ComputeError::InitializationError(
-                    format!("Insufficient compute units: {} < {}", 
-                           caps.max_compute_units, MIN_COMPUTE_UNITS)
-                ));
+                return Err(ComputeError::InitializationError(format!(
+                    "Insufficient compute units: {} < {}",
+                    caps.max_compute_units, MIN_COMPUTE_UNITS
+                )));
             }
 
             if caps.memory_bandwidth_gbps < MIN_BANDWIDTH_GBPS {
-                return Err(ComputeError::InitializationError(
-                    format!("Insufficient memory bandwidth: {} < {} GB/s", 
-                           caps.memory_bandwidth_gbps, MIN_BANDWIDTH_GBPS)
-                ));
+                return Err(ComputeError::InitializationError(format!(
+                    "Insufficient memory bandwidth: {} < {} GB/s",
+                    caps.memory_bandwidth_gbps, MIN_BANDWIDTH_GBPS
+                )));
             }
 
             Ok(())
         }
     }
-    
+
     impl<T: Float + std::fmt::Debug + Send + Sync + 'static> ComputeBackend<T> for WebGPUBackend<T> {
-        fn initialize() -> Result<Self, ComputeError> where Self: Sized {
+        fn initialize() -> Result<Self, ComputeError>
+        where
+            Self: Sized,
+        {
             // Synchronous initialization - return error for async requirement
             Err(ComputeError::InitializationError(
-                "Use WebGPUBackend::initialize() async method instead".to_string()
+                "Use WebGPUBackend::initialize() async method instead".to_string(),
             ))
         }
-        
-        fn is_available() -> bool where Self: Sized {
+
+        fn is_available() -> bool
+        where
+            Self: Sized,
+        {
             Self::is_available()
         }
-        
+
         fn capabilities(&self) -> BackendCapabilities {
             self.capabilities.clone()
         }
-        
+
         fn backend_type(&self) -> BackendType {
             BackendType::WebGPU
         }
-        
+
         /// Perform matrix-vector multiplication using GPU acceleration
         ///
         /// This method implements high-performance matrix-vector multiplication
@@ -280,26 +291,28 @@ pub mod webgpu_impl {
         ) -> Result<Vec<T>, ComputeError> {
             // Input validation with detailed error messages
             if matrix.len() != rows * cols {
-                return Err(ComputeError::InvalidDimensions(
-                    format!(
-                        "Matrix size mismatch: expected {}x{} = {} elements, got {}",
-                        rows, cols, rows * cols, matrix.len()
-                    )
-                ));
+                return Err(ComputeError::InvalidDimensions(format!(
+                    "Matrix size mismatch: expected {}x{} = {} elements, got {}",
+                    rows,
+                    cols,
+                    rows * cols,
+                    matrix.len()
+                )));
             }
 
             if vector.len() != cols {
-                return Err(ComputeError::InvalidDimensions(
-                    format!(
-                        "Vector size mismatch: expected {} elements for {}x{} matrix, got {}",
-                        cols, rows, cols, vector.len()
-                    )
-                ));
+                return Err(ComputeError::InvalidDimensions(format!(
+                    "Vector size mismatch: expected {} elements for {}x{} matrix, got {}",
+                    cols,
+                    rows,
+                    cols,
+                    vector.len()
+                )));
             }
 
             // Performance heuristic: Use GPU for larger matrices
             const GPU_THRESHOLD: usize = 1000; // Crossover point where GPU becomes faster
-            
+
             if rows * cols > GPU_THRESHOLD * GPU_THRESHOLD {
                 // TODO: Implement GPU-accelerated path
                 // self.gpu_matrix_vector_multiply(matrix, vector, rows, cols)
@@ -309,7 +322,7 @@ pub mod webgpu_impl {
                 self.cpu_matrix_vector_multiply_optimized(matrix, vector, rows, cols)
             }
         }
-        
+
         /// Perform batch matrix-vector multiplication with GPU optimization
         ///
         /// This method processes multiple vectors against the same matrix in parallel,
@@ -339,32 +352,32 @@ pub mod webgpu_impl {
             cols: usize,
         ) -> Result<Vec<Vec<T>>, ComputeError> {
             let batch_size = vectors.len();
-            
+
             // Validate matrix dimensions
             if matrix.len() != rows * cols {
-                return Err(ComputeError::InvalidDimensions(
-                    format!(
-                        "Matrix dimensions {}x{} don't match data length {}", 
-                        rows, cols, matrix.len()
-                    )
-                ));
+                return Err(ComputeError::InvalidDimensions(format!(
+                    "Matrix dimensions {}x{} don't match data length {}",
+                    rows,
+                    cols,
+                    matrix.len()
+                )));
             }
 
             // Validate all vectors have correct size
             for (i, vector) in vectors.iter().enumerate() {
                 if vector.len() != cols {
-                    return Err(ComputeError::InvalidDimensions(
-                        format!(
-                            "Vector {} size mismatch: expected {} elements, got {}",
-                            i, cols, vector.len()
-                        )
-                    ));
+                    return Err(ComputeError::InvalidDimensions(format!(
+                        "Vector {} size mismatch: expected {} elements, got {}",
+                        i,
+                        cols,
+                        vector.len()
+                    )));
                 }
             }
 
             // Performance heuristic for batch operations
             const BATCH_GPU_THRESHOLD: usize = 100; // Minimum batch size for GPU benefit
-            
+
             if batch_size >= BATCH_GPU_THRESHOLD && rows * cols > 10000 {
                 // TODO: Implement GPU-accelerated batch processing
                 // self.gpu_batch_matrix_vector_multiply(matrix, vectors, rows, cols)
@@ -374,7 +387,7 @@ pub mod webgpu_impl {
                 self.cpu_batch_matrix_vector_multiply_optimized(matrix, vectors, rows, cols)
             }
         }
-        
+
         /// Apply activation function with GPU acceleration
         ///
         /// This method applies the specified activation function to all inputs
@@ -408,7 +421,7 @@ pub mod webgpu_impl {
         ) -> Result<Vec<T>, ComputeError> {
             // Performance heuristic: Use GPU for larger arrays
             const GPU_ACTIVATION_THRESHOLD: usize = 1000;
-            
+
             if inputs.len() > GPU_ACTIVATION_THRESHOLD {
                 // TODO: Implement GPU-accelerated activation functions
                 // self.gpu_apply_activation_function(inputs, function, steepness)
@@ -417,11 +430,11 @@ pub mod webgpu_impl {
                 self.cpu_apply_activation_function_optimized(inputs, function, steepness)
             }
         }
-        
+
         fn vector_operations(&self) -> &dyn VectorOps<T> {
             self
         }
-        
+
         fn memory_manager(&self) -> &dyn MemoryManager<T> {
             self
         }
@@ -441,31 +454,32 @@ pub mod webgpu_impl {
             cols: usize,
         ) -> Result<Vec<T>, ComputeError> {
             let mut result = vec![T::zero(); rows];
-            
+
             // Cache-friendly row-wise traversal
             for row in 0..rows {
                 let mut sum = T::zero();
                 let row_start = row * cols;
-                
+
                 // Unroll small loops for better performance
                 let mut col = 0;
                 while col + 4 <= cols {
-                    sum = sum + matrix[row_start + col] * vector[col]
-                            + matrix[row_start + col + 1] * vector[col + 1]
-                            + matrix[row_start + col + 2] * vector[col + 2]
-                            + matrix[row_start + col + 3] * vector[col + 3];
+                    sum = sum
+                        + matrix[row_start + col] * vector[col]
+                        + matrix[row_start + col + 1] * vector[col + 1]
+                        + matrix[row_start + col + 2] * vector[col + 2]
+                        + matrix[row_start + col + 3] * vector[col + 3];
                     col += 4;
                 }
-                
+
                 // Handle remainder
                 while col < cols {
                     sum = sum + matrix[row_start + col] * vector[col];
                     col += 1;
                 }
-                
+
                 result[row] = sum;
             }
-            
+
             Ok(result)
         }
 
@@ -479,12 +493,13 @@ pub mod webgpu_impl {
         ) -> Result<Vec<Vec<T>>, ComputeError> {
             let batch_size = vectors.len();
             let mut results = Vec::with_capacity(batch_size);
-            
+
             for vector in vectors {
-                let result = self.cpu_matrix_vector_multiply_optimized(matrix, vector, rows, cols)?;
+                let result =
+                    self.cpu_matrix_vector_multiply_optimized(matrix, vector, rows, cols)?;
                 results.push(result);
             }
-            
+
             Ok(results)
         }
 
@@ -496,7 +511,7 @@ pub mod webgpu_impl {
             steepness: T,
         ) -> Result<Vec<T>, ComputeError> {
             let mut result = Vec::with_capacity(inputs.len());
-            
+
             // Vectorized processing with function-specific optimizations
             match function {
                 ActivationFunction::Linear => {
@@ -534,39 +549,41 @@ pub mod webgpu_impl {
                     }
                 }
                 _ => {
-                    return Err(ComputeError::UnsupportedOperation(
-                        format!("Activation function {:?} not yet implemented in WebGPU backend", function)
-                    ));
+                    return Err(ComputeError::UnsupportedOperation(format!(
+                        "Activation function {:?} not yet implemented in WebGPU backend",
+                        function
+                    )));
                 }
             }
-            
+
             Ok(result)
         }
 
         /// Optimized CPU dot product with vectorization hints
         fn cpu_dot_product_optimized(&self, a: &[T], b: &[T]) -> Result<T, ComputeError> {
             let mut sum = T::zero();
-            
+
             // Unroll loop for better performance
             let mut i = 0;
             while i + 4 <= a.len() {
-                sum = sum + a[i] * b[i]
-                        + a[i + 1] * b[i + 1]
-                        + a[i + 2] * b[i + 2]
-                        + a[i + 3] * b[i + 3];
+                sum = sum
+                    + a[i] * b[i]
+                    + a[i + 1] * b[i + 1]
+                    + a[i + 2] * b[i + 2]
+                    + a[i + 3] * b[i + 3];
                 i += 4;
             }
-            
+
             // Handle remainder
             while i < a.len() {
                 sum = sum + a[i] * b[i];
                 i += 1;
             }
-            
+
             Ok(sum)
         }
     }
-    
+
     impl<T: Float + std::fmt::Debug + Send + Sync + 'static> VectorOps<T> for WebGPUBackend<T> {
         /// Compute dot product of two vectors with GPU acceleration
         ///
@@ -583,14 +600,16 @@ pub mod webgpu_impl {
         /// Returns `InvalidDimensions` if vector lengths don't match
         fn dot_product(&self, a: &[T], b: &[T]) -> Result<T, ComputeError> {
             if a.len() != b.len() {
-                return Err(ComputeError::InvalidDimensions(
-                    format!("Vector length mismatch: {} vs {}", a.len(), b.len())
-                ));
+                return Err(ComputeError::InvalidDimensions(format!(
+                    "Vector length mismatch: {} vs {}",
+                    a.len(),
+                    b.len()
+                )));
             }
-            
+
             // Performance heuristic for GPU usage
             const DOT_PRODUCT_GPU_THRESHOLD: usize = 10000;
-            
+
             if a.len() > DOT_PRODUCT_GPU_THRESHOLD {
                 // TODO: Implement GPU parallel reduction
                 // self.gpu_dot_product(a, b)
@@ -599,20 +618,22 @@ pub mod webgpu_impl {
                 self.cpu_dot_product_optimized(a, b)
             }
         }
-        
+
         /// Element-wise vector addition with GPU acceleration
         ///
         /// This operation is highly parallel and benefits from GPU acceleration
         /// for large vectors, providing near-linear scaling with GPU core count.
         fn vector_add(&self, a: &[T], b: &[T]) -> Result<Vec<T>, ComputeError> {
             if a.len() != b.len() {
-                return Err(ComputeError::InvalidDimensions(
-                    format!("Vector length mismatch: {} vs {}", a.len(), b.len())
-                ));
+                return Err(ComputeError::InvalidDimensions(format!(
+                    "Vector length mismatch: {} vs {}",
+                    a.len(),
+                    b.len()
+                )));
             }
-            
+
             const VECTOR_OP_GPU_THRESHOLD: usize = 1000;
-            
+
             if a.len() > VECTOR_OP_GPU_THRESHOLD {
                 // TODO: Implement GPU vectorized addition
                 // self.gpu_vector_add(a, b)
@@ -621,14 +642,14 @@ pub mod webgpu_impl {
                 Ok(a.iter().zip(b.iter()).map(|(x, y)| *x + *y).collect())
             }
         }
-        
+
         /// Scale vector by scalar with GPU acceleration
         ///
         /// Multiplies each element by the scalar value. This operation
         /// is embarrassingly parallel and scales excellently on GPU.
         fn vector_scale(&self, vec: &[T], scalar: T) -> Result<Vec<T>, ComputeError> {
             const SCALE_GPU_THRESHOLD: usize = 1000;
-            
+
             if vec.len() > SCALE_GPU_THRESHOLD {
                 // TODO: Implement GPU vectorized scaling
                 // self.gpu_vector_scale(vec, scalar)
@@ -637,17 +658,19 @@ pub mod webgpu_impl {
                 Ok(vec.iter().map(|x| *x * scalar).collect())
             }
         }
-        
+
         /// Element-wise vector subtraction with GPU acceleration
         fn vector_subtract(&self, a: &[T], b: &[T]) -> Result<Vec<T>, ComputeError> {
             if a.len() != b.len() {
-                return Err(ComputeError::InvalidDimensions(
-                    format!("Vector length mismatch: {} vs {}", a.len(), b.len())
-                ));
+                return Err(ComputeError::InvalidDimensions(format!(
+                    "Vector length mismatch: {} vs {}",
+                    a.len(),
+                    b.len()
+                )));
             }
-            
+
             const VECTOR_OP_GPU_THRESHOLD: usize = 1000;
-            
+
             if a.len() > VECTOR_OP_GPU_THRESHOLD {
                 // TODO: Implement GPU vectorized subtraction
                 // self.gpu_vector_subtract(a, b)
@@ -657,7 +680,7 @@ pub mod webgpu_impl {
             }
         }
     }
-    
+
     impl<T: Float + std::fmt::Debug + Send + Sync + 'static> MemoryManager<T> for WebGPUBackend<T> {
         /// Allocate GPU buffer with size validation and memory management
         ///
@@ -682,18 +705,16 @@ pub mod webgpu_impl {
         fn allocate_buffer(&self, size: usize) -> Result<BufferHandle, ComputeError> {
             // Validate against device capabilities
             if size > self.capabilities.max_buffer_size {
-                return Err(ComputeError::AllocationError(
-                    format!(
-                        "Buffer size {} exceeds device limit {}",
-                        size, self.capabilities.max_buffer_size
-                    )
-                ));
+                return Err(ComputeError::AllocationError(format!(
+                    "Buffer size {} exceeds device limit {}",
+                    size, self.capabilities.max_buffer_size
+                )));
             }
 
             // Check for zero-size allocation
             if size == 0 {
                 return Err(ComputeError::InvalidDimensions(
-                    "Cannot allocate zero-size buffer".to_string()
+                    "Cannot allocate zero-size buffer".to_string(),
                 ));
             }
 
@@ -701,7 +722,7 @@ pub mod webgpu_impl {
             // For now, return a handle that tracks the requested size
             Ok(BufferHandle::new(size as u64))
         }
-        
+
         /// Upload data to GPU buffer with transfer optimization
         ///
         /// This method transfers data from CPU memory to GPU buffer,
@@ -717,26 +738,25 @@ pub mod webgpu_impl {
             // Validate buffer handle
             if handle.id() == 0 {
                 return Err(ComputeError::InvalidDimensions(
-                    "Cannot upload to invalid buffer handle".to_string()
+                    "Cannot upload to invalid buffer handle".to_string(),
                 ));
             }
 
             // Check data size compatibility
             let expected_elements = handle.id() as usize / std::mem::size_of::<T>();
             if data.len() > expected_elements {
-                return Err(ComputeError::InvalidDimensions(
-                    format!(
-                        "Data size {} exceeds buffer capacity {}",
-                        data.len(), expected_elements
-                    )
-                ));
+                return Err(ComputeError::InvalidDimensions(format!(
+                    "Data size {} exceeds buffer capacity {}",
+                    data.len(),
+                    expected_elements
+                )));
             }
 
             // TODO: Implement actual data upload to GPU
             // For now, just validate the operation
             Ok(())
         }
-        
+
         /// Download data from GPU buffer with transfer optimization
         ///
         /// Transfers data from GPU memory back to CPU, with automatic
@@ -745,18 +765,18 @@ pub mod webgpu_impl {
             // Validate buffer handle
             if handle.id() == 0 {
                 return Err(ComputeError::InvalidDimensions(
-                    "Cannot download from invalid buffer handle".to_string()
+                    "Cannot download from invalid buffer handle".to_string(),
                 ));
             }
 
             // Calculate expected data size
             let expected_elements = handle.id() as usize / std::mem::size_of::<T>();
-            
+
             // TODO: Implement actual data download from GPU
             // For now, return empty vector as placeholder
             Ok(vec![T::zero(); expected_elements])
         }
-        
+
         /// Deallocate GPU buffer with memory pool management
         ///
         /// Frees the GPU buffer and returns it to the memory pool for reuse.
@@ -765,7 +785,7 @@ pub mod webgpu_impl {
             // Validate buffer handle
             if handle.id() == 0 {
                 return Err(ComputeError::InvalidDimensions(
-                    "Cannot deallocate invalid buffer handle".to_string()
+                    "Cannot deallocate invalid buffer handle".to_string(),
                 ));
             }
 
@@ -773,7 +793,7 @@ pub mod webgpu_impl {
             // For now, just validate the operation
             Ok(())
         }
-        
+
         /// Get current memory usage statistics
         ///
         /// Provides detailed information about GPU memory usage,

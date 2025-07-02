@@ -1,8 +1,8 @@
 //! WebGPU compute backend for ruv-FANN neural networks
-//! 
+//!
 //! This module provides GPU acceleration for neural network operations using WebGPU.
 //! It includes automatic fallback to SIMD/CPU backends when GPU is unavailable.
-//! 
+//!
 //! Advanced features:
 //! - Pipeline caching for optimized shader compilation
 //! - Kernel optimization for different GPU architectures
@@ -13,20 +13,20 @@
 //! - Circuit breaker protection and predictive analytics
 
 pub mod backend;
-pub mod memory;
-pub mod shaders;
+pub mod compute_context;
 pub mod error;
 pub mod fallback;
-pub mod compute_context;
+pub mod memory;
+pub mod shaders;
 
 // Enhanced memory management components
 pub mod buffer_pool;
 pub mod pressure_monitor;
 
 // Advanced shader system components
-pub mod pipeline_cache;
 pub mod kernel_optimizer;
 pub mod performance_monitor;
+pub mod pipeline_cache;
 
 #[cfg(any(feature = "gpu", feature = "webgpu"))]
 pub mod webgpu_backend;
@@ -47,35 +47,36 @@ pub mod wasm_gpu_bridge;
 
 // Re-export main types
 pub use backend::{BackendSelector, ComputeProfile};
-pub use memory::{BufferHandle, MemoryStats};
+pub use compute_context::{ComputeContext, ComputePerformanceStats, DaaCoordinationMetrics};
 pub use error::ComputeError;
 pub use fallback::FallbackManager;
-pub use compute_context::{ComputeContext, ComputePerformanceStats, DaaCoordinationMetrics};
+pub use memory::{BufferHandle, MemoryStats};
 
 // Re-export enhanced memory management
 pub use buffer_pool::{
-    AdvancedBufferPool, BufferCategory, MemoryPressure,
-    PoolStatisticsSnapshot, GpuBuffer as AdvancedGpuBuffer
+    AdvancedBufferPool, BufferCategory, GpuBuffer as AdvancedGpuBuffer, MemoryPressure,
+    PoolStatisticsSnapshot,
 };
 pub use pressure_monitor::{
-    MemoryPressureMonitor, MonitorConfig, MonitoringReport,
-    PressureReading, PressurePrediction, AnomalyEvent
+    AnomalyEvent, MemoryPressureMonitor, MonitorConfig, MonitoringReport, PressurePrediction,
+    PressureReading,
 };
 // Enhanced memory types are now in memory module
 pub use memory::{
-    EnhancedGpuMemoryManager, GpuMemoryConfig, EnhancedMemoryStats,
-    OptimizationResult, GpuMemoryManager, WebGPUMemoryManager,
-    GpuMemoryManagerEnhanced
+    EnhancedGpuMemoryManager, EnhancedMemoryStats, GpuMemoryConfig, GpuMemoryManager,
+    GpuMemoryManagerEnhanced, OptimizationResult, WebGPUMemoryManager,
 };
 
 // Re-export advanced shader system components
-pub use pipeline_cache::{PipelineCache, CompilationStats, CacheStats};
-pub use kernel_optimizer::{KernelOptimizer, GpuCapabilities, KernelConfig, OptimizationMetrics};
-pub use performance_monitor::{PerformanceMonitor, PerformanceMeasurement, PerformanceStats, PerformanceAlert};
+pub use kernel_optimizer::{GpuCapabilities, KernelConfig, KernelOptimizer, OptimizationMetrics};
+pub use performance_monitor::{
+    PerformanceAlert, PerformanceMeasurement, PerformanceMonitor, PerformanceStats,
+};
+pub use pipeline_cache::{CacheStats, CompilationStats, PipelineCache};
 
 // Re-export traits
-pub use backend::{ComputeBackend, VectorOps, MemoryManager};
-pub use backend::{BackendType, BackendCapabilities, MatrixSize, OperationType};
+pub use backend::{BackendCapabilities, BackendType, MatrixSize, OperationType};
+pub use backend::{ComputeBackend, MemoryManager, VectorOps};
 
 // Re-export WebGPU backend when available
 #[cfg(any(feature = "gpu", feature = "webgpu"))]
@@ -90,34 +91,57 @@ pub use device::GpuDevice;
 // Re-export autonomous resource management
 #[cfg(any(feature = "gpu", feature = "webgpu"))]
 pub use autonomous_gpu_resource_manager::{
-    AutonomousGpuResourceManager, AllocationEngine, ResourceTradingSystem, 
-    OptimizationEngine, ConflictResolver, ResourcePool, AgentResourceAllocation,
-    RuvTokenLedger, ResourceMarket, UsagePredictor, PerformanceAnalyzer,
-    ResourceType, PoolType, PerformanceTier, Priority, AllocationRequest,
-    ResourceAllocation, ResourceTrade, TradeResult, OptimizationResult as ResourceOptimizationResult,
-    ConflictResolution, UtilizationSummary, ResourcePolicies,
-    // Resource types
-    ResourceRequirements, ResourceCapacity, QualityRequirements, TradeProposal, AllocationResult,
+    AgentResourceAllocation,
+    AllocationEngine,
     // Error types
-    AllocationError, TradeError, OptimizationError, ConflictError
+    AllocationError,
+    AllocationRequest,
+    AllocationResult,
+    AutonomousGpuResourceManager,
+    ConflictError,
+    ConflictResolution,
+    ConflictResolver,
+    OptimizationEngine,
+    OptimizationError,
+    OptimizationResult as ResourceOptimizationResult,
+    PerformanceAnalyzer,
+    PerformanceTier,
+    PoolType,
+    Priority,
+    QualityRequirements,
+    ResourceAllocation,
+    ResourceCapacity,
+    ResourceMarket,
+    ResourcePolicies,
+    ResourcePool,
+    // Resource types
+    ResourceRequirements,
+    ResourceTrade,
+    ResourceTradingSystem,
+    ResourceType,
+    RuvTokenLedger,
+    TradeError,
+    TradeProposal,
+    TradeResult,
+    UsagePredictor,
+    UtilizationSummary,
 };
 
 // Fallback exports for missing types when autonomous GPU manager is not available
 #[cfg(not(any(feature = "gpu", feature = "webgpu")))]
 pub use autonomous_gpu_stubs::{
-    ResourceRequirements, ResourceCapacity, QualityRequirements, PerformanceTier, Priority,
-    AllocationRequest, AllocationResult, TradeProposal, TradeResult, UtilizationSummary,
-    ResourcePolicies, AllocationError, TradeError, OptimizationError, ConflictError,
-    ResourceType, LatencyRequirements,
+    AllocationError, AllocationRequest, AllocationResult, ConflictError, LatencyRequirements,
+    OptimizationError, PerformanceTier, Priority, QualityRequirements, ResourceCapacity,
+    ResourcePolicies, ResourceRequirements, ResourceType, TradeError, TradeProposal, TradeResult,
+    UtilizationSummary,
 };
 
 // Re-export WASM GPU bridge for browser deployment
 #[cfg(target_arch = "wasm32")]
 pub use wasm_gpu_bridge::{
-    WasmGpuBridge, WebGpuContext, WasmMemoryManager, DaaWebRuntime,
-    WasmPerformanceMonitor, BrowserCompatibility, CrossOriginManager,
-    SharedBuffer, WebWorkerAgent, ServiceWorkerAgent, CrossTabCoordinator,
-    WebStorageManager, WebMessageRouter
+    BrowserCompatibility, CrossOriginManager, CrossTabCoordinator, DaaWebRuntime,
+    ServiceWorkerAgent, SharedBuffer, WasmGpuBridge, WasmMemoryManager, WasmPerformanceMonitor,
+    WebGpuContext, WebMessageRouter, WebStorageManager, WebWorkerAgent,
 };
 
 /// Check if enhanced memory management features are available
@@ -176,12 +200,12 @@ impl MemoryCapabilities {
             ("Predictive Analytics", self.predictive_analytics),
             ("WASM GPU Bridge", self.wasm_gpu_bridge),
         ];
-        
+
         let enabled: Vec<&str> = features
             .iter()
             .filter_map(|(name, enabled)| if *enabled { Some(*name) } else { None })
             .collect();
-        
+
         format!("Memory Capabilities: {}", enabled.join(", "))
     }
 }

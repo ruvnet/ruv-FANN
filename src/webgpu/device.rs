@@ -59,13 +59,15 @@ impl GpuDevice {
                 force_fallback_adapter: false,
             })
             .await
-            .ok_or_else(|| ComputeError::InitializationError(
-                "Failed to find suitable WebGPU adapter".to_string()
-            ))?;
+            .ok_or_else(|| {
+                ComputeError::InitializationError(
+                    "Failed to find suitable WebGPU adapter".to_string(),
+                )
+            })?;
 
         // Get adapter info for optimization decisions
         let adapter_info = adapter.get_info();
-        
+
         // Request device with required features and limits
         let required_features = ::wgpu::Features::empty();
         let required_limits = ::wgpu::Limits {
@@ -87,9 +89,9 @@ impl GpuDevice {
                 None,
             )
             .await
-            .map_err(|e| ComputeError::InitializationError(
-                format!("Failed to create WebGPU device: {}", e)
-            ))?;
+            .map_err(|e| {
+                ComputeError::InitializationError(format!("Failed to create WebGPU device: {}", e))
+            })?;
 
         Ok(Self {
             device,
@@ -178,10 +180,10 @@ impl GpuDevice {
     /// Estimate optimal workgroup size for given problem size
     pub fn estimate_optimal_workgroup_size(&self, problem_size: usize) -> u32 {
         let max_size = self.limits.max_compute_workgroup_size_x.min(1024);
-        
+
         // Common optimal sizes based on GPU architectures
         let candidates = [32, 64, 128, 256, 512, 1024];
-        
+
         candidates
             .iter()
             .filter(|&&size| size <= max_size)
@@ -195,15 +197,15 @@ impl GpuDevice {
 
     /// Check if device is suitable for high-performance computing
     pub fn is_high_performance(&self) -> bool {
-        matches!(self.get_info().device_type, DeviceType::DiscreteGpu) &&
-        self.limits.max_compute_workgroup_size_x >= 256 &&
-        self.limits.max_storage_buffer_binding_size >= 128 * 1024 * 1024 // 128MB
+        matches!(self.get_info().device_type, DeviceType::DiscreteGpu)
+            && self.limits.max_compute_workgroup_size_x >= 256
+            && self.limits.max_storage_buffer_binding_size >= 128 * 1024 * 1024 // 128MB
     }
 
     /// Get estimated memory bandwidth in GB/s
     pub fn estimated_memory_bandwidth(&self) -> f32 {
         match self.get_info().device_type {
-            DeviceType::DiscreteGpu => 500.0, // Modern discrete GPU
+            DeviceType::DiscreteGpu => 500.0,  // Modern discrete GPU
             DeviceType::IntegratedGpu => 50.0, // Integrated GPU
             DeviceType::VirtualGpu => 25.0,    // Virtual/cloud GPU
             DeviceType::Cpu => 25.0,           // CPU memory
@@ -228,121 +230,124 @@ impl GpuDevice {
 
     /// Create optimal bind group layout for matrix operations
     pub fn create_matrix_bind_group_layout(&self) -> ::wgpu::BindGroupLayout {
-        self.device.create_bind_group_layout(&::wgpu::BindGroupLayoutDescriptor {
-            label: Some("matrix_operations_bind_group_layout"),
-            entries: &[
-                // Input matrix A
-                ::wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: ::wgpu::ShaderStages::COMPUTE,
-                    ty: ::wgpu::BindingType::Buffer {
-                        ty: ::wgpu::BufferBindingType::Storage { read_only: true },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
+        self.device
+            .create_bind_group_layout(&::wgpu::BindGroupLayoutDescriptor {
+                label: Some("matrix_operations_bind_group_layout"),
+                entries: &[
+                    // Input matrix A
+                    ::wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: ::wgpu::ShaderStages::COMPUTE,
+                        ty: ::wgpu::BindingType::Buffer {
+                            ty: ::wgpu::BufferBindingType::Storage { read_only: true },
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
                     },
-                    count: None,
-                },
-                // Input matrix/vector B
-                ::wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: ::wgpu::ShaderStages::COMPUTE,
-                    ty: ::wgpu::BindingType::Buffer {
-                        ty: ::wgpu::BufferBindingType::Storage { read_only: true },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
+                    // Input matrix/vector B
+                    ::wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: ::wgpu::ShaderStages::COMPUTE,
+                        ty: ::wgpu::BindingType::Buffer {
+                            ty: ::wgpu::BufferBindingType::Storage { read_only: true },
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
                     },
-                    count: None,
-                },
-                // Output buffer
-                ::wgpu::BindGroupLayoutEntry {
-                    binding: 2,
-                    visibility: ::wgpu::ShaderStages::COMPUTE,
-                    ty: ::wgpu::BindingType::Buffer {
-                        ty: ::wgpu::BufferBindingType::Storage { read_only: false },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
+                    // Output buffer
+                    ::wgpu::BindGroupLayoutEntry {
+                        binding: 2,
+                        visibility: ::wgpu::ShaderStages::COMPUTE,
+                        ty: ::wgpu::BindingType::Buffer {
+                            ty: ::wgpu::BufferBindingType::Storage { read_only: false },
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
                     },
-                    count: None,
-                },
-                // Uniform parameters
-                ::wgpu::BindGroupLayoutEntry {
-                    binding: 3,
-                    visibility: ::wgpu::ShaderStages::COMPUTE,
-                    ty: ::wgpu::BindingType::Buffer {
-                        ty: ::wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
+                    // Uniform parameters
+                    ::wgpu::BindGroupLayoutEntry {
+                        binding: 3,
+                        visibility: ::wgpu::ShaderStages::COMPUTE,
+                        ty: ::wgpu::BindingType::Buffer {
+                            ty: ::wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
                     },
-                    count: None,
-                },
-            ],
-        })
+                ],
+            })
     }
 
     /// Create optimal bind group layout for activation functions
     pub fn create_activation_bind_group_layout(&self) -> ::wgpu::BindGroupLayout {
-        self.device.create_bind_group_layout(&::wgpu::BindGroupLayoutDescriptor {
-            label: Some("activation_functions_bind_group_layout"),
-            entries: &[
-                // Input buffer
-                ::wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: ::wgpu::ShaderStages::COMPUTE,
-                    ty: ::wgpu::BindingType::Buffer {
-                        ty: ::wgpu::BufferBindingType::Storage { read_only: true },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
+        self.device
+            .create_bind_group_layout(&::wgpu::BindGroupLayoutDescriptor {
+                label: Some("activation_functions_bind_group_layout"),
+                entries: &[
+                    // Input buffer
+                    ::wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: ::wgpu::ShaderStages::COMPUTE,
+                        ty: ::wgpu::BindingType::Buffer {
+                            ty: ::wgpu::BufferBindingType::Storage { read_only: true },
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
                     },
-                    count: None,
-                },
-                // Output buffer
-                ::wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: ::wgpu::ShaderStages::COMPUTE,
-                    ty: ::wgpu::BindingType::Buffer {
-                        ty: ::wgpu::BufferBindingType::Storage { read_only: false },
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
+                    // Output buffer
+                    ::wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: ::wgpu::ShaderStages::COMPUTE,
+                        ty: ::wgpu::BindingType::Buffer {
+                            ty: ::wgpu::BufferBindingType::Storage { read_only: false },
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
                     },
-                    count: None,
-                },
-                // Activation parameters
-                ::wgpu::BindGroupLayoutEntry {
-                    binding: 2,
-                    visibility: ::wgpu::ShaderStages::COMPUTE,
-                    ty: ::wgpu::BindingType::Buffer {
-                        ty: ::wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
+                    // Activation parameters
+                    ::wgpu::BindGroupLayoutEntry {
+                        binding: 2,
+                        visibility: ::wgpu::ShaderStages::COMPUTE,
+                        ty: ::wgpu::BindingType::Buffer {
+                            ty: ::wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
                     },
-                    count: None,
-                },
-            ],
-        })
+                ],
+            })
     }
 
     /// Validate device capabilities for neural network operations
     pub fn validate_neural_network_support(&self) -> ComputeResult<()> {
         let info = self.get_info();
-        
+
         // Check minimum workgroup size
         if info.limits.max_compute_workgroup_size_x < 32 {
             return Err(ComputeError::InitializationError(
-                "Device workgroup size too small for neural network operations".to_string()
+                "Device workgroup size too small for neural network operations".to_string(),
             ));
         }
 
         // Check minimum storage buffer size
-        if info.limits.max_storage_buffer_binding_size < 16 * 1024 * 1024 { // 16MB
+        if info.limits.max_storage_buffer_binding_size < 16 * 1024 * 1024 {
+            // 16MB
             return Err(ComputeError::InitializationError(
-                "Device storage buffer size too small for neural network operations".to_string()
+                "Device storage buffer size too small for neural network operations".to_string(),
             ));
         }
 
         // Check compute invocations
         if info.limits.max_compute_invocations_per_workgroup < 256 {
             return Err(ComputeError::InitializationError(
-                "Device compute invocations per workgroup too small".to_string()
+                "Device compute invocations per workgroup too small".to_string(),
             ));
         }
 
@@ -364,18 +369,18 @@ mod tests {
             Ok(device) => {
                 let info = device.get_info();
                 println!("Device: {} ({:?})", info.name, info.device_type);
-                
+
                 // Check device capabilities with soft assertions
                 // Using unwrap_or for non-fatal error handling
                 assert!(device.max_buffer_size() > 0);
-                
+
                 let storage_buffer_size = device.max_storage_buffer_binding_size();
                 if storage_buffer_size == 0 {
                     println!("Warning: Device reports zero max_storage_buffer_binding_size!");
                 } else {
                     println!("Max storage buffer binding size: {}", storage_buffer_size);
                 }
-                
+
                 // Test validation
                 let validation_result = device.validate_neural_network_support();
                 if validation_result.is_ok() {
@@ -397,7 +402,7 @@ mod tests {
             let optimal_size = device.estimate_optimal_workgroup_size(1000);
             assert!(optimal_size > 0);
             assert!(optimal_size <= device.max_compute_workgroup_size().0);
-            
+
             println!("Optimal workgroup size for 1000 elements: {}", optimal_size);
         }
     }
@@ -407,10 +412,10 @@ mod tests {
         if let Ok(device) = GpuDevice::new().await {
             let bandwidth = device.estimated_memory_bandwidth();
             let throughput = device.estimated_compute_throughput();
-            
+
             assert!(bandwidth > 0.0);
             assert!(throughput > 0.0);
-            
+
             println!("Estimated bandwidth: {} GB/s", bandwidth);
             println!("Estimated throughput: {} GFLOPS", throughput);
             println!("High performance: {}", device.is_high_performance());

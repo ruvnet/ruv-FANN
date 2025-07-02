@@ -1,11 +1,11 @@
 //! Stub implementations for autonomous GPU resource manager types
-//! 
-//! This module provides basic implementations for types that may not be fully 
+//!
+//! This module provides basic implementations for types that may not be fully
 //! implemented in the autonomous_gpu_resource_manager module.
 
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::{Duration, SystemTime};
-use serde::{Deserialize, Serialize};
 
 /// Resource requirements for allocation requests
 #[derive(Debug, Clone, Serialize, Deserialize)]

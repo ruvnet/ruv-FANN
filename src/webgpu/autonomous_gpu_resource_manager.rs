@@ -1,27 +1,23 @@
 //! Autonomous GPU Resource Management System
-//! 
+//!
 //! This module implements intelligent, autonomous GPU resource management that enables
 //! DAA agents to self-manage, trade, and optimize GPU resources without human intervention.
 //! It integrates with the existing WebGPU memory manager and DAA framework to provide
 //! economic incentives through rUv token trading.
 
-use std::collections::{HashMap, BTreeMap, VecDeque};
+use std::collections::{BTreeMap, HashMap, VecDeque};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
-use tokio::sync::{RwLock, Mutex};
+use tokio::sync::{Mutex, RwLock};
 
 #[cfg(feature = "gpu")]
-use {
-    async_trait::async_trait,
-    super::memory::GpuMemoryManager,
-    crate::webgpu::device::GpuDevice,
-};
+use {super::memory::GpuMemoryManager, crate::webgpu::device::GpuDevice, async_trait::async_trait};
 
 #[cfg(not(feature = "gpu"))]
 use std::future::Future;
 
-use serde::{Deserialize, Serialize};
 use super::error::ComputeError;
+use serde::{Deserialize, Serialize};
 
 /// Forward declarations for types used in main structs
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -48,25 +44,25 @@ pub struct AutonomousGpuResourceManager {
     trading_system: Arc<RwLock<ResourceTradingSystem>>,
     optimization_engine: Arc<RwLock<OptimizationEngine>>,
     conflict_resolver: Arc<ConflictResolver>,
-    
+
     /// Resource pools and tracking
     resource_pools: Arc<RwLock<HashMap<PoolId, ResourcePool>>>,
     agent_allocations: Arc<RwLock<HashMap<AgentId, AgentResourceAllocation>>>,
-    
+
     /// Economic system
     ruv_token_ledger: Arc<RwLock<RuvTokenLedger>>,
     market_dynamics: Arc<RwLock<ResourceMarket>>,
-    
+
     /// Autonomous learning and prediction
     usage_predictor: Arc<RwLock<UsagePredictor>>,
     performance_analyzer: Arc<RwLock<PerformanceAnalyzer>>,
-    
+
     /// Configuration and policies
     policies: Arc<RwLock<ResourcePolicies>>,
-    
+
     /// Event system for autonomous coordination
     event_bus: Arc<EventBus>,
-    
+
     /// Background task management
     task_handles: Arc<Mutex<Vec<tokio::task::JoinHandle<()>>>>,
 }
@@ -76,15 +72,15 @@ pub struct AllocationEngine {
     /// Allocation algorithms
     algorithms: HashMap<AlgorithmType, Box<dyn AllocationAlgorithm + Send + Sync>>,
     active_algorithm: AlgorithmType,
-    
+
     /// Current allocations and reservations
     active_allocations: BTreeMap<AllocationId, ResourceAllocation>,
     pending_requests: VecDeque<AllocationRequest>,
     future_reservations: BTreeMap<SystemTime, Vec<AllocationId>>,
-    
+
     /// Performance tracking
     allocation_metrics: AllocationMetrics,
-    
+
     /// Learning system
     allocation_history: VecDeque<AllocationEvent>,
     success_patterns: HashMap<AllocationPattern, f64>,
@@ -96,14 +92,14 @@ pub struct ResourceTradingSystem {
     open_trades: HashMap<TradeId, ResourceTrade>,
     trade_history: VecDeque<CompletedTrade>,
     market_prices: HashMap<ResourceType, MarketPrice>,
-    
+
     /// Trading algorithms
     pricing_engine: Box<dyn PricingEngine + Send + Sync>,
     matching_engine: Box<dyn TradeMatchingEngine + Send + Sync>,
-    
+
     /// Economic incentives
     incentive_structures: HashMap<IncentiveType, IncentiveRule>,
-    
+
     /// Risk management
     credit_scores: HashMap<AgentId, CreditScore>,
     trade_limits: HashMap<AgentId, TradeLimits>,
@@ -113,14 +109,14 @@ pub struct ResourceTradingSystem {
 pub struct OptimizationEngine {
     /// Optimization strategies
     strategies: Vec<Box<dyn OptimizationStrategy + Send + Sync>>,
-    
+
     /// Performance monitoring
     performance_metrics: PerformanceMetrics,
     optimization_history: VecDeque<OptimizationEvent>,
-    
+
     /// Predictive optimization
     workload_predictor: Box<dyn WorkloadPredictor + Send + Sync>,
-    
+
     /// Adaptive configuration
     adaptive_parameters: HashMap<String, AdaptiveParameter>,
 }
@@ -129,13 +125,13 @@ pub struct OptimizationEngine {
 pub struct ConflictResolver {
     /// Resolution strategies
     resolution_strategies: HashMap<ConflictType, Box<dyn ConflictResolutionStrategy + Send + Sync>>,
-    
+
     /// Active conflicts
     active_conflicts: RwLock<HashMap<ConflictId, ResourceConflict>>,
-    
+
     /// Resolution history for learning
     resolution_history: RwLock<VecDeque<ConflictResolution>>,
-    
+
     /// Fairness and equity tracking
     fairness_metrics: RwLock<FairnessMetrics>,
 }
@@ -148,20 +144,20 @@ pub struct ResourcePool {
     pub total_capacity: ResourceCapacity,
     pub available_capacity: ResourceCapacity,
     pub reserved_capacity: ResourceCapacity,
-    
+
     /// Pool characteristics
     pub performance_tier: PerformanceTier,
     pub access_latency_ms: f32,
     pub bandwidth_gbps: f32,
-    
+
     /// Economic properties
     pub base_cost_per_hour: f64,
     pub demand_multiplier: f64,
-    
+
     /// Pool policies
     pub allocation_policy: AllocationPolicy,
     pub access_restrictions: Vec<AccessRestriction>,
-    
+
     /// Usage tracking
     pub utilization_history: VecDeque<UtilizationSnapshot>,
     pub quality_of_service: QualityOfService,
@@ -172,22 +168,22 @@ pub struct ResourcePool {
 pub struct AgentResourceAllocation {
     pub agent_id: AgentId,
     pub allocations: HashMap<AllocationId, ResourceAllocation>,
-    
+
     /// Agent-specific metrics
     pub total_allocated: ResourceCapacity,
     pub utilization_efficiency: f64,
     pub performance_score: f64,
-    
+
     /// Economic tracking
     pub ruv_balance: f64,
     pub spending_rate: f64,
     pub earning_rate: f64,
-    
+
     /// Autonomous behaviors
     pub allocation_preferences: AllocationPreferences,
     pub trading_behavior: TradingBehavior,
     pub optimization_goals: Vec<OptimizationGoal>,
-    
+
     /// Learning and adaptation
     pub usage_patterns: HashMap<String, UsagePattern>,
     pub learned_optimizations: Vec<LearnedOptimization>,
@@ -198,15 +194,15 @@ pub struct AgentResourceAllocation {
 pub struct RuvTokenLedger {
     /// Account balances
     pub balances: HashMap<AgentId, f64>,
-    
+
     /// Transaction history
     pub transactions: VecDeque<RuvTransaction>,
-    
+
     /// Economic parameters
     pub total_supply: f64,
     pub inflation_rate: f64,
     pub reward_pool: f64,
-    
+
     /// Market makers and liquidity
     pub market_makers: HashMap<AgentId, MarketMakerInfo>,
     pub liquidity_pools: HashMap<ResourceType, LiquidityPool>,
@@ -219,11 +215,11 @@ pub struct ResourceMarket {
     pub prices: HashMap<ResourceType, MarketPrice>,
     pub order_book: HashMap<ResourceType, OrderBook>,
     pub trade_volume: HashMap<ResourceType, f64>,
-    
+
     /// Market dynamics
     pub volatility: HashMap<ResourceType, f64>,
     pub trend_indicators: HashMap<ResourceType, TrendIndicator>,
-    
+
     /// Autonomous market making
     pub market_making_algorithms: Vec<MarketMakingAlgorithm>,
 }
@@ -233,14 +229,14 @@ pub struct ResourceMarket {
 pub struct UsagePredictor {
     /// Prediction models
     models: HashMap<PredictionType, Box<dyn PredictionModel + Send + Sync>>,
-    
+
     /// Historical data
     usage_history: HashMap<AgentId, VecDeque<UsageSnapshot>>,
     seasonal_patterns: HashMap<String, SeasonalPattern>,
-    
+
     /// Prediction accuracy tracking
     prediction_accuracy: HashMap<PredictionType, f64>,
-    
+
     /// Feature engineering
     feature_extractors: Vec<Box<dyn FeatureExtractor + Send + Sync>>,
 }
@@ -250,13 +246,13 @@ pub struct UsagePredictor {
 pub struct PerformanceAnalyzer {
     /// Performance metrics collection
     metrics_collectors: HashMap<MetricType, Box<dyn MetricsCollector + Send + Sync>>,
-    
+
     /// Performance history
     performance_history: HashMap<AgentId, VecDeque<PerformanceSnapshot>>,
-    
+
     /// Bottleneck detection
     bottleneck_detectors: Vec<Box<dyn BottleneckDetector + Send + Sync>>,
-    
+
     /// Optimization recommendations
     recommendation_engine: Box<dyn RecommendationEngine + Send + Sync>,
 }
@@ -265,10 +261,10 @@ pub struct PerformanceAnalyzer {
 pub struct EventBus {
     /// Event channels
     channels: RwLock<HashMap<EventType, Vec<tokio::sync::broadcast::Sender<ResourceEvent>>>>,
-    
+
     /// Event history
     event_history: RwLock<VecDeque<ResourceEvent>>,
-    
+
     /// Event processing rules
     event_processors: RwLock<HashMap<EventType, Vec<Box<dyn EventProcessor + Send + Sync>>>>,
 }
@@ -303,10 +299,10 @@ pub enum PoolType {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum PerformanceTier {
-    Premium,     // Highest performance, lowest latency
-    Standard,    // Balanced performance/cost
-    Economic,    // Cost-optimized
-    Burst,       // High performance, short duration
+    Premium,  // Highest performance, lowest latency
+    Standard, // Balanced performance/cost
+    Economic, // Cost-optimized
+    Burst,    // High performance, short duration
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -356,9 +352,9 @@ pub enum IncentiveType {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PredictionType {
-    ShortTermUsage,    // Next 1 hour
-    MediumTermUsage,   // Next 24 hours
-    LongTermUsage,     // Next 7 days
+    ShortTermUsage,  // Next 1 hour
+    MediumTermUsage, // Next 24 hours
+    LongTermUsage,   // Next 7 days
     PerformanceTrends,
     ResourceDemand,
 }
@@ -391,23 +387,23 @@ pub struct ResourceAllocation {
     pub agent_id: AgentId,
     pub pool_id: PoolId,
     pub allocated_capacity: ResourceCapacity,
-    
+
     /// Allocation metadata
     pub priority: Priority,
     pub quality_requirements: QualityRequirements,
     pub duration: Duration,
     pub created_at: SystemTime,
     pub expires_at: Option<SystemTime>,
-    
+
     /// Economic data
     pub cost_per_hour: f64,
     pub payment_method: PaymentMethod,
-    
+
     /// Performance tracking
     pub actual_usage: ResourceCapacity,
     pub efficiency_score: f64,
     pub satisfaction_score: f64,
-    
+
     /// Autonomous behaviors
     pub auto_scale: bool,
     pub auto_optimize: bool,
@@ -540,8 +536,12 @@ pub trait AllocationAlgorithm: std::fmt::Debug {
         request: &'a AllocationRequest,
         available_pools: &'a [ResourcePool],
         current_allocations: &'a HashMap<AllocationId, ResourceAllocation>,
-    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<AllocationResult, AllocationError>> + Send + 'a>>;
-    
+    ) -> std::pin::Pin<
+        Box<
+            dyn std::future::Future<Output = Result<AllocationResult, AllocationError>> + Send + 'a,
+        >,
+    >;
+
     #[cfg(not(feature = "gpu"))]
     fn allocate(
         &self,
@@ -549,10 +549,10 @@ pub trait AllocationAlgorithm: std::fmt::Debug {
         available_pools: &[ResourcePool],
         current_allocations: &HashMap<AllocationId, ResourceAllocation>,
     ) -> Result<AllocationResult, AllocationError>;
-    
+
     fn algorithm_type(&self) -> AlgorithmType;
     fn performance_score(&self) -> f64;
-    
+
     // Synchronous allocation method for blocking operations
     fn allocate_sync(
         &self,
@@ -570,7 +570,7 @@ pub trait PricingEngine: std::fmt::Debug {
         quantity: f64,
         market_conditions: &ResourceMarket,
     ) -> Result<f64, PricingError>;
-    
+
     async fn update_market_prices(
         &mut self,
         market_data: &ResourceMarket,
@@ -583,7 +583,7 @@ pub trait TradeMatchingEngine: std::fmt::Debug {
         &self,
         open_trades: &HashMap<TradeId, ResourceTrade>,
     ) -> Result<Vec<TradeMatch>, MatchingError>;
-    
+
     async fn validate_trade(
         &self,
         trade: &ResourceTrade,
@@ -598,13 +598,13 @@ pub trait OptimizationStrategy: std::fmt::Debug {
         allocations: &HashMap<AllocationId, ResourceAllocation>,
         performance_data: &HashMap<AgentId, PerformanceSnapshot>,
     ) -> Result<Vec<OptimizationRecommendation>, OptimizationError>;
-    
+
     async fn apply_optimization(
         &self,
         recommendation: &OptimizationRecommendation,
         resource_manager: &AutonomousGpuResourceManager,
     ) -> Result<OptimizationResult, OptimizationError>;
-    
+
     fn strategy_type(&self) -> String;
 }
 
@@ -615,13 +615,13 @@ pub trait ConflictResolutionStrategy: std::fmt::Debug {
         allocations: &HashMap<AllocationId, ResourceAllocation>,
         performance_metrics: &HashMap<AgentId, PerformanceSnapshot>,
     ) -> Result<Vec<ResourceConflict>, ConflictError>;
-    
+
     async fn resolve_conflict(
         &self,
         conflict: &ResourceConflict,
         available_resources: &HashMap<PoolId, ResourcePool>,
     ) -> Result<ConflictResolution, ConflictError>;
-    
+
     fn resolution_type(&self) -> ConflictType;
 }
 
@@ -633,12 +633,12 @@ pub trait PredictionModel: std::fmt::Debug {
         historical_data: &[UsageSnapshot],
         time_horizon: Duration,
     ) -> Result<UsagePrediction, PredictionError>;
-    
+
     async fn update_model(
         &mut self,
         training_data: &[UsageSnapshot],
     ) -> Result<(), PredictionError>;
-    
+
     fn model_type(&self) -> PredictionType;
     fn accuracy_score(&self) -> f64;
 }
@@ -650,7 +650,7 @@ pub trait EventProcessor: std::fmt::Debug + Send + Sync {
         event: &ResourceEvent,
         context: &EventProcessingContext,
     ) -> Result<Vec<ResourceEvent>, EventProcessingError>;
-    
+
     fn event_types(&self) -> Vec<EventType>;
 }
 
@@ -669,20 +669,20 @@ impl AutonomousGpuResourceManager {
         let trading_system = Arc::new(RwLock::new(ResourceTradingSystem::new()));
         let optimization_engine = Arc::new(RwLock::new(OptimizationEngine::new()));
         let conflict_resolver = Arc::new(ConflictResolver::new());
-        
+
         let resource_pools = Arc::new(RwLock::new(HashMap::new()));
         let agent_allocations = Arc::new(RwLock::new(HashMap::new()));
-        
+
         let ruv_token_ledger = Arc::new(RwLock::new(RuvTokenLedger::new()));
         let market_dynamics = Arc::new(RwLock::new(ResourceMarket::new()));
-        
+
         let usage_predictor = Arc::new(RwLock::new(UsagePredictor::new()));
         let performance_analyzer = Arc::new(RwLock::new(PerformanceAnalyzer::new()));
-        
+
         let policies = Arc::new(RwLock::new(initial_policies));
         let event_bus = Arc::new(EventBus::new());
         let task_handles = Arc::new(Mutex::new(Vec::new()));
-        
+
         let manager = Self {
             memory_manager,
             allocation_engine,
@@ -699,54 +699,60 @@ impl AutonomousGpuResourceManager {
             event_bus,
             task_handles,
         };
-        
+
         // Initialize default resource pools
         manager.initialize_default_pools().await?;
-        
+
         // Start background autonomous tasks
         manager.start_autonomous_tasks().await?;
-        
+
         Ok(manager)
     }
-    
+
     /// Request resource allocation with autonomous optimization
     pub async fn request_allocation(
         &self,
         request: AllocationRequest,
     ) -> Result<AllocationResult, AllocationError> {
         // Emit allocation request event
-        self.event_bus.emit(ResourceEvent::AllocationRequested {
-            request: request.clone(),
-            timestamp: SystemTime::now(),
-        }).await;
-        
+        self.event_bus
+            .emit(ResourceEvent::AllocationRequested {
+                request: request.clone(),
+                timestamp: SystemTime::now(),
+            })
+            .await;
+
         // Use allocation engine to find optimal allocation
         let mut engine = self.allocation_engine.write().await;
         let pools = self.resource_pools.read().await;
         let allocations = self.agent_allocations.read().await;
-        
+
         let pools_vec: Vec<ResourcePool> = pools.values().cloned().collect();
         let all_allocations: HashMap<AllocationId, ResourceAllocation> = allocations
             .values()
             .flat_map(|agent_alloc| agent_alloc.allocations.clone())
             .collect();
-        
-        let result = engine.allocate_with_optimization(&request, &pools_vec, &all_allocations).await?;
-        
+
+        let result = engine
+            .allocate_with_optimization(&request, &pools_vec, &all_allocations)
+            .await?;
+
         // Update allocations if successful
         if let AllocationResult::Success { allocation, .. } = &result {
             self.update_agent_allocation(allocation.clone()).await?;
-            
+
             // Emit allocation complete event
-            self.event_bus.emit(ResourceEvent::AllocationCompleted {
-                allocation: allocation.clone(),
-                timestamp: SystemTime::now(),
-            }).await;
+            self.event_bus
+                .emit(ResourceEvent::AllocationCompleted {
+                    allocation: allocation.clone(),
+                    timestamp: SystemTime::now(),
+                })
+                .await;
         }
-        
+
         Ok(result)
     }
-    
+
     /// Autonomous resource trading between agents
     pub async fn propose_trade(
         &self,
@@ -755,25 +761,29 @@ impl AutonomousGpuResourceManager {
     ) -> Result<TradeResult, TradeError> {
         let mut trading_system = self.trading_system.write().await;
         let market = self.market_dynamics.read().await;
-        
+
         // Create trade with autonomous pricing
-        let trade = trading_system.create_trade(seller_id, trade_proposal, &market).await?;
-        
+        let trade = trading_system
+            .create_trade(seller_id, trade_proposal, &market)
+            .await?;
+
         // Emit trade proposal event
-        self.event_bus.emit(ResourceEvent::TradeProposed {
-            trade: trade.clone(),
-            timestamp: SystemTime::now(),
-        }).await;
-        
+        self.event_bus
+            .emit(ResourceEvent::TradeProposed {
+                trade: trade.clone(),
+                timestamp: SystemTime::now(),
+            })
+            .await;
+
         // Attempt automatic matching
         let matches = trading_system.find_matches(&trade).await?;
-        
+
         if !matches.is_empty() {
             // Execute best match
             let best_match = &matches[0];
             let _result = self.execute_trade(&trade, best_match.clone()).await?;
-            
-            return Ok(TradeResult::Matched { 
+
+            return Ok(TradeResult::Matched {
                 trade_id: trade.id,
                 match_info: best_match.clone(),
                 execution_result: TradeExecutionResult {
@@ -784,103 +794,117 @@ impl AutonomousGpuResourceManager {
                 },
             });
         }
-        
+
         Ok(TradeResult::Listed { trade_id: trade.id })
     }
-    
+
     /// Continuous autonomous optimization
     pub async fn trigger_optimization(&self) -> Result<Vec<OptimizationResult>, OptimizationError> {
         let mut engine = self.optimization_engine.write().await;
         let allocations_map = self.get_all_allocations().await;
         let performance_map = self.get_performance_snapshots().await;
-        
+
         let mut results = Vec::new();
-        
+
         for strategy in &mut engine.strategies {
-            let recommendations = strategy.analyze_performance(&allocations_map, &performance_map).await?;
-            
+            let recommendations = strategy
+                .analyze_performance(&allocations_map, &performance_map)
+                .await?;
+
             for recommendation in recommendations {
                 let result = strategy.apply_optimization(&recommendation, self).await?;
                 results.push(result);
             }
         }
-        
+
         // Update optimization metrics
         engine.update_metrics(&results).await;
-        
+
         Ok(results)
     }
-    
+
     /// Autonomous conflict detection and resolution
-    pub async fn detect_and_resolve_conflicts(&self) -> Result<Vec<ConflictResolution>, ConflictError> {
+    pub async fn detect_and_resolve_conflicts(
+        &self,
+    ) -> Result<Vec<ConflictResolution>, ConflictError> {
         let allocations = self.get_all_allocations().await;
         let performance_metrics = self.get_performance_snapshots().await;
         let available_resources = self.resource_pools.read().await.clone();
-        
+
         let mut resolutions = Vec::new();
-        
+
         for (conflict_type, strategy) in &self.conflict_resolver.resolution_strategies {
-            let conflicts = strategy.detect_conflicts(&allocations, &performance_metrics).await?;
-            
+            let conflicts = strategy
+                .detect_conflicts(&allocations, &performance_metrics)
+                .await?;
+
             for conflict in conflicts {
-                let resolution = strategy.resolve_conflict(&conflict, &available_resources).await?;
-                
+                let resolution = strategy
+                    .resolve_conflict(&conflict, &available_resources)
+                    .await?;
+
                 // Apply resolution
                 self.apply_conflict_resolution(&resolution).await?;
                 resolutions.push(resolution);
-                
+
                 // Emit conflict resolved event
-                self.event_bus.emit(ResourceEvent::ConflictResolved {
-                    conflict_id: conflict.id,
-                    resolution_type: *conflict_type,
-                    timestamp: SystemTime::now(),
-                }).await;
+                self.event_bus
+                    .emit(ResourceEvent::ConflictResolved {
+                        conflict_id: conflict.id,
+                        resolution_type: *conflict_type,
+                        timestamp: SystemTime::now(),
+                    })
+                    .await;
             }
         }
-        
+
         Ok(resolutions)
     }
-    
+
     /// Get current resource utilization across all pools
     pub async fn get_utilization_summary(&self) -> UtilizationSummary {
         let pools = self.resource_pools.read().await;
         let allocations = self.agent_allocations.read().await;
-        
+
         let mut total_capacity = ResourceCapacity {
             compute_units: 0,
             memory_mb: 0,
             bandwidth_mbps: 0.0,
             buffer_count: 0,
         };
-        
+
         let mut total_allocated = ResourceCapacity {
             compute_units: 0,
             memory_mb: 0,
             bandwidth_mbps: 0.0,
             buffer_count: 0,
         };
-        
+
         for pool in pools.values() {
             total_capacity.compute_units += pool.total_capacity.compute_units;
             total_capacity.memory_mb += pool.total_capacity.memory_mb;
             total_capacity.bandwidth_mbps += pool.total_capacity.bandwidth_mbps;
             total_capacity.buffer_count += pool.total_capacity.buffer_count;
-            
+
             let allocated = ResourceCapacity {
-                compute_units: pool.total_capacity.compute_units - pool.available_capacity.compute_units,
+                compute_units: pool.total_capacity.compute_units
+                    - pool.available_capacity.compute_units,
                 memory_mb: pool.total_capacity.memory_mb - pool.available_capacity.memory_mb,
-                bandwidth_mbps: pool.total_capacity.bandwidth_mbps - pool.available_capacity.bandwidth_mbps,
-                buffer_count: pool.total_capacity.buffer_count - pool.available_capacity.buffer_count,
+                bandwidth_mbps: pool.total_capacity.bandwidth_mbps
+                    - pool.available_capacity.bandwidth_mbps,
+                buffer_count: pool.total_capacity.buffer_count
+                    - pool.available_capacity.buffer_count,
             };
-            
+
             total_allocated.compute_units += allocated.compute_units;
             total_allocated.memory_mb += allocated.memory_mb;
             total_allocated.bandwidth_mbps += allocated.bandwidth_mbps;
             total_allocated.buffer_count += allocated.buffer_count;
         }
-        
-        let utilization_percentage = calculate_utilization_percentage(&total_capacity, &total_allocated);
-        
+
+        let utilization_percentage =
+            calculate_utilization_percentage(&total_capacity, &total_allocated);
+
         UtilizationSummary {
             total_capacity,
             total_allocated,
@@ -890,11 +914,11 @@ impl AutonomousGpuResourceManager {
             market_efficiency: self.calculate_market_efficiency().await,
         }
     }
-    
+
     /// Initialize default resource pools
     async fn initialize_default_pools(&self) -> Result<(), ComputeError> {
         let mut pools = self.resource_pools.write().await;
-        
+
         // High-performance pool
         let high_perf_pool = ResourcePool {
             id: "high_performance".to_string(),
@@ -927,7 +951,7 @@ impl AutonomousGpuResourceManager {
             utilization_history: VecDeque::new(),
             quality_of_service: QualityOfService::default(),
         };
-        
+
         // Standard pool
         let standard_pool = ResourcePool {
             id: "standard".to_string(),
@@ -960,7 +984,7 @@ impl AutonomousGpuResourceManager {
             utilization_history: VecDeque::new(),
             quality_of_service: QualityOfService::default(),
         };
-        
+
         // Economic pool
         let economic_pool = ResourcePool {
             id: "economic".to_string(),
@@ -993,54 +1017,59 @@ impl AutonomousGpuResourceManager {
             utilization_history: VecDeque::new(),
             quality_of_service: QualityOfService::default(),
         };
-        
+
         pools.insert(high_perf_pool.id.clone(), high_perf_pool);
         pools.insert(standard_pool.id.clone(), standard_pool);
         pools.insert(economic_pool.id.clone(), economic_pool);
-        
+
         Ok(())
     }
-    
+
     /// Start autonomous background tasks
     async fn start_autonomous_tasks(&self) -> Result<(), ComputeError> {
         let mut handles = self.task_handles.lock().await;
-        
+
         // Market dynamics updater
         let market_updater = self.start_market_dynamics_task().await;
         handles.push(market_updater);
-        
+
         // Usage prediction updater
         let prediction_updater = self.start_prediction_task().await;
         handles.push(prediction_updater);
-        
+
         // Performance monitoring
         let performance_monitor = self.start_performance_monitoring_task().await;
         handles.push(performance_monitor);
-        
+
         // Autonomous optimization
         let optimization_task = self.start_optimization_task().await;
         handles.push(optimization_task);
-        
+
         // Conflict detection
         let conflict_detector = self.start_conflict_detection_task().await;
         handles.push(conflict_detector);
-        
+
         Ok(())
     }
-    
+
     // Helper methods for implementation...
-    async fn update_agent_allocation(&self, allocation: ResourceAllocation) -> Result<(), AllocationError> {
+    async fn update_agent_allocation(
+        &self,
+        allocation: ResourceAllocation,
+    ) -> Result<(), AllocationError> {
         let mut allocations = self.agent_allocations.write().await;
         let agent_allocation = allocations
             .entry(allocation.agent_id.clone())
             .or_insert_with(|| AgentResourceAllocation::new(allocation.agent_id.clone()));
-        
-        agent_allocation.allocations.insert(allocation.id, allocation);
+
+        agent_allocation
+            .allocations
+            .insert(allocation.id, allocation);
         agent_allocation.update_metrics();
-        
+
         Ok(())
     }
-    
+
     async fn get_all_allocations(&self) -> HashMap<AllocationId, ResourceAllocation> {
         let allocations = self.agent_allocations.read().await;
         allocations
@@ -1048,28 +1077,28 @@ impl AutonomousGpuResourceManager {
             .flat_map(|agent_alloc| agent_alloc.allocations.clone())
             .collect()
     }
-    
+
     async fn get_performance_snapshots(&self) -> HashMap<AgentId, PerformanceSnapshot> {
         let analyzer = self.performance_analyzer.read().await;
         analyzer.get_latest_snapshots()
     }
-    
+
     async fn calculate_market_efficiency(&self) -> f64 {
         let market = self.market_dynamics.read().await;
         market.calculate_efficiency()
     }
-    
+
     // Background task implementations...
     async fn start_market_dynamics_task(&self) -> tokio::task::JoinHandle<()> {
         let market_dynamics = Arc::clone(&self.market_dynamics);
         let event_bus = Arc::clone(&self.event_bus);
-        
+
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(60)); // Update every minute
-            
+
             loop {
                 interval.tick().await;
-                
+
                 // Use async RwLock properly with await
                 match market_dynamics.try_write() {
                     Ok(mut market) => {
@@ -1081,35 +1110,36 @@ impl AutonomousGpuResourceManager {
                         continue;
                     }
                 }
-                
+
                 // Emit market update event outside the lock
-                let _ = event_bus.emit(ResourceEvent::MarketUpdate {
-                    timestamp: SystemTime::now(),
-                }).await;
+                let _ = event_bus
+                    .emit(ResourceEvent::MarketUpdate {
+                        timestamp: SystemTime::now(),
+                    })
+                    .await;
             }
         })
     }
-    
+
     async fn start_prediction_task(&self) -> tokio::task::JoinHandle<()> {
         let usage_predictor = Arc::clone(&self.usage_predictor);
         let agent_allocations = Arc::clone(&self.agent_allocations);
-        
+
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(300)); // Update every 5 minutes
-            
+
             loop {
                 interval.tick().await;
-                
+
                 // Collect allocation data without holding lock across await
                 let allocations_data = match agent_allocations.try_read() {
-                    Ok(allocations) => {
-                        allocations.iter()
-                            .map(|(agent_id, allocation)| (agent_id.clone(), allocation.clone()))
-                            .collect::<Vec<_>>()
-                    }
+                    Ok(allocations) => allocations
+                        .iter()
+                        .map(|(agent_id, allocation)| (agent_id.clone(), allocation.clone()))
+                        .collect::<Vec<_>>(),
                     Err(_) => continue, // Skip if can't acquire lock
                 };
-                
+
                 // Update predictions outside the lock
                 for (_agent_id, _allocation) in allocations_data {
                     match usage_predictor.try_write() {
@@ -1123,27 +1153,26 @@ impl AutonomousGpuResourceManager {
             }
         })
     }
-    
+
     async fn start_performance_monitoring_task(&self) -> tokio::task::JoinHandle<()> {
         let performance_analyzer = Arc::clone(&self.performance_analyzer);
         let agent_allocations = Arc::clone(&self.agent_allocations);
-        
+
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(30)); // Monitor every 30 seconds
-            
+
             loop {
                 interval.tick().await;
-                
+
                 // Collect allocation data without holding lock across await
                 let allocations_data = match agent_allocations.try_read() {
-                    Ok(allocations) => {
-                        allocations.iter()
-                            .map(|(agent_id, allocation)| (agent_id.clone(), allocation.clone()))
-                            .collect::<Vec<_>>()
-                    }
+                    Ok(allocations) => allocations
+                        .iter()
+                        .map(|(agent_id, allocation)| (agent_id.clone(), allocation.clone()))
+                        .collect::<Vec<_>>(),
                     Err(_) => continue, // Skip if can't acquire lock
                 };
-                
+
                 // Collect performance metrics outside the lock
                 for (_agent_id, _allocation) in allocations_data {
                     match performance_analyzer.try_write() {
@@ -1157,17 +1186,17 @@ impl AutonomousGpuResourceManager {
             }
         })
     }
-    
+
     async fn start_optimization_task(&self) -> tokio::task::JoinHandle<()> {
         let optimization_engine = Arc::clone(&self.optimization_engine);
         // Remove Clone dependency - use component references instead
-        
+
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(900)); // Optimize every 15 minutes
-            
+
             loop {
                 interval.tick().await;
-                
+
                 // Access optimization engine without holding manager reference
                 match optimization_engine.try_read() {
                     Ok(_engine) => {
@@ -1179,17 +1208,17 @@ impl AutonomousGpuResourceManager {
             }
         })
     }
-    
+
     async fn start_conflict_detection_task(&self) -> tokio::task::JoinHandle<()> {
         let _conflict_resolver = Arc::clone(&self.conflict_resolver);
         let agent_allocations = Arc::clone(&self.agent_allocations);
-        
+
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(120)); // Check every 2 minutes
-            
+
             loop {
                 interval.tick().await;
-                
+
                 if let Ok(_allocations) = agent_allocations.try_read() {
                     // Detect and resolve conflicts
                     // Implementation would go here
@@ -1197,23 +1226,27 @@ impl AutonomousGpuResourceManager {
             }
         })
     }
-    
+
     /// Execute a trade between agents
     async fn execute_trade(
-        &self, 
-        trade: &ResourceTrade, 
-        _trade_match: TradeMatch
+        &self,
+        trade: &ResourceTrade,
+        _trade_match: TradeMatch,
     ) -> Result<TradeResult, TradeError> {
         // Implementation would go here - for now return a placeholder
-        Ok(TradeResult::Listed { 
-            trade_id: trade.id,
-        })
+        Ok(TradeResult::Listed { trade_id: trade.id })
     }
-    
+
     /// Apply conflict resolution
-    async fn apply_conflict_resolution(&self, resolution: &ConflictResolution) -> Result<(), ConflictError> {
+    async fn apply_conflict_resolution(
+        &self,
+        resolution: &ConflictResolution,
+    ) -> Result<(), ConflictError> {
         // Implementation would go here - for now just log
-        println!("Applying conflict resolution: {:?}", resolution.resolution_strategy);
+        println!(
+            "Applying conflict resolution: {:?}",
+            resolution.resolution_strategy
+        );
         Ok(())
     }
 }
@@ -1230,13 +1263,17 @@ impl Default for AllocationEngine {
 
 impl AllocationEngine {
     pub fn new() -> Self {
-        let mut algorithms: HashMap<AlgorithmType, Box<dyn AllocationAlgorithm + Send + Sync>> = HashMap::new();
-        
+        let mut algorithms: HashMap<AlgorithmType, Box<dyn AllocationAlgorithm + Send + Sync>> =
+            HashMap::new();
+
         // Add default algorithms
         algorithms.insert(AlgorithmType::BestFit, Box::new(BestFitAlgorithm::new()));
         algorithms.insert(AlgorithmType::FirstFit, Box::new(FirstFitAlgorithm::new()));
-        algorithms.insert(AlgorithmType::MachineLearning, Box::new(MLAllocationAlgorithm::new()));
-        
+        algorithms.insert(
+            AlgorithmType::MachineLearning,
+            Box::new(MLAllocationAlgorithm::new()),
+        );
+
         Self {
             algorithms,
             active_algorithm: AlgorithmType::BestFit,
@@ -1248,7 +1285,7 @@ impl AllocationEngine {
             success_patterns: HashMap::new(),
         }
     }
-    
+
     pub async fn allocate_with_optimization(
         &mut self,
         request: &AllocationRequest,
@@ -1257,30 +1294,40 @@ impl AllocationEngine {
     ) -> Result<AllocationResult, AllocationError> {
         // Try primary algorithm first
         if let Some(algorithm) = self.algorithms.get(&self.active_algorithm) {
-            let result = algorithm.allocate(request, available_pools, current_allocations).await;
-            
+            let result = algorithm
+                .allocate(request, available_pools, current_allocations)
+                .await;
+
             if result.is_ok() {
                 return result;
             }
         }
-        
+
         // Try fallback algorithms
         for (algorithm_type, algorithm) in &self.algorithms {
             if *algorithm_type != self.active_algorithm {
-                if let Ok(result) = algorithm.allocate(request, available_pools, current_allocations).await {
+                if let Ok(result) = algorithm
+                    .allocate(request, available_pools, current_allocations)
+                    .await
+                {
                     // Update active algorithm if this one performed better
-                    if algorithm.performance_score() > 
-                       self.algorithms.get(&self.active_algorithm).map(|a| a.performance_score()).unwrap_or(0.0) {
+                    if algorithm.performance_score()
+                        > self
+                            .algorithms
+                            .get(&self.active_algorithm)
+                            .map(|a| a.performance_score())
+                            .unwrap_or(0.0)
+                    {
                         self.active_algorithm = *algorithm_type;
                     }
                     return Ok(result);
                 }
             }
         }
-        
+
         Err(AllocationError::NoSuitableResources)
     }
-    
+
     pub fn update_metrics(&mut self, results: &[AllocationResult]) {
         // Update allocation metrics based on results
         for result in results {
@@ -1308,7 +1355,7 @@ impl ResourceTradingSystem {
             trade_limits: HashMap::new(),
         }
     }
-    
+
     pub async fn create_trade(
         &mut self,
         seller_id: AgentId,
@@ -1316,12 +1363,11 @@ impl ResourceTradingSystem {
         market: &ResourceMarket,
     ) -> Result<ResourceTrade, TradeError> {
         // Calculate optimal price using pricing engine
-        let price = self.pricing_engine.calculate_price(
-            proposal.resource_type,
-            proposal.quantity,
-            market,
-        ).await?;
-        
+        let price = self
+            .pricing_engine
+            .calculate_price(proposal.resource_type, proposal.quantity, market)
+            .await?;
+
         let trade_id = self.generate_trade_id();
         let trade = ResourceTrade {
             id: trade_id,
@@ -1336,20 +1382,22 @@ impl ResourceTradingSystem {
             expires_at: SystemTime::now() + proposal.duration,
             trade_status: TradeStatus::Open,
         };
-        
+
         self.open_trades.insert(trade_id, trade.clone());
         Ok(trade)
     }
-    
+
     pub async fn find_matches(&self, trade: &ResourceTrade) -> Result<Vec<TradeMatch>, TradeError> {
-        self.matching_engine.match_trades(&[(trade.id, trade.clone())].into_iter().collect()).await
+        self.matching_engine
+            .match_trades(&[(trade.id, trade.clone())].into_iter().collect())
+            .await
             .map_err(|e| TradeError::MatchingFailed(e.to_string()))
     }
-    
+
     fn generate_trade_id(&self) -> TradeId {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
-        
+
         let mut hasher = DefaultHasher::new();
         SystemTime::now().hash(&mut hasher);
         self.open_trades.len().hash(&mut hasher);
@@ -1368,9 +1416,9 @@ impl OptimizationEngine {
         let strategies: Vec<Box<dyn OptimizationStrategy + Send + Sync>> = vec![
             Box::new(PerformanceOptimizationStrategy::new()),
             Box::new(CostOptimizationStrategy::new()),
-            Box::new(FairnessOptimizationStrategy::new())
+            Box::new(FairnessOptimizationStrategy::new()),
         ];
-        
+
         Self {
             strategies,
             performance_metrics: PerformanceMetrics::new(),
@@ -1379,7 +1427,7 @@ impl OptimizationEngine {
             adaptive_parameters: HashMap::new(),
         }
     }
-    
+
     pub async fn update_metrics(&mut self, results: &[OptimizationResult]) {
         for result in results {
             self.performance_metrics.update(result);
@@ -1395,11 +1443,23 @@ impl Default for ConflictResolver {
 
 impl ConflictResolver {
     pub fn new() -> Self {
-        let mut strategies: HashMap<ConflictType, Box<dyn ConflictResolutionStrategy + Send + Sync>> = HashMap::new();
-        strategies.insert(ConflictType::ResourceContention, Box::new(ContentionResolutionStrategy::new()));
-        strategies.insert(ConflictType::PriorityMismatch, Box::new(PriorityResolutionStrategy::new()));
-        strategies.insert(ConflictType::QualityOfServiceViolation, Box::new(QoSResolutionStrategy::new()));
-        
+        let mut strategies: HashMap<
+            ConflictType,
+            Box<dyn ConflictResolutionStrategy + Send + Sync>,
+        > = HashMap::new();
+        strategies.insert(
+            ConflictType::ResourceContention,
+            Box::new(ContentionResolutionStrategy::new()),
+        );
+        strategies.insert(
+            ConflictType::PriorityMismatch,
+            Box::new(PriorityResolutionStrategy::new()),
+        );
+        strategies.insert(
+            ConflictType::QualityOfServiceViolation,
+            Box::new(QoSResolutionStrategy::new()),
+        );
+
         Self {
             resolution_strategies: strategies,
             active_conflicts: RwLock::new(HashMap::new()),
@@ -1421,22 +1481,27 @@ impl RuvTokenLedger {
             balances: HashMap::new(),
             transactions: VecDeque::new(),
             total_supply: 1_000_000.0, // 1M initial supply
-            inflation_rate: 0.02, // 2% annual inflation
-            reward_pool: 100_000.0, // 100K for rewards
+            inflation_rate: 0.02,      // 2% annual inflation
+            reward_pool: 100_000.0,    // 100K for rewards
             market_makers: HashMap::new(),
             liquidity_pools: HashMap::new(),
         }
     }
-    
-    pub fn transfer(&mut self, from: &AgentId, to: &AgentId, amount: f64) -> Result<(), TransactionError> {
+
+    pub fn transfer(
+        &mut self,
+        from: &AgentId,
+        to: &AgentId,
+        amount: f64,
+    ) -> Result<(), TransactionError> {
         let from_balance = self.balances.get(from).copied().unwrap_or(0.0);
         if from_balance < amount {
             return Err(TransactionError::InsufficientFunds);
         }
-        
+
         *self.balances.entry(from.clone()).or_insert(0.0) -= amount;
         *self.balances.entry(to.clone()).or_insert(0.0) += amount;
-        
+
         let transaction = RuvTransaction {
             from: from.clone(),
             to: to.clone(),
@@ -1446,7 +1511,7 @@ impl RuvTokenLedger {
             timestamp: SystemTime::now(),
             gas_fee: amount * 0.001, // 0.1% gas fee
         };
-        
+
         self.transactions.push_back(transaction);
         Ok(())
     }
@@ -1461,28 +1526,34 @@ impl Default for ResourceMarket {
 impl ResourceMarket {
     pub fn new() -> Self {
         let mut prices = HashMap::new();
-        
+
         // Initialize default prices
-        prices.insert(ResourceType::ComputeUnits, MarketPrice {
-            current_price: 1.0,
-            bid_price: 0.98,
-            ask_price: 1.02,
-            volume_24h: 0.0,
-            price_change_24h: 0.0,
-            volatility: 0.1,
-            last_updated: SystemTime::now(),
-        });
-        
-        prices.insert(ResourceType::Memory, MarketPrice {
-            current_price: 0.1,
-            bid_price: 0.098,
-            ask_price: 0.102,
-            volume_24h: 0.0,
-            price_change_24h: 0.0,
-            volatility: 0.05,
-            last_updated: SystemTime::now(),
-        });
-        
+        prices.insert(
+            ResourceType::ComputeUnits,
+            MarketPrice {
+                current_price: 1.0,
+                bid_price: 0.98,
+                ask_price: 1.02,
+                volume_24h: 0.0,
+                price_change_24h: 0.0,
+                volatility: 0.1,
+                last_updated: SystemTime::now(),
+            },
+        );
+
+        prices.insert(
+            ResourceType::Memory,
+            MarketPrice {
+                current_price: 0.1,
+                bid_price: 0.098,
+                ask_price: 0.102,
+                volume_24h: 0.0,
+                price_change_24h: 0.0,
+                volatility: 0.05,
+                last_updated: SystemTime::now(),
+            },
+        );
+
         Self {
             prices,
             order_book: HashMap::new(),
@@ -1492,7 +1563,7 @@ impl ResourceMarket {
             market_making_algorithms: vec![],
         }
     }
-    
+
     pub async fn update_market_dynamics(&mut self) {
         // Update prices based on supply/demand
         for price in self.prices.values_mut() {
@@ -1505,19 +1576,19 @@ impl ResourceMarket {
             price.last_updated = SystemTime::now();
         }
     }
-    
+
     pub fn calculate_efficiency(&self) -> f64 {
         // Calculate market efficiency based on spread and volume
         let mut total_efficiency = 0.0;
         let mut count = 0;
-        
+
         for price in self.prices.values() {
             let spread = (price.ask_price - price.bid_price) / price.current_price;
             let efficiency = 1.0 - spread; // Lower spread = higher efficiency
             total_efficiency += efficiency;
             count += 1;
         }
-        
+
         if count > 0 {
             total_efficiency / count as f64
         } else {
@@ -1534,11 +1605,18 @@ impl Default for UsagePredictor {
 
 impl UsagePredictor {
     pub fn new() -> Self {
-        let mut models: HashMap<PredictionType, Box<dyn PredictionModel + Send + Sync>> = HashMap::new();
-        models.insert(PredictionType::ShortTermUsage, Box::new(LinearRegressionModel::new()));
+        let mut models: HashMap<PredictionType, Box<dyn PredictionModel + Send + Sync>> =
+            HashMap::new();
+        models.insert(
+            PredictionType::ShortTermUsage,
+            Box::new(LinearRegressionModel::new()),
+        );
         models.insert(PredictionType::MediumTermUsage, Box::new(ARIMAModel::new()));
-        models.insert(PredictionType::LongTermUsage, Box::new(NeuralNetworkModel::new()));
-        
+        models.insert(
+            PredictionType::LongTermUsage,
+            Box::new(NeuralNetworkModel::new()),
+        );
+
         Self {
             models,
             usage_history: HashMap::new(),
@@ -1547,8 +1625,12 @@ impl UsagePredictor {
             feature_extractors: vec![],
         }
     }
-    
-    pub async fn update_predictions(&mut self, agent_id: &AgentId, allocation: &AgentResourceAllocation) {
+
+    pub async fn update_predictions(
+        &mut self,
+        agent_id: &AgentId,
+        allocation: &AgentResourceAllocation,
+    ) {
         // Update usage history
         let snapshot = UsageSnapshot {
             timestamp: SystemTime::now(),
@@ -1557,9 +1639,12 @@ impl UsagePredictor {
             performance_metrics: HashMap::new(),
             cost_rate: allocation.spending_rate,
         };
-        
-        self.usage_history.entry(agent_id.clone()).or_default().push_back(snapshot);
-        
+
+        self.usage_history
+            .entry(agent_id.clone())
+            .or_default()
+            .push_back(snapshot);
+
         // Update prediction models
         for model in self.models.values_mut() {
             if let Some(history) = self.usage_history.get(agent_id) {
@@ -1585,8 +1670,12 @@ impl PerformanceAnalyzer {
             recommendation_engine: Box::new(MLRecommendationEngine::new()),
         }
     }
-    
-    pub async fn collect_performance_metrics(&mut self, agent_id: &AgentId, allocation: &AgentResourceAllocation) {
+
+    pub async fn collect_performance_metrics(
+        &mut self,
+        agent_id: &AgentId,
+        allocation: &AgentResourceAllocation,
+    ) {
         let snapshot = PerformanceSnapshot {
             timestamp: SystemTime::now(),
             throughput: allocation.performance_score * 100.0,
@@ -1595,14 +1684,20 @@ impl PerformanceAnalyzer {
             efficiency: allocation.utilization_efficiency,
             satisfaction_score: allocation.performance_score,
         };
-        
-        self.performance_history.entry(agent_id.clone()).or_default().push_back(snapshot);
+
+        self.performance_history
+            .entry(agent_id.clone())
+            .or_default()
+            .push_back(snapshot);
     }
-    
+
     pub fn get_latest_snapshots(&self) -> HashMap<AgentId, PerformanceSnapshot> {
-        self.performance_history.iter()
+        self.performance_history
+            .iter()
             .filter_map(|(agent_id, history)| {
-                history.back().map(|snapshot| (agent_id.clone(), snapshot.clone()))
+                history
+                    .back()
+                    .map(|snapshot| (agent_id.clone(), snapshot.clone()))
             })
             .collect()
     }
@@ -1622,11 +1717,11 @@ impl EventBus {
             event_processors: RwLock::new(HashMap::new()),
         }
     }
-    
+
     pub async fn emit(&self, event: ResourceEvent) {
         // Store event in history
         self.event_history.write().await.push_back(event.clone());
-        
+
         // Send to subscribers
         {
             let channels = self.channels.read().await;
@@ -1636,7 +1731,7 @@ impl EventBus {
                 }
             }
         }
-        
+
         // Process event
         {
             let processors = self.event_processors.read().await;
@@ -1673,36 +1768,46 @@ impl AgentResourceAllocation {
             learned_optimizations: vec![],
         }
     }
-    
+
     pub fn update_metrics(&mut self) {
         // Update total allocated capacity
-        self.total_allocated = self.allocations.values()
-            .fold(ResourceCapacity {
+        self.total_allocated = self.allocations.values().fold(
+            ResourceCapacity {
                 compute_units: 0,
                 memory_mb: 0,
                 bandwidth_mbps: 0.0,
                 buffer_count: 0,
-            }, |mut acc, allocation| {
+            },
+            |mut acc, allocation| {
                 acc.compute_units += allocation.allocated_capacity.compute_units;
                 acc.memory_mb += allocation.allocated_capacity.memory_mb;
                 acc.bandwidth_mbps += allocation.allocated_capacity.bandwidth_mbps;
                 acc.buffer_count += allocation.allocated_capacity.buffer_count;
                 acc
-            });
-        
+            },
+        );
+
         // Update efficiency and performance metrics
         if !self.allocations.is_empty() {
-            self.utilization_efficiency = self.allocations.values()
+            self.utilization_efficiency = self
+                .allocations
+                .values()
                 .map(|a| a.efficiency_score)
-                .sum::<f64>() / self.allocations.len() as f64;
-            
-            self.performance_score = self.allocations.values()
+                .sum::<f64>()
+                / self.allocations.len() as f64;
+
+            self.performance_score = self
+                .allocations
+                .values()
                 .map(|a| a.satisfaction_score)
-                .sum::<f64>() / self.allocations.len() as f64;
+                .sum::<f64>()
+                / self.allocations.len() as f64;
         }
-        
+
         // Update spending rate
-        self.spending_rate = self.allocations.values()
+        self.spending_rate = self
+            .allocations
+            .values()
             .map(|a| a.cost_per_hour)
             .sum::<f64>();
     }
@@ -1715,20 +1820,28 @@ impl AgentResourceAllocation {
 fn calculate_utilization_percentage(total: &ResourceCapacity, allocated: &ResourceCapacity) -> f64 {
     let compute_util = if total.compute_units > 0 {
         allocated.compute_units as f64 / total.compute_units as f64
-    } else { 0.0 };
-    
+    } else {
+        0.0
+    };
+
     let memory_util = if total.memory_mb > 0 {
         allocated.memory_mb as f64 / total.memory_mb as f64
-    } else { 0.0 };
-    
+    } else {
+        0.0
+    };
+
     let bandwidth_util = if total.bandwidth_mbps > 0.0 {
         allocated.bandwidth_mbps as f64 / total.bandwidth_mbps as f64
-    } else { 0.0 };
-    
+    } else {
+        0.0
+    };
+
     let buffer_util = if total.buffer_count > 0 {
         allocated.buffer_count as f64 / total.buffer_count as f64
-    } else { 0.0 };
-    
+    } else {
+        0.0
+    };
+
     (compute_util + memory_util + bandwidth_util + buffer_util) / 4.0
 }
 
@@ -1739,29 +1852,29 @@ fn calculate_utilization_percentage(total: &ResourceCapacity, allocated: &Resour
 fn can_satisfy_request(pool: &ResourcePool, request: &AllocationRequest) -> bool {
     let req = &request.resource_requirements.min_capacity;
     let avail = &pool.available_capacity;
-    
-    avail.compute_units >= req.compute_units &&
-    avail.memory_mb >= req.memory_mb &&
-    avail.bandwidth_mbps >= req.bandwidth_mbps &&
-    avail.buffer_count >= req.buffer_count
+
+    avail.compute_units >= req.compute_units
+        && avail.memory_mb >= req.memory_mb
+        && avail.bandwidth_mbps >= req.bandwidth_mbps
+        && avail.buffer_count >= req.buffer_count
 }
 
 fn calculate_waste(pool: &ResourcePool, request: &AllocationRequest) -> u64 {
     let req = &request.resource_requirements.preferred_capacity;
     let avail = &pool.available_capacity;
-    
+
     // Calculate total "waste" as unused capacity
     let compute_waste = avail.compute_units.saturating_sub(req.compute_units) as u64;
     let memory_waste = avail.memory_mb.saturating_sub(req.memory_mb);
     let buffer_waste = avail.buffer_count.saturating_sub(req.buffer_count) as u64;
-    
+
     compute_waste + memory_waste + buffer_waste
 }
 
 fn generate_allocation_id() -> AllocationId {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
-    
+
     let mut hasher = DefaultHasher::new();
     SystemTime::now().hash(&mut hasher);
     std::thread::current().id().hash(&mut hasher);
@@ -1782,19 +1895,20 @@ fn calculate_ml_score(
         PerformanceTier::Economic => 0.8,
         PerformanceTier::Burst => 1.1,
     };
-    
+
     capacity_match * cost_efficiency * performance_bonus
 }
 
 fn calculate_capacity_match(pool: &ResourcePool, request: &AllocationRequest) -> f64 {
     let req = &request.resource_requirements.preferred_capacity;
     let avail = &pool.available_capacity;
-    
+
     let compute_ratio = (req.compute_units as f64 / avail.compute_units.max(1) as f64).min(1.0);
     let memory_ratio = (req.memory_mb as f64 / avail.memory_mb.max(1) as f64).min(1.0);
-    let bandwidth_ratio = (req.bandwidth_mbps as f64 / avail.bandwidth_mbps.max(0.1) as f64).min(1.0);
+    let bandwidth_ratio =
+        (req.bandwidth_mbps as f64 / avail.bandwidth_mbps.max(0.1) as f64).min(1.0);
     let buffer_ratio = (req.buffer_count as f64 / avail.buffer_count.max(1) as f64).min(1.0);
-    
+
     (compute_ratio + memory_ratio + bandwidth_ratio + buffer_ratio) / 4.0
 }
 
@@ -1908,7 +2022,9 @@ pub enum EventProcessingError {
 struct BestFitAlgorithm;
 
 impl BestFitAlgorithm {
-    fn new() -> Self { Self }
+    fn new() -> Self {
+        Self
+    }
 }
 
 #[cfg_attr(feature = "gpu", async_trait)]
@@ -1919,55 +2035,61 @@ impl AllocationAlgorithm for BestFitAlgorithm {
         request: &'a AllocationRequest,
         available_pools: &'a [ResourcePool],
         _current_allocations: &'a HashMap<AllocationId, ResourceAllocation>,
-    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<AllocationResult, AllocationError>> + Send + 'a>> {
+    ) -> std::pin::Pin<
+        Box<
+            dyn std::future::Future<Output = Result<AllocationResult, AllocationError>> + Send + 'a,
+        >,
+    > {
         Box::pin(async move {
-        // Simple best-fit implementation
-        let best_pool = available_pools.iter()
-            .filter(|pool| can_satisfy_request(pool, request))
-            .min_by_key(|pool| calculate_waste(pool, request))
-            .ok_or(AllocationError::NoSuitableResources)?;
-        
-        let allocation = ResourceAllocation {
-            id: generate_allocation_id(),
-            agent_id: request.agent_id.clone(),
-            pool_id: best_pool.id.clone(),
-            allocated_capacity: request.resource_requirements.preferred_capacity.clone(),
-            priority: request.priority,
-            quality_requirements: request.quality_requirements.clone(),
-            duration: request.duration,
-            created_at: SystemTime::now(),
-            expires_at: Some(SystemTime::now() + request.duration),
-            cost_per_hour: best_pool.base_cost_per_hour,
-            payment_method: PaymentMethod::RuvToken,
-            actual_usage: ResourceCapacity {
-                compute_units: 0,
-                memory_mb: 0,
-                bandwidth_mbps: 0.0,
-                buffer_count: 0,
-            },
-            efficiency_score: 1.0,
-            satisfaction_score: 1.0,
-            auto_scale: true,
-            auto_optimize: true,
-            auto_trade: false,
-        };
-        
-        Ok(AllocationResult::Success {
-            allocation,
-            estimated_cost: best_pool.base_cost_per_hour * request.duration.as_secs_f64() / 3600.0,
-            alternative_options: vec![],
-        })
+            // Simple best-fit implementation
+            let best_pool = available_pools
+                .iter()
+                .filter(|pool| can_satisfy_request(pool, request))
+                .min_by_key(|pool| calculate_waste(pool, request))
+                .ok_or(AllocationError::NoSuitableResources)?;
+
+            let allocation = ResourceAllocation {
+                id: generate_allocation_id(),
+                agent_id: request.agent_id.clone(),
+                pool_id: best_pool.id.clone(),
+                allocated_capacity: request.resource_requirements.preferred_capacity.clone(),
+                priority: request.priority,
+                quality_requirements: request.quality_requirements.clone(),
+                duration: request.duration,
+                created_at: SystemTime::now(),
+                expires_at: Some(SystemTime::now() + request.duration),
+                cost_per_hour: best_pool.base_cost_per_hour,
+                payment_method: PaymentMethod::RuvToken,
+                actual_usage: ResourceCapacity {
+                    compute_units: 0,
+                    memory_mb: 0,
+                    bandwidth_mbps: 0.0,
+                    buffer_count: 0,
+                },
+                efficiency_score: 1.0,
+                satisfaction_score: 1.0,
+                auto_scale: true,
+                auto_optimize: true,
+                auto_trade: false,
+            };
+
+            Ok(AllocationResult::Success {
+                allocation,
+                estimated_cost: best_pool.base_cost_per_hour * request.duration.as_secs_f64()
+                    / 3600.0,
+                alternative_options: vec![],
+            })
         })
     }
-    
+
     fn algorithm_type(&self) -> AlgorithmType {
         AlgorithmType::BestFit
     }
-    
+
     fn performance_score(&self) -> f64 {
         0.8 // Static score for demo
     }
-    
+
     fn allocate_sync(
         &self,
         request: &AllocationRequest,
@@ -1975,11 +2097,12 @@ impl AllocationAlgorithm for BestFitAlgorithm {
         current_allocations: &HashMap<AllocationId, ResourceAllocation>,
     ) -> Result<AllocationResult, AllocationError> {
         // Synchronous version of allocation logic
-        let best_pool = available_pools.iter()
+        let best_pool = available_pools
+            .iter()
             .filter(|pool| can_satisfy_request(pool, request))
             .min_by_key(|pool| calculate_waste(pool, request))
             .ok_or(AllocationError::NoSuitableResources)?;
-        
+
         let allocation = ResourceAllocation {
             id: generate_allocation_id(),
             agent_id: request.agent_id.clone(),
@@ -2004,7 +2127,7 @@ impl AllocationAlgorithm for BestFitAlgorithm {
             auto_optimize: true,
             auto_trade: false,
         };
-        
+
         Ok(AllocationResult::Success {
             allocation,
             estimated_cost: best_pool.base_cost_per_hour * request.duration.as_secs_f64() / 3600.0,
@@ -2018,7 +2141,9 @@ impl AllocationAlgorithm for BestFitAlgorithm {
 struct FirstFitAlgorithm;
 
 impl FirstFitAlgorithm {
-    fn new() -> Self { Self }
+    fn new() -> Self {
+        Self
+    }
 }
 
 #[cfg_attr(feature = "gpu", async_trait)]
@@ -2029,12 +2154,14 @@ impl AllocationAlgorithm for FirstFitAlgorithm {
         request: &'a AllocationRequest,
         available_pools: &'a [ResourcePool],
         _current_allocations: &'a HashMap<AllocationId, ResourceAllocation>,
-    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<AllocationResult, AllocationError>> + Send + 'a>> {
-        Box::pin(async move {
-            self.allocate_sync(request, available_pools, _current_allocations)
-        })
+    ) -> std::pin::Pin<
+        Box<
+            dyn std::future::Future<Output = Result<AllocationResult, AllocationError>> + Send + 'a,
+        >,
+    > {
+        Box::pin(async move { self.allocate_sync(request, available_pools, _current_allocations) })
     }
-    
+
     #[cfg(not(feature = "gpu"))]
     fn allocate(
         &self,
@@ -2044,15 +2171,15 @@ impl AllocationAlgorithm for FirstFitAlgorithm {
     ) -> Result<AllocationResult, AllocationError> {
         self.allocate_internal(request, available_pools, _current_allocations)
     }
-    
+
     fn algorithm_type(&self) -> AlgorithmType {
         AlgorithmType::FirstFit
     }
-    
+
     fn performance_score(&self) -> f64 {
         0.6 // Static score for demo
     }
-    
+
     fn allocate_sync(
         &self,
         request: &AllocationRequest,
@@ -2072,10 +2199,11 @@ impl FirstFitAlgorithm {
         current_allocations: &HashMap<AllocationId, ResourceAllocation>,
     ) -> Result<AllocationResult, AllocationError> {
         // First pool that can satisfy the request
-        let pool = available_pools.iter()
+        let pool = available_pools
+            .iter()
             .find(|pool| can_satisfy_request(pool, request))
             .ok_or(AllocationError::NoSuitableResources)?;
-        
+
         let allocation = ResourceAllocation {
             id: generate_allocation_id(),
             agent_id: request.agent_id.clone(),
@@ -2100,18 +2228,18 @@ impl FirstFitAlgorithm {
             auto_optimize: true,
             auto_trade: false,
         };
-        
+
         Ok(AllocationResult::Success {
             allocation,
             estimated_cost: pool.base_cost_per_hour * request.duration.as_secs_f64() / 3600.0,
             alternative_options: vec![],
         })
     }
-    
+
     fn algorithm_type(&self) -> AlgorithmType {
         AlgorithmType::FirstFit
     }
-    
+
     fn performance_score(&self) -> f64 {
         0.7
     }
@@ -2121,7 +2249,9 @@ impl FirstFitAlgorithm {
 struct MLAllocationAlgorithm;
 
 impl MLAllocationAlgorithm {
-    fn new() -> Self { Self }
+    fn new() -> Self {
+        Self
+    }
 }
 
 #[cfg_attr(feature = "gpu", async_trait)]
@@ -2132,12 +2262,14 @@ impl AllocationAlgorithm for MLAllocationAlgorithm {
         request: &'a AllocationRequest,
         available_pools: &'a [ResourcePool],
         current_allocations: &'a HashMap<AllocationId, ResourceAllocation>,
-    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<AllocationResult, AllocationError>> + Send + 'a>> {
-        Box::pin(async move {
-            self.allocate_sync(request, available_pools, current_allocations)
-        })
+    ) -> std::pin::Pin<
+        Box<
+            dyn std::future::Future<Output = Result<AllocationResult, AllocationError>> + Send + 'a,
+        >,
+    > {
+        Box::pin(async move { self.allocate_sync(request, available_pools, current_allocations) })
     }
-    
+
     #[cfg(not(feature = "gpu"))]
     fn allocate(
         &self,
@@ -2147,7 +2279,7 @@ impl AllocationAlgorithm for MLAllocationAlgorithm {
     ) -> Result<AllocationResult, AllocationError> {
         self.allocate_sync(request, available_pools, current_allocations)
     }
-    
+
     fn allocate_sync(
         &self,
         request: &AllocationRequest,
@@ -2156,22 +2288,24 @@ impl AllocationAlgorithm for MLAllocationAlgorithm {
     ) -> Result<AllocationResult, AllocationError> {
         // ML-based allocation using learned patterns
         // This would use historical data to make optimal decisions
-        
+
         // For now, use a heuristic combining multiple factors
-        let mut scored_pools: Vec<(f64, &ResourcePool)> = available_pools.iter()
+        let mut scored_pools: Vec<(f64, &ResourcePool)> = available_pools
+            .iter()
             .filter(|pool| can_satisfy_request(pool, request))
             .map(|pool| {
                 let score = calculate_ml_score(pool, request, current_allocations);
                 (score, pool)
             })
             .collect();
-        
+
         scored_pools.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
-        
-        let best_pool = scored_pools.first()
+
+        let best_pool = scored_pools
+            .first()
             .map(|(_, pool)| *pool)
             .ok_or(AllocationError::NoSuitableResources)?;
-        
+
         let allocation = ResourceAllocation {
             id: generate_allocation_id(),
             agent_id: request.agent_id.clone(),
@@ -2196,18 +2330,18 @@ impl AllocationAlgorithm for MLAllocationAlgorithm {
             auto_optimize: true,
             auto_trade: true, // ML algorithm enables trading
         };
-        
+
         Ok(AllocationResult::Success {
             allocation,
             estimated_cost: best_pool.base_cost_per_hour * request.duration.as_secs_f64() / 3600.0,
             alternative_options: vec![],
         })
     }
-    
+
     fn algorithm_type(&self) -> AlgorithmType {
         AlgorithmType::MachineLearning
     }
-    
+
     fn performance_score(&self) -> f64 {
         0.95 // Highest performance algorithm
     }
@@ -2254,13 +2388,17 @@ pub struct RetryRecommendation {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TradeResult {
-    Listed { trade_id: TradeId },
-    Matched { 
+    Listed {
+        trade_id: TradeId,
+    },
+    Matched {
         trade_id: TradeId,
         match_info: TradeMatch,
         execution_result: TradeExecutionResult,
     },
-    Rejected { reason: String },
+    Rejected {
+        reason: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -2586,7 +2724,7 @@ impl AllocationMetrics {
             resource_efficiency: 0.8,
         }
     }
-    
+
     fn update(&mut self, _result: &AllocationResult) {
         // Update metrics based on allocation result
     }
@@ -2625,7 +2763,7 @@ impl PerformanceMetrics {
             optimization_effectiveness: 0.8,
         }
     }
-    
+
     fn update(&mut self, _result: &OptimizationResult) {
         // Update performance metrics
     }
@@ -2746,13 +2884,14 @@ impl FairnessMetrics {
 
 // UtilizationSnapshot already defined above
 
-
 // Pricing engines
 #[derive(Debug)]
 struct DynamicPricingEngine;
 
 impl DynamicPricingEngine {
-    fn new() -> Self { Self }
+    fn new() -> Self {
+        Self
+    }
 }
 
 #[cfg_attr(feature = "gpu", async_trait)]
@@ -2764,17 +2903,19 @@ impl PricingEngine for DynamicPricingEngine {
         market_conditions: &ResourceMarket,
     ) -> Result<f64, PricingError> {
         // Dynamic pricing based on supply/demand
-        let base_price = market_conditions.prices.get(&resource_type)
+        let base_price = market_conditions
+            .prices
+            .get(&resource_type)
             .map(|p| p.current_price)
             .unwrap_or(1.0);
-        
+
         // Apply quantity discounts and demand multipliers
         let quantity_factor = if quantity > 100.0 { 0.9 } else { 1.0 };
         let demand_factor = 1.0 + (rand::random::<f64>() * 0.2 - 0.1); // ±10% volatility
-        
+
         Ok(base_price * quantity_factor * demand_factor)
     }
-    
+
     async fn update_market_prices(
         &mut self,
         _market_data: &ResourceMarket,
@@ -2788,7 +2929,9 @@ impl PricingEngine for DynamicPricingEngine {
 struct OrderBookMatchingEngine;
 
 impl OrderBookMatchingEngine {
-    fn new() -> Self { Self }
+    fn new() -> Self {
+        Self
+    }
 }
 
 #[cfg_attr(feature = "gpu", async_trait)]
@@ -2798,10 +2941,10 @@ impl TradeMatchingEngine for OrderBookMatchingEngine {
         open_trades: &HashMap<TradeId, ResourceTrade>,
     ) -> Result<Vec<TradeMatch>, MatchingError> {
         let mut matches = Vec::new();
-        
+
         // Simple matching algorithm - match by price and quantity
         let trades: Vec<&ResourceTrade> = open_trades.values().collect();
-        
+
         for (i, trade1) in trades.iter().enumerate() {
             for trade2 in trades.iter().skip(i + 1) {
                 if can_match_trades(trade1, trade2) {
@@ -2816,10 +2959,10 @@ impl TradeMatchingEngine for OrderBookMatchingEngine {
                 }
             }
         }
-        
+
         Ok(matches)
     }
-    
+
     async fn validate_trade(
         &self,
         trade: &ResourceTrade,
@@ -2831,9 +2974,9 @@ impl TradeMatchingEngine for OrderBookMatchingEngine {
 }
 
 fn can_match_trades(trade1: &ResourceTrade, trade2: &ResourceTrade) -> bool {
-    trade1.resource_type == trade2.resource_type &&
-    trade1.seller_id != trade2.seller_id &&
-    (trade1.price_per_unit - trade2.price_per_unit).abs() < 0.1 // Price tolerance
+    trade1.resource_type == trade2.resource_type
+        && trade1.seller_id != trade2.seller_id
+        && (trade1.price_per_unit - trade2.price_per_unit).abs() < 0.1 // Price tolerance
 }
 
 // Optimization strategies
@@ -2841,7 +2984,9 @@ fn can_match_trades(trade1: &ResourceTrade, trade2: &ResourceTrade) -> bool {
 struct PerformanceOptimizationStrategy;
 
 impl PerformanceOptimizationStrategy {
-    fn new() -> Self { Self }
+    fn new() -> Self {
+        Self
+    }
 }
 
 #[cfg_attr(feature = "gpu", async_trait)]
@@ -2852,15 +2997,16 @@ impl OptimizationStrategy for PerformanceOptimizationStrategy {
         performance_data: &HashMap<AgentId, PerformanceSnapshot>,
     ) -> Result<Vec<OptimizationRecommendation>, OptimizationError> {
         let mut recommendations = Vec::new();
-        
+
         // Analyze performance bottlenecks
         for (agent_id, snapshot) in performance_data {
             if snapshot.efficiency < 0.7 {
                 // Find allocations for this agent
-                let agent_allocations: Vec<&ResourceAllocation> = allocations.values()
+                let agent_allocations: Vec<&ResourceAllocation> = allocations
+                    .values()
                     .filter(|alloc| alloc.agent_id == *agent_id)
                     .collect();
-                
+
                 for allocation in agent_allocations {
                     let recommendation = OptimizationRecommendation {
                         recommendation_type: "performance_upgrade".to_string(),
@@ -2869,17 +3015,17 @@ impl OptimizationStrategy for PerformanceOptimizationStrategy {
                             "Upgrade to higher performance tier".to_string(),
                             "Increase compute units allocation".to_string(),
                         ],
-                        expected_benefit: 0.3, // 30% improvement
+                        expected_benefit: 0.3,    // 30% improvement
                         implementation_cost: 2.0, // 2x cost multiplier
                     };
                     recommendations.push(recommendation);
                 }
             }
         }
-        
+
         Ok(recommendations)
     }
-    
+
     async fn apply_optimization(
         &self,
         recommendation: &OptimizationRecommendation,
@@ -2894,7 +3040,7 @@ impl OptimizationStrategy for PerformanceOptimizationStrategy {
             success: true,
         })
     }
-    
+
     fn strategy_type(&self) -> String {
         "performance_optimization".to_string()
     }
@@ -2904,7 +3050,9 @@ impl OptimizationStrategy for PerformanceOptimizationStrategy {
 struct CostOptimizationStrategy;
 
 impl CostOptimizationStrategy {
-    fn new() -> Self { Self }
+    fn new() -> Self {
+        Self
+    }
 }
 
 #[cfg_attr(feature = "gpu", async_trait)]
@@ -2915,7 +3063,7 @@ impl OptimizationStrategy for CostOptimizationStrategy {
         _performance_data: &HashMap<AgentId, PerformanceSnapshot>,
     ) -> Result<Vec<OptimizationRecommendation>, OptimizationError> {
         let mut recommendations = Vec::new();
-        
+
         // Look for overprovisioned resources
         for allocation in allocations.values() {
             let utilization = calculate_allocation_utilization(allocation);
@@ -2933,10 +3081,10 @@ impl OptimizationStrategy for CostOptimizationStrategy {
                 recommendations.push(recommendation);
             }
         }
-        
+
         Ok(recommendations)
     }
-    
+
     async fn apply_optimization(
         &self,
         recommendation: &OptimizationRecommendation,
@@ -2950,7 +3098,7 @@ impl OptimizationStrategy for CostOptimizationStrategy {
             success: true,
         })
     }
-    
+
     fn strategy_type(&self) -> String {
         "cost_optimization".to_string()
     }
@@ -2960,7 +3108,9 @@ impl OptimizationStrategy for CostOptimizationStrategy {
 struct FairnessOptimizationStrategy;
 
 impl FairnessOptimizationStrategy {
-    fn new() -> Self { Self }
+    fn new() -> Self {
+        Self
+    }
 }
 
 #[cfg_attr(feature = "gpu", async_trait)]
@@ -2971,11 +3121,11 @@ impl OptimizationStrategy for FairnessOptimizationStrategy {
         _performance_data: &HashMap<AgentId, PerformanceSnapshot>,
     ) -> Result<Vec<OptimizationRecommendation>, OptimizationError> {
         let mut recommendations = Vec::new();
-        
+
         // Analyze resource distribution fairness
         let agent_allocations = group_allocations_by_agent(allocations);
         let fairness_score = calculate_fairness_score(&agent_allocations);
-        
+
         if fairness_score < 0.7 {
             let recommendation = OptimizationRecommendation {
                 recommendation_type: "fairness_optimization".to_string(),
@@ -2989,10 +3139,10 @@ impl OptimizationStrategy for FairnessOptimizationStrategy {
             };
             recommendations.push(recommendation);
         }
-        
+
         Ok(recommendations)
     }
-    
+
     async fn apply_optimization(
         &self,
         recommendation: &OptimizationRecommendation,
@@ -3006,7 +3156,7 @@ impl OptimizationStrategy for FairnessOptimizationStrategy {
             success: true,
         })
     }
-    
+
     fn strategy_type(&self) -> String {
         "fairness_optimization".to_string()
     }
@@ -3017,7 +3167,9 @@ impl OptimizationStrategy for FairnessOptimizationStrategy {
 struct ContentionResolutionStrategy;
 
 impl ContentionResolutionStrategy {
-    fn new() -> Self { Self }
+    fn new() -> Self {
+        Self
+    }
 }
 
 #[cfg_attr(feature = "gpu", async_trait)]
@@ -3028,15 +3180,16 @@ impl ConflictResolutionStrategy for ContentionResolutionStrategy {
         performance_metrics: &HashMap<AgentId, PerformanceSnapshot>,
     ) -> Result<Vec<ResourceConflict>, ConflictError> {
         let mut conflicts = Vec::new();
-        
+
         // Detect resource contention based on performance degradation
         for (agent_id, metrics) in performance_metrics {
             if metrics.efficiency < 0.5 {
-                let affected_allocations: Vec<AllocationId> = allocations.values()
+                let affected_allocations: Vec<AllocationId> = allocations
+                    .values()
                     .filter(|alloc| alloc.agent_id == *agent_id)
                     .map(|alloc| alloc.id)
                     .collect();
-                
+
                 if !affected_allocations.is_empty() {
                     let conflict = ResourceConflict {
                         id: generate_conflict_id(),
@@ -3050,10 +3203,10 @@ impl ConflictResolutionStrategy for ContentionResolutionStrategy {
                 }
             }
         }
-        
+
         Ok(conflicts)
     }
-    
+
     async fn resolve_conflict(
         &self,
         conflict: &ResourceConflict,
@@ -3071,7 +3224,7 @@ impl ConflictResolutionStrategy for ContentionResolutionStrategy {
             success: true,
         })
     }
-    
+
     fn resolution_type(&self) -> ConflictType {
         ConflictType::ResourceContention
     }
@@ -3081,7 +3234,9 @@ impl ConflictResolutionStrategy for ContentionResolutionStrategy {
 struct PriorityResolutionStrategy;
 
 impl PriorityResolutionStrategy {
-    fn new() -> Self { Self }
+    fn new() -> Self {
+        Self
+    }
 }
 
 #[cfg_attr(feature = "gpu", async_trait)]
@@ -3092,7 +3247,7 @@ impl ConflictResolutionStrategy for PriorityResolutionStrategy {
         _performance_metrics: &HashMap<AgentId, PerformanceSnapshot>,
     ) -> Result<Vec<ResourceConflict>, ConflictError> {
         let mut conflicts = Vec::new();
-        
+
         // Detect priority conflicts (high priority allocations getting poor resources)
         for allocation in allocations.values() {
             if allocation.priority >= Priority::High && allocation.satisfaction_score < 0.7 {
@@ -3102,15 +3257,18 @@ impl ConflictResolutionStrategy for PriorityResolutionStrategy {
                     affected_agents: vec![allocation.agent_id.clone()],
                     severity: 1.0 - allocation.satisfaction_score,
                     detected_at: SystemTime::now(),
-                    description: format!("High priority allocation {} not receiving adequate resources", allocation.id),
+                    description: format!(
+                        "High priority allocation {} not receiving adequate resources",
+                        allocation.id
+                    ),
                 };
                 conflicts.push(conflict);
             }
         }
-        
+
         Ok(conflicts)
     }
-    
+
     async fn resolve_conflict(
         &self,
         conflict: &ResourceConflict,
@@ -3128,7 +3286,7 @@ impl ConflictResolutionStrategy for PriorityResolutionStrategy {
             success: true,
         })
     }
-    
+
     fn resolution_type(&self) -> ConflictType {
         ConflictType::PriorityMismatch
     }
@@ -3138,7 +3296,9 @@ impl ConflictResolutionStrategy for PriorityResolutionStrategy {
 struct QoSResolutionStrategy;
 
 impl QoSResolutionStrategy {
-    fn new() -> Self { Self }
+    fn new() -> Self {
+        Self
+    }
 }
 
 #[cfg_attr(feature = "gpu", async_trait)]
@@ -3149,15 +3309,15 @@ impl ConflictResolutionStrategy for QoSResolutionStrategy {
         performance_metrics: &HashMap<AgentId, PerformanceSnapshot>,
     ) -> Result<Vec<ResourceConflict>, ConflictError> {
         let mut conflicts = Vec::new();
-        
+
         // Detect QoS violations
         for allocation in allocations.values() {
             if let Some(metrics) = performance_metrics.get(&allocation.agent_id) {
                 let qos_req = &allocation.quality_requirements;
-                
-                if metrics.latency_ms > qos_req.max_latency_ms ||
-                   metrics.error_rate > qos_req.error_tolerance {
-                    
+
+                if metrics.latency_ms > qos_req.max_latency_ms
+                    || metrics.error_rate > qos_req.error_tolerance
+                {
                     let conflict = ResourceConflict {
                         id: generate_conflict_id(),
                         conflict_type: ConflictType::QualityOfServiceViolation,
@@ -3170,10 +3330,10 @@ impl ConflictResolutionStrategy for QoSResolutionStrategy {
                 }
             }
         }
-        
+
         Ok(conflicts)
     }
-    
+
     async fn resolve_conflict(
         &self,
         conflict: &ResourceConflict,
@@ -3191,7 +3351,7 @@ impl ConflictResolutionStrategy for QoSResolutionStrategy {
             success: true,
         })
     }
-    
+
     fn resolution_type(&self) -> ConflictType {
         ConflictType::QualityOfServiceViolation
     }
@@ -3202,7 +3362,9 @@ impl ConflictResolutionStrategy for QoSResolutionStrategy {
 struct LinearRegressionModel;
 
 impl LinearRegressionModel {
-    fn new() -> Self { Self }
+    fn new() -> Self {
+        Self
+    }
 }
 
 #[cfg_attr(feature = "gpu", async_trait)]
@@ -3217,17 +3379,17 @@ impl PredictionModel for LinearRegressionModel {
         if historical_data.len() < 2 {
             return Err(PredictionError::InsufficientData);
         }
-        
+
         let latest = &historical_data[historical_data.len() - 1];
         let trend_factor = 1.1; // 10% growth trend
-        
+
         let predicted_usage = ResourceCapacity {
             compute_units: (latest.actual_usage.compute_units as f64 * trend_factor) as u32,
             memory_mb: (latest.actual_usage.memory_mb as f64 * trend_factor) as u64,
             bandwidth_mbps: latest.actual_usage.bandwidth_mbps * trend_factor as f32,
             buffer_count: (latest.actual_usage.buffer_count as f64 * trend_factor) as u32,
         };
-        
+
         Ok(UsagePrediction {
             agent_id: "".to_string(), // Would be filled by caller
             predicted_usage,
@@ -3236,7 +3398,7 @@ impl PredictionModel for LinearRegressionModel {
             prediction_factors: vec!["linear_trend".to_string()],
         })
     }
-    
+
     async fn update_model(
         &mut self,
         _training_data: &[UsageSnapshot],
@@ -3244,11 +3406,11 @@ impl PredictionModel for LinearRegressionModel {
         // Update linear regression coefficients
         Ok(())
     }
-    
+
     fn model_type(&self) -> PredictionType {
         PredictionType::ShortTermUsage
     }
-    
+
     fn accuracy_score(&self) -> f64 {
         0.75
     }
@@ -3258,7 +3420,9 @@ impl PredictionModel for LinearRegressionModel {
 struct ARIMAModel;
 
 impl ARIMAModel {
-    fn new() -> Self { Self }
+    fn new() -> Self {
+        Self
+    }
 }
 
 #[cfg_attr(feature = "gpu", async_trait)]
@@ -3272,30 +3436,33 @@ impl PredictionModel for ARIMAModel {
         if historical_data.len() < 10 {
             return Err(PredictionError::InsufficientData);
         }
-        
+
         // ARIMA model would analyze seasonal patterns and autocorrelation
         let latest = &historical_data[historical_data.len() - 1];
-        
+
         Ok(UsagePrediction {
             agent_id: "".to_string(),
             predicted_usage: latest.actual_usage.clone(),
             confidence: 0.85,
             time_horizon,
-            prediction_factors: vec!["seasonal_patterns".to_string(), "autocorrelation".to_string()],
+            prediction_factors: vec![
+                "seasonal_patterns".to_string(),
+                "autocorrelation".to_string(),
+            ],
         })
     }
-    
+
     async fn update_model(
         &mut self,
         _training_data: &[UsageSnapshot],
     ) -> Result<(), PredictionError> {
         Ok(())
     }
-    
+
     fn model_type(&self) -> PredictionType {
         PredictionType::MediumTermUsage
     }
-    
+
     fn accuracy_score(&self) -> f64 {
         0.82
     }
@@ -3305,7 +3472,9 @@ impl PredictionModel for ARIMAModel {
 struct NeuralNetworkModel;
 
 impl NeuralNetworkModel {
-    fn new() -> Self { Self }
+    fn new() -> Self {
+        Self
+    }
 }
 
 #[cfg_attr(feature = "gpu", async_trait)]
@@ -3319,30 +3488,33 @@ impl PredictionModel for NeuralNetworkModel {
         if historical_data.len() < 50 {
             return Err(PredictionError::InsufficientData);
         }
-        
+
         // Neural network would capture complex non-linear patterns
         let latest = &historical_data[historical_data.len() - 1];
-        
+
         Ok(UsagePrediction {
             agent_id: "".to_string(),
             predicted_usage: latest.actual_usage.clone(),
             confidence: 0.9,
             time_horizon,
-            prediction_factors: vec!["deep_learning".to_string(), "pattern_recognition".to_string()],
+            prediction_factors: vec![
+                "deep_learning".to_string(),
+                "pattern_recognition".to_string(),
+            ],
         })
     }
-    
+
     async fn update_model(
         &mut self,
         _training_data: &[UsageSnapshot],
     ) -> Result<(), PredictionError> {
         Ok(())
     }
-    
+
     fn model_type(&self) -> PredictionType {
         PredictionType::LongTermUsage
     }
-    
+
     fn accuracy_score(&self) -> f64 {
         0.91
     }
@@ -3353,7 +3525,9 @@ impl PredictionModel for NeuralNetworkModel {
 struct TimeSeriesWorkloadPredictor;
 
 impl TimeSeriesWorkloadPredictor {
-    fn new() -> Self { Self }
+    fn new() -> Self {
+        Self
+    }
 }
 
 #[cfg_attr(feature = "gpu", async_trait)]
@@ -3382,7 +3556,9 @@ impl WorkloadPredictor for TimeSeriesWorkloadPredictor {
 struct MLRecommendationEngine;
 
 impl MLRecommendationEngine {
-    fn new() -> Self { Self }
+    fn new() -> Self {
+        Self
+    }
 }
 
 #[cfg_attr(feature = "gpu", async_trait)]
@@ -3401,70 +3577,89 @@ impl RecommendationEngine for MLRecommendationEngine {
 fn calculate_allocation_utilization(allocation: &ResourceAllocation) -> f64 {
     let allocated = &allocation.allocated_capacity;
     let actual = &allocation.actual_usage;
-    
-    if allocated.compute_units == 0 { return 0.0; }
-    
+
+    if allocated.compute_units == 0 {
+        return 0.0;
+    }
+
     actual.compute_units as f64 / allocated.compute_units as f64
 }
 
-fn group_allocations_by_agent(allocations: &HashMap<AllocationId, ResourceAllocation>) -> HashMap<AgentId, Vec<&ResourceAllocation>> {
+fn group_allocations_by_agent(
+    allocations: &HashMap<AllocationId, ResourceAllocation>,
+) -> HashMap<AgentId, Vec<&ResourceAllocation>> {
     let mut grouped = HashMap::new();
-    
+
     for allocation in allocations.values() {
-        grouped.entry(allocation.agent_id.clone())
+        grouped
+            .entry(allocation.agent_id.clone())
             .or_insert_with(Vec::new)
             .push(allocation);
     }
-    
+
     grouped
 }
 
 fn calculate_fairness_score(agent_allocations: &HashMap<AgentId, Vec<&ResourceAllocation>>) -> f64 {
-    if agent_allocations.is_empty() { return 1.0; }
-    
+    if agent_allocations.is_empty() {
+        return 1.0;
+    }
+
     // Calculate Gini coefficient for resource distribution
-    let total_resources: Vec<u32> = agent_allocations.values()
+    let total_resources: Vec<u32> = agent_allocations
+        .values()
         .map(|allocations| {
-            allocations.iter()
+            allocations
+                .iter()
                 .map(|alloc| alloc.allocated_capacity.compute_units)
                 .sum()
         })
         .collect();
-    
-    if total_resources.is_empty() { return 1.0; }
-    
+
+    if total_resources.is_empty() {
+        return 1.0;
+    }
+
     let mean_resources = total_resources.iter().sum::<u32>() as f64 / total_resources.len() as f64;
     let mut sum_differences = 0.0;
-    
+
     for i in 0..total_resources.len() {
         for j in 0..total_resources.len() {
             sum_differences += (total_resources[i] as f64 - total_resources[j] as f64).abs();
         }
     }
-    
-    let gini = sum_differences / (2.0 * total_resources.len() as f64 * total_resources.len() as f64 * mean_resources);
+
+    let gini = sum_differences
+        / (2.0 * total_resources.len() as f64 * total_resources.len() as f64 * mean_resources);
     1.0 - gini // Convert to fairness score (higher is better)
 }
 
 fn generate_conflict_id() -> ConflictId {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
-    
+
     let mut hasher = DefaultHasher::new();
     SystemTime::now().hash(&mut hasher);
     std::thread::current().id().hash(&mut hasher);
     hasher.finish()
 }
 
-fn calculate_qos_violation_severity(metrics: &PerformanceSnapshot, requirements: &QualityRequirements) -> f64 {
+fn calculate_qos_violation_severity(
+    metrics: &PerformanceSnapshot,
+    requirements: &QualityRequirements,
+) -> f64 {
     let latency_violation = if metrics.latency_ms > requirements.max_latency_ms {
         (metrics.latency_ms - requirements.max_latency_ms) / requirements.max_latency_ms
-    } else { 0.0 };
-    
+    } else {
+        0.0
+    };
+
     let error_violation = if metrics.error_rate > requirements.error_tolerance {
         (metrics.error_rate - requirements.error_tolerance) / requirements.error_tolerance
-    } else { 0.0 };
-    
+    } else {
+        0.0
+    };
+
     (latency_violation as f64 + error_violation).min(1.0)
 }
 
