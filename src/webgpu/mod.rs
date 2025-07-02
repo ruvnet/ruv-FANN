@@ -28,15 +28,18 @@ pub mod pipeline_cache;
 pub mod kernel_optimizer;
 pub mod performance_monitor;
 
-#[cfg(feature = "gpu")]
+#[cfg(any(feature = "gpu", feature = "webgpu"))]
 pub mod webgpu_backend;
 
-#[cfg(feature = "gpu")]
+#[cfg(any(feature = "gpu", feature = "webgpu"))]
 pub mod device;
 
 // Autonomous GPU resource management system
-#[cfg(feature = "gpu")]
+#[cfg(any(feature = "gpu", feature = "webgpu"))]
 pub mod autonomous_gpu_resource_manager;
+
+// Stub implementations for missing types
+pub mod autonomous_gpu_stubs;
 
 // WASM GPU bridge for browser deployment
 #[cfg(target_arch = "wasm32")]
@@ -75,17 +78,17 @@ pub use backend::{ComputeBackend, VectorOps, MemoryManager};
 pub use backend::{BackendType, BackendCapabilities, MatrixSize, OperationType};
 
 // Re-export WebGPU backend when available
-#[cfg(feature = "gpu")]
+#[cfg(any(feature = "gpu", feature = "webgpu"))]
 pub use webgpu_backend::WebGPUBackend;
 
-#[cfg(feature = "gpu")]
+#[cfg(any(feature = "gpu", feature = "webgpu"))]
 pub use shaders::*;
 
-#[cfg(feature = "gpu")]
+#[cfg(any(feature = "gpu", feature = "webgpu"))]
 pub use device::GpuDevice;
 
 // Re-export autonomous resource management
-#[cfg(feature = "gpu")]
+#[cfg(any(feature = "gpu", feature = "webgpu"))]
 pub use autonomous_gpu_resource_manager::{
     AutonomousGpuResourceManager, AllocationEngine, ResourceTradingSystem, 
     OptimizationEngine, ConflictResolver, ResourcePool, AgentResourceAllocation,
@@ -97,6 +100,15 @@ pub use autonomous_gpu_resource_manager::{
     ResourceRequirements, ResourceCapacity, QualityRequirements, TradeProposal, AllocationResult,
     // Error types
     AllocationError, TradeError, OptimizationError, ConflictError
+};
+
+// Fallback exports for missing types when autonomous GPU manager is not available
+#[cfg(not(any(feature = "gpu", feature = "webgpu")))]
+pub use autonomous_gpu_stubs::{
+    ResourceRequirements, ResourceCapacity, QualityRequirements, PerformanceTier, Priority,
+    AllocationRequest, AllocationResult, TradeProposal, TradeResult, UtilizationSummary,
+    ResourcePolicies, AllocationError, TradeError, OptimizationError, ConflictError,
+    ResourceType, LatencyRequirements,
 };
 
 // Re-export WASM GPU bridge for browser deployment
