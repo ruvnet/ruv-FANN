@@ -108,7 +108,7 @@ python-compat = []  # Enable Python-specific compatibility features
 # plotting = ["plotly"]  # Enable plotting support for examples (dev-dependency only)
 
 # WASM support
-wasm = ["dep:ruv-fann/wasm"]
+wasm = ["ruv-fann/wasm"]
 no_std = []
 
 
