@@ -19,28 +19,28 @@ use std::sync::{Arc, Mutex, atomic::{AtomicU64, AtomicUsize, Ordering}};
 use std::time::{Duration, Instant};
 use crate::webgpu::error::{ComputeError, ComputeResult};
 
-#[cfg(feature = "webgpu")]
+#[cfg(feature = "gpu")]
 use ::wgpu::{Device, Buffer, BufferDescriptor, BufferUsages};
 
 // Mock types for non-WebGPU builds
-#[cfg(not(feature = "webgpu"))]
+#[cfg(not(feature = "gpu"))]
 #[derive(Debug)]
 pub struct Device;
-#[cfg(not(feature = "webgpu"))]
+#[cfg(not(feature = "gpu"))]
 pub struct Queue;
-#[cfg(not(feature = "webgpu"))]
+#[cfg(not(feature = "gpu"))]
 pub struct Buffer;
-#[cfg(not(feature = "webgpu"))]
+#[cfg(not(feature = "gpu"))]
 pub struct BufferDescriptor<'a> {
     pub label: Option<&'a str>,
     pub size: u64,
     pub usage: BufferUsages,
     pub mapped_at_creation: bool,
 }
-#[cfg(not(feature = "webgpu"))]
+#[cfg(not(feature = "gpu"))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BufferUsages;
-#[cfg(not(feature = "webgpu"))]
+#[cfg(not(feature = "gpu"))]
 impl BufferUsages {
     pub const STORAGE: Self = BufferUsages;
     pub const COPY_DST: Self = BufferUsages;
@@ -163,9 +163,9 @@ pub struct PoolTierConfig {
 
 /// GPU buffer with enhanced metadata and lifecycle tracking
 pub struct GpuBuffer {
-    #[cfg(feature = "webgpu")]
+    #[cfg(feature = "gpu")]
     pub buffer: Buffer,
-    #[cfg(not(feature = "webgpu"))]
+    #[cfg(not(feature = "gpu"))]
     pub buffer: Buffer,
     pub size: u64,
     pub usage: BufferUsages,
@@ -179,7 +179,7 @@ pub struct GpuBuffer {
 }
 
 impl GpuBuffer {
-    #[cfg(feature = "webgpu")]
+    #[cfg(feature = "gpu")]
     pub fn new(
         device: &Device,
         size: u64,
@@ -208,7 +208,7 @@ impl GpuBuffer {
         }
     }
     
-    #[cfg(not(feature = "webgpu"))]
+    #[cfg(not(feature = "gpu"))]
     pub fn new(
         _device: &Device,
         size: u64,

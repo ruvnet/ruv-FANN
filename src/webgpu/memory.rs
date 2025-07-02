@@ -167,7 +167,7 @@ impl Default for CpuMemoryManager {
 }
 
 /// WebGPU memory management module
-#[cfg(feature = "webgpu")]
+#[cfg(feature = "gpu")]
 pub mod webgpu_memory {
     use super::*;
     use std::collections::HashMap;
@@ -274,7 +274,7 @@ pub mod webgpu_memory {
 
 /// GPU memory manager that automatically selects between WebGPU and CPU implementations
 pub struct GpuMemoryManager {
-    #[cfg(feature = "webgpu")]
+    #[cfg(feature = "gpu")]
     webgpu_manager: Option<webgpu_memory::WebGPUMemoryManager>,
     cpu_manager: CpuMemoryManager,
     buffer_pools: Arc<Mutex<HashMap<BufferSize, VecDeque<BufferHandle>>>>,
@@ -297,7 +297,7 @@ pub struct MemoryManagerStats {
 impl GpuMemoryManager {
     pub fn new() -> Self {
         Self {
-            #[cfg(feature = "webgpu")]
+            #[cfg(feature = "gpu")]
             webgpu_manager: None, // Would be initialized with actual GPU device
             cpu_manager: CpuMemoryManager::new(),
             buffer_pools: Arc::new(Mutex::new(HashMap::new())),
@@ -343,7 +343,7 @@ impl GpuMemoryManager {
         }
         
         // Allocate new buffer
-        #[cfg(feature = "webgpu")]
+        #[cfg(feature = "gpu")]
         if let Some(ref webgpu) = self.webgpu_manager {
             let handle = webgpu.allocate_buffer(size)?;
             self.track_allocation(handle, size);
@@ -377,7 +377,7 @@ impl GpuMemoryManager {
                 *stats.current_pool_sizes.entry(info.size_category.clone()).or_insert(0) = pool.len();
             } else {
                 // Actually deallocate if pool is full
-                #[cfg(feature = "webgpu")]
+                #[cfg(feature = "gpu")]
                 if let Some(ref webgpu) = self.webgpu_manager {
                     return webgpu.deallocate_buffer(handle);
                 }
@@ -402,7 +402,7 @@ impl GpuMemoryManager {
     }
     
     pub fn get_stats(&self) -> MemoryStats {
-        #[cfg(feature = "webgpu")]
+        #[cfg(feature = "gpu")]
         if let Some(ref webgpu) = self.webgpu_manager {
             return webgpu.get_stats();
         }
@@ -438,7 +438,7 @@ impl GpuMemoryManager {
             allocated.remove(&handle);
             
             // Actually deallocate
-            #[cfg(feature = "webgpu")]
+            #[cfg(feature = "gpu")]
             if let Some(ref webgpu) = self.webgpu_manager {
                 let _ = webgpu.deallocate_buffer(handle);
                 continue;
@@ -500,12 +500,12 @@ impl MemoryManagerStats {
 
 use super::{MonitorConfig, BufferCategory};
 
-#[cfg(feature = "webgpu")]
+#[cfg(feature = "gpu")]
 use super::buffer_pool::PoolStatisticsSnapshot;
 
-#[cfg(feature = "webgpu")]
+#[cfg(feature = "gpu")]
 use super::buffer_pool::{AdvancedBufferPool, MemoryPressure};
-#[cfg(feature = "webgpu")]
+#[cfg(feature = "gpu")]
 use super::pressure_monitor::{MemoryPressureMonitor, MonitoringStatistics};
 
 /// Configuration for enhanced GPU memory management
@@ -558,21 +558,21 @@ impl Default for GpuMemoryConfig {
 /// Enhanced memory statistics combining legacy and advanced metrics
 #[derive(Debug, Clone)]
 pub struct EnhancedMemoryStats {
-    #[cfg(feature = "webgpu")]
+    #[cfg(feature = "gpu")]
     pub pool_stats: Option<PoolStatisticsSnapshot>,
     
-    #[cfg(feature = "webgpu")]
+    #[cfg(feature = "gpu")]
     pub monitoring_stats: Option<MonitoringStatistics>,
     
     pub legacy_stats: Option<MemoryStats>,
     
-    #[cfg(feature = "webgpu")]
+    #[cfg(feature = "gpu")]
     pub daa_enabled: bool,
     
-    #[cfg(feature = "webgpu")]
+    #[cfg(feature = "gpu")]
     pub monitoring_enabled: bool,
     
-    #[cfg(feature = "webgpu")]
+    #[cfg(feature = "gpu")]
     pub current_pressure: MemoryPressure,
     
     pub enhanced_features_available: bool,
@@ -581,7 +581,7 @@ pub struct EnhancedMemoryStats {
 impl EnhancedMemoryStats {
     /// Get cache hit ratio across all buffer pools
     pub fn cache_hit_ratio(&self) -> f32 {
-        #[cfg(feature = "webgpu")]
+        #[cfg(feature = "gpu")]
         if let Some(ref stats) = self.pool_stats {
             return stats.cache_hit_ratio();
         }
@@ -591,7 +591,7 @@ impl EnhancedMemoryStats {
     
     /// Get total allocated memory in bytes
     pub fn total_allocated(&self) -> u64 {
-        #[cfg(feature = "webgpu")]
+        #[cfg(feature = "gpu")]
         if let Some(ref stats) = self.pool_stats {
             return stats.global.total_memory_allocated;
         }
@@ -605,7 +605,7 @@ impl EnhancedMemoryStats {
     
     /// Get current memory pressure as a ratio (0.0-1.0)
     pub fn pressure_ratio(&self) -> f32 {
-        #[cfg(feature = "webgpu")]
+        #[cfg(feature = "gpu")]
         if self.current_pressure != MemoryPressure::None {
             match self.current_pressure {
                 MemoryPressure::None => 0.0,
@@ -624,7 +624,7 @@ impl EnhancedMemoryStats {
             0.0
         }
         
-        #[cfg(not(feature = "webgpu"))]
+        #[cfg(not(feature = "gpu"))]
         if let Some(ref legacy) = self.legacy_stats {
             if legacy.available > 0 {
                 legacy.total_allocated as f32 / (legacy.total_allocated + legacy.available) as f32
@@ -638,7 +638,7 @@ impl EnhancedMemoryStats {
     
     /// Get average allocation latency in nanoseconds
     pub fn avg_allocation_latency_ns(&self) -> u64 {
-        #[cfg(feature = "webgpu")]
+        #[cfg(feature = "gpu")]
         if let Some(ref stats) = self.pool_stats {
             return stats.global.avg_allocation_latency_ns;
         }
@@ -648,7 +648,7 @@ impl EnhancedMemoryStats {
     
     /// Generate performance summary string
     pub fn performance_summary(&self) -> String {
-        #[cfg(feature = "webgpu")]
+        #[cfg(feature = "gpu")]
         if let Some(ref stats) = self.pool_stats {
             return stats.performance_summary();
         }
@@ -663,21 +663,21 @@ impl EnhancedMemoryStats {
 
 /// Enhanced GPU memory manager with DAA integration
 pub struct EnhancedGpuMemoryManager {
-    #[cfg(feature = "webgpu")]
+    #[cfg(feature = "gpu")]
     advanced_pool: Option<Arc<AdvancedBufferPool>>,
     
-    #[cfg(feature = "webgpu")]
+    #[cfg(feature = "gpu")]
     pressure_monitor: Option<MemoryPressureMonitor>,
     
     config: GpuMemoryConfig,
     
-    #[cfg(feature = "webgpu")]
+    #[cfg(feature = "gpu")]
     device: Arc<super::device::GpuDevice>,
     
-    #[cfg(feature = "webgpu")]
+    #[cfg(feature = "gpu")]
     statistics_cache: Arc<Mutex<Option<(Instant, EnhancedMemoryStats)>>>,
     
-    #[cfg(feature = "webgpu")]
+    #[cfg(feature = "gpu")]
     last_optimization: Arc<Mutex<Instant>>,
     
     initialization_time: Instant,
@@ -685,18 +685,18 @@ pub struct EnhancedGpuMemoryManager {
 
 impl EnhancedGpuMemoryManager {
     /// Create new enhanced GPU memory manager
-    #[cfg(feature = "webgpu")]
+    #[cfg(feature = "gpu")]
     pub fn new(device: Arc<super::device::GpuDevice>) -> ComputeResult<Self> {
         Self::with_config(device, GpuMemoryConfig::default())
     }
     
-    #[cfg(not(feature = "webgpu"))]
+    #[cfg(not(feature = "gpu"))]
     pub fn new() -> ComputeResult<Self> {
         Self::with_config(GpuMemoryConfig::default())
     }
     
     /// Create enhanced memory manager with custom configuration
-    #[cfg(feature = "webgpu")]
+    #[cfg(feature = "gpu")]
     pub fn with_config(
         device: Arc<super::device::GpuDevice>, 
         config: GpuMemoryConfig
@@ -719,7 +719,7 @@ impl EnhancedGpuMemoryManager {
         Ok(manager)
     }
     
-    #[cfg(not(feature = "webgpu"))]
+    #[cfg(not(feature = "gpu"))]
     pub fn with_config(
         config: GpuMemoryConfig
     ) -> ComputeResult<Self> {
@@ -731,7 +731,7 @@ impl EnhancedGpuMemoryManager {
         Ok(manager)
     }
     
-    #[cfg(feature = "webgpu")]
+    #[cfg(feature = "gpu")]
     fn initialize_advanced_features(&mut self) -> ComputeResult<()> {
         // TODO: Properly initialize advanced buffer pool with device reference
         // For now, skip advanced pool initialization to avoid compilation issues
@@ -756,7 +756,7 @@ impl EnhancedGpuMemoryManager {
     
     /// Allocate buffer with enhanced allocation strategy
     pub fn allocate_buffer(&self, size: usize) -> ComputeResult<BufferHandle> {
-        #[cfg(feature = "webgpu")]
+        #[cfg(feature = "gpu")]
         if let Some(ref pool) = self.advanced_pool {
             // Use advanced buffer pool
             let buffer = pool.get_buffer(
@@ -778,7 +778,7 @@ impl EnhancedGpuMemoryManager {
     
     /// Create uniform buffer
     pub fn create_uniform_buffer(&self, size: u64, _label: Option<&str>) -> ComputeResult<BufferHandle> {
-        #[cfg(feature = "webgpu")]
+        #[cfg(feature = "gpu")]
         if let Some(ref pool) = self.advanced_pool {
             let buffer = pool.get_buffer(
                 size,
@@ -794,7 +794,7 @@ impl EnhancedGpuMemoryManager {
     
     /// Create readback buffer
     pub fn create_readback_buffer(&self, size: u64, _label: Option<&str>) -> ComputeResult<BufferHandle> {
-        #[cfg(feature = "webgpu")]
+        #[cfg(feature = "gpu")]
         if let Some(ref pool) = self.advanced_pool {
             let buffer = pool.get_buffer(
                 size,
@@ -810,7 +810,7 @@ impl EnhancedGpuMemoryManager {
     
     /// Deallocate buffer
     pub fn deallocate_buffer(&self, handle: BufferHandle) -> ComputeResult<()> {
-        #[cfg(feature = "webgpu")]
+        #[cfg(feature = "gpu")]
         if let Some(ref _pool) = self.advanced_pool {
             // Look up buffer from our allocated buffers map
             // For enhanced manager, we don't have allocated_buffers field
@@ -825,7 +825,7 @@ impl EnhancedGpuMemoryManager {
     /// Get current memory statistics
     pub fn get_stats(&self) -> ComputeResult<EnhancedMemoryStats> {
         // Check cache first
-        #[cfg(feature = "webgpu")]
+        #[cfg(feature = "gpu")]
         {
             if let Ok(cache) = self.statistics_cache.lock() {
                 if let Some((timestamp, stats)) = cache.as_ref() {
@@ -836,22 +836,23 @@ impl EnhancedGpuMemoryManager {
             }
         }
         
+        #[cfg_attr(not(feature = "gpu"), allow(unused_mut))]
         let mut stats = EnhancedMemoryStats {
-            #[cfg(feature = "webgpu")]
+            #[cfg(feature = "gpu")]
             pool_stats: None,
-            #[cfg(feature = "webgpu")]
+            #[cfg(feature = "gpu")]
             monitoring_stats: None,
             legacy_stats: None,
-            #[cfg(feature = "webgpu")]
+            #[cfg(feature = "gpu")]
             daa_enabled: self.config.enable_daa,
-            #[cfg(feature = "webgpu")]
+            #[cfg(feature = "gpu")]
             monitoring_enabled: self.config.enable_monitoring,
-            #[cfg(feature = "webgpu")]
+            #[cfg(feature = "gpu")]
             current_pressure: MemoryPressure::None,
             enhanced_features_available: self.config.enable_advanced_features,
         };
         
-        #[cfg(feature = "webgpu")]
+        #[cfg(feature = "gpu")]
         {
             // Get pool statistics if available
             if let Some(ref pool) = self.advanced_pool {
@@ -875,7 +876,7 @@ impl EnhancedGpuMemoryManager {
     }
     
     /// Start memory pressure monitoring
-    #[cfg(feature = "webgpu")]
+    #[cfg(feature = "gpu")]
     pub fn start_monitoring(&mut self) -> ComputeResult<()> {
         if let Some(ref pool) = self.advanced_pool {
             if let Some(ref mut monitor) = self.pressure_monitor {
@@ -886,7 +887,7 @@ impl EnhancedGpuMemoryManager {
     }
     
     /// Stop memory pressure monitoring
-    #[cfg(feature = "webgpu")]
+    #[cfg(feature = "gpu")]
     pub fn stop_monitoring(&mut self) -> ComputeResult<()> {
         if let Some(ref mut monitor) = self.pressure_monitor {
             monitor.stop_monitoring()?;
@@ -895,7 +896,7 @@ impl EnhancedGpuMemoryManager {
     }
     
     /// Get monitoring report
-    #[cfg(feature = "webgpu")]
+    #[cfg(feature = "gpu")]
     pub fn get_monitoring_report(&self) -> ComputeResult<Option<super::pressure_monitor::MonitoringReport>> {
         if let Some(ref monitor) = self.pressure_monitor {
             Ok(Some(monitor.generate_report()))
@@ -906,7 +907,7 @@ impl EnhancedGpuMemoryManager {
     
     /// Perform memory cleanup
     pub fn cleanup(&self, _aggressiveness: f32) -> ComputeResult<()> {
-        #[cfg(feature = "webgpu")]
+        #[cfg(feature = "gpu")]
         if let Some(ref _pool) = self.advanced_pool {
             // Advanced buffer pool cleanup - for now just log
             println!("Cleaning up advanced buffer pool with aggressiveness: {}", _aggressiveness);
@@ -915,7 +916,7 @@ impl EnhancedGpuMemoryManager {
     }
     
     /// Optimize memory layout for DAA coordination
-    #[cfg(feature = "webgpu")]
+    #[cfg(feature = "gpu")]
     pub fn optimize_for_daa(&self) -> ComputeResult<OptimizationResult> {
         if !self.config.enable_daa {
             return Ok(OptimizationResult::default());
@@ -976,10 +977,10 @@ impl EnhancedGpuMemoryManager {
     
     /// Check if using advanced features
     pub fn is_enhanced(&self) -> bool {
-        #[cfg(feature = "webgpu")]
+        #[cfg(feature = "gpu")]
         return self.advanced_pool.is_some();
         
-        #[cfg(not(feature = "webgpu"))]
+        #[cfg(not(feature = "gpu"))]
         false
     }
 }

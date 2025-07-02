@@ -10,14 +10,14 @@ use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 use tokio::sync::{RwLock, Mutex};
 
-#[cfg(feature = "webgpu")]
+#[cfg(feature = "gpu")]
 use {
     async_trait::async_trait,
     super::memory::GpuMemoryManager,
     crate::webgpu::device::GpuDevice,
 };
 
-#[cfg(not(feature = "webgpu"))]
+#[cfg(not(feature = "gpu"))]
 use std::future::Future;
 
 use serde::{Deserialize, Serialize};
@@ -532,9 +532,9 @@ pub struct PerformanceSnapshot {
 // Traits for Pluggable Algorithms
 // ================================================================================================
 
-#[cfg_attr(feature = "webgpu", async_trait)]
+#[cfg_attr(feature = "gpu", async_trait)]
 pub trait AllocationAlgorithm: std::fmt::Debug {
-    #[cfg(feature = "webgpu")]
+    #[cfg(feature = "gpu")]
     fn allocate<'a>(
         &'a self,
         request: &'a AllocationRequest,
@@ -542,7 +542,7 @@ pub trait AllocationAlgorithm: std::fmt::Debug {
         current_allocations: &'a HashMap<AllocationId, ResourceAllocation>,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<AllocationResult, AllocationError>> + Send + 'a>>;
     
-    #[cfg(not(feature = "webgpu"))]
+    #[cfg(not(feature = "gpu"))]
     fn allocate(
         &self,
         request: &AllocationRequest,
@@ -562,7 +562,7 @@ pub trait AllocationAlgorithm: std::fmt::Debug {
     ) -> Result<AllocationResult, AllocationError>;
 }
 
-#[async_trait]
+#[cfg_attr(feature = "gpu", async_trait)]
 pub trait PricingEngine: std::fmt::Debug {
     async fn calculate_price(
         &self,
@@ -577,7 +577,7 @@ pub trait PricingEngine: std::fmt::Debug {
     ) -> Result<(), PricingError>;
 }
 
-#[async_trait]
+#[cfg_attr(feature = "gpu", async_trait)]
 pub trait TradeMatchingEngine: std::fmt::Debug {
     async fn match_trades(
         &self,
@@ -591,7 +591,7 @@ pub trait TradeMatchingEngine: std::fmt::Debug {
     ) -> Result<bool, MatchingError>;
 }
 
-#[async_trait]
+#[cfg_attr(feature = "gpu", async_trait)]
 pub trait OptimizationStrategy: std::fmt::Debug {
     async fn analyze_performance(
         &self,
@@ -608,7 +608,7 @@ pub trait OptimizationStrategy: std::fmt::Debug {
     fn strategy_type(&self) -> String;
 }
 
-#[async_trait]
+#[cfg_attr(feature = "gpu", async_trait)]
 pub trait ConflictResolutionStrategy: std::fmt::Debug {
     async fn detect_conflicts(
         &self,
@@ -625,7 +625,7 @@ pub trait ConflictResolutionStrategy: std::fmt::Debug {
     fn resolution_type(&self) -> ConflictType;
 }
 
-#[async_trait]
+#[cfg_attr(feature = "gpu", async_trait)]
 pub trait PredictionModel: std::fmt::Debug {
     async fn predict(
         &self,
@@ -643,7 +643,7 @@ pub trait PredictionModel: std::fmt::Debug {
     fn accuracy_score(&self) -> f64;
 }
 
-#[async_trait]
+#[cfg_attr(feature = "gpu", async_trait)]
 pub trait EventProcessor: std::fmt::Debug + Send + Sync {
     async fn process_event(
         &self,
@@ -1911,9 +1911,9 @@ impl BestFitAlgorithm {
     fn new() -> Self { Self }
 }
 
-#[async_trait]
+#[cfg_attr(feature = "gpu", async_trait)]
 impl AllocationAlgorithm for BestFitAlgorithm {
-    #[cfg(feature = "webgpu")]
+    #[cfg(feature = "gpu")]
     fn allocate<'a>(
         &'a self,
         request: &'a AllocationRequest,
@@ -2021,9 +2021,9 @@ impl FirstFitAlgorithm {
     fn new() -> Self { Self }
 }
 
-#[async_trait]
+#[cfg_attr(feature = "gpu", async_trait)]
 impl AllocationAlgorithm for FirstFitAlgorithm {
-    #[cfg(feature = "webgpu")]
+    #[cfg(feature = "gpu")]
     fn allocate<'a>(
         &'a self,
         request: &'a AllocationRequest,
@@ -2035,7 +2035,7 @@ impl AllocationAlgorithm for FirstFitAlgorithm {
         })
     }
     
-    #[cfg(not(feature = "webgpu"))]
+    #[cfg(not(feature = "gpu"))]
     fn allocate(
         &self,
         request: &AllocationRequest,
@@ -2124,9 +2124,9 @@ impl MLAllocationAlgorithm {
     fn new() -> Self { Self }
 }
 
-#[async_trait]
+#[cfg_attr(feature = "gpu", async_trait)]
 impl AllocationAlgorithm for MLAllocationAlgorithm {
-    #[cfg(feature = "webgpu")]
+    #[cfg(feature = "gpu")]
     fn allocate<'a>(
         &'a self,
         request: &'a AllocationRequest,
@@ -2138,7 +2138,7 @@ impl AllocationAlgorithm for MLAllocationAlgorithm {
         })
     }
     
-    #[cfg(not(feature = "webgpu"))]
+    #[cfg(not(feature = "gpu"))]
     fn allocate(
         &self,
         request: &AllocationRequest,
@@ -2755,7 +2755,7 @@ impl DynamicPricingEngine {
     fn new() -> Self { Self }
 }
 
-#[async_trait]
+#[cfg_attr(feature = "gpu", async_trait)]
 impl PricingEngine for DynamicPricingEngine {
     async fn calculate_price(
         &self,
@@ -2791,7 +2791,7 @@ impl OrderBookMatchingEngine {
     fn new() -> Self { Self }
 }
 
-#[async_trait]
+#[cfg_attr(feature = "gpu", async_trait)]
 impl TradeMatchingEngine for OrderBookMatchingEngine {
     async fn match_trades(
         &self,
@@ -2844,7 +2844,7 @@ impl PerformanceOptimizationStrategy {
     fn new() -> Self { Self }
 }
 
-#[async_trait]
+#[cfg_attr(feature = "gpu", async_trait)]
 impl OptimizationStrategy for PerformanceOptimizationStrategy {
     async fn analyze_performance(
         &self,
@@ -2907,7 +2907,7 @@ impl CostOptimizationStrategy {
     fn new() -> Self { Self }
 }
 
-#[async_trait]
+#[cfg_attr(feature = "gpu", async_trait)]
 impl OptimizationStrategy for CostOptimizationStrategy {
     async fn analyze_performance(
         &self,
@@ -2963,7 +2963,7 @@ impl FairnessOptimizationStrategy {
     fn new() -> Self { Self }
 }
 
-#[async_trait]
+#[cfg_attr(feature = "gpu", async_trait)]
 impl OptimizationStrategy for FairnessOptimizationStrategy {
     async fn analyze_performance(
         &self,
@@ -3020,7 +3020,7 @@ impl ContentionResolutionStrategy {
     fn new() -> Self { Self }
 }
 
-#[async_trait]
+#[cfg_attr(feature = "gpu", async_trait)]
 impl ConflictResolutionStrategy for ContentionResolutionStrategy {
     async fn detect_conflicts(
         &self,
@@ -3084,7 +3084,7 @@ impl PriorityResolutionStrategy {
     fn new() -> Self { Self }
 }
 
-#[async_trait]
+#[cfg_attr(feature = "gpu", async_trait)]
 impl ConflictResolutionStrategy for PriorityResolutionStrategy {
     async fn detect_conflicts(
         &self,
@@ -3141,7 +3141,7 @@ impl QoSResolutionStrategy {
     fn new() -> Self { Self }
 }
 
-#[async_trait]
+#[cfg_attr(feature = "gpu", async_trait)]
 impl ConflictResolutionStrategy for QoSResolutionStrategy {
     async fn detect_conflicts(
         &self,
@@ -3205,7 +3205,7 @@ impl LinearRegressionModel {
     fn new() -> Self { Self }
 }
 
-#[async_trait]
+#[cfg_attr(feature = "gpu", async_trait)]
 impl PredictionModel for LinearRegressionModel {
     async fn predict(
         &self,
@@ -3261,7 +3261,7 @@ impl ARIMAModel {
     fn new() -> Self { Self }
 }
 
-#[async_trait]
+#[cfg_attr(feature = "gpu", async_trait)]
 impl PredictionModel for ARIMAModel {
     async fn predict(
         &self,
@@ -3308,7 +3308,7 @@ impl NeuralNetworkModel {
     fn new() -> Self { Self }
 }
 
-#[async_trait]
+#[cfg_attr(feature = "gpu", async_trait)]
 impl PredictionModel for NeuralNetworkModel {
     async fn predict(
         &self,
@@ -3356,7 +3356,7 @@ impl TimeSeriesWorkloadPredictor {
     fn new() -> Self { Self }
 }
 
-#[async_trait]
+#[cfg_attr(feature = "gpu", async_trait)]
 impl WorkloadPredictor for TimeSeriesWorkloadPredictor {
     async fn predict_workload(
         &self,
@@ -3385,7 +3385,7 @@ impl MLRecommendationEngine {
     fn new() -> Self { Self }
 }
 
-#[async_trait]
+#[cfg_attr(feature = "gpu", async_trait)]
 impl RecommendationEngine for MLRecommendationEngine {
     async fn generate_recommendations(
         &self,
@@ -3469,7 +3469,7 @@ fn calculate_qos_violation_severity(metrics: &PerformanceSnapshot, requirements:
 }
 
 // Additional trait definitions for the ecosystem
-#[async_trait]
+#[cfg_attr(feature = "gpu", async_trait)]
 pub trait WorkloadPredictor: std::fmt::Debug + Send + Sync {
     async fn predict_workload(
         &self,
@@ -3478,7 +3478,7 @@ pub trait WorkloadPredictor: std::fmt::Debug + Send + Sync {
     ) -> Result<WorkloadPrediction, PredictionError>;
 }
 
-#[async_trait]
+#[cfg_attr(feature = "gpu", async_trait)]
 pub trait RecommendationEngine: std::fmt::Debug + Send + Sync {
     async fn generate_recommendations(
         &self,
@@ -3487,7 +3487,7 @@ pub trait RecommendationEngine: std::fmt::Debug + Send + Sync {
     ) -> Result<Vec<PerformanceRecommendation>, RecommendationError>;
 }
 
-#[async_trait]
+#[cfg_attr(feature = "gpu", async_trait)]
 pub trait MetricsCollector: std::fmt::Debug + Send + Sync {
     async fn collect_metrics(
         &self,
@@ -3496,7 +3496,7 @@ pub trait MetricsCollector: std::fmt::Debug + Send + Sync {
     ) -> Result<HashMap<MetricType, f64>, CollectionError>;
 }
 
-#[async_trait]
+#[cfg_attr(feature = "gpu", async_trait)]
 pub trait BottleneckDetector: std::fmt::Debug + Send + Sync {
     async fn detect_bottlenecks(
         &self,
@@ -3504,7 +3504,7 @@ pub trait BottleneckDetector: std::fmt::Debug + Send + Sync {
     ) -> Result<Vec<PerformanceBottleneck>, DetectionError>;
 }
 
-#[async_trait]
+#[cfg_attr(feature = "gpu", async_trait)]
 pub trait FeatureExtractor: std::fmt::Debug + Send + Sync {
     async fn extract_features(
         &self,

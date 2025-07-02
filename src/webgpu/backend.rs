@@ -130,7 +130,7 @@ impl<T: Float + std::fmt::Debug + Send + Sync + 'static> BackendSelector<T> {
         let mut backends = Vec::new();
         
         // Try to initialize backends in order of preference
-        #[cfg(feature = "webgpu")]
+        #[cfg(feature = "gpu")]
         {
             // WebGPU backend would be initialized here
             // Note: This requires async initialization, so we'll handle this differently

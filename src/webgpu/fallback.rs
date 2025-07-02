@@ -51,7 +51,7 @@ where
         }
     }
     
-    #[cfg(feature = "webgpu")]
+    #[cfg(feature = "gpu")]
     pub async fn initialize_primary_backend(&mut self) -> Result<(), ComputeError> {
         // WebGPU backend initialization would go here
         // For now, we'll return an error to indicate it's not implemented

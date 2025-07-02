@@ -108,19 +108,19 @@ pub use wasm_gpu_bridge::{
 
 /// Check if enhanced memory management features are available
 pub fn has_enhanced_memory_features() -> bool {
-    cfg!(feature = "webgpu")
+    cfg!(feature = "gpu")
 }
 
 /// Get memory management capabilities summary
 pub fn get_memory_capabilities() -> MemoryCapabilities {
     MemoryCapabilities {
-        webgpu_available: cfg!(feature = "webgpu"),
+        webgpu_available: cfg!(feature = "gpu"),
         enhanced_features: has_enhanced_memory_features(),
-        daa_support: cfg!(feature = "webgpu"),
-        pressure_monitoring: cfg!(feature = "webgpu"),
-        circuit_breaker: cfg!(feature = "webgpu"),
+        daa_support: cfg!(feature = "gpu"),
+        pressure_monitoring: cfg!(feature = "gpu"),
+        circuit_breaker: cfg!(feature = "gpu"),
         buffer_pooling: true,
-        predictive_analytics: cfg!(feature = "webgpu"),
+        predictive_analytics: cfg!(feature = "gpu"),
         wasm_gpu_bridge: has_wasm_gpu_bridge(),
     }
 }

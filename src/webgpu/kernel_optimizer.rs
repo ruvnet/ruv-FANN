@@ -4,11 +4,21 @@
 use std::collections::HashMap;
 use crate::webgpu::error::ComputeError;
 
-#[cfg(feature = "webgpu")]
+#[cfg(feature = "gpu")]
 use crate::webgpu::shaders::webgpu_shaders::ShaderType;
 
-#[cfg(not(feature = "webgpu"))]
-use crate::webgpu::pipeline_cache::ShaderType;
+#[cfg(not(feature = "gpu"))]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum ShaderType {
+    // Matrix operations - must match the actual enum variants used
+    MatrixVectorMultiply,
+    BatchMatrixVectorMultiply,
+    
+    // Basic fallback variants
+    Neural,
+    Compute,
+    Training,
+}
 
 /// GPU device capabilities and optimization parameters
 #[derive(Debug, Clone)]

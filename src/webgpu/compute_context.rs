@@ -13,7 +13,7 @@ use crate::webgpu::{
     error::{ComputeError, ComputeResult},
 };
 
-#[cfg(feature = "webgpu")]
+#[cfg(feature = "gpu")]
 use crate::webgpu::webgpu_backend::WebGPUBackend;
 
 // These types are used across the module regardless of webgpu feature
@@ -48,9 +48,9 @@ pub struct ComputeContext<T: Float + std::fmt::Debug + Send + Sync + 'static> {
     /// Current backend type being used
     current_backend: BackendType,
     /// WebGPU backend instance (when available)
-    #[cfg(feature = "webgpu")]
+    #[cfg(feature = "gpu")]
     webgpu_backend: Option<Arc<WebGPUBackend<T>>>,
-    #[cfg(not(feature = "webgpu"))]
+    #[cfg(not(feature = "gpu"))]
     webgpu_backend: Option<()>,
     /// GPU acceleration enabled flag
     gpu_enabled: bool,
@@ -84,13 +84,13 @@ impl<T: Float + Send + Sync + std::fmt::Debug + 'static> ComputeContext<T> {
         let backend_selector = BackendSelector::new();
         
         // Try to initialize WebGPU backend
-        #[cfg(feature = "webgpu")]
+        #[cfg(feature = "gpu")]
         let (webgpu_backend, gpu_enabled) = match WebGPUBackend::<T>::initialize().await {
             Ok(backend) => (Some(Arc::new(backend)), true),
             Err(_) => (None, false),
         };
         
-        #[cfg(not(feature = "webgpu"))]
+        #[cfg(not(feature = "gpu"))]
         let (webgpu_backend, gpu_enabled) = (None, false);
         
         // Select initial backend based on availability
@@ -298,7 +298,7 @@ impl<T: Float + Send + Sync + std::fmt::Debug + 'static> ComputeContext<T> {
     where
         T: Clone + num_traits::ToPrimitive + 'static,
     {
-        #[cfg(feature = "webgpu")]
+        #[cfg(feature = "gpu")]
         {
             if let Some(ref gpu_backend) = self.webgpu_backend {
                 // Matrix-vector multiplication
@@ -317,7 +317,7 @@ impl<T: Float + Send + Sync + std::fmt::Debug + 'static> ComputeContext<T> {
             }
         }
         
-        #[cfg(not(feature = "webgpu"))]
+        #[cfg(not(feature = "gpu"))]
         {
             Err(ComputeError::GpuUnavailable)
         }
@@ -442,13 +442,13 @@ impl<T: Float + Send + Sync + std::fmt::Debug + 'static> ComputeContext<T> {
             None
         };
         
-        #[cfg(feature = "webgpu")]
+        #[cfg(feature = "gpu")]
         let gpu_stats = self.webgpu_backend.as_ref().map(|_gpu_backend| {
             // TODO: Implement get_performance_stats in WebGPUBackend
             PerformanceStats::default()
         });
         
-        #[cfg(not(feature = "webgpu"))]
+        #[cfg(not(feature = "gpu"))]
         let gpu_stats = None;
         
         ComputePerformanceStats {
@@ -462,7 +462,7 @@ impl<T: Float + Send + Sync + std::fmt::Debug + 'static> ComputeContext<T> {
     
     /// Get DAA coordination metrics
     pub fn get_daa_metrics(&self) -> DaaCoordinationMetrics {
-        #[cfg(feature = "webgpu")]
+        #[cfg(feature = "gpu")]
         {
             if let Some(ref _gpu_backend) = self.webgpu_backend {
                 DaaCoordinationMetrics {
@@ -477,7 +477,7 @@ impl<T: Float + Send + Sync + std::fmt::Debug + 'static> ComputeContext<T> {
             }
         }
         
-        #[cfg(not(feature = "webgpu"))]
+        #[cfg(not(feature = "gpu"))]
         {
             DaaCoordinationMetrics::default()
         }
