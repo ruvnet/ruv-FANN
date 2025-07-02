@@ -93,6 +93,8 @@ pub use autonomous_gpu_resource_manager::{
     ResourceType, PoolType, PerformanceTier, Priority, AllocationRequest,
     ResourceAllocation, ResourceTrade, TradeResult, OptimizationResult as ResourceOptimizationResult,
     ConflictResolution, UtilizationSummary, ResourcePolicies,
+    // Resource types
+    ResourceRequirements, ResourceCapacity, QualityRequirements, TradeProposal, AllocationResult,
     // Error types
     AllocationError, TradeError, OptimizationError, ConflictError
 };
