@@ -37,11 +37,19 @@ flate2 = { version = "1.0", optional = true }
 # Additional dependencies for our implementation
 num_cpus = { version = "1.16", optional = true }
 
+# GPU acceleration dependencies
+wgpu = { version = "0.19", optional = true }
+futures = { version = "0.3", optional = true }
+pollster = { version = "0.3", optional = true }
+bytemuck = { version = "1.14", features = ["derive"], optional = true }
+
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
 proptest = "1.4"
 approx = "0.5"
 pretty_assertions = "1.4"
+tokio = { version = "1.0", features = ["macros", "rt", "rt-multi-thread", "time"] }
+futures = "0.3"
 
 [features]
 default = ["std", "serde", "parallel", "binary", "compression", "logging", "io"]
@@ -59,6 +67,10 @@ no_std = []
 
 # WASM support
 wasm = ["no_std", "serde", "logging"]
+
+# GPU acceleration support
+gpu = ["dep:wgpu", "dep:futures", "dep:pollster", "dep:bytemuck", "std"]
+webgpu = ["gpu"]
 
 [[example]]
 name = "basic_usage"
