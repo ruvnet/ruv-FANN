@@ -46,6 +46,9 @@ pub mod integration;
 #[cfg(feature = "io")]
 pub mod io;
 
+// WebGPU acceleration module
+pub mod webgpu;
+
 // Test module
 #[cfg(test)]
 mod tests;
