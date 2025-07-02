@@ -145,6 +145,11 @@ class RuvSwarm {
     }
   }
 
+  // Instance method for SIMD detection
+  detectSIMDSupport() {
+    return RuvSwarm.detectSIMDSupport();
+  }
+
   async createSwarm(config) {
     const {
       id = null, // Allow existing ID for persistence loading
