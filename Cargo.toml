@@ -50,8 +50,11 @@ criterion = { version = "0.5", features = ["html_reports"] }
 proptest = "1.4"
 approx = "0.5"
 pretty_assertions = "1.4"
-tokio = { version = "1.0", features = ["macros", "rt", "rt-multi-thread", "time"] }
+tokio = { version = "1.0", features = ["macros", "rt", "rt-multi-thread", "time", "process", "sync", "fs"] }
 futures = "0.3"
+uuid = { version = "1.0", features = ["v4"] }
+anyhow = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
 
 [features]
 default = ["std", "serde", "parallel", "binary", "compression", "logging", "io"]
@@ -73,6 +76,17 @@ wasm = ["no_std", "serde", "logging"]
 # GPU acceleration support
 gpu = ["dep:wgpu", "dep:futures", "dep:pollster", "dep:bytemuck", "dep:tokio", "dep:async-trait", "std"]
 webgpu = ["gpu"]
+
+# Swarm integration - external features that may not be available
+ruv-swarm = []
+ruv-swarm-daa = ["ruv-swarm"]
+benchmarking = []
+
+# Test configurations
+test-all = ["gpu", "ruv-swarm", "ruv-swarm-daa", "benchmarking"]
+test-core = ["std", "parallel"]
+test-gpu = ["gpu", "webgpu"]
+test-no-external = []  # For tests that don't require external crates
 
 [[example]]
 name = "basic_usage"

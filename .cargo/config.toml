@@ -1,15 +1,22 @@
 [build]
-# Build configuration options
+# Default features for testing
+target-dir = "target"
 
-[target.'cfg(all())']
-rustflags = [
-    # Allow standard rustc lints
-    "-A", "dead_code",
-    "-A", "unused_imports",
-    "-A", "unused_variables",
-    # Allow clippy-specific lints
-    "-A", "clippy::field_reassign_with_default",
-    "-A", "clippy::manual_clamp",
-    "-A", "clippy::needless_range_loop",
-    "-A", "clippy::approx_constant",
-]
+[env]
+# Environment variables for testing
+RUST_BACKTRACE = "1"
+RUST_LOG = "debug"
+
+# Test-specific configuration
+[profile.test]
+opt-level = 1
+debug = true
+overflow-checks = true
+
+# Alias configurations for different test scenarios
+[alias]
+test-core = "test --lib --no-default-features --features test-core"
+test-gpu = "test --no-default-features --features test-gpu"
+test-all = "test --no-default-features --features test-all"
+test-basic = "test basic_dependency_test gpu_integration_test"
+test-no-external = "test --no-default-features --features test-no-external"
