@@ -68,7 +68,7 @@ mod gpu_tests {
         let dims = MatrixDims::new(2, 3);
         
         // Expected result: [1*1 + 2*2 + 3*3, 4*1 + 5*2 + 6*3] = [14, 32]
-        let expected = vec![14.0f32, 32.0];
+        let expected = [14.0f32, 32.0];
         
         // Test with CPU backend
         let cpu_backend = ruv_fann::webgpu::backend::CpuBackend::new();
@@ -115,7 +115,7 @@ mod gpu_tests {
         // Test ReLU
         let cpu_backend = ruv_fann::webgpu::backend::CpuBackend::new();
         let relu_result = cpu_backend.activation_function(&input, ActivationFunction::ReLU).await.unwrap();
-        let expected_relu = vec![0.0f32, 0.0, 0.0, 1.0, 2.0];
+        let expected_relu = [0.0f32, 0.0, 0.0, 1.0, 2.0];
         
         for (i, (&result, &expected)) in relu_result.iter().zip(expected_relu.iter()).enumerate() {
             assert_relative_eq!(result, expected, epsilon = 1e-6);
@@ -126,7 +126,7 @@ mod gpu_tests {
         
         // Sigmoid should be between 0 and 1
         for (i, &value) in sigmoid_result.iter().enumerate() {
-            assert!(value >= 0.0 && value <= 1.0, 
+            assert!((0.0..=1.0).contains(&value), 
                 "Sigmoid[{}] out of range: {}", i, value);
         }
         
