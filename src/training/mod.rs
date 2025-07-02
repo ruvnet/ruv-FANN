@@ -22,6 +22,24 @@ pub struct TrainingData<T: Float> {
     pub outputs: Vec<Vec<T>>,
 }
 
+impl<T: Float> TrainingData<T> {
+    /// Create new training data
+    pub fn new(inputs: Vec<Vec<T>>, outputs: Vec<Vec<T>>) -> Result<Self, TrainingError> {
+        if inputs.len() != outputs.len() {
+            return Err(TrainingError::InvalidData(
+                format!("Input and output sample counts don't match: {} vs {}", 
+                        inputs.len(), outputs.len())
+            ));
+        }
+        
+        if inputs.is_empty() {
+            return Err(TrainingError::InvalidData("No training samples provided".to_string()));
+        }
+        
+        Ok(Self { inputs, outputs })
+    }
+}
+
 /// Options for parallel training
 #[derive(Debug, Clone)]
 pub struct ParallelTrainingOptions {
@@ -284,7 +302,7 @@ pub trait TrainingAlgorithm<T: Float>: Send {
 }
 
 // Module declarations for specific algorithms
-mod backprop;
+pub mod backprop;
 mod quickprop;
 mod rprop;
 

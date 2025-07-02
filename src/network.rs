@@ -1,4 +1,4 @@
-use crate::{ActivationFunction, Layer, TrainingAlgorithm};
+use crate::{ActivationFunction, Layer, TrainingAlgorithm, TrainingData, TrainingError};
 use num_traits::Float;
 use rand::distributions::Uniform;
 use rand::Rng;
@@ -31,6 +31,11 @@ pub struct Network<T: Float> {
 
     /// Connection rate (1.0 = fully connected, 0.0 = no connections)
     pub connection_rate: T,
+    
+    /// Backend selector for GPU acceleration (if enabled)
+    #[cfg(feature = "gpu")]
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub backend_selector: Option<crate::webgpu::BackendSelector>,
 }
 
 impl<T: Float> Network<T> {
@@ -303,6 +308,25 @@ impl<T: Float> Network<T> {
     pub fn run_batch(&mut self, inputs: &[Vec<T>]) -> Vec<Vec<T>> {
         inputs.iter().map(|input| self.run(input)).collect()
     }
+    
+    /// Train the network for one epoch using simple gradient descent
+    pub fn train_epoch(&mut self, data: &TrainingData<T>, learning_rate: T) -> Result<T, TrainingError> 
+    where
+        T: Send + Default,
+    {
+        use crate::training::backprop::IncrementalBackprop;
+        use crate::training::TrainingAlgorithm as TrainingAlgorithmTrait;
+        
+        let mut trainer = IncrementalBackprop::new(learning_rate);
+        trainer.train_epoch(self, data)
+    }
+    
+    /// Set the backend selector for GPU acceleration
+    #[cfg(feature = "gpu")]
+    pub fn set_backend_selector(&mut self, selector: crate::webgpu::BackendSelector) -> Result<(), NetworkError> {
+        self.backend_selector = Some(selector);
+        Ok(())
+    }
 
     /// Serialize the network to bytes
     #[cfg(all(feature = "binary", feature = "serde"))]
@@ -470,6 +494,8 @@ impl<T: Float> NetworkBuilder<T> {
         Network {
             layers: network_layers,
             connection_rate: self.connection_rate,
+            #[cfg(feature = "gpu")]
+            backend_selector: None,
         }
     }
 }

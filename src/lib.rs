@@ -49,6 +49,14 @@ pub mod training;
 #[cfg(feature = "io")]
 pub mod io;
 
+// GPU acceleration module
+#[cfg(feature = "gpu")]
+pub mod network_gpu;
+
+// GPU acceleration module
+#[cfg(feature = "gpu")]
+pub mod webgpu;
+
 // Test module
 #[cfg(test)]
 mod tests;
