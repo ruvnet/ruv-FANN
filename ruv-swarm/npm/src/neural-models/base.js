@@ -12,7 +12,7 @@ class NeuralModel {
       accuracy: 0,
       loss: 1.0,
       epochsTrained: 0,
-      totalSamples: 0
+      totalSamples: 0,
     };
   }
 
@@ -34,14 +34,14 @@ class NeuralModel {
   async validate(validationData) {
     let totalLoss = 0;
     let batchCount = 0;
-    
+
     for (const batch of validationData) {
       const predictions = await this.forward(batch.inputs, false);
       const loss = this.crossEntropyLoss(predictions, batch.targets);
       totalLoss += loss;
       batchCount++;
     }
-    
+
     return totalLoss / batchCount;
   }
 
@@ -52,13 +52,13 @@ class NeuralModel {
     if (!a.shape || !b.shape || a.shape.length < 2 || b.shape.length < 2) {
       throw new Error('Invalid matrix dimensions for multiplication');
     }
-    
+
     const m = a.shape[0];
     const n = a.shape[1];
     const p = b.shape[b.shape.length - 1];
-    
+
     const result = new Float32Array(m * p);
-    
+
     for (let i = 0; i < m; i++) {
       for (let j = 0; j < p; j++) {
         let sum = 0;
@@ -68,7 +68,7 @@ class NeuralModel {
         result[i * p + j] = sum;
       }
     }
-    
+
     result.shape = [m, p];
     return result;
   }
@@ -78,12 +78,12 @@ class NeuralModel {
     if (a.length !== b.length) {
       throw new Error('Tensors must have same length for addition');
     }
-    
+
     const result = new Float32Array(a.length);
     for (let i = 0; i < a.length; i++) {
       result[i] = a[i] + b[i];
     }
-    
+
     result.shape = a.shape;
     return result;
   }
@@ -92,11 +92,11 @@ class NeuralModel {
     // Add bias to last dimension
     const result = new Float32Array(input.length);
     const lastDim = bias.length;
-    
+
     for (let i = 0; i < input.length; i++) {
       result[i] = input[i] + bias[i % lastDim];
     }
-    
+
     result.shape = input.shape;
     return result;
   }
@@ -104,11 +104,11 @@ class NeuralModel {
   relu(input) {
     // ReLU activation
     const result = new Float32Array(input.length);
-    
+
     for (let i = 0; i < input.length; i++) {
       result[i] = Math.max(0, input[i]);
     }
-    
+
     result.shape = input.shape;
     return result;
   }
@@ -116,11 +116,11 @@ class NeuralModel {
   sigmoid(input) {
     // Sigmoid activation
     const result = new Float32Array(input.length);
-    
+
     for (let i = 0; i < input.length; i++) {
       result[i] = 1 / (1 + Math.exp(-input[i]));
     }
-    
+
     result.shape = input.shape;
     return result;
   }
@@ -128,22 +128,24 @@ class NeuralModel {
   tanh(input) {
     // Tanh activation
     const result = new Float32Array(input.length);
-    
+
     for (let i = 0; i < input.length; i++) {
       result[i] = Math.tanh(input[i]);
     }
-    
+
     result.shape = input.shape;
     return result;
   }
 
   dropout(input, rate) {
     // Apply dropout during training
-    if (rate <= 0) return input;
-    
+    if (rate <= 0) {
+      return input;
+    }
+
     const result = new Float32Array(input.length);
     const scale = 1 / (1 - rate);
-    
+
     for (let i = 0; i < input.length; i++) {
       if (Math.random() > rate) {
         result[i] = input[i] * scale;
@@ -151,7 +153,7 @@ class NeuralModel {
         result[i] = 0;
       }
     }
-    
+
     result.shape = input.shape;
     return result;
   }
@@ -160,7 +162,7 @@ class NeuralModel {
     // Cross-entropy loss for classification
     let loss = 0;
     const epsilon = 1e-7; // For numerical stability
-    
+
     for (let i = 0; i < predictions.length; i++) {
       const pred = Math.max(epsilon, Math.min(1 - epsilon, predictions[i]));
       if (targets[i] === 1) {
@@ -169,31 +171,31 @@ class NeuralModel {
         loss -= Math.log(1 - pred);
       }
     }
-    
+
     return loss / predictions.length;
   }
 
   meanSquaredError(predictions, targets) {
     // MSE loss for regression
     let loss = 0;
-    
+
     for (let i = 0; i < predictions.length; i++) {
       const diff = predictions[i] - targets[i];
       loss += diff * diff;
     }
-    
+
     return loss / predictions.length;
   }
 
   shuffle(array) {
     // Fisher-Yates shuffle
     const shuffled = [...array];
-    
+
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
-    
+
     return shuffled;
   }
 
@@ -204,9 +206,9 @@ class NeuralModel {
       config: this.getConfig(),
       weights: this.getWeights(),
       metrics: this.metrics,
-      trainingHistory: this.trainingHistory
+      trainingHistory: this.trainingHistory,
     };
-    
+
     // In a real implementation, save to file
     console.log(`Saving ${this.modelType} model to ${filePath}`);
     return modelData;
@@ -231,7 +233,7 @@ class NeuralModel {
   getConfig() {
     // To be overridden by subclasses
     return {
-      modelType: this.modelType
+      modelType: this.modelType,
     };
   }
 
@@ -239,7 +241,7 @@ class NeuralModel {
     return {
       ...this.metrics,
       modelType: this.modelType,
-      trainingHistory: this.trainingHistory
+      trainingHistory: this.trainingHistory,
     };
   }
 
@@ -258,7 +260,7 @@ class NeuralModel {
       accuracy: 0,
       loss: 1.0,
       epochsTrained: 0,
-      totalSamples: 0
+      totalSamples: 0,
     };
     this.initializeWeights();
   }

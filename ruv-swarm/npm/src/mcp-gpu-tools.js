@@ -27,20 +27,20 @@ export class GPUMCPTools extends EnhancedMCPTools {
    */
   async gpu_status(params) {
     const startTime = performance.now();
-    
+
     try {
       const { verbose = false, refresh = false } = params;
-      
+
       // Refresh GPU status if requested or if it's been more than 5 minutes
       const now = Date.now();
-      const shouldRefresh = refresh || 
-        !this.gpuConfig.lastCheck || 
+      const shouldRefresh = refresh ||
+        !this.gpuConfig.lastCheck ||
         (now - this.gpuConfig.lastCheck) > 300000;
-      
+
       if (shouldRefresh) {
         await this.refreshGPUStatus();
       }
-      
+
       const result = {
         gpu_available: this.gpuConfig.enabled,
         backend_type: this.gpuConfig.backend || 'none',
@@ -52,7 +52,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
           acceleration_enabled: this.gpuConfig.enabled,
         },
       };
-      
+
       if (this.gpuConfig.capabilities) {
         result.capabilities = {
           max_buffer_size: this.gpuConfig.capabilities.maxBufferSize,
@@ -64,7 +64,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
           compute_units: this.gpuConfig.capabilities.computeUnits || 0,
         };
       }
-      
+
       if (verbose && this.gpuConfig.enabled) {
         result.detailed_info = {
           adapter_info: this.gpuConfig.adapterInfo || {},
@@ -79,7 +79,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
           },
         };
       }
-      
+
       if (!this.gpuConfig.enabled) {
         result.fallback_reason = this.gpuConfig.fallbackReason || 'WebGPU not available';
         result.recommendations = [
@@ -89,7 +89,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
           'Performance will use optimized CPU/SIMD fallback',
         ];
       }
-      
+
       this.recordToolMetrics('gpu_status', startTime, 'success');
       return result;
     } catch (error) {
@@ -104,7 +104,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
    */
   async gpu_benchmark(params) {
     const startTime = performance.now();
-    
+
     try {
       const {
         operations = ['matrix_multiply', 'activation', 'backprop'],
@@ -112,7 +112,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
         iterations = 10,
         compare_backends = true,
       } = params;
-      
+
       const results = {
         timestamp: new Date().toISOString(),
         environment: {
@@ -122,29 +122,29 @@ export class GPUMCPTools extends EnhancedMCPTools {
         },
         benchmarks: {},
       };
-      
+
       // Ensure we have fresh GPU status
       await this.refreshGPUStatus();
-      
+
       for (const operation of operations) {
         results.benchmarks[operation] = {};
-        
+
         for (const size of matrix_sizes) {
           const benchmark = await this.runGPUBenchmark(operation, size, iterations);
           results.benchmarks[operation][`size_${size}`] = benchmark;
         }
       }
-      
+
       if (compare_backends) {
         results.comparison = this.generateBackendComparison(results.benchmarks);
       }
-      
+
       results.summary = {
         fastest_backend: this.determineFastestBackend(results.benchmarks),
         gpu_speedup: this.calculateGPUSpeedup(results.benchmarks),
         recommendations: this.generatePerformanceRecommendations(results),
       };
-      
+
       this.recordToolMetrics('gpu_benchmark', startTime, 'success');
       return results;
     } catch (error) {
@@ -159,10 +159,10 @@ export class GPUMCPTools extends EnhancedMCPTools {
    */
   async gpu_memory(params) {
     const startTime = performance.now();
-    
+
     try {
       const { detail = 'summary', include_buffers = false } = params;
-      
+
       if (!this.gpuConfig.enabled) {
         return {
           gpu_available: false,
@@ -170,7 +170,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
           cpu_memory: await this.getCPUMemoryStats(),
         };
       }
-      
+
       const memoryStats = {
         timestamp: new Date().toISOString(),
         gpu_memory: {
@@ -182,19 +182,19 @@ export class GPUMCPTools extends EnhancedMCPTools {
           fragmentation_ratio: 0,
         },
       };
-      
+
       // Get memory stats from WebGPU if available
       if (this.gpuConfig.backend === 'webgpu') {
         const gpuMemory = await this.getWebGPUMemoryStats();
         memoryStats.gpu_memory = gpuMemory;
       }
-      
+
       if (detail === 'detailed') {
         memoryStats.memory_pressure = {
           level: this.calculateMemoryPressure(memoryStats.gpu_memory),
           recommendation: this.getMemoryRecommendation(memoryStats.gpu_memory),
         };
-        
+
         memoryStats.allocation_stats = {
           peak_usage_mb: this.gpuConfig.peakMemoryUsage || 0,
           allocation_count: this.gpuConfig.allocationCount || 0,
@@ -202,7 +202,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
           gc_runs: this.gpuConfig.gcRuns || 0,
         };
       }
-      
+
       if (include_buffers && this.gpuConfig.buffers) {
         memoryStats.active_buffers = this.gpuConfig.buffers.map(buffer => ({
           id: buffer.id,
@@ -212,7 +212,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
           usage_count: buffer.usageCount,
         }));
       }
-      
+
       this.recordToolMetrics('gpu_memory', startTime, 'success');
       return memoryStats;
     } catch (error) {
@@ -227,7 +227,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
    */
   async gpu_enable(params) {
     const startTime = performance.now();
-    
+
     try {
       const {
         enable = true,
@@ -235,16 +235,16 @@ export class GPUMCPTools extends EnhancedMCPTools {
         force = false,
         validation = true,
       } = params;
-      
+
       const previousState = {
         enabled: this.gpuConfig.enabled,
         backend: this.gpuConfig.backend,
       };
-      
+
       if (enable) {
         // Attempt to enable GPU
         const gpuAvailable = await this.checkWebGPUSupport();
-        
+
         if (!gpuAvailable && !force) {
           return {
             success: false,
@@ -254,10 +254,10 @@ export class GPUMCPTools extends EnhancedMCPTools {
             fallback: 'Using optimized CPU/SIMD backend',
           };
         }
-        
+
         // Initialize GPU backend
         const initResult = await this.initializeGPUBackend(backend);
-        
+
         if (validation) {
           // Run validation tests
           const validationResult = await this.validateGPUBackend();
@@ -271,10 +271,10 @@ export class GPUMCPTools extends EnhancedMCPTools {
             };
           }
         }
-        
+
         this.gpuConfig.enabled = true;
         this.gpuConfig.backend = initResult.backend;
-        
+
         return {
           success: true,
           message: 'GPU acceleration enabled',
@@ -289,28 +289,28 @@ export class GPUMCPTools extends EnhancedMCPTools {
             initialization_time_ms: performance.now() - startTime,
           },
         };
-      } else {
-        // Disable GPU
-        this.gpuConfig.enabled = false;
-        this.gpuConfig.backend = 'cpu';
-        
-        // Clean up GPU resources
-        await this.cleanupGPUResources();
-        
-        return {
-          success: true,
-          message: 'GPU acceleration disabled',
-          previous_state: previousState,
-          current_state: {
-            enabled: false,
-            backend: 'cpu',
-          },
-          performance_impact: {
-            expected_slowdown: 'Varies by operation size',
-            fallback_optimization: 'SIMD operations when available',
-          },
-        };
       }
+      // Disable GPU
+      this.gpuConfig.enabled = false;
+      this.gpuConfig.backend = 'cpu';
+
+      // Clean up GPU resources
+      await this.cleanupGPUResources();
+
+      return {
+        success: true,
+        message: 'GPU acceleration disabled',
+        previous_state: previousState,
+        current_state: {
+          enabled: false,
+          backend: 'cpu',
+        },
+        performance_impact: {
+          expected_slowdown: 'Varies by operation size',
+          fallback_optimization: 'SIMD operations when available',
+        },
+      };
+
     } catch (error) {
       this.recordToolMetrics('gpu_enable', startTime, 'error', error.message);
       throw error;
@@ -323,7 +323,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
    */
   async gpu_profile(params) {
     const startTime = performance.now();
-    
+
     try {
       const {
         network_layers = [784, 128, 10],
@@ -332,7 +332,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
         iterations = 100,
         warmup_iterations = 10,
       } = params;
-      
+
       if (!this.gpuConfig.enabled) {
         return {
           gpu_available: false,
@@ -340,7 +340,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
           suggestion: 'Run gpu_enable first or use CPU profiling',
         };
       }
-      
+
       const profile = {
         timestamp: new Date().toISOString(),
         configuration: {
@@ -353,23 +353,23 @@ export class GPUMCPTools extends EnhancedMCPTools {
         memory_usage: {},
         bottlenecks: [],
       };
-      
+
       // Warmup phase
       for (let i = 0; i < warmup_iterations; i++) {
         await this.runNeuralOperation('forward', network_layers, batch_size);
       }
-      
+
       // Profile each operation
       for (const operation of operations) {
         const timings = [];
         const memorySnapshots = [];
-        
+
         for (let i = 0; i < iterations; i++) {
           const opStart = performance.now();
           const memBefore = await this.getWebGPUMemoryStats();
-          
+
           await this.runNeuralOperation(operation, network_layers, batch_size);
-          
+
           const memAfter = await this.getWebGPUMemoryStats();
           timings.push(performance.now() - opStart);
           memorySnapshots.push({
@@ -378,7 +378,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
             delta: memAfter.used_mb - memBefore.used_mb,
           });
         }
-        
+
         profile.timings[operation] = {
           avg_ms: timings.reduce((a, b) => a + b, 0) / timings.length,
           min_ms: Math.min(...timings),
@@ -390,26 +390,26 @@ export class GPUMCPTools extends EnhancedMCPTools {
             p99: this.calculatePercentile(timings, 99),
           },
         };
-        
+
         profile.memory_usage[operation] = {
           avg_delta_mb: memorySnapshots.reduce((a, b) => a + b.delta, 0) / memorySnapshots.length,
           peak_mb: Math.max(...memorySnapshots.map(m => m.after)),
         };
       }
-      
+
       // Identify bottlenecks
       profile.bottlenecks = this.identifyBottlenecks(profile);
-      
+
       // Generate optimization suggestions
       profile.optimizations = this.generateOptimizationSuggestions(profile);
-      
+
       // Calculate theoretical limits
       profile.theoretical_performance = {
         flops: this.calculateTheoreticalFLOPS(network_layers, batch_size),
         memory_bandwidth_required_gbps: this.calculateRequiredBandwidth(network_layers, batch_size),
         utilization_percentage: this.calculateGPUUtilization(profile),
       };
-      
+
       this.recordToolMetrics('gpu_profile', startTime, 'success');
       return profile;
     } catch (error) {
@@ -434,18 +434,18 @@ export class GPUMCPTools extends EnhancedMCPTools {
 
   async checkSIMDSupport() {
     // Check for SIMD support in the environment
-    return typeof WebAssembly !== 'undefined' && 
+    return typeof WebAssembly !== 'undefined' &&
            WebAssembly.validate !== undefined;
   }
 
   async refreshGPUStatus() {
     try {
       const gpuAvailable = await this.checkWebGPUSupport();
-      
+
       if (gpuAvailable) {
         const adapter = await navigator.gpu.requestAdapter();
         const device = await adapter.requestDevice();
-        
+
         this.gpuConfig.enabled = true;
         this.gpuConfig.backend = 'webgpu';
         this.gpuConfig.capabilities = {
@@ -464,7 +464,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
         this.gpuConfig.backend = 'cpu';
         this.gpuConfig.fallbackReason = 'WebGPU not supported';
       }
-      
+
       this.gpuConfig.lastCheck = Date.now();
     } catch (error) {
       this.gpuConfig.enabled = false;
@@ -479,7 +479,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
       cpu: [],
       simd: [],
     };
-    
+
     // Simulate benchmark runs
     for (let i = 0; i < iterations; i++) {
       // GPU timing (simulated)
@@ -488,18 +488,18 @@ export class GPUMCPTools extends EnhancedMCPTools {
         await this.simulateGPUOperation(operation, size);
         timings.gpu.push(performance.now() - gpuStart);
       }
-      
+
       // CPU timing (simulated)
       const cpuStart = performance.now();
       await this.simulateCPUOperation(operation, size);
       timings.cpu.push(performance.now() - cpuStart);
-      
+
       // SIMD timing (simulated)
       const simdStart = performance.now();
       await this.simulateSIMDOperation(operation, size);
       timings.simd.push(performance.now() - simdStart);
     }
-    
+
     return {
       gpu: this.gpuConfig.enabled ? {
         avg_ms: timings.gpu.reduce((a, b) => a + b, 0) / timings.gpu.length,
@@ -542,10 +542,10 @@ export class GPUMCPTools extends EnhancedMCPTools {
 
   generateBackendComparison(benchmarks) {
     const comparison = {};
-    
+
     for (const [operation, sizes] of Object.entries(benchmarks)) {
       comparison[operation] = {};
-      
+
       for (const [size, results] of Object.entries(sizes)) {
         const cpuTime = results.cpu.avg_ms;
         comparison[operation][size] = {
@@ -555,7 +555,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
         };
       }
     }
-    
+
     return comparison;
   }
 
@@ -563,7 +563,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
     let gpuWins = 0;
     let simdWins = 0;
     let cpuWins = 0;
-    
+
     for (const sizes of Object.values(benchmarks)) {
       for (const results of Object.values(sizes)) {
         const times = {
@@ -571,28 +571,38 @@ export class GPUMCPTools extends EnhancedMCPTools {
           simd: results.simd.avg_ms,
           cpu: results.cpu.avg_ms,
         };
-        
-        const fastest = Object.entries(times).reduce((a, b) => 
-          a[1] < b[1] ? a : b
+
+        const fastest = Object.entries(times).reduce((a, b) =>
+          a[1] < b[1] ? a : b,
         )[0];
-        
-        if (fastest === 'gpu') gpuWins++;
-        else if (fastest === 'simd') simdWins++;
-        else cpuWins++;
+
+        if (fastest === 'gpu') {
+          gpuWins++;
+        } else if (fastest === 'simd') {
+          simdWins++;
+        } else {
+          cpuWins++;
+        }
       }
     }
-    
-    if (gpuWins >= simdWins && gpuWins >= cpuWins) return 'gpu';
-    if (simdWins >= cpuWins) return 'simd';
+
+    if (gpuWins >= simdWins && gpuWins >= cpuWins) {
+      return 'gpu';
+    }
+    if (simdWins >= cpuWins) {
+      return 'simd';
+    }
     return 'cpu';
   }
 
   calculateGPUSpeedup(benchmarks) {
-    if (!this.gpuConfig.enabled) return 0;
-    
+    if (!this.gpuConfig.enabled) {
+      return 0;
+    }
+
     let totalSpeedup = 0;
     let count = 0;
-    
+
     for (const sizes of Object.values(benchmarks)) {
       for (const results of Object.values(sizes)) {
         if (results.gpu) {
@@ -601,14 +611,14 @@ export class GPUMCPTools extends EnhancedMCPTools {
         }
       }
     }
-    
+
     return count > 0 ? totalSpeedup / count : 0;
   }
 
   generatePerformanceRecommendations(results) {
     const recommendations = [];
     const avgSpeedup = results.summary.gpu_speedup;
-    
+
     if (avgSpeedup < 2) {
       recommendations.push('GPU shows minimal benefit for current workload');
       recommendations.push('Consider using SIMD optimizations instead');
@@ -616,12 +626,12 @@ export class GPUMCPTools extends EnhancedMCPTools {
       recommendations.push('GPU acceleration highly beneficial');
       recommendations.push('Consider moving more operations to GPU');
     }
-    
+
     if (!this.gpuConfig.enabled) {
       recommendations.push('Enable GPU for significant performance gains');
       recommendations.push('Ensure WebGPU-compatible browser/environment');
     }
-    
+
     return recommendations;
   }
 
@@ -656,23 +666,27 @@ export class GPUMCPTools extends EnhancedMCPTools {
 
   calculateMemoryPressure(memoryStats) {
     const usageRatio = memoryStats.used_mb / memoryStats.available_mb;
-    if (usageRatio < 0.5) return 'low';
-    if (usageRatio < 0.8) return 'medium';
+    if (usageRatio < 0.5) {
+      return 'low';
+    }
+    if (usageRatio < 0.8) {
+      return 'medium';
+    }
     return 'high';
   }
 
   getMemoryRecommendation(memoryStats) {
     const pressure = this.calculateMemoryPressure(memoryStats);
-    
+
     switch (pressure) {
-      case 'low':
-        return 'Memory usage optimal, can increase batch sizes';
-      case 'medium':
-        return 'Memory usage moderate, current configuration is balanced';
-      case 'high':
-        return 'High memory pressure, consider reducing batch sizes or enabling memory optimization';
-      default:
-        return 'Monitor memory usage during training';
+    case 'low':
+      return 'Memory usage optimal, can increase batch sizes';
+    case 'medium':
+      return 'Memory usage moderate, current configuration is balanced';
+    case 'high':
+      return 'High memory pressure, consider reducing batch sizes or enabling memory optimization';
+    default:
+      return 'Monitor memory usage during training';
     }
   }
 
@@ -695,9 +709,9 @@ export class GPUMCPTools extends EnhancedMCPTools {
       { name: 'memory_transfer', passed: true },
       { name: 'shader_compilation', passed: true },
     ];
-    
+
     const errors = tests.filter(t => !t.passed).map(t => t.name);
-    
+
     return {
       passed: errors.length === 0,
       errors,
@@ -735,7 +749,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
 
   identifyBottlenecks(profile) {
     const bottlenecks = [];
-    
+
     // Check for memory bottlenecks
     for (const [op, mem] of Object.entries(profile.memory_usage)) {
       if (mem.avg_delta_mb > 100) {
@@ -747,7 +761,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
         });
       }
     }
-    
+
     // Check for compute bottlenecks
     for (const [op, timing] of Object.entries(profile.timings)) {
       if (timing.std_dev > timing.avg_ms * 0.2) {
@@ -759,31 +773,31 @@ export class GPUMCPTools extends EnhancedMCPTools {
         });
       }
     }
-    
+
     return bottlenecks;
   }
 
   generateOptimizationSuggestions(profile) {
     const suggestions = [];
-    
+
     // Check for memory optimizations
     const totalMemory = Object.values(profile.memory_usage)
       .reduce((sum, mem) => sum + mem.avg_delta_mb, 0);
-    
+
     if (totalMemory > 500) {
       suggestions.push('Consider gradient checkpointing to reduce memory usage');
       suggestions.push('Use mixed precision training (FP16) to halve memory requirements');
     }
-    
+
     // Check for compute optimizations
     const avgTime = Object.values(profile.timings)
       .reduce((sum, t) => sum + t.avg_ms, 0) / Object.keys(profile.timings).length;
-    
+
     if (avgTime > 100) {
       suggestions.push('Consider reducing batch size for lower latency');
       suggestions.push('Enable tensor cores for faster matrix multiplication');
     }
-    
+
     return suggestions;
   }
 
@@ -813,7 +827,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
     const theoreticalTimeMs = 0.01; // Assume 10 microseconds theoretical minimum
     const actualTimeMs = Object.values(profile.timings)
       .reduce((sum, t) => sum + t.avg_ms, 0) / Object.keys(profile.timings).length;
-    
+
     return Math.min(100, (theoreticalTimeMs / actualTimeMs) * 100);
   }
   /**
@@ -822,7 +836,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
    */
   async gpu_orchestrate_task(params) {
     const startTime = performance.now();
-    
+
     try {
       const {
         task_type = 'training',
@@ -831,7 +845,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
         priority = 'medium',
         load_balancing = 'round_robin',
       } = params;
-      
+
       if (!this.gpuOrchestrator) {
         // Initialize orchestrator if not exists
         const { createGPUTaskOrchestrator } = await import('./gpu-task-orchestration.js');
@@ -840,7 +854,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
           maxConcurrentTasks: 10,
         });
       }
-      
+
       // Validate agent list
       if (!Array.isArray(agents) || agents.length === 0) {
         return {
@@ -849,7 +863,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
           available_agents: await this.getAvailableAgents(),
         };
       }
-      
+
       // Create task configuration
       const taskConfig = {
         type: task_type,
@@ -863,10 +877,10 @@ export class GPUMCPTools extends EnhancedMCPTools {
         },
         ...configuration,
       };
-      
+
       // Orchestrate the task
       const task = await this.gpuOrchestrator.orchestrateTask(taskConfig, agents);
-      
+
       const result = {
         success: true,
         task_id: task.id,
@@ -880,7 +894,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
           load_balance_score: this.gpuOrchestrator.calculateLoadBalanceMetric(),
         },
       };
-      
+
       this.recordToolMetrics('gpu_orchestrate_task', startTime, 'success');
       return result;
     } catch (error) {
@@ -895,20 +909,20 @@ export class GPUMCPTools extends EnhancedMCPTools {
    */
   async gpu_orchestration_status(params) {
     const startTime = performance.now();
-    
+
     try {
       const { include_agents = true, include_queue = true, include_metrics = true } = params;
-      
+
       if (!this.gpuOrchestrator) {
         return {
           orchestrator_active: false,
           message: 'GPU orchestrator not initialized. Create a task first.',
         };
       }
-      
+
       const resourceStatus = this.gpuOrchestrator.resourceCoordinator.getResourceStatus();
       const performanceMetrics = this.gpuOrchestrator.getPerformanceMetrics();
-      
+
       const status = {
         orchestrator_active: true,
         timestamp: new Date().toISOString(),
@@ -926,7 +940,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
           total_processed: resourceStatus.metrics.totalTasksProcessed,
         },
       };
-      
+
       if (include_agents) {
         status.agent_allocations = resourceStatus.allocations.map(allocation => ({
           agent_id: allocation.agentId,
@@ -936,7 +950,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
           allocated_duration_ms: Date.now() - allocation.allocatedAt,
           last_used_ms_ago: Date.now() - allocation.lastUsed,
         }));
-        
+
         status.agent_performance = Array.from(this.gpuOrchestrator.performanceProfile.entries()).map(([agentId, profile]) => ({
           agent_id: agentId,
           total_tasks: profile.totalTasks,
@@ -945,7 +959,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
           task_types: Object.keys(profile.byTaskType),
         }));
       }
-      
+
       if (include_queue && this.gpuOrchestrator.resourceCoordinator.taskQueue.length > 0) {
         status.task_queue = this.gpuOrchestrator.resourceCoordinator.taskQueue.slice(0, 10).map(task => ({
           task_id: task.id,
@@ -958,19 +972,19 @@ export class GPUMCPTools extends EnhancedMCPTools {
           queue_time_ms: Date.now() - (task.queuedAt || Date.now()),
         }));
       }
-      
+
       if (include_metrics) {
         status.performance_metrics = {
           tasks_per_second: performanceMetrics.tasksPerSecond.toFixed(2),
           average_latency_ms: Math.round(performanceMetrics.averageLatency),
-          success_rate: (performanceMetrics.successRate * 100).toFixed(1) + '%',
-          gpu_utilization: (performanceMetrics.gpuUtilization * 100).toFixed(1) + '%',
-          memory_efficiency: (performanceMetrics.memoryEfficiency * 100).toFixed(1) + '%',
+          success_rate: `${(performanceMetrics.successRate * 100).toFixed(1) }%`,
+          gpu_utilization: `${(performanceMetrics.gpuUtilization * 100).toFixed(1) }%`,
+          memory_efficiency: `${(performanceMetrics.memoryEfficiency * 100).toFixed(1) }%`,
           load_balance_score: performanceMetrics.agentLoadBalance?.toFixed(2) || '0.00',
           conflict_resolutions: resourceStatus.metrics.conflictResolutions,
         };
       }
-      
+
       this.recordToolMetrics('gpu_orchestration_status', startTime, 'success');
       return status;
     } catch (error) {
@@ -985,7 +999,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
    */
   async gpu_configure_orchestration(params) {
     const startTime = performance.now();
-    
+
     try {
       const {
         load_balancing_strategy = null,
@@ -995,19 +1009,19 @@ export class GPUMCPTools extends EnhancedMCPTools {
         enable_auto_scaling = false,
         priority_weights = null,
       } = params;
-      
+
       if (!this.gpuOrchestrator) {
         const { createGPUTaskOrchestrator } = await import('./gpu-task-orchestration.js');
         this.gpuOrchestrator = createGPUTaskOrchestrator(this.ruvSwarm);
       }
-      
+
       const oldConfig = {
         loadBalancingStrategy: this.gpuOrchestrator.loadBalancingStrategy,
         maxConcurrentTasks: this.gpuOrchestrator.maxConcurrentTasks,
         maxMemoryMB: this.gpuOrchestrator.resourceCoordinator.resources.totalMemoryMB,
         maxComputeUnits: this.gpuOrchestrator.resourceCoordinator.resources.totalComputeUnits,
       };
-      
+
       // Update configuration
       if (load_balancing_strategy) {
         const validStrategies = ['round_robin', 'least_loaded', 'performance_based', 'resource_aware'];
@@ -1016,34 +1030,34 @@ export class GPUMCPTools extends EnhancedMCPTools {
         }
         this.gpuOrchestrator.loadBalancingStrategy = load_balancing_strategy;
       }
-      
+
       if (max_concurrent_tasks) {
         this.gpuOrchestrator.maxConcurrentTasks = Math.max(1, Math.min(100, max_concurrent_tasks));
       }
-      
+
       if (max_memory_mb) {
         this.gpuOrchestrator.resourceCoordinator.resources.totalMemoryMB = Math.max(128, max_memory_mb);
         this.gpuOrchestrator.resourceCoordinator.resources.availableMemoryMB = Math.min(
           this.gpuOrchestrator.resourceCoordinator.resources.availableMemoryMB,
-          max_memory_mb
+          max_memory_mb,
         );
       }
-      
+
       if (max_compute_units) {
         this.gpuOrchestrator.resourceCoordinator.resources.totalComputeUnits = Math.max(1, max_compute_units);
         this.gpuOrchestrator.resourceCoordinator.resources.availableComputeUnits = Math.min(
           this.gpuOrchestrator.resourceCoordinator.resources.availableComputeUnits,
-          max_compute_units
+          max_compute_units,
         );
       }
-      
+
       const newConfig = {
         loadBalancingStrategy: this.gpuOrchestrator.loadBalancingStrategy,
         maxConcurrentTasks: this.gpuOrchestrator.maxConcurrentTasks,
         maxMemoryMB: this.gpuOrchestrator.resourceCoordinator.resources.totalMemoryMB,
         maxComputeUnits: this.gpuOrchestrator.resourceCoordinator.resources.totalComputeUnits,
       };
-      
+
       this.recordToolMetrics('gpu_configure_orchestration', startTime, 'success');
       return {
         success: true,
@@ -1065,20 +1079,20 @@ export class GPUMCPTools extends EnhancedMCPTools {
    */
   async gpu_get_task_results(params) {
     const startTime = performance.now();
-    
+
     try {
       const { task_id, include_metrics = true, include_logs = false } = params;
-      
+
       if (!this.gpuOrchestrator) {
         return {
           success: false,
           error: 'GPU orchestrator not initialized',
         };
       }
-      
+
       const task = this.gpuOrchestrator.resourceCoordinator.completedTasks.get(task_id) ||
                    this.gpuOrchestrator.resourceCoordinator.runningTasks.get(task_id);
-      
+
       if (!task) {
         return {
           success: false,
@@ -1086,7 +1100,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
           available_tasks: Array.from(this.gpuOrchestrator.resourceCoordinator.completedTasks.keys()),
         };
       }
-      
+
       const result = {
         success: true,
         task_id: task.id,
@@ -1098,7 +1112,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
         result: task.result,
         error: task.error,
       };
-      
+
       if (include_metrics) {
         result.performance_metrics = {
           gpu_utilization: task.metrics.gpuUtilization,
@@ -1106,7 +1120,7 @@ export class GPUMCPTools extends EnhancedMCPTools {
           power_consumption_watts: task.metrics.powerConsumption,
           throughput: task.metrics.throughput,
         };
-        
+
         result.resource_usage = {
           memory_allocated_mb: task.requirements.memoryMB,
           compute_units_used: task.requirements.computeUnits,
@@ -1114,11 +1128,11 @@ export class GPUMCPTools extends EnhancedMCPTools {
           shared_memory: task.requirements.sharedMemory,
         };
       }
-      
+
       if (include_logs && task.logs) {
         result.execution_logs = task.logs;
       }
-      
+
       this.recordToolMetrics('gpu_get_task_results', startTime, 'success');
       return result;
     } catch (error) {
@@ -1144,8 +1158,8 @@ export class GPUMCPTools extends EnhancedMCPTools {
     if (!this.gpuOrchestrator) {
       return { memory_available: true, compute_available: true };
     }
-    
-    const resources = this.gpuOrchestrator.resourceCoordinator.resources;
+
+    const { resources } = this.gpuOrchestrator.resourceCoordinator;
     return {
       memory_available: resources.availableMemoryMB > 128,
       compute_available: resources.availableComputeUnits > 0,

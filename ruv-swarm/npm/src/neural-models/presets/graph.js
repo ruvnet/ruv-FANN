@@ -1,5 +1,5 @@
 /**
- * Graph Analysis Neural Network Presets  
+ * Graph Analysis Neural Network Presets
  * Production-ready configurations for graph-based learning tasks
  */
 
@@ -19,7 +19,7 @@ export const graphPresets = {
       messagePassingType: 'gcn',
       readoutFunction: 'mean',
       dropoutRate: 0.3,
-      useResidualConnections: true
+      useResidualConnections: true,
     },
     training: {
       batchSize: 16,
@@ -29,15 +29,15 @@ export const graphPresets = {
       scheduler: 'cosine',
       graphSampling: 'fastgcn',
       samplingDepth: 2,
-      samplingWidth: 20
+      samplingWidth: 20,
     },
     performance: {
       expectedAccuracy: '84-87% influence prediction',
       inferenceTime: '25ms per graph',
       memoryUsage: '800MB',
-      trainingTime: '12-16 hours on GPU'
+      trainingTime: '12-16 hours on GPU',
     },
-    useCase: 'Social media marketing, viral content prediction, community detection'
+    useCase: 'Social media marketing, viral content prediction, community detection',
   },
 
   // Fraud Detection Financial
@@ -56,7 +56,7 @@ export const graphPresets = {
       attentionHeads: 4,
       dropoutRate: 0.4,
       useEdgeFeatures: true,
-      temporalAggregation: true
+      temporalAggregation: true,
     },
     training: {
       batchSize: 32,
@@ -68,16 +68,16 @@ export const graphPresets = {
       classWeights: [1.0, 50.0], // Heavy penalty for missing fraud
       graphAugmentation: {
         nodeDropout: 0.1,
-        edgeDropout: 0.05
-      }
+        edgeDropout: 0.05,
+      },
     },
     performance: {
       expectedAccuracy: '96-98% precision on fraud class',
       inferenceTime: '8ms per transaction',
       memoryUsage: '400MB',
-      trainingTime: '24-36 hours on GPU'
+      trainingTime: '24-36 hours on GPU',
     },
-    useCase: 'Credit card fraud, money laundering detection, banking security'
+    useCase: 'Credit card fraud, money laundering detection, banking security',
   },
 
   // Recommendation Engine
@@ -95,7 +95,7 @@ export const graphPresets = {
       messagePassingType: 'lightgcn',
       useUserItemBias: true,
       dropoutRate: 0.1,
-      negativeSampling: 5
+      negativeSampling: 5,
     },
     training: {
       batchSize: 1024,
@@ -105,15 +105,15 @@ export const graphPresets = {
       lossFunction: 'bpr_loss',
       regularizationWeight: 1e-4,
       evaluationMetrics: ['recall@10', 'ndcg@10'],
-      edgeSampling: 'random_walk'
+      edgeSampling: 'random_walk',
     },
     performance: {
       expectedAccuracy: '88-91% Recall@10',
       inferenceTime: '2ms per user',
       memoryUsage: '600MB',
-      trainingTime: '8-12 hours on GPU'
+      trainingTime: '8-12 hours on GPU',
     },
-    useCase: 'E-commerce, content streaming, social media feeds'
+    useCase: 'E-commerce, content streaming, social media feeds',
   },
 
   // Knowledge Graph QA
@@ -132,7 +132,7 @@ export const graphPresets = {
       numRelationTypes: 200,
       questionEncoder: 'lstm',
       questionEmbeddingSize: 256,
-      multiHopReasoning: true
+      multiHopReasoning: true,
     },
     training: {
       batchSize: 8,
@@ -142,15 +142,15 @@ export const graphPresets = {
       gradientClipping: 1.0,
       subgraphSampling: 'khop',
       samplingHops: 3,
-      negativeAnswers: 10
+      negativeAnswers: 10,
     },
     performance: {
       expectedAccuracy: '78-82% answer accuracy',
       inferenceTime: '150ms per question',
       memoryUsage: '1.2GB',
-      trainingTime: '48-72 hours on GPU'
+      trainingTime: '48-72 hours on GPU',
     },
-    useCase: 'Intelligent search, virtual assistants, fact checking'
+    useCase: 'Intelligent search, virtual assistants, fact checking',
   },
 
   // Supply Chain Optimization
@@ -168,7 +168,7 @@ export const graphPresets = {
       messagePassingType: 'graphsage',
       samplerType: 'neighbor',
       useTemporalFeatures: true,
-      constraintHandling: true
+      constraintHandling: true,
     },
     training: {
       batchSize: 12,
@@ -178,15 +178,15 @@ export const graphPresets = {
       lossFunction: 'custom_cost_minimization',
       constraintPenalty: 100.0,
       simulationBasedTraining: true,
-      realTimeAdaptation: true
+      realTimeAdaptation: true,
     },
     performance: {
       expectedAccuracy: '12-15% cost reduction',
       inferenceTime: '50ms per decision',
       memoryUsage: '700MB',
-      trainingTime: '24-36 hours on GPU'
+      trainingTime: '24-36 hours on GPU',
     },
-    useCase: 'Logistics optimization, inventory management, route planning'
+    useCase: 'Logistics optimization, inventory management, route planning',
   },
 
   // Molecular Property Prediction
@@ -204,7 +204,7 @@ export const graphPresets = {
       messagePassingType: 'mpnn',
       globalPooling: 'set2set',
       readoutLayers: [128, 64],
-      dropoutRate: 0.2
+      dropoutRate: 0.2,
     },
     training: {
       batchSize: 64,
@@ -216,16 +216,16 @@ export const graphPresets = {
       molecularAugmentation: {
         randomRotation: true,
         atomMasking: 0.1,
-        bondDropout: 0.05
-      }
+        bondDropout: 0.05,
+      },
     },
     performance: {
       expectedAccuracy: '85-88% R² for solubility',
       inferenceTime: '5ms per molecule',
       memoryUsage: '300MB',
-      trainingTime: '16-24 hours on GPU'
+      trainingTime: '16-24 hours on GPU',
     },
-    useCase: 'Drug discovery, material science, chemical engineering'
+    useCase: 'Drug discovery, material science, chemical engineering',
   },
 
   // Traffic Flow Prediction
@@ -243,7 +243,7 @@ export const graphPresets = {
       messagePassingType: 'gcn',
       temporalConvolution: true,
       spatialTemporalFusion: 'gated',
-      dropoutRate: 0.25
+      dropoutRate: 0.25,
     },
     training: {
       batchSize: 24,
@@ -255,16 +255,16 @@ export const graphPresets = {
       timeSeriesSplit: true,
       augmentation: {
         temporalJitter: 0.1,
-        gaussianNoise: 0.05
-      }
+        gaussianNoise: 0.05,
+      },
     },
     performance: {
       expectedAccuracy: '91-94% MAE < 15%',
       inferenceTime: '15ms per prediction',
       memoryUsage: '500MB',
-      trainingTime: '12-18 hours on GPU'
+      trainingTime: '12-18 hours on GPU',
     },
-    useCase: 'Smart city planning, traffic management, route optimization'
+    useCase: 'Smart city planning, traffic management, route optimization',
   },
 
   // Scientific Citation Analysis
@@ -282,7 +282,7 @@ export const graphPresets = {
       messagePassingType: 'gat',
       attentionHeads: 8,
       temporalEvolution: true,
-      fieldSpecialization: true
+      fieldSpecialization: true,
     },
     training: {
       batchSize: 16,
@@ -292,15 +292,15 @@ export const graphPresets = {
       lossFunction: 'ranking_loss',
       marginRanking: 1.0,
       metaPathSampling: true,
-      communityAware: true
+      communityAware: true,
     },
     performance: {
       expectedAccuracy: '86-89% citation prediction',
       inferenceTime: '30ms per paper',
       memoryUsage: '1GB',
-      trainingTime: '36-48 hours on GPU'
+      trainingTime: '36-48 hours on GPU',
     },
-    useCase: 'Research recommendation, impact prediction, academic analytics'
+    useCase: 'Research recommendation, impact prediction, academic analytics',
   },
 
   // Protein-Protein Interaction
@@ -318,7 +318,7 @@ export const graphPresets = {
       messagePassingType: 'gin',
       proteinEncoder: 'esm',
       structuralFeatures: true,
-      dropoutRate: 0.3
+      dropoutRate: 0.3,
     },
     training: {
       batchSize: 8,
@@ -330,16 +330,16 @@ export const graphPresets = {
       crossValidation: 'species_split',
       augmentation: {
         sequenceNoise: 0.02,
-        structuralPerturbation: 0.1
-      }
+        structuralPerturbation: 0.1,
+      },
     },
     performance: {
       expectedAccuracy: '92-94% AUC-ROC',
       inferenceTime: '100ms per protein pair',
       memoryUsage: '2GB',
-      trainingTime: '3-5 days on GPU'
+      trainingTime: '3-5 days on GPU',
     },
-    useCase: 'Drug target identification, pathway analysis, systems biology'
+    useCase: 'Drug target identification, pathway analysis, systems biology',
   },
 
   // Cybersecurity Threat Detection
@@ -357,7 +357,7 @@ export const graphPresets = {
       messagePassingType: 'graphsaint',
       temporalAggregation: 'gru',
       anomalyDetection: true,
-      dropoutRate: 0.35
+      dropoutRate: 0.35,
     },
     training: {
       batchSize: 32,
@@ -368,16 +368,16 @@ export const graphPresets = {
       onlineLearning: true,
       adaptationRate: 0.01,
       adversarialTraining: true,
-      fewShotAdaptation: true
+      fewShotAdaptation: true,
     },
     performance: {
       expectedAccuracy: '94-96% threat detection',
       inferenceTime: '10ms per network state',
       memoryUsage: '400MB',
-      trainingTime: '16-24 hours on GPU'
+      trainingTime: '16-24 hours on GPU',
     },
-    useCase: 'Network security, intrusion detection, malware analysis'
-  }
+    useCase: 'Network security, intrusion detection, malware analysis',
+  },
 };
 
 // Export utility function to get preset by name

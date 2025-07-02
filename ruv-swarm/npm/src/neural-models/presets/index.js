@@ -13,15 +13,15 @@ export const NEURAL_PRESETS = {
   nlp: nlpPresets,
   vision: visionPresets,
   timeseries: timeSeriesPresets,
-  graph: graphPresets
+  graph: graphPresets,
 };
 
 // Category-specific getters
 export {
   getNLPPreset,
-  getVisionPreset, 
+  getVisionPreset,
   getTimeSeriesPreset,
-  getGraphPreset
+  getGraphPreset,
 };
 
 // Available presets lists
@@ -29,7 +29,7 @@ export {
   availableNLPPresets,
   availableVisionPresets,
   availableTimeSeriesPresets,
-  availableGraphPresets
+  availableGraphPresets,
 };
 
 // Universal preset getter function
@@ -38,7 +38,7 @@ export const getPreset = (category, presetName) => {
     nlp: getNLPPreset,
     vision: getVisionPreset,
     timeseries: getTimeSeriesPreset,
-    graph: getGraphPreset
+    graph: getGraphPreset,
   };
 
   if (!categoryMap[category]) {
@@ -54,7 +54,7 @@ export const getCategoryPresets = (category) => {
     nlp: nlpPresets,
     vision: visionPresets,
     timeseries: timeSeriesPresets,
-    graph: graphPresets
+    graph: graphPresets,
   };
 
   if (!categoryMap[category]) {
@@ -70,7 +70,7 @@ export const getAllPresetNames = () => {
     nlp: availableNLPPresets,
     vision: availableVisionPresets,
     timeseries: availableTimeSeriesPresets,
-    graph: availableGraphPresets
+    graph: availableGraphPresets,
   };
 };
 
@@ -89,7 +89,7 @@ export const searchPresetsByUseCase = (searchTerm) => {
         results.push({
           category,
           presetName,
-          preset
+          preset,
         });
       }
     });
@@ -106,7 +106,7 @@ export const searchPresetsByAccuracy = (minAccuracy) => {
     Object.entries(presets).forEach(([presetName, preset]) => {
       const accuracyStr = preset.performance.expectedAccuracy;
       const accuracyMatch = accuracyStr.match(/(\d+)-?(\d+)?%/);
-      
+
       if (accuracyMatch) {
         const minAcc = parseInt(accuracyMatch[1]);
         if (minAcc >= minAccuracy) {
@@ -114,7 +114,7 @@ export const searchPresetsByAccuracy = (minAccuracy) => {
             category,
             presetName,
             preset,
-            accuracy: minAcc
+            accuracy: minAcc,
           });
         }
       }
@@ -132,7 +132,7 @@ export const searchPresetsByInferenceTime = (maxTimeMs) => {
     Object.entries(presets).forEach(([presetName, preset]) => {
       const timeStr = preset.performance.inferenceTime;
       const timeMatch = timeStr.match(/(\d+)ms/);
-      
+
       if (timeMatch) {
         const timeMs = parseInt(timeMatch[1]);
         if (timeMs <= maxTimeMs) {
@@ -140,7 +140,7 @@ export const searchPresetsByInferenceTime = (maxTimeMs) => {
             category,
             presetName,
             preset,
-            inferenceTime: timeMs
+            inferenceTime: timeMs,
           });
         }
       }
@@ -160,14 +160,14 @@ export const getPresetStatistics = () => {
       '90-100%': 0,
       '80-89%': 0,
       '70-79%': 0,
-      'below-70%': 0
+      'below-70%': 0,
     },
     inferenceTimeRanges: {
       'under-10ms': 0,
       '10-50ms': 0,
       '50-100ms': 0,
-      'over-100ms': 0
-    }
+      'over-100ms': 0,
+    },
   };
 
   Object.entries(NEURAL_PRESETS).forEach(([category, presets]) => {
@@ -184,10 +184,15 @@ export const getPresetStatistics = () => {
       const accuracyMatch = accuracyStr.match(/(\d+)-?(\d+)?%/);
       if (accuracyMatch) {
         const minAcc = parseInt(accuracyMatch[1]);
-        if (minAcc >= 90) stats.accuracyRanges['90-100%']++;
-        else if (minAcc >= 80) stats.accuracyRanges['80-89%']++;
-        else if (minAcc >= 70) stats.accuracyRanges['70-79%']++;
-        else stats.accuracyRanges['below-70%']++;
+        if (minAcc >= 90) {
+          stats.accuracyRanges['90-100%']++;
+        } else if (minAcc >= 80) {
+          stats.accuracyRanges['80-89%']++;
+        } else if (minAcc >= 70) {
+          stats.accuracyRanges['70-79%']++;
+        } else {
+          stats.accuracyRanges['below-70%']++;
+        }
       }
 
       // Categorize inference time
@@ -195,10 +200,15 @@ export const getPresetStatistics = () => {
       const timeMatch = timeStr.match(/(\d+)ms/);
       if (timeMatch) {
         const timeMs = parseInt(timeMatch[1]);
-        if (timeMs < 10) stats.inferenceTimeRanges['under-10ms']++;
-        else if (timeMs < 50) stats.inferenceTimeRanges['10-50ms']++;
-        else if (timeMs < 100) stats.inferenceTimeRanges['50-100ms']++;
-        else stats.inferenceTimeRanges['over-100ms']++;
+        if (timeMs < 10) {
+          stats.inferenceTimeRanges['under-10ms']++;
+        } else if (timeMs < 50) {
+          stats.inferenceTimeRanges['10-50ms']++;
+        } else if (timeMs < 100) {
+          stats.inferenceTimeRanges['50-100ms']++;
+        } else {
+          stats.inferenceTimeRanges['over-100ms']++;
+        }
       }
     });
   });
@@ -209,9 +219,9 @@ export const getPresetStatistics = () => {
 // Export preset categories for easy reference
 export const PRESET_CATEGORIES = {
   NLP: 'nlp',
-  VISION: 'vision', 
+  VISION: 'vision',
   TIME_SERIES: 'timeseries',
-  GRAPH: 'graph'
+  GRAPH: 'graph',
 };
 
 // Export model types used in presets
@@ -223,14 +233,14 @@ export const PRESET_MODEL_TYPES = [
   'autoencoder',
   'gnn',
   'resnet',
-  'vae'
+  'vae',
 ];
 
 // Utility function to validate preset configuration
 export const validatePresetConfig = (preset) => {
   const requiredFields = ['name', 'description', 'model', 'config', 'training', 'performance', 'useCase'];
   const missingFields = requiredFields.filter(field => !preset[field]);
-  
+
   if (missingFields.length > 0) {
     throw new Error(`Preset validation failed. Missing fields: ${missingFields.join(', ')}`);
   }
@@ -238,7 +248,7 @@ export const validatePresetConfig = (preset) => {
   // Validate performance fields
   const requiredPerformanceFields = ['expectedAccuracy', 'inferenceTime', 'memoryUsage', 'trainingTime'];
   const missingPerfFields = requiredPerformanceFields.filter(field => !preset.performance[field]);
-  
+
   if (missingPerfFields.length > 0) {
     throw new Error(`Preset performance validation failed. Missing fields: ${missingPerfFields.join(', ')}`);
   }
@@ -255,7 +265,7 @@ export const DEFAULT_RECOMMENDATIONS = {
   'stock_prediction': { category: 'timeseries', preset: 'stock_market_prediction' },
   'weather_forecast': { category: 'timeseries', preset: 'weather_forecasting' },
   'fraud_detection': { category: 'graph', preset: 'fraud_detection_financial' },
-  'recommendation': { category: 'graph', preset: 'recommendation_engine' }
+  'recommendation': { category: 'graph', preset: 'recommendation_engine' },
 };
 
 // Get recommended preset for a use case
@@ -264,6 +274,6 @@ export const getRecommendedPreset = (useCase) => {
   if (!recommendation) {
     return null;
   }
-  
+
   return getPreset(recommendation.category, recommendation.preset);
 };

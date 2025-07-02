@@ -1,6 +1,6 @@
 /**
  * WASM Memory Optimizer
- * 
+ *
  * Advanced memory management and allocation optimization for WASM modules
  * with progressive loading, memory pooling, and garbage collection strategies.
  */
@@ -26,20 +26,20 @@ class WasmMemoryPool {
       const memory = new WebAssembly.Memory({
         initial: Math.ceil(poolSize / (64 * 1024)), // Pages are 64KB
         maximum: Math.ceil(this.maxMemory / (64 * 1024)),
-        shared: false
+        shared: false,
       });
-      
+
       this.pools.set(moduleId, {
         memory,
         allocated: 0,
         maxSize: poolSize,
         freeBlocks: [],
-        allocations: new Map()
+        allocations: new Map(),
       });
-      
+
       console.log(`🧠 Created memory pool for ${moduleId}: ${poolSize / 1024 / 1024}MB`);
     }
-    
+
     return this.pools.get(moduleId);
   }
 
@@ -49,7 +49,7 @@ class WasmMemoryPool {
   allocate(moduleId, size, alignment = 16) {
     const pool = this.getPool(moduleId, size * 2);
     const alignedSize = Math.ceil(size / alignment) * alignment;
-    
+
     // Try to reuse free blocks first
     const freeBlock = this.findFreeBlock(pool, alignedSize);
     if (freeBlock) {
@@ -59,23 +59,23 @@ class WasmMemoryPool {
         moduleId,
         offset: freeBlock.offset,
         size: alignedSize,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
-      
+
       pool.allocations.set(allocation.id, allocation);
       this.allocations.set(allocation.id, allocation);
-      
+
       return {
         id: allocation.id,
         offset: freeBlock.offset,
-        ptr: pool.memory.buffer.slice(freeBlock.offset, freeBlock.offset + alignedSize)
+        ptr: pool.memory.buffer.slice(freeBlock.offset, freeBlock.offset + alignedSize),
       };
     }
-    
+
     // Allocate new memory
     const currentSize = pool.memory.buffer.byteLength;
     const newOffset = pool.allocated;
-    
+
     if (newOffset + alignedSize > currentSize) {
       // Need to grow memory
       const requiredPages = Math.ceil((newOffset + alignedSize - currentSize) / (64 * 1024));
@@ -89,30 +89,30 @@ class WasmMemoryPool {
         return this.allocate(moduleId, size, alignment); // Retry after GC
       }
     }
-    
+
     this.allocationCounter++;
     const allocation = {
       id: this.allocationCounter,
       moduleId,
       offset: newOffset,
       size: alignedSize,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
-    
+
     pool.allocated = newOffset + alignedSize;
     pool.allocations.set(allocation.id, allocation);
     this.allocations.set(allocation.id, allocation);
     this.totalAllocated += alignedSize;
-    
+
     // Check if GC is needed
     if (this.getMemoryUtilization() > this.gcThreshold) {
       setTimeout(() => this.garbageCollectAll(), 100);
     }
-    
+
     return {
       id: allocation.id,
       offset: newOffset,
-      ptr: pool.memory.buffer.slice(newOffset, newOffset + alignedSize)
+      ptr: pool.memory.buffer.slice(newOffset, newOffset + alignedSize),
     };
   }
 
@@ -127,16 +127,16 @@ class WasmMemoryPool {
         if (block.size > size + 64) { // Worth splitting
           const remaining = {
             offset: block.offset + size,
-            size: block.size - size
+            size: block.size - size,
           };
           pool.freeBlocks[i] = remaining;
         } else {
           pool.freeBlocks.splice(i, 1);
         }
-        
+
         return {
           offset: block.offset,
-          size: block.size
+          size: block.size,
         };
       }
     }
@@ -152,27 +152,27 @@ class WasmMemoryPool {
       console.warn(`⚠️ Allocation ${allocationId} not found`);
       return false;
     }
-    
+
     const pool = this.pools.get(allocation.moduleId);
     if (!pool) {
       console.warn(`⚠️ Pool for ${allocation.moduleId} not found`);
       return false;
     }
-    
+
     // Add to free blocks
     pool.freeBlocks.push({
       offset: allocation.offset,
-      size: allocation.size
+      size: allocation.size,
     });
-    
+
     // Merge adjacent free blocks
     this.mergeFreeBlocks(pool);
-    
+
     // Remove from allocations
     pool.allocations.delete(allocationId);
     this.allocations.delete(allocationId);
     this.totalAllocated -= allocation.size;
-    
+
     console.log(`🗑️ Deallocated ${allocation.size} bytes for ${allocation.moduleId}`);
     return true;
   }
@@ -182,11 +182,11 @@ class WasmMemoryPool {
    */
   mergeFreeBlocks(pool) {
     pool.freeBlocks.sort((a, b) => a.offset - b.offset);
-    
+
     for (let i = 0; i < pool.freeBlocks.length - 1; i++) {
       const current = pool.freeBlocks[i];
       const next = pool.freeBlocks[i + 1];
-      
+
       if (current.offset + current.size === next.offset) {
         // Merge blocks
         current.size += next.size;
@@ -201,22 +201,24 @@ class WasmMemoryPool {
    */
   garbageCollect(moduleId) {
     const pool = this.pools.get(moduleId);
-    if (!pool) return;
-    
+    if (!pool) {
+      return;
+    }
+
     const now = Date.now();
     const maxAge = 300000; // 5 minutes
     const freedAllocations = [];
-    
+
     for (const [id, allocation] of pool.allocations) {
       if (now - allocation.timestamp > maxAge) {
         freedAllocations.push(id);
       }
     }
-    
+
     for (const id of freedAllocations) {
       this.deallocate(id);
     }
-    
+
     console.log(`🧹 GC for ${moduleId}: freed ${freedAllocations.length} allocations`);
   }
 
@@ -241,23 +243,23 @@ class WasmMemoryPool {
    */
   getMemoryStats() {
     const poolStats = {};
-    
+
     for (const [moduleId, pool] of this.pools) {
       poolStats[moduleId] = {
         allocated: pool.allocated,
         bufferSize: pool.memory.buffer.byteLength,
         freeBlocks: pool.freeBlocks.length,
         activeAllocations: pool.allocations.size,
-        utilization: pool.allocated / pool.memory.buffer.byteLength
+        utilization: pool.allocated / pool.memory.buffer.byteLength,
       };
     }
-    
+
     return {
       totalAllocated: this.totalAllocated,
       maxMemory: this.maxMemory,
       globalUtilization: this.getMemoryUtilization(),
       pools: poolStats,
-      allocationCount: this.allocationCounter
+      allocationCount: this.allocationCounter,
     };
   }
 
@@ -266,39 +268,41 @@ class WasmMemoryPool {
    */
   compactMemory(moduleId) {
     const pool = this.pools.get(moduleId);
-    if (!pool) return;
-    
+    if (!pool) {
+      return;
+    }
+
     // Sort allocations by offset
     const allocations = Array.from(pool.allocations.values())
       .sort((a, b) => a.offset - b.offset);
-    
+
     let newOffset = 0;
     const moves = [];
-    
+
     for (const allocation of allocations) {
       if (allocation.offset !== newOffset) {
         moves.push({
           from: allocation.offset,
           to: newOffset,
-          size: allocation.size
+          size: allocation.size,
         });
         allocation.offset = newOffset;
       }
       newOffset += allocation.size;
     }
-    
+
     // Perform memory moves
     const buffer = new Uint8Array(pool.memory.buffer);
     for (const move of moves) {
       const src = buffer.subarray(move.from, move.from + move.size);
       buffer.set(src, move.to);
     }
-    
+
     // Update pool state
     pool.allocated = newOffset;
-    pool.freeBlocks = newOffset < pool.memory.buffer.byteLength ? 
+    pool.freeBlocks = newOffset < pool.memory.buffer.byteLength ?
       [{ offset: newOffset, size: pool.memory.buffer.byteLength - newOffset }] : [];
-    
+
     console.log(`🗜️ Compacted ${moduleId}: ${moves.length} moves, freed ${pool.memory.buffer.byteLength - newOffset} bytes`);
   }
 }
@@ -315,12 +319,12 @@ class ProgressiveWasmLoader {
       'critical': 1,
       'high': 2,
       'medium': 3,
-      'low': 4
+      'low': 4,
     };
     this.loadingStrategies = {
       'eager': this.loadAllModules.bind(this),
       'lazy': this.loadOnDemand.bind(this),
-      'progressive': this.loadProgressively.bind(this)
+      'progressive': this.loadProgressively.bind(this),
     };
   }
 
@@ -335,9 +339,9 @@ class ProgressiveWasmLoader {
       priority = 'medium',
       dependencies = [],
       features = [],
-      preload = false
+      preload = false,
     } = config;
-    
+
     const module = {
       id,
       url,
@@ -349,15 +353,15 @@ class ProgressiveWasmLoader {
       loaded: false,
       loading: false,
       instance: null,
-      memoryAllocations: new Set()
+      memoryAllocations: new Set(),
     };
-    
+
     this.loadedModules.set(id, module);
-    
+
     if (preload) {
       this.queueLoad(id, 'critical');
     }
-    
+
     console.log(`📋 Registered WASM module: ${id} (${size / 1024}KB, ${priority} priority)`);
   }
 
@@ -368,7 +372,7 @@ class ProgressiveWasmLoader {
     if (!this.loadingQueues.has(priority)) {
       this.loadingQueues.set(priority, []);
     }
-    
+
     const queue = this.loadingQueues.get(priority);
     if (!queue.includes(moduleId)) {
       queue.push(moduleId);
@@ -380,12 +384,14 @@ class ProgressiveWasmLoader {
    * Process loading queue by priority
    */
   async processLoadingQueue() {
-    for (const priority of Object.keys(this.priorityLevels).sort((a, b) => 
+    for (const priority of Object.keys(this.priorityLevels).sort((a, b) =>
       this.priorityLevels[a] - this.priorityLevels[b])) {
-      
+
       const queue = this.loadingQueues.get(priority);
-      if (!queue || queue.length === 0) continue;
-      
+      if (!queue || queue.length === 0) {
+        continue;
+      }
+
       const moduleId = queue.shift();
       await this.loadModule(moduleId);
     }
@@ -399,11 +405,11 @@ class ProgressiveWasmLoader {
     if (!module) {
       throw new Error(`Module ${moduleId} not registered`);
     }
-    
+
     if (module.loaded) {
       return module.instance;
     }
-    
+
     if (module.loading) {
       // Wait for existing load
       while (module.loading) {
@@ -411,60 +417,60 @@ class ProgressiveWasmLoader {
       }
       return module.instance;
     }
-    
+
     module.loading = true;
-    
+
     try {
       console.log(`📦 Loading WASM module: ${moduleId}`);
-      
+
       // Load dependencies first
       for (const depId of module.dependencies) {
         await this.loadModule(depId);
       }
-      
+
       // Fetch WASM bytes
       const response = await fetch(module.url);
       if (!response.ok) {
         throw new Error(`Failed to fetch ${module.url}: ${response.status}`);
       }
-      
+
       const wasmBytes = await response.arrayBuffer();
-      
+
       // Allocate memory for module
       const memoryAllocation = this.memoryPool.allocate(
-        moduleId, 
-        module.size || wasmBytes.byteLength * 2
+        moduleId,
+        module.size || wasmBytes.byteLength * 2,
       );
-      
+
       module.memoryAllocations.add(memoryAllocation.id);
-      
+
       // Create imports with optimized memory
       const imports = this.createModuleImports(moduleId, memoryAllocation);
-      
+
       // Compile and instantiate
       const startTime = performance.now();
       const wasmModule = await WebAssembly.compile(wasmBytes);
       const instance = await WebAssembly.instantiate(wasmModule, imports);
       const loadTime = performance.now() - startTime;
-      
+
       module.instance = {
         module: wasmModule,
-        instance: instance,
+        instance,
         exports: instance.exports,
         memory: memoryAllocation,
-        loadTime
+        loadTime,
       };
-      
+
       module.loaded = true;
       module.loading = false;
-      
+
       console.log(`✅ Loaded ${moduleId} in ${loadTime.toFixed(2)}ms`);
-      
+
       // Optimize memory after loading
       this.optimizeModuleMemory(moduleId);
-      
+
       return module.instance;
-      
+
     } catch (error) {
       module.loading = false;
       console.error(`❌ Failed to load ${moduleId}:`, error);
@@ -477,17 +483,17 @@ class ProgressiveWasmLoader {
    */
   createModuleImports(moduleId, memoryAllocation) {
     const pool = this.memoryPool.getPool(moduleId);
-    
+
     return {
       env: {
         memory: pool.memory,
-        
+
         // Optimized memory allocation functions
         malloc: (size) => {
           const allocation = this.memoryPool.allocate(moduleId, size);
           return allocation.offset;
         },
-        
+
         free: (ptr) => {
           // Find allocation by offset and free it
           for (const allocation of this.memoryPool.allocations.values()) {
@@ -497,26 +503,26 @@ class ProgressiveWasmLoader {
             }
           }
         },
-        
+
         // SIMD-optimized math functions
         simd_add_f32x4: (a, b, result) => {
           // This would call the SIMD implementation
           console.log('SIMD add called');
         },
-        
+
         // Performance monitoring
         performance_mark: (name) => {
           performance.mark(`${moduleId}_${name}`);
-        }
+        },
       },
-      
+
       // WASI support for file operations
       wasi_snapshot_preview1: {
         proc_exit: (code) => {
           console.log(`Module ${moduleId} exited with code ${code}`);
         },
-        fd_write: () => 0
-      }
+        fd_write: () => 0,
+      },
     };
   }
 
@@ -537,16 +543,16 @@ class ProgressiveWasmLoader {
     const criticalModules = Array.from(this.loadedModules.values())
       .filter(m => m.priority === 'critical' || m.preload)
       .sort((a, b) => this.priorityLevels[a.priority] - this.priorityLevels[b.priority]);
-    
+
     for (const module of criticalModules) {
       await this.loadModule(module.id);
     }
-    
+
     // Load remaining modules in background
     const remainingModules = Array.from(this.loadedModules.values())
       .filter(m => !m.loaded && !m.loading)
       .sort((a, b) => this.priorityLevels[a.priority] - this.priorityLevels[b.priority]);
-    
+
     // Load with delay to prevent blocking
     let delay = 0;
     for (const module of remainingModules) {
@@ -561,7 +567,7 @@ class ProgressiveWasmLoader {
   async loadAllModules() {
     const modules = Array.from(this.loadedModules.values())
       .sort((a, b) => this.priorityLevels[a.priority] - this.priorityLevels[b.priority]);
-    
+
     await Promise.all(modules.map(m => this.loadModule(m.id)));
   }
 
@@ -588,16 +594,16 @@ class ProgressiveWasmLoader {
     if (!module || !module.loaded) {
       return false;
     }
-    
+
     // Free all memory allocations
     for (const allocationId of module.memoryAllocations) {
       this.memoryPool.deallocate(allocationId);
     }
-    
+
     module.memoryAllocations.clear();
     module.instance = null;
     module.loaded = false;
-    
+
     console.log(`🗑️ Unloaded module: ${moduleId}`);
     return true;
   }
@@ -609,7 +615,7 @@ class ProgressiveWasmLoader {
     const modules = Array.from(this.loadedModules.values());
     const loaded = modules.filter(m => m.loaded);
     const loading = modules.filter(m => m.loading);
-    
+
     return {
       totalModules: modules.length,
       loadedModules: loaded.length,
@@ -617,9 +623,9 @@ class ProgressiveWasmLoader {
       memoryStats: this.memoryPool.getMemoryStats(),
       loadTimes: loaded.map(m => ({
         id: m.id,
-        loadTime: m.instance?.loadTime || 0
+        loadTime: m.instance?.loadTime || 0,
       })),
-      averageLoadTime: loaded.reduce((acc, m) => acc + (m.instance?.loadTime || 0), 0) / loaded.length
+      averageLoadTime: loaded.reduce((acc, m) => acc + (m.instance?.loadTime || 0), 0) / loaded.length,
     };
   }
 
@@ -628,13 +634,13 @@ class ProgressiveWasmLoader {
    */
   optimizeMemory() {
     this.memoryPool.garbageCollectAll();
-    
+
     for (const moduleId of this.loadedModules.keys()) {
       if (this.loadedModules.get(moduleId).loaded) {
         this.memoryPool.compactMemory(moduleId);
       }
     }
-    
+
     console.log('🧹 Memory optimization completed');
   }
 }
@@ -658,14 +664,14 @@ class WasmCompatibilityManager {
       threads: false,
       exceptions: false,
       memory64: false,
-      streaming: false
+      streaming: false,
     };
-    
+
     if (!capabilities.webassembly) {
       this.capabilities = capabilities;
       return capabilities;
     }
-    
+
     // Test SIMD support
     try {
       const simdTest = new Uint8Array([
@@ -673,24 +679,24 @@ class WasmCompatibilityManager {
         0x01, 0x00, 0x00, 0x00, // version
         0x01, 0x05, 0x01, 0x60, 0x00, 0x01, 0x7b, // type section
         0x03, 0x02, 0x01, 0x00, // function section
-        0x0a, 0x09, 0x01, 0x07, 0x00, 0xfd, 0x0c, 0x00, 0x0b // code section with SIMD
+        0x0a, 0x09, 0x01, 0x07, 0x00, 0xfd, 0x0c, 0x00, 0x0b, // code section with SIMD
       ]);
-      
+
       await WebAssembly.compile(simdTest);
       capabilities.simd = true;
     } catch (e) {
       capabilities.simd = false;
     }
-    
+
     // Test streaming compilation
     capabilities.streaming = typeof WebAssembly.compileStreaming === 'function';
-    
+
     // Test SharedArrayBuffer for threads
     capabilities.threads = typeof SharedArrayBuffer !== 'undefined';
-    
+
     this.capabilities = capabilities;
     console.log('🔍 WASM capabilities detected:', capabilities);
-    
+
     return capabilities;
   }
 
@@ -716,16 +722,16 @@ class WasmCompatibilityManager {
    */
   async isSupported(feature) {
     const capabilities = await this.getCapabilities();
-    
+
     if (capabilities[feature]) {
       return true;
     }
-    
+
     if (this.fallbacks.has(feature)) {
       console.log(`⚠️ Using fallback for ${feature}`);
       return 'fallback';
     }
-    
+
     return false;
   }
 
@@ -734,11 +740,11 @@ class WasmCompatibilityManager {
    */
   async loadCompatibleModule(url, features = []) {
     const capabilities = await this.getCapabilities();
-    
+
     if (!capabilities.webassembly) {
       throw new Error('WebAssembly not supported in this browser');
     }
-    
+
     // Check required features
     const unsupported = [];
     for (const feature of features) {
@@ -747,31 +753,31 @@ class WasmCompatibilityManager {
         unsupported.push(feature);
       }
     }
-    
+
     if (unsupported.length > 0) {
       console.warn(`⚠️ Unsupported features: ${unsupported.join(', ')}`);
       // Could load alternative module or disable features
     }
-    
+
     // Load with appropriate method
     if (capabilities.streaming) {
       return WebAssembly.compileStreaming(fetch(url));
-    } else {
-      const response = await fetch(url);
-      const bytes = await response.arrayBuffer();
-      return WebAssembly.compile(bytes);
     }
+    const response = await fetch(url);
+    const bytes = await response.arrayBuffer();
+    return WebAssembly.compile(bytes);
+
   }
 }
 
 export {
   WasmMemoryPool,
   ProgressiveWasmLoader,
-  WasmCompatibilityManager
+  WasmCompatibilityManager,
 };
 
 export default {
   WasmMemoryPool,
   ProgressiveWasmLoader,
-  WasmCompatibilityManager
+  WasmCompatibilityManager,
 };

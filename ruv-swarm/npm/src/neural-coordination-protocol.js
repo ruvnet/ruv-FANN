@@ -11,10 +11,10 @@ class NeuralCoordinationProtocol {
     this.consensusProtocols = new Map();
     this.coordinationResults = new Map();
     this.coordinationMetrics = new Map();
-    
+
     // Initialize coordination strategies
     this.initializeCoordinationStrategies();
-    
+
     // Initialize consensus protocols
     this.initializeConsensusProtocols();
   }
@@ -34,14 +34,14 @@ class NeuralCoordinationProtocol {
         communicationPattern: 'star',
         consensusRequired: false,
         scalability: 0.7,
-        robustness: 0.6
+        robustness: 0.6,
       },
       parameters: {
         leaderSelectionCriteria: 'performance',
         maxHierarchyDepth: 3,
         commandPropagationDelay: 100,
-        leaderRotationInterval: 3600000 // 1 hour
-      }
+        leaderRotationInterval: 3600000, // 1 hour
+      },
     });
 
     // Peer-to-Peer Coordination
@@ -55,14 +55,14 @@ class NeuralCoordinationProtocol {
         communicationPattern: 'mesh',
         consensusRequired: true,
         scalability: 0.8,
-        robustness: 0.9
+        robustness: 0.9,
       },
       parameters: {
         consensusThreshold: 0.66,
         communicationTimeout: 5000,
         maxNegotiationRounds: 10,
-        conflictResolutionMethod: 'voting'
-      }
+        conflictResolutionMethod: 'voting',
+      },
     });
 
     // Swarm Coordination
@@ -76,14 +76,14 @@ class NeuralCoordinationProtocol {
         communicationPattern: 'local_neighborhood',
         consensusRequired: false,
         scalability: 0.9,
-        robustness: 0.8
+        robustness: 0.8,
       },
       parameters: {
         neighborhoodRadius: 3,
         influenceDecayRate: 0.9,
         emergenceThreshold: 0.75,
-        adaptationRate: 0.1
-      }
+        adaptationRate: 0.1,
+      },
     });
 
     // Market-Based Coordination
@@ -97,14 +97,14 @@ class NeuralCoordinationProtocol {
         communicationPattern: 'broadcast_bidding',
         consensusRequired: false,
         scalability: 0.8,
-        robustness: 0.7
+        robustness: 0.7,
       },
       parameters: {
         auctionType: 'first_price_sealed_bid',
         biddingTimeout: 3000,
         reservePrice: 0.1,
-        profitSharingRatio: 0.8
-      }
+        profitSharingRatio: 0.8,
+      },
     });
 
     // Contract Net Coordination
@@ -118,14 +118,14 @@ class NeuralCoordinationProtocol {
         communicationPattern: 'announcement_bidding',
         consensusRequired: false,
         scalability: 0.75,
-        robustness: 0.8
+        robustness: 0.8,
       },
       parameters: {
         taskAnnouncementDelay: 1000,
         biddingPeriod: 5000,
         contractDuration: 300000, // 5 minutes
-        performanceEvaluationInterval: 60000
-      }
+        performanceEvaluationInterval: 60000,
+      },
     });
 
     // Blackboard Coordination
@@ -139,14 +139,14 @@ class NeuralCoordinationProtocol {
         communicationPattern: 'publish_subscribe',
         consensusRequired: false,
         scalability: 0.6,
-        robustness: 0.7
+        robustness: 0.7,
       },
       parameters: {
         blackboardSize: 1000,
         knowledgeExpirationTime: 600000, // 10 minutes
         priorityQueueSize: 100,
-        triggerThreshold: 0.7
-      }
+        triggerThreshold: 0.7,
+      },
     });
 
     // Multi-Agent Reinforcement Learning Coordination
@@ -160,14 +160,14 @@ class NeuralCoordinationProtocol {
         communicationPattern: 'learned_communication',
         consensusRequired: false,
         scalability: 0.8,
-        robustness: 0.8
+        robustness: 0.8,
       },
       parameters: {
         learningRate: 0.001,
         explorationRate: 0.1,
         rewardSharingRatio: 0.5,
-        communicationBandwidth: 64
-      }
+        communicationBandwidth: 64,
+      },
     });
 
     // Byzantine Fault Tolerant Coordination
@@ -181,14 +181,14 @@ class NeuralCoordinationProtocol {
         communicationPattern: 'authenticated_broadcast',
         consensusRequired: true,
         scalability: 0.5,
-        robustness: 0.95
+        robustness: 0.95,
       },
       parameters: {
         faultTolerance: 0.33, // Can tolerate up to 1/3 faulty agents
         viewChangeTimeout: 10000,
         messageAuthenticationRequired: true,
-        committeeSize: 7
-      }
+        committeeSize: 7,
+      },
     });
   }
 
@@ -204,13 +204,13 @@ class NeuralCoordinationProtocol {
         stakingPeriod: 3600000, // 1 hour
         minimumStake: 0.1,
         slashingPenalty: 0.05,
-        rewardDistribution: 'proportional'
+        rewardDistribution: 'proportional',
       },
       applicability: {
         trustRequired: 0.7,
         performanceWeight: 0.9,
-        energyEfficiency: 0.9
-      }
+        energyEfficiency: 0.9,
+      },
     });
 
     // Practical Byzantine Fault Tolerance
@@ -221,13 +221,13 @@ class NeuralCoordinationProtocol {
         phaseTimeout: 5000,
         viewChangeTimeout: 10000,
         checkpointInterval: 100,
-        maxFaultyNodes: 0.33
+        maxFaultyNodes: 0.33,
       },
       applicability: {
         trustRequired: 0.3,
         performanceWeight: 0.6,
-        energyEfficiency: 0.4
-      }
+        energyEfficiency: 0.4,
+      },
     });
 
     // Raft Consensus
@@ -238,13 +238,13 @@ class NeuralCoordinationProtocol {
         electionTimeout: 5000,
         heartbeatInterval: 1000,
         logReplicationBatchSize: 10,
-        leaderElectionBackoff: 1.5
+        leaderElectionBackoff: 1.5,
       },
       applicability: {
         trustRequired: 0.8,
         performanceWeight: 0.8,
-        energyEfficiency: 0.7
-      }
+        energyEfficiency: 0.7,
+      },
     });
 
     // Gossip Protocol
@@ -255,13 +255,13 @@ class NeuralCoordinationProtocol {
         gossipRounds: 10,
         gossipFanout: 3,
         gossipInterval: 1000,
-        convergenceThreshold: 0.95
+        convergenceThreshold: 0.95,
       },
       applicability: {
         trustRequired: 0.9,
         performanceWeight: 0.5,
-        energyEfficiency: 0.8
-      }
+        energyEfficiency: 0.8,
+      },
     });
   }
 
@@ -273,14 +273,14 @@ class NeuralCoordinationProtocol {
   async registerAgent(agentId, agent) {
     const agentInfo = {
       id: agentId,
-      agent: agent,
+      agent,
       capabilities: this.analyzeAgentCapabilities(agent),
       trustScore: 1.0,
       performanceHistory: [],
       communicationChannels: new Set(),
       coordinationRole: 'peer',
       lastHeartbeat: Date.now(),
-      status: 'active'
+      status: 'active',
     };
 
     // Initialize communication channels for this agent
@@ -294,7 +294,7 @@ class NeuralCoordinationProtocol {
       consensusParticipation: 0,
       coordinationSuccessRate: 1.0,
       averageResponseTime: 0,
-      lastUpdate: Date.now()
+      lastUpdate: Date.now(),
     });
 
     console.log(`Registered agent ${agentId} with coordination protocol`);
@@ -313,33 +313,33 @@ class NeuralCoordinationProtocol {
       specializations: [],
       reliability: 1.0,
       latency: 100, // Default latency in ms
-      coordinationExperience: 0
+      coordinationExperience: 0,
     };
 
     // Analyze based on agent type and configuration
     if (agent.modelType) {
       switch (agent.modelType) {
-        case 'transformer':
-        case 'lstm':
-        case 'gru':
-          capabilities.specializations.push('sequence_processing', 'language_understanding');
-          capabilities.processingPower = 0.9;
-          break;
-        case 'cnn':
-        case 'resnet':
-          capabilities.specializations.push('image_processing', 'pattern_recognition');
-          capabilities.processingPower = 0.8;
-          break;
-        case 'gnn':
-        case 'gat':
-          capabilities.specializations.push('graph_analysis', 'relationship_modeling');
-          capabilities.processingPower = 0.7;
-          break;
-        case 'diffusion_model':
-        case 'vae':
-          capabilities.specializations.push('generation', 'creativity');
-          capabilities.processingPower = 0.6;
-          break;
+      case 'transformer':
+      case 'lstm':
+      case 'gru':
+        capabilities.specializations.push('sequence_processing', 'language_understanding');
+        capabilities.processingPower = 0.9;
+        break;
+      case 'cnn':
+      case 'resnet':
+        capabilities.specializations.push('image_processing', 'pattern_recognition');
+        capabilities.processingPower = 0.8;
+        break;
+      case 'gnn':
+      case 'gat':
+        capabilities.specializations.push('graph_analysis', 'relationship_modeling');
+        capabilities.processingPower = 0.7;
+        break;
+      case 'diffusion_model':
+      case 'vae':
+        capabilities.specializations.push('generation', 'creativity');
+        capabilities.processingPower = 0.6;
+        break;
       }
     }
 
@@ -359,12 +359,12 @@ class NeuralCoordinationProtocol {
    */
   async initializeSession(session) {
     const sessionId = session.id;
-    
+
     // Select optimal coordination strategy
     const strategy = this.selectCoordinationStrategy(session);
-    
+
     // Select consensus protocol if needed
-    const consensusProtocol = strategy.characteristics.consensusRequired 
+    const consensusProtocol = strategy.characteristics.consensusRequired
       ? this.selectConsensusProtocol(session, strategy)
       : null;
 
@@ -377,16 +377,16 @@ class NeuralCoordinationProtocol {
       startTime: Date.now(),
       messageQueue: new Map(),
       consensusRounds: 0,
-      coordinationEvents: []
+      coordinationEvents: [],
     };
 
     this.activeSessions.set(sessionId, coordinationSession);
-    
+
     // Initialize communication channels for session
     await this.initializeCommunicationChannels(coordinationSession);
-    
+
     console.log(`Initialized coordination session ${sessionId} with strategy: ${strategy.name}`);
-    
+
     return coordinationSession;
   }
 
@@ -398,7 +398,7 @@ class NeuralCoordinationProtocol {
     const agentCount = session.agentIds.length;
     const trustLevel = this.calculateSessionTrustLevel(session);
     const taskComplexity = this.estimateTaskComplexity(session);
-    
+
     let bestStrategy = null;
     let bestScore = 0;
 
@@ -460,7 +460,9 @@ class NeuralCoordinationProtocol {
    * @param {Object} session - Session configuration
    */
   calculateSessionTrustLevel(session) {
-    if (!session.agentIds || session.agentIds.length === 0) return 1.0;
+    if (!session.agentIds || session.agentIds.length === 0) {
+      return 1.0;
+    }
 
     let totalTrust = 0;
     let agentCount = 0;
@@ -505,7 +507,7 @@ class NeuralCoordinationProtocol {
    */
   isHeterogeneousSession(session) {
     const agentTypes = new Set();
-    
+
     for (const agentId of session.agentIds) {
       const metrics = this.coordinationMetrics.get(agentId);
       if (metrics && metrics.agentType) {
@@ -532,9 +534,9 @@ class NeuralCoordinationProtocol {
       return this.consensusProtocols.get('raft');
     } else if (agentCount > 10) {
       return this.consensusProtocols.get('gossip');
-    } else {
-      return this.consensusProtocols.get('proof_of_stake');
     }
+    return this.consensusProtocols.get('proof_of_stake');
+
   }
 
   /**
@@ -552,20 +554,20 @@ class NeuralCoordinationProtocol {
 
     // Build connections based on strategy
     switch (strategy.characteristics.communicationPattern) {
-      case 'star':
-        this.buildStarTopology(graph, agentIds);
-        break;
-      case 'mesh':
-        this.buildMeshTopology(graph, agentIds);
-        break;
-      case 'ring':
-        this.buildRingTopology(graph, agentIds);
-        break;
-      case 'local_neighborhood':
-        this.buildNeighborhoodTopology(graph, agentIds, strategy.parameters.neighborhoodRadius);
-        break;
-      default:
-        this.buildMeshTopology(graph, agentIds); // Default to mesh
+    case 'star':
+      this.buildStarTopology(graph, agentIds);
+      break;
+    case 'mesh':
+      this.buildMeshTopology(graph, agentIds);
+      break;
+    case 'ring':
+      this.buildRingTopology(graph, agentIds);
+      break;
+    case 'local_neighborhood':
+      this.buildNeighborhoodTopology(graph, agentIds, strategy.parameters.neighborhoodRadius);
+      break;
+    default:
+      this.buildMeshTopology(graph, agentIds); // Default to mesh
     }
 
     return graph;
@@ -577,10 +579,12 @@ class NeuralCoordinationProtocol {
    * @param {Array} agentIds - Agent identifiers
    */
   buildStarTopology(graph, agentIds) {
-    if (agentIds.length === 0) return;
+    if (agentIds.length === 0) {
+      return;
+    }
 
     const centerAgent = agentIds[0]; // Select first agent as center
-    
+
     for (let i = 1; i < agentIds.length; i++) {
       const agentId = agentIds[i];
       graph.get(centerAgent).add(agentId);
@@ -614,7 +618,7 @@ class NeuralCoordinationProtocol {
       const current = agentIds[i];
       const next = agentIds[(i + 1) % agentIds.length];
       const prev = agentIds[(i - 1 + agentIds.length) % agentIds.length];
-      
+
       graph.get(current).add(next);
       graph.get(current).add(prev);
     }
@@ -629,14 +633,18 @@ class NeuralCoordinationProtocol {
   buildNeighborhoodTopology(graph, agentIds, radius = 2) {
     for (let i = 0; i < agentIds.length; i++) {
       const current = agentIds[i];
-      
+
       for (let j = 1; j <= radius; j++) {
         // Connect to agents within radius in both directions
         const next = agentIds[(i + j) % agentIds.length];
         const prev = agentIds[(i - j + agentIds.length) % agentIds.length];
-        
-        if (next !== current) graph.get(current).add(next);
-        if (prev !== current) graph.get(current).add(prev);
+
+        if (next !== current) {
+          graph.get(current).add(next);
+        }
+        if (prev !== current) {
+          graph.get(current).add(prev);
+        }
       }
     }
   }
@@ -658,7 +666,7 @@ class NeuralCoordinationProtocol {
     // Establish bidirectional channels based on communication graph
     for (const [agentId, connections] of communicationGraph.entries()) {
       const agentChannels = this.communicationChannels.get(agentId);
-      
+
       for (const connectedAgentId of connections) {
         if (!agentChannels.has(connectedAgentId)) {
           agentChannels.set(connectedAgentId, {
@@ -666,7 +674,7 @@ class NeuralCoordinationProtocol {
             latency: this.calculateChannelLatency(agentId, connectedAgentId),
             bandwidth: this.calculateChannelBandwidth(agentId, connectedAgentId),
             reliability: this.calculateChannelReliability(agentId, connectedAgentId),
-            messageHistory: []
+            messageHistory: [],
           });
         }
       }
@@ -697,11 +705,11 @@ class NeuralCoordinationProtocol {
     const baseBandwidth = 1000; // Base bandwidth
     const agentAMetrics = this.coordinationMetrics.get(agentA);
     const agentBMetrics = this.coordinationMetrics.get(agentB);
-    
+
     // Bandwidth limited by slower agent
     const agentABandwidth = agentAMetrics?.communicationBandwidth || baseBandwidth;
     const agentBBandwidth = agentBMetrics?.communicationBandwidth || baseBandwidth;
-    
+
     return Math.min(agentABandwidth, agentBBandwidth);
   }
 
@@ -713,10 +721,10 @@ class NeuralCoordinationProtocol {
   calculateChannelReliability(agentA, agentB) {
     const agentAMetrics = this.coordinationMetrics.get(agentA);
     const agentBMetrics = this.coordinationMetrics.get(agentB);
-    
+
     const agentAReliability = agentAMetrics?.coordinationSuccessRate || 1.0;
     const agentBReliability = agentBMetrics?.coordinationSuccessRate || 1.0;
-    
+
     // Channel reliability is product of agent reliabilities
     return agentAReliability * agentBReliability;
   }
@@ -736,7 +744,7 @@ class NeuralCoordinationProtocol {
     try {
       // Execute coordination based on strategy
       const coordinationResult = await this.executeCoordinationStrategy(coordinationSession);
-      
+
       // Apply consensus if required
       if (coordinationSession.consensusProtocol) {
         const consensusResult = await this.executeConsensusProtocol(coordinationSession, coordinationResult);
@@ -745,14 +753,14 @@ class NeuralCoordinationProtocol {
 
       // Store coordination results
       this.coordinationResults.set(session.id, coordinationResult);
-      
+
       // Update coordination metrics
       this.updateCoordinationMetrics(coordinationSession, coordinationResult);
-      
+
       coordinationSession.coordinationState = 'completed';
-      
+
       return coordinationResult;
-      
+
     } catch (error) {
       coordinationSession.coordinationState = 'error';
       console.error(`Coordination failed for session ${session.id}:`, error);
@@ -766,26 +774,26 @@ class NeuralCoordinationProtocol {
    */
   async executeCoordinationStrategy(session) {
     const { strategy } = session;
-    
+
     switch (strategy.name) {
-      case 'Hierarchical Coordination':
-        return this.executeHierarchicalCoordination(session);
-      case 'Peer-to-Peer Coordination':
-        return this.executePeerToPeerCoordination(session);
-      case 'Swarm Coordination':
-        return this.executeSwarmCoordination(session);
-      case 'Market-Based Coordination':
-        return this.executeMarketBasedCoordination(session);
-      case 'Contract Net Protocol':
-        return this.executeContractNetCoordination(session);
-      case 'Blackboard System':
-        return this.executeBlackboardCoordination(session);
-      case 'Multi-Agent Reinforcement Learning':
-        return this.executeMARLCoordination(session);
-      case 'Byzantine Fault Tolerant':
-        return this.executeByzantineCoordination(session);
-      default:
-        return this.executePeerToPeerCoordination(session); // Default
+    case 'Hierarchical Coordination':
+      return this.executeHierarchicalCoordination(session);
+    case 'Peer-to-Peer Coordination':
+      return this.executePeerToPeerCoordination(session);
+    case 'Swarm Coordination':
+      return this.executeSwarmCoordination(session);
+    case 'Market-Based Coordination':
+      return this.executeMarketBasedCoordination(session);
+    case 'Contract Net Protocol':
+      return this.executeContractNetCoordination(session);
+    case 'Blackboard System':
+      return this.executeBlackboardCoordination(session);
+    case 'Multi-Agent Reinforcement Learning':
+      return this.executeMARLCoordination(session);
+    case 'Byzantine Fault Tolerant':
+      return this.executeByzantineCoordination(session);
+    default:
+      return this.executePeerToPeerCoordination(session); // Default
     }
   }
 
@@ -796,10 +804,10 @@ class NeuralCoordinationProtocol {
   async executeHierarchicalCoordination(session) {
     const leader = this.selectLeader(session);
     const coordinationPlan = await this.createCoordinationPlan(session, leader);
-    
+
     // Distribute plan from leader to followers
     const results = new Map();
-    
+
     for (const agentId of session.agentIds) {
       if (agentId !== leader) {
         const task = coordinationPlan.tasks.get(agentId);
@@ -816,7 +824,7 @@ class NeuralCoordinationProtocol {
       plan: coordinationPlan,
       results,
       success: true,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
@@ -826,17 +834,17 @@ class NeuralCoordinationProtocol {
    */
   async executePeerToPeerCoordination(session) {
     const negotiations = new Map();
-    
+
     // Each agent negotiates with its neighbors
     for (const agentId of session.agentIds) {
       const neighbors = session.communicationGraph.get(agentId) || new Set();
       const agentNegotiations = [];
-      
+
       for (const neighborId of neighbors) {
         const negotiation = await this.negotiateWithPeer(agentId, neighborId, session);
         agentNegotiations.push(negotiation);
       }
-      
+
       negotiations.set(agentId, agentNegotiations);
     }
 
@@ -848,7 +856,7 @@ class NeuralCoordinationProtocol {
       negotiations,
       agreements: coordinationAgreements,
       success: true,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
@@ -859,13 +867,13 @@ class NeuralCoordinationProtocol {
   async executeSwarmCoordination(session) {
     const swarmBehaviors = new Map();
     const emergentPatterns = new Map();
-    
+
     // Each agent updates its behavior based on local neighborhood
     for (const agentId of session.agentIds) {
       const neighborhood = this.getNeighborhood(agentId, session);
       const localState = await this.calculateLocalState(agentId, neighborhood, session);
       const behavior = this.updateSwarmBehavior(agentId, localState, session);
-      
+
       swarmBehaviors.set(agentId, behavior);
     }
 
@@ -880,7 +888,7 @@ class NeuralCoordinationProtocol {
       behaviors: swarmBehaviors,
       emergentPatterns,
       success: true,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
@@ -891,7 +899,7 @@ class NeuralCoordinationProtocol {
   async executeMarketBasedCoordination(session) {
     const auctionResults = new Map();
     const tasks = this.identifyCoordinationTasks(session);
-    
+
     // Run auction for each task
     for (const task of tasks) {
       const auction = await this.runTaskAuction(task, session);
@@ -906,7 +914,7 @@ class NeuralCoordinationProtocol {
       auctions: auctionResults,
       allocations: taskAllocations,
       success: true,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
@@ -917,18 +925,18 @@ class NeuralCoordinationProtocol {
   async executeContractNetCoordination(session) {
     const contractResults = new Map();
     const announcements = await this.createTaskAnnouncements(session);
-    
+
     // Process each task announcement
     for (const announcement of announcements) {
       const bids = await this.collectBids(announcement, session);
       const selectedBid = this.selectWinningBid(bids, announcement);
       const contract = await this.establishContract(announcement, selectedBid, session);
-      
+
       contractResults.set(announcement.taskId, {
         announcement,
         bids,
         selectedBid,
-        contract
+        contract,
       });
     }
 
@@ -936,7 +944,7 @@ class NeuralCoordinationProtocol {
       strategy: 'contract_net',
       contracts: contractResults,
       success: true,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
@@ -947,18 +955,18 @@ class NeuralCoordinationProtocol {
   async executeBlackboardCoordination(session) {
     const blackboard = this.initializeBlackboard(session);
     const knowledgeSources = this.activateKnowledgeSources(session);
-    
+
     // Opportunistic coordination through blackboard
     let coordinationComplete = false;
     let iterations = 0;
     const maxIterations = 10;
-    
+
     while (!coordinationComplete && iterations < maxIterations) {
       // Each knowledge source contributes to blackboard
       for (const [agentId, ks] of knowledgeSources.entries()) {
         await this.executeKnowledgeSource(agentId, ks, blackboard, session);
       }
-      
+
       // Check for coordination completion
       coordinationComplete = this.checkCoordinationCompletion(blackboard, session);
       iterations++;
@@ -969,7 +977,7 @@ class NeuralCoordinationProtocol {
       blackboard: this.serializeBlackboard(blackboard),
       iterations,
       success: coordinationComplete,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
@@ -980,15 +988,15 @@ class NeuralCoordinationProtocol {
   async executeMARLCoordination(session) {
     const agentPolicies = new Map();
     const sharedReward = this.calculateSharedReward(session);
-    
+
     // Update each agent's policy based on shared reward
     for (const agentId of session.agentIds) {
       const currentPolicy = await this.getAgentPolicy(agentId, session);
       const updatedPolicy = await this.updatePolicyWithSharedReward(
-        agentId, 
-        currentPolicy, 
-        sharedReward, 
-        session
+        agentId,
+        currentPolicy,
+        sharedReward,
+        session,
       );
       agentPolicies.set(agentId, updatedPolicy);
     }
@@ -1006,7 +1014,7 @@ class NeuralCoordinationProtocol {
       sharedReward,
       actions: coordinatedActions,
       success: true,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
@@ -1017,13 +1025,13 @@ class NeuralCoordinationProtocol {
   async executeByzantineCoordination(session) {
     const byzantineResults = new Map();
     const decisions = await this.gatherAgentDecisions(session);
-    
+
     // Run Byzantine consensus on each decision type
     const decisionTypes = new Set();
     for (const [agentId, decision] of decisions.entries()) {
       decisionTypes.add(decision.type);
     }
-    
+
     for (const decisionType of decisionTypes) {
       const typeDecisions = new Map();
       for (const [agentId, decision] of decisions.entries()) {
@@ -1031,7 +1039,7 @@ class NeuralCoordinationProtocol {
           typeDecisions.set(agentId, decision);
         }
       }
-      
+
       const consensus = await this.runByzantineConsensus(typeDecisions, session);
       byzantineResults.set(decisionType, consensus);
     }
@@ -1041,7 +1049,7 @@ class NeuralCoordinationProtocol {
       decisions,
       consensus: byzantineResults,
       success: true,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
@@ -1052,18 +1060,18 @@ class NeuralCoordinationProtocol {
    */
   async executeConsensusProtocol(session, coordinationResult) {
     const { consensusProtocol } = session;
-    
+
     switch (consensusProtocol.name) {
-      case 'Proof of Stake':
-        return this.executeProofOfStakeConsensus(session, coordinationResult);
-      case 'Practical Byzantine Fault Tolerance':
-        return this.executePBFTConsensus(session, coordinationResult);
-      case 'Raft Consensus':
-        return this.executeRaftConsensus(session, coordinationResult);
-      case 'Gossip Protocol':
-        return this.executeGossipConsensus(session, coordinationResult);
-      default:
-        return this.executeGossipConsensus(session, coordinationResult); // Default
+    case 'Proof of Stake':
+      return this.executeProofOfStakeConsensus(session, coordinationResult);
+    case 'Practical Byzantine Fault Tolerance':
+      return this.executePBFTConsensus(session, coordinationResult);
+    case 'Raft Consensus':
+      return this.executeRaftConsensus(session, coordinationResult);
+    case 'Gossip Protocol':
+      return this.executeGossipConsensus(session, coordinationResult);
+    default:
+      return this.executeGossipConsensus(session, coordinationResult); // Default
     }
   }
 
@@ -1117,7 +1125,7 @@ class NeuralCoordinationProtocol {
       avgSuccessRate: totalAgents > 0 ? avgSuccessRate / totalAgents : 0,
       totalMessages,
       availableStrategies: this.coordinationStrategies.size,
-      availableConsensusProtocols: this.consensusProtocols.size
+      availableConsensusProtocols: this.consensusProtocols.size,
     };
   }
 
@@ -1141,7 +1149,7 @@ class NeuralCoordinationProtocol {
 
   async createCoordinationPlan(session, leader) {
     const tasks = new Map();
-    
+
     // Create simple task distribution plan
     for (let i = 0; i < session.agentIds.length; i++) {
       const agentId = session.agentIds[i];
@@ -1150,7 +1158,7 @@ class NeuralCoordinationProtocol {
           id: `task_${i}`,
           type: 'coordination',
           priority: 'medium',
-          deadline: Date.now() + 300000 // 5 minutes
+          deadline: Date.now() + 300000, // 5 minutes
         });
       }
     }
@@ -1164,7 +1172,7 @@ class NeuralCoordinationProtocol {
       agentId,
       taskId: task.id,
       status: 'assigned',
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
@@ -1174,13 +1182,13 @@ class NeuralCoordinationProtocol {
       participants: [agentA, agentB],
       outcome: 'agreement',
       terms: { cooperation: 0.8 },
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
   aggregateNegotiations(negotiations) {
     const agreements = new Map();
-    
+
     for (const [agentId, agentNegotiations] of negotiations.entries()) {
       const agentAgreements = agentNegotiations.filter(n => n.outcome === 'agreement');
       agreements.set(agentId, agentAgreements);
@@ -1199,7 +1207,7 @@ class NeuralCoordinationProtocol {
       agentId,
       neighborCount: neighborhood.size,
       averagePerformance: 0.8, // Simplified
-      localEnergy: Math.random()
+      localEnergy: Math.random(),
     };
   }
 
@@ -1209,7 +1217,7 @@ class NeuralCoordinationProtocol {
       agentId,
       behavior: 'cooperative',
       intensity: localState.localEnergy,
-      direction: Math.random() * 2 * Math.PI
+      direction: Math.random() * 2 * Math.PI,
     };
   }
 
@@ -1219,7 +1227,7 @@ class NeuralCoordinationProtocol {
       agentId,
       pattern: 'flocking',
       strength: Math.random(),
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
@@ -1227,14 +1235,14 @@ class NeuralCoordinationProtocol {
     // Identify tasks that need coordination
     return [
       { id: 'task1', type: 'computation', complexity: 0.5 },
-      { id: 'task2', type: 'communication', complexity: 0.3 }
+      { id: 'task2', type: 'communication', complexity: 0.3 },
     ];
   }
 
   async runTaskAuction(task, session) {
     // Simulate task auction
     const bids = new Map();
-    
+
     for (const agentId of session.agentIds) {
       const bid = Math.random() * 100; // Random bid
       bids.set(agentId, { agentId, bid, task: task.id });
@@ -1248,7 +1256,7 @@ class NeuralCoordinationProtocol {
 
   allocateTasksFromAuctions(auctionResults) {
     const allocations = new Map();
-    
+
     for (const [taskId, auction] of auctionResults.entries()) {
       if (auction.winner) {
         allocations.set(taskId, auction.winner);

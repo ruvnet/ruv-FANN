@@ -16,11 +16,11 @@ export const visionPresets = {
         { filters: 32, kernelSize: 3, stride: 1, activation: 'mish' },
         { filters: 64, kernelSize: 3, stride: 2, activation: 'mish' },
         { filters: 128, kernelSize: 3, stride: 1, activation: 'mish' },
-        { filters: 256, kernelSize: 3, stride: 2, activation: 'mish' }
+        { filters: 256, kernelSize: 3, stride: 2, activation: 'mish' },
       ],
-      anchors: [[10,13], [16,30], [33,23], [30,61], [62,45], [59,119], [116,90], [156,198], [373,326]],
+      anchors: [[10, 13], [16, 30], [33, 23], [30, 61], [62, 45], [59, 119], [116, 90], [156, 198], [373, 326]],
       numClasses: 80,
-      dropoutRate: 0.2
+      dropoutRate: 0.2,
     },
     training: {
       batchSize: 16,
@@ -32,16 +32,16 @@ export const visionPresets = {
         rotation: 15,
         zoom: 0.2,
         flip: true,
-        colorJitter: 0.2
-      }
+        colorJitter: 0.2,
+      },
     },
     performance: {
       expectedAccuracy: '85-88% mAP',
       inferenceTime: '8ms (30+ FPS)',
       memoryUsage: '150MB',
-      trainingTime: '24-48 hours on GPU'
+      trainingTime: '24-48 hours on GPU',
     },
-    useCase: 'Security cameras, autonomous vehicles, robotics'
+    useCase: 'Security cameras, autonomous vehicles, robotics',
   },
 
   // Facial Recognition
@@ -57,7 +57,7 @@ export const visionPresets = {
       hiddenDimensions: 512,
       initialChannels: 64,
       embeddingSize: 128,
-      useArcFaceLoss: true
+      useArcFaceLoss: true,
     },
     training: {
       batchSize: 128,
@@ -66,15 +66,15 @@ export const visionPresets = {
       optimizer: 'adam',
       scheduler: 'cosine',
       margin: 0.5,
-      scale: 30
+      scale: 30,
     },
     performance: {
       expectedAccuracy: '99.2% on LFW',
       inferenceTime: '5ms',
       memoryUsage: '200MB',
-      trainingTime: '3-5 days on GPU'
+      trainingTime: '3-5 days on GPU',
     },
-    useCase: 'Access control, identity verification, secure authentication'
+    useCase: 'Access control, identity verification, secure authentication',
   },
 
   // Medical Image Analysis
@@ -89,11 +89,11 @@ export const visionPresets = {
         { filters: 64, kernelSize: 3, stride: 1, activation: 'relu', batchNorm: true },
         { filters: 128, kernelSize: 3, stride: 1, activation: 'relu', batchNorm: true },
         { filters: 256, kernelSize: 3, stride: 1, activation: 'relu', batchNorm: true },
-        { filters: 512, kernelSize: 3, stride: 1, activation: 'relu', batchNorm: true }
+        { filters: 512, kernelSize: 3, stride: 1, activation: 'relu', batchNorm: true },
       ],
       skipConnections: true,
       attentionGates: true,
-      dropoutRate: 0.3
+      dropoutRate: 0.3,
     },
     training: {
       batchSize: 8,
@@ -105,16 +105,16 @@ export const visionPresets = {
       augmentation: {
         rotation: 20,
         elasticDeformation: true,
-        intensityShift: 0.1
-      }
+        intensityShift: 0.1,
+      },
     },
     performance: {
       expectedAccuracy: '93-95% Dice Score',
       inferenceTime: '200ms',
       memoryUsage: '2GB',
-      trainingTime: '48-72 hours on GPU'
+      trainingTime: '48-72 hours on GPU',
     },
-    useCase: 'Tumor detection, organ segmentation, disease classification'
+    useCase: 'Tumor detection, organ segmentation, disease classification',
   },
 
   // Autonomous Driving
@@ -130,10 +130,10 @@ export const visionPresets = {
         segmentation: { numClasses: 19 },
         detection: { numClasses: 10 },
         depthEstimation: { outputChannels: 1 },
-        laneDetection: { numLanes: 4 }
+        laneDetection: { numLanes: 4 },
       },
       featurePyramid: true,
-      dropoutRate: 0.2
+      dropoutRate: 0.2,
     },
     training: {
       batchSize: 4,
@@ -144,17 +144,17 @@ export const visionPresets = {
         segmentation: 1.0,
         detection: 1.0,
         depth: 0.5,
-        lanes: 0.8
+        lanes: 0.8,
       },
-      mixedPrecision: true
+      mixedPrecision: true,
     },
     performance: {
       expectedAccuracy: '88-91% mIoU',
       inferenceTime: '25ms',
       memoryUsage: '500MB',
-      trainingTime: '5-7 days on multi-GPU'
+      trainingTime: '5-7 days on multi-GPU',
     },
-    useCase: 'Self-driving cars, ADAS systems, robotics navigation'
+    useCase: 'Self-driving cars, ADAS systems, robotics navigation',
   },
 
   // Quality Inspection
@@ -169,7 +169,7 @@ export const visionPresets = {
       metricLearning: true,
       embeddingDimension: 256,
       anomalyThreshold: 0.85,
-      dropoutRate: 0.3
+      dropoutRate: 0.3,
     },
     training: {
       batchSize: 32,
@@ -182,16 +182,16 @@ export const visionPresets = {
         rotation: 360,
         brightness: 0.3,
         contrast: 0.3,
-        noise: 0.05
-      }
+        noise: 0.05,
+      },
     },
     performance: {
       expectedAccuracy: '96-98% defect detection',
       inferenceTime: '10ms',
       memoryUsage: '300MB',
-      trainingTime: '12-24 hours on GPU'
+      trainingTime: '12-24 hours on GPU',
     },
-    useCase: 'Manufacturing QC, PCB inspection, surface defect detection'
+    useCase: 'Manufacturing QC, PCB inspection, surface defect detection',
   },
 
   // Satellite Image Analysis
@@ -206,7 +206,7 @@ export const visionPresets = {
       outputStride: 16,
       numClasses: 15,
       asppDilationRates: [6, 12, 18],
-      dropoutRate: 0.3
+      dropoutRate: 0.3,
     },
     training: {
       batchSize: 8,
@@ -219,16 +219,16 @@ export const visionPresets = {
         randomCrop: 448,
         horizontalFlip: true,
         verticalFlip: true,
-        gaussianNoise: 0.01
-      }
+        gaussianNoise: 0.01,
+      },
     },
     performance: {
       expectedAccuracy: '89-92% pixel accuracy',
       inferenceTime: '150ms',
       memoryUsage: '1.5GB',
-      trainingTime: '36-48 hours on GPU'
+      trainingTime: '36-48 hours on GPU',
     },
-    useCase: 'Land use classification, change detection, disaster response'
+    useCase: 'Land use classification, change detection, disaster response',
   },
 
   // Document Scanner
@@ -244,7 +244,7 @@ export const visionPresets = {
       rnnLayers: 2,
       vocabSize: 95, // Printable ASCII
       ctcBeamWidth: 100,
-      dropoutRate: 0.3
+      dropoutRate: 0.3,
     },
     training: {
       batchSize: 16,
@@ -256,16 +256,16 @@ export const visionPresets = {
         perspective: true,
         rotation: 5,
         shear: 0.2,
-        blur: 0.5
-      }
+        blur: 0.5,
+      },
     },
     performance: {
       expectedAccuracy: '98-99% character accuracy',
       inferenceTime: '50ms',
       memoryUsage: '400MB',
-      trainingTime: '24-36 hours on GPU'
+      trainingTime: '24-36 hours on GPU',
     },
-    useCase: 'Document digitization, receipt scanning, form processing'
+    useCase: 'Document digitization, receipt scanning, form processing',
   },
 
   // Video Action Recognition
@@ -280,7 +280,7 @@ export const visionPresets = {
       temporalKernelSize: 3,
       numClasses: 400,
       includeOpticalFlow: false,
-      dropoutRate: 0.5
+      dropoutRate: 0.5,
     },
     training: {
       batchSize: 8,
@@ -292,16 +292,16 @@ export const visionPresets = {
       augmentation: {
         temporalJitter: 4,
         spatialCrop: 'random',
-        colorJitter: 0.2
-      }
+        colorJitter: 0.2,
+      },
     },
     performance: {
       expectedAccuracy: '82-85% top-1',
       inferenceTime: '100ms per clip',
       memoryUsage: '800MB',
-      trainingTime: '3-5 days on GPU'
+      trainingTime: '3-5 days on GPU',
     },
-    useCase: 'Sports analysis, surveillance, human-computer interaction'
+    useCase: 'Sports analysis, surveillance, human-computer interaction',
   },
 
   // Image Enhancement
@@ -317,7 +317,7 @@ export const visionPresets = {
       skipConnections: true,
       residualLearning: true,
       perceptualLoss: true,
-      activation: 'prelu'
+      activation: 'prelu',
     },
     training: {
       batchSize: 16,
@@ -327,17 +327,17 @@ export const visionPresets = {
       lossWeights: {
         reconstruction: 1.0,
         perceptual: 0.1,
-        adversarial: 0.001
+        adversarial: 0.001,
       },
-      scheduler: 'reduceLROnPlateau'
+      scheduler: 'reduceLROnPlateau',
     },
     performance: {
       expectedAccuracy: '32-35 PSNR',
       inferenceTime: '80ms',
       memoryUsage: '600MB',
-      trainingTime: '48-72 hours on GPU'
+      trainingTime: '48-72 hours on GPU',
     },
-    useCase: 'Photo restoration, super-resolution, denoising'
+    useCase: 'Photo restoration, super-resolution, denoising',
   },
 
   // Style Transfer
@@ -353,7 +353,7 @@ export const visionPresets = {
       instanceNormalization: true,
       styleEmbeddingSize: 256,
       numStyles: 10,
-      dropoutRate: 0.0
+      dropoutRate: 0.0,
     },
     training: {
       batchSize: 8,
@@ -363,16 +363,16 @@ export const visionPresets = {
       contentWeight: 1.0,
       styleWeight: 100000,
       tvWeight: 1e-6,
-      useMultipleStyleLayers: true
+      useMultipleStyleLayers: true,
     },
     performance: {
       expectedAccuracy: 'Subjective quality',
       inferenceTime: '100ms',
       memoryUsage: '500MB',
-      trainingTime: '12-24 hours on GPU'
+      trainingTime: '12-24 hours on GPU',
     },
-    useCase: 'Artistic applications, photo filters, content creation'
-  }
+    useCase: 'Artistic applications, photo filters, content creation',
+  },
 };
 
 // Export utility function to get preset by name

@@ -16,22 +16,22 @@ export const nlpPresets = {
       ffDimensions: 2048,
       vocabSize: 30000,
       maxLength: 280,
-      dropoutRate: 0.1
+      dropoutRate: 0.1,
     },
     training: {
       batchSize: 32,
       learningRate: 5e-5,
       warmupSteps: 1000,
       epochs: 10,
-      optimizer: 'adamw'
+      optimizer: 'adamw',
     },
     performance: {
       expectedAccuracy: '92-94%',
       inferenceTime: '12ms',
       memoryUsage: '512MB',
-      trainingTime: '2-3 hours on GPU'
+      trainingTime: '2-3 hours on GPU',
     },
-    useCase: 'Twitter, Facebook, Instagram sentiment tracking'
+    useCase: 'Twitter, Facebook, Instagram sentiment tracking',
   },
 
   // Document Summarization
@@ -46,7 +46,7 @@ export const nlpPresets = {
       ffDimensions: 3072,
       vocabSize: 50000,
       maxLength: 1024,
-      dropoutRate: 0.15
+      dropoutRate: 0.15,
     },
     training: {
       batchSize: 16,
@@ -54,15 +54,15 @@ export const nlpPresets = {
       warmupSteps: 2000,
       epochs: 15,
       optimizer: 'adamw',
-      gradientAccumulation: 4
+      gradientAccumulation: 4,
     },
     performance: {
       expectedAccuracy: '88-91%',
       inferenceTime: '45ms',
       memoryUsage: '1.2GB',
-      trainingTime: '8-10 hours on GPU'
+      trainingTime: '8-10 hours on GPU',
     },
-    useCase: 'News articles, research papers, legal documents'
+    useCase: 'News articles, research papers, legal documents',
   },
 
   // Question Answering
@@ -78,22 +78,22 @@ export const nlpPresets = {
       vocabSize: 40000,
       maxLength: 512,
       dropoutRate: 0.1,
-      includePositionalEmbeddings: true
+      includePositionalEmbeddings: true,
     },
     training: {
       batchSize: 24,
       learningRate: 2e-5,
       warmupSteps: 1500,
       epochs: 20,
-      optimizer: 'adamw'
+      optimizer: 'adamw',
     },
     performance: {
       expectedAccuracy: '85-88%',
       inferenceTime: '25ms',
       memoryUsage: '900MB',
-      trainingTime: '6-8 hours on GPU'
+      trainingTime: '6-8 hours on GPU',
     },
-    useCase: 'Customer support, educational systems, information retrieval'
+    useCase: 'Customer support, educational systems, information retrieval',
   },
 
   // Named Entity Recognition
@@ -108,22 +108,22 @@ export const nlpPresets = {
       outputSize: 9, // B-PER, I-PER, B-ORG, I-ORG, B-LOC, I-LOC, B-MISC, I-MISC, O
       bidirectional: true,
       returnSequence: true,
-      dropoutRate: 0.3
+      dropoutRate: 0.3,
     },
     training: {
       batchSize: 64,
       learningRate: 1e-3,
       epochs: 30,
       optimizer: 'adam',
-      earlyStoppingPatience: 5
+      earlyStoppingPatience: 5,
     },
     performance: {
       expectedAccuracy: '91-93%',
       inferenceTime: '8ms',
       memoryUsage: '256MB',
-      trainingTime: '3-4 hours on GPU'
+      trainingTime: '3-4 hours on GPU',
     },
-    useCase: 'Information extraction, document processing, knowledge graphs'
+    useCase: 'Information extraction, document processing, knowledge graphs',
   },
 
   // Language Translation
@@ -139,7 +139,7 @@ export const nlpPresets = {
       vocabSize: 32000,
       maxLength: 256,
       dropoutRate: 0.1,
-      shareEmbeddings: true
+      shareEmbeddings: true,
     },
     training: {
       batchSize: 128,
@@ -147,15 +147,15 @@ export const nlpPresets = {
       warmupSteps: 4000,
       epochs: 50,
       optimizer: 'adam',
-      labelSmoothing: 0.1
+      labelSmoothing: 0.1,
     },
     performance: {
       expectedAccuracy: '86-89% BLEU',
       inferenceTime: '30ms',
       memoryUsage: '800MB',
-      trainingTime: '24-48 hours on GPU'
+      trainingTime: '24-48 hours on GPU',
     },
-    useCase: 'Real-time translation, document localization'
+    useCase: 'Real-time translation, document localization',
   },
 
   // Text Classification
@@ -170,22 +170,22 @@ export const nlpPresets = {
       outputSize: 20, // Number of classes
       bidirectional: true,
       dropoutRate: 0.4,
-      returnSequence: false
+      returnSequence: false,
     },
     training: {
       batchSize: 128,
       learningRate: 1e-3,
       epochs: 25,
       optimizer: 'adam',
-      classWeights: 'balanced'
+      classWeights: 'balanced',
     },
     performance: {
       expectedAccuracy: '89-92%',
       inferenceTime: '6ms',
       memoryUsage: '384MB',
-      trainingTime: '2-3 hours on GPU'
+      trainingTime: '2-3 hours on GPU',
     },
-    useCase: 'Email categorization, content moderation, topic classification'
+    useCase: 'Email categorization, content moderation, topic classification',
   },
 
   // Conversational AI
@@ -201,7 +201,7 @@ export const nlpPresets = {
       vocabSize: 50000,
       maxLength: 512,
       dropoutRate: 0.1,
-      useMemory: true
+      useMemory: true,
     },
     training: {
       batchSize: 16,
@@ -209,15 +209,15 @@ export const nlpPresets = {
       warmupSteps: 2000,
       epochs: 30,
       optimizer: 'adamw',
-      useReinforcementLearning: true
+      useReinforcementLearning: true,
     },
     performance: {
       expectedAccuracy: '87-90%',
       inferenceTime: '40ms',
       memoryUsage: '1.5GB',
-      trainingTime: '48-72 hours on GPU'
+      trainingTime: '48-72 hours on GPU',
     },
-    useCase: 'Chatbots, virtual assistants, customer service'
+    useCase: 'Chatbots, virtual assistants, customer service',
   },
 
   // Code Generation
@@ -233,7 +233,7 @@ export const nlpPresets = {
       vocabSize: 64000,
       maxLength: 2048,
       dropoutRate: 0.1,
-      useRotaryPositionalEmbedding: true
+      useRotaryPositionalEmbedding: true,
     },
     training: {
       batchSize: 8,
@@ -241,15 +241,15 @@ export const nlpPresets = {
       warmupSteps: 5000,
       epochs: 20,
       optimizer: 'adamw',
-      gradientAccumulation: 8
+      gradientAccumulation: 8,
     },
     performance: {
       expectedAccuracy: '78-82%',
       inferenceTime: '100ms',
       memoryUsage: '3GB',
-      trainingTime: '5-7 days on GPU'
+      trainingTime: '5-7 days on GPU',
     },
-    useCase: 'Code completion, bug fixing, code documentation'
+    useCase: 'Code completion, bug fixing, code documentation',
   },
 
   // Semantic Search
@@ -265,7 +265,7 @@ export const nlpPresets = {
       vocabSize: 30000,
       maxLength: 512,
       dropoutRate: 0.1,
-      poolingStrategy: 'mean'
+      poolingStrategy: 'mean',
     },
     training: {
       batchSize: 32,
@@ -273,15 +273,15 @@ export const nlpPresets = {
       warmupSteps: 1000,
       epochs: 10,
       optimizer: 'adamw',
-      useContrastiveLoss: true
+      useContrastiveLoss: true,
     },
     performance: {
       expectedAccuracy: '91-93%',
       inferenceTime: '15ms',
       memoryUsage: '800MB',
-      trainingTime: '12-16 hours on GPU'
+      trainingTime: '12-16 hours on GPU',
     },
-    useCase: 'Document retrieval, FAQ systems, knowledge bases'
+    useCase: 'Document retrieval, FAQ systems, knowledge bases',
   },
 
   // Grammar Correction
@@ -296,7 +296,7 @@ export const nlpPresets = {
       ffDimensions: 2048,
       vocabSize: 40000,
       maxLength: 256,
-      dropoutRate: 0.15
+      dropoutRate: 0.15,
     },
     training: {
       batchSize: 64,
@@ -304,16 +304,16 @@ export const nlpPresets = {
       warmupSteps: 1500,
       epochs: 15,
       optimizer: 'adamw',
-      useDataAugmentation: true
+      useDataAugmentation: true,
     },
     performance: {
       expectedAccuracy: '93-95%',
       inferenceTime: '20ms',
       memoryUsage: '600MB',
-      trainingTime: '8-10 hours on GPU'
+      trainingTime: '8-10 hours on GPU',
     },
-    useCase: 'Writing assistants, educational tools, content editing'
-  }
+    useCase: 'Writing assistants, educational tools, content editing',
+  },
 };
 
 // Export utility function to get preset by name
