@@ -12,6 +12,38 @@ use crate::webgpu::{
 use crate::{ActivationFunction, Layer};
 
 /// Compute context manages backend selection and operation dispatch
+/// 
+/// This is the main interface for controlling GPU acceleration in ruv-FANN.
+/// It automatically selects the best backend (GPU/SIMD/CPU) based on problem size
+/// and provides fallback mechanisms when GPU operations fail.
+/// 
+/// # Examples
+/// 
+/// ```rust
+/// use ruv_fann::webgpu::ComputeContext;
+/// 
+/// # #[tokio::main]
+/// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// // Create context with automatic GPU detection
+/// let mut context = ComputeContext::<f32>::new().await?;
+/// 
+/// // Check GPU availability
+/// if context.is_gpu_available() {
+///     println!("GPU acceleration available");
+/// }
+/// 
+/// // Select backend based on problem size
+/// let backend = context.select_backend(10000); // Large problem -> GPU
+/// println!("Selected backend: {:?}", backend);
+/// # Ok(())
+/// # }
+/// ```
+/// 
+/// # Performance Guidelines
+/// 
+/// - **GPU**: Best for large networks (1000+ neurons) and batch processing
+/// - **SIMD**: Optimal for medium networks (100-1000 neurons)  
+/// - **CPU**: Used for small networks (<100 neurons) and fallback
 pub struct ComputeContext<T: Float + Send + Sync> {
     backend_selector: BackendSelector,
     current_backend: BackendType,
@@ -22,6 +54,28 @@ pub struct ComputeContext<T: Float + Send + Sync> {
 
 impl<T: Float + Send + Sync> ComputeContext<T> {
     /// Create a new compute context with automatic backend detection
+    /// 
+    /// This method automatically detects available GPU hardware and initializes
+    /// the best available backend. It returns a context ready for high-performance
+    /// neural network computations.
+    /// 
+    /// # Returns
+    /// 
+    /// - `Ok(ComputeContext)`: Successfully initialized context
+    /// - `Err(ComputeError)`: Failed to initialize any backend
+    /// 
+    /// # Examples
+    /// 
+    /// ```rust
+    /// use ruv_fann::webgpu::ComputeContext;
+    /// 
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let context = ComputeContext::<f32>::new().await?;
+    /// println!("GPU available: {}", context.is_gpu_available());
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn new() -> ComputeResult<Self> {
         let backend_selector = BackendSelector::new();
         
@@ -57,6 +111,44 @@ impl<T: Float + Send + Sync> ComputeContext<T> {
     }
     
     /// Select the best backend for a given problem size
+    /// 
+    /// Automatically chooses the optimal compute backend based on the problem size
+    /// and available hardware. This is the core intelligence of ruv-FANN's
+    /// automatic acceleration system.
+    /// 
+    /// # Backend Selection Logic
+    /// 
+    /// - **GPU (WebGPU)**: Problems with 1000+ elements (large networks)
+    /// - **SIMD**: Problems with 100-1000 elements (medium networks)
+    /// - **CPU**: Problems with <100 elements (small networks, fallback)
+    /// 
+    /// # Arguments
+    /// 
+    /// * `problem_size` - Number of elements in the computation (neurons × inputs)
+    /// 
+    /// # Returns
+    /// 
+    /// The selected `BackendType` for optimal performance
+    /// 
+    /// # Examples
+    /// 
+    /// ```rust
+    /// use ruv_fann::webgpu::{ComputeContext, BackendType};
+    /// 
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let mut context = ComputeContext::<f32>::new().await?;
+    /// 
+    /// // Small network -> CPU
+    /// let small_backend = context.select_backend(50);
+    /// assert_eq!(small_backend, BackendType::CPU);
+    /// 
+    /// // Large network -> GPU (if available)
+    /// let large_backend = context.select_backend(10000);
+    /// // Will be GPU if available, otherwise SIMD/CPU
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn select_backend(&mut self, problem_size: usize) -> BackendType {
         let selected = self.backend_selector.select_backend::<T>(problem_size);
         
