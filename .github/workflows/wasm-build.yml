@@ -24,30 +24,28 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Setup Rust
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@stable
       with:
-        toolchain: stable
-        target: wasm32-unknown-unknown
-        override: true
+        targets: wasm32-unknown-unknown
         components: rustfmt, clippy
     
     - name: Cache cargo registry
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cargo/registry
         key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
     
     - name: Cache cargo index
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cargo/git
         key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
     
     - name: Cache cargo build
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: target
         key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
@@ -63,7 +61,13 @@ jobs:
     - name: Build WASM module
       working-directory: ./ruv-swarm/crates/ruv-swarm-wasm-unified
       run: |
-        ./scripts/build-wasm-unified.sh release default
+        if [ -f "./scripts/build-wasm-unified.sh" ]; then
+          chmod +x ./scripts/build-wasm-unified.sh
+          ./scripts/build-wasm-unified.sh release default
+        else
+          echo "Build script not found, using wasm-pack directly"
+          wasm-pack build --target bundler --out-dir pkg
+        fi
     
     - name: Run WASM tests
       working-directory: ./ruv-swarm/crates/ruv-swarm-wasm-unified
@@ -82,7 +86,7 @@ jobs:
         fi
     
     - name: Upload WASM artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: wasm-module
         path: ruv-swarm/crates/ruv-swarm-wasm-unified/pkg/
@@ -94,16 +98,16 @@ jobs:
     needs: build
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Download WASM artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: wasm-module
         path: ruv-swarm/crates/ruv-swarm-wasm-unified/pkg/
     
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: '18'
     
@@ -114,7 +118,7 @@ jobs:
         npm run benchmark:wasm
     
     - name: Upload benchmark results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: benchmark-results
         path: ruv-swarm/npm/benchmark-results.json
@@ -127,16 +131,16 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Download WASM artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: wasm-module
         path: ruv-swarm/npm/wasm-unified/
     
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: '18'
         registry-url: 'https://registry.npmjs.org'
