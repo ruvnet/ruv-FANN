@@ -15,27 +15,32 @@ pub enum ShaderType {
     BatchMatrixVectorMultiply,
     ActivationSigmoid,
     ActivationReLU,
+    ActivationTanh,
     Other,
 }
 
 #[cfg(feature = "gpu")]
+#[derive(Debug)]
 pub struct ComputePipeline {
     // This would be the actual wgpu::ComputePipeline when WebGPU is available
     _placeholder: std::marker::PhantomData<()>,
 }
 
 #[cfg(feature = "gpu")]
+#[derive(Debug)]
 pub struct BindGroupLayout {
     // This would be the actual wgpu::BindGroupLayout when WebGPU is available
     _placeholder: std::marker::PhantomData<()>,
 }
 
 #[cfg(not(feature = "gpu"))]
+#[derive(Debug)]
 pub struct ComputePipeline {
     _placeholder: std::marker::PhantomData<()>,
 }
 
 #[cfg(not(feature = "gpu"))]
+#[derive(Debug)]
 pub struct BindGroupLayout {
     _placeholder: std::marker::PhantomData<()>,
 }
@@ -56,7 +61,7 @@ pub struct PipelineCache {
     cache_stats: Arc<RwLock<CacheStats>>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct CompilationStats {
     pub total_compilations: u64,
     pub compilation_time_ns: u64,
@@ -65,7 +70,7 @@ pub struct CompilationStats {
     pub average_compilation_time_ns: u64,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct CacheStats {
     pub pipeline_requests: u64,
     pub pipeline_hits: u64,
@@ -178,8 +183,14 @@ impl PipelineCache {
     
     /// Get comprehensive cache performance statistics
     pub fn get_performance_stats(&self) -> (CompilationStats, CacheStats) {
-        let compilation_stats = self.compilation_stats.read().unwrap().clone();
-        let cache_stats = self.cache_stats.read().unwrap().clone();
+        let compilation_stats = {
+            let stats = self.compilation_stats.read().unwrap();
+            stats.clone()
+        };
+        let cache_stats = {
+            let stats = self.cache_stats.read().unwrap();
+            stats.clone()
+        };
         (compilation_stats, cache_stats)
     }
     
@@ -213,7 +224,7 @@ impl PipelineCache {
     }
     
     /// Compile a shader pipeline (placeholder implementation)
-    fn compile_pipeline(&self, shader_type: &ShaderType) -> Result<ComputePipeline, ComputeError> {
+    fn compile_pipeline(&self, _shader_type: &ShaderType) -> Result<ComputePipeline, ComputeError> {
         // In actual implementation, this would:
         // 1. Load shader source based on shader_type
         // 2. Create shader module from WGSL source
@@ -227,7 +238,7 @@ impl PipelineCache {
     }
     
     /// Create bind group layout for shader type (placeholder implementation)
-    fn create_bind_group_layout(&self, shader_type: &ShaderType) -> Result<BindGroupLayout, ComputeError> {
+    fn create_bind_group_layout(&self, _shader_type: &ShaderType) -> Result<BindGroupLayout, ComputeError> {
         // In actual implementation, this would:
         // 1. Define buffer bindings based on shader requirements
         // 2. Create bind group layout with proper visibility and types

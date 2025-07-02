@@ -3,7 +3,6 @@
 //! This module provides a unified error handling framework with detailed error categories,
 //! context information, and recovery mechanisms for robust neural network operations.
 
-use std::fmt;
 use std::error::Error;
 use thiserror::Error;
 use crate::{NetworkError, TrainingError};

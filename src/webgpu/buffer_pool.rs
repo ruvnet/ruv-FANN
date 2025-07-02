@@ -19,27 +19,27 @@ use std::sync::{Arc, Mutex, atomic::{AtomicU64, AtomicUsize, Ordering}};
 use std::time::{Duration, Instant};
 use crate::webgpu::error::{ComputeError, ComputeResult};
 
-#[cfg(feature = "gpu")]
-use ::wgpu::{Device, Queue, Buffer, BufferDescriptor, BufferUsages};
+#[cfg(feature = "webgpu")]
+use ::wgpu::{Device, Buffer, BufferDescriptor, BufferUsages};
 
 // Mock types for non-WebGPU builds
-#[cfg(not(feature = "gpu"))]
+#[cfg(not(feature = "webgpu"))]
 pub struct Device;
-#[cfg(not(feature = "gpu"))]
+#[cfg(not(feature = "webgpu"))]
 pub struct Queue;
-#[cfg(not(feature = "gpu"))]
+#[cfg(not(feature = "webgpu"))]
 pub struct Buffer;
-#[cfg(not(feature = "gpu"))]
+#[cfg(not(feature = "webgpu"))]
 pub struct BufferDescriptor<'a> {
     pub label: Option<&'a str>,
     pub size: u64,
     pub usage: BufferUsages,
     pub mapped_at_creation: bool,
 }
-#[cfg(not(feature = "gpu"))]
+#[cfg(not(feature = "webgpu"))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BufferUsages;
-#[cfg(not(feature = "gpu"))]
+#[cfg(not(feature = "webgpu"))]
 impl BufferUsages {
     pub const STORAGE: Self = BufferUsages;
     pub const COPY_DST: Self = BufferUsages;
@@ -162,9 +162,9 @@ pub struct PoolTierConfig {
 
 /// GPU buffer with enhanced metadata and lifecycle tracking
 pub struct GpuBuffer {
-    #[cfg(feature = "gpu")]
+    #[cfg(feature = "webgpu")]
     pub buffer: Buffer,
-    #[cfg(not(feature = "gpu"))]
+    #[cfg(not(feature = "webgpu"))]
     pub buffer: Buffer,
     pub size: u64,
     pub usage: BufferUsages,
@@ -178,7 +178,7 @@ pub struct GpuBuffer {
 }
 
 impl GpuBuffer {
-    #[cfg(feature = "gpu")]
+    #[cfg(feature = "webgpu")]
     pub fn new(
         device: &Device,
         size: u64,
@@ -207,7 +207,7 @@ impl GpuBuffer {
         }
     }
     
-    #[cfg(not(feature = "gpu"))]
+    #[cfg(not(feature = "webgpu"))]
     pub fn new(
         _device: &Device,
         size: u64,
@@ -415,7 +415,7 @@ impl PressureCircuitBreaker {
     {
         let state = {
             let mut state = self.state.lock().unwrap();
-            match *state {
+            match state.clone() {
                 CircuitBreakerState::Open => {
                     // Check if recovery timeout has passed
                     if let Some(last_failure) = *self.last_failure.lock().unwrap() {
@@ -423,7 +423,7 @@ impl PressureCircuitBreaker {
                             *state = CircuitBreakerState::HalfOpen;
                             CircuitBreakerState::HalfOpen
                         } else {
-                            return Err(ComputeError::memory_error(
+                            return Err(ComputeError::MemoryError(
                                 "Circuit breaker is open due to memory pressure".to_string()
                             ));
                         }
@@ -453,7 +453,7 @@ impl PressureCircuitBreaker {
                 }
             }
             CircuitBreakerState::Open => {
-                Err(ComputeError::memory_error(
+                Err(ComputeError::MemoryError(
                     "Circuit breaker is open".to_string()
                 ))
             }
@@ -471,7 +471,7 @@ impl PressureCircuitBreaker {
 }
 
 /// Memory pressure levels
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Hash, Ord)]
 pub enum MemoryPressure {
     None = 0,
     Low = 1,
@@ -627,7 +627,7 @@ impl AdvancedBufferPool {
         let pressure = self.calculate_memory_pressure();
         if pressure >= MemoryPressure::Critical {
             self.global_stats.memory_pressure_events.fetch_add(1, Ordering::Relaxed);
-            return Err(ComputeError::memory_error(
+            return Err(ComputeError::MemoryError(
                 format!("Critical memory pressure detected: {:?}", pressure)
             ));
         }
@@ -783,7 +783,7 @@ impl AdvancedBufferPool {
                     tier_pool.config.cleanup_threshold = new_threshold;
                     tier_pool.tier_stats.daa_optimizations.fetch_add(1, Ordering::Relaxed);
                 }
-                DaaRecommendationType::PreallocateBuffers { count } => {
+                DaaRecommendationType::PreallocateBuffers { count: _count } => {
                     // In a full implementation, we'd preallocate buffers here
                     tier_pool.tier_stats.daa_optimizations.fetch_add(1, Ordering::Relaxed);
                 }
@@ -1027,17 +1027,17 @@ mod tests {
         let breaker = PressureCircuitBreaker::new(3, Duration::from_millis(100));
         
         // Test normal operation
-        let result = breaker.execute(|| Ok(42));
+        let result = breaker.execute(|| -> ComputeResult<i32> { Ok(42) });
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), 42);
         
         // Test failure handling
         for _ in 0..3 {
-            let _ = breaker.execute(|| Err(ComputeError::memory_error("test failure".to_string())));
+            let _ = breaker.execute(|| -> ComputeResult<i32> { Err(ComputeError::MemoryError("test failure".to_string())) });
         }
         
         // Circuit should be open now
-        let result = breaker.execute(|| Ok(42));
+        let result = breaker.execute(|| -> ComputeResult<i32> { Ok(42) });
         assert!(result.is_err());
     }
 }

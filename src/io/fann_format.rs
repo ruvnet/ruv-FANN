@@ -2,7 +2,7 @@
 
 use std::io::{BufRead, BufReader, Write};
 use crate::io::error::{IoError, IoResult};
-use crate::{Network, NetworkBuilder, ActivationFunction};
+use crate::{Network, NetworkBuilder};
 use num_traits::Float;
 
 /// FANN file format reader

@@ -4,7 +4,6 @@
 //! and management for the WebGPU backend. It includes staging optimizations for
 //! production-ready GPU acceleration.
 
-use std::sync::Arc;
 use crate::webgpu::error::{ComputeError, ComputeResult};
 
 /// GPU device wrapper with advanced capabilities
@@ -353,18 +352,8 @@ impl GpuDevice {
     }
 }
 
-impl Clone for GpuDevice {
-    fn clone(&self) -> Self {
-        // Note: This is a conceptual clone. In practice, you'd want to share the device
-        // via Arc or implement a proper device sharing mechanism.
-        Self {
-            device: self.device.clone(),
-            queue: self.queue.clone(),
-            adapter_info: self.adapter_info.clone(),
-            limits: self.limits.clone(),
-        }
-    }
-}
+// Note: Clone is not implemented for GpuDevice because wgpu::Device and wgpu::Queue
+// cannot be cloned. Use Arc<GpuDevice> for sharing instead.
 
 #[cfg(test)]
 mod tests {

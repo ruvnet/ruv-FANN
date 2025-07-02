@@ -6,20 +6,20 @@
 
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
-use std::sync::{Arc, Mutex};
 use num_traits::Float;
 use thiserror::Error;
+#[allow(unused_imports)]
 use rand::{Rng, SeedableRng};
 use rand::rngs::StdRng;
 
 use crate::{
-    Network, NetworkBuilder, ActivationFunction,
-    TrainingData, TrainingAlgorithm, TrainingError,
-    CascadeTrainer, CascadeConfig, CascadeError,
-    errors::{RuvFannError, ErrorCategory, ValidationError},
+    Network, NetworkBuilder,
+    TrainingData,
+    CascadeTrainer, CascadeConfig,
 };
 
 #[cfg(feature = "parallel")]
+#[allow(unused_imports)]
 use rayon::prelude::*;
 
 #[cfg(feature = "logging")]
@@ -134,7 +134,7 @@ impl<T: Float + Send + Default> IntegrationTestSuite<T> {
     }
     
     /// Load baseline metrics for performance comparison
-    pub fn load_baseline_metrics(&mut self, path: &str) -> Result<(), IntegrationError> {
+    pub fn load_baseline_metrics(&mut self, _path: &str) -> Result<(), IntegrationError> {
         // In a real implementation, this would load from file
         // For now, we'll create some dummy baseline metrics
         let mut baseline = HashMap::new();
@@ -325,7 +325,7 @@ impl<T: Float + Send + Default> IntegrationTestSuite<T> {
         
         for (i, network) in self.test_networks.iter().enumerate() {
             let test_name = format!("basic_network_{}", i);
-            let start_time = Instant::now();
+            let _start_time = Instant::now();
             let mut network_clone = network.clone();
             
             match self.run_basic_network_test(&mut network_clone) {
@@ -413,13 +413,13 @@ impl<T: Float + Send + Default> IntegrationTestSuite<T> {
     }
     
     /// Run training integration test
-    fn run_training_integration_test(&self, mut network: Network<T>, data: TrainingData<T>) -> Result<BenchmarkResult, IntegrationError> {
+    fn run_training_integration_test(&self, mut _network: Network<T>, data: TrainingData<T>) -> Result<BenchmarkResult, IntegrationError> {
         let start_time = Instant::now();
         
         // Test different training algorithms
-        use crate::training::{IncrementalBackprop, MseError};
+        use crate::training::IncrementalBackprop;
         
-        let mut trainer = IncrementalBackprop::new(
+        let mut _trainer = IncrementalBackprop::new(
             T::from(0.1).unwrap()
         );
         

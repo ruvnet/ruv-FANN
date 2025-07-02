@@ -2,7 +2,7 @@
 
 use std::io::{Read, Write};
 use flate2::{Compression, read::GzDecoder, write::GzEncoder};
-use crate::io::error::{IoError, IoResult};
+use crate::io::error::IoResult;
 
 /// Compress data using gzip
 pub fn compress_data<R, W>(reader: &mut R, writer: &mut W) -> IoResult<()>

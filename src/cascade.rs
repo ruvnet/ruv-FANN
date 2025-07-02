@@ -16,24 +16,23 @@
 //! - Professional logging and debugging
 
 use num_traits::Float;
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
 use thiserror::Error;
 use rand::{Rng, SeedableRng};
 use rand::rngs::StdRng;
 
 use crate::{
-    Network, NetworkBuilder, ActivationFunction, 
-    TrainingAlgorithm, TrainingData, TrainingError,
+    Network, ActivationFunction, 
+    TrainingData,
     errors::{RuvFannError, CascadeErrorCategory},
     cascade_error
 };
 
 #[cfg(feature = "parallel")]
+#[allow(unused_imports)]
 use rayon::prelude::*;
 
 #[cfg(feature = "logging")]
-use log::{debug, info, warn, error};
+use log::{debug, info, error};
 
 /// Cascade correlation specific errors
 #[derive(Error, Debug)]
@@ -653,7 +652,7 @@ impl<T: Float> CascadeTrainer<T> {
         let mut best_correlation = T::zero();
         let mut patience_counter = 0;
         
-        for epoch in 0..self.config.candidate_max_epochs {
+        for _epoch in 0..self.config.candidate_max_epochs {
             // Calculate current network residuals
             let residuals = self.calculate_residuals()?;
             
@@ -831,7 +830,7 @@ impl<T: Float> CascadeTrainer<T> {
         Ok(())
     }
     
-    fn train_candidate_epoch(&mut self, candidate: &mut CandidateNeuron<T>, residuals: &[Vec<T>]) -> Result<(), RuvFannError> {
+    fn train_candidate_epoch(&mut self, _candidate: &mut CandidateNeuron<T>, _residuals: &[Vec<T>]) -> Result<(), RuvFannError> {
         // Simplified candidate training - full implementation would use gradient descent
         Ok(())
     }
@@ -921,9 +920,9 @@ impl<T: Float> CascadeTrainer<T> {
     #[cfg(feature = "parallel")]
     fn train_single_candidate_parallel(
         &self,
-        candidate: &mut CandidateNeuron<T>,
-        training_data: &TrainingData<T>,
-        config: &CascadeConfig<T>,
+        _candidate: &mut CandidateNeuron<T>,
+        _training_data: &TrainingData<T>,
+        _config: &CascadeConfig<T>,
     ) -> Result<(), RuvFannError> {
         // Simplified parallel training implementation
         // Full implementation would need thread-safe access to network state
@@ -1055,7 +1054,7 @@ where
         // Simplified training logic for parallel execution
         let mut best_correlation = T::zero();
         
-        for epoch in 0..config.candidate_max_epochs {
+        for _epoch in 0..config.candidate_max_epochs {
             // Calculate correlation with residual errors
             let correlation = self.calculate_candidate_correlation_with_data(candidate, data, network)?;
             
@@ -1081,13 +1080,13 @@ where
         &self,
         candidate: &CandidateNeuron<T>,
         data: &TrainingData<T>,
-        network: &Network<T>,
+        _network: &Network<T>,
     ) -> Result<T, RuvFannError> {
         // Simplified correlation calculation
         let mut sum = T::zero();
         let mut count = 0;
         
-        for (input, target) in data.inputs.iter().zip(data.outputs.iter()) {
+        for (input, _target) in data.inputs.iter().zip(data.outputs.iter()) {
             // Get candidate output
             let candidate_output = candidate.calculate_output(input);
             
@@ -1108,8 +1107,8 @@ where
     fn update_candidate_weights_simple(
         &self,
         candidate: &mut CandidateNeuron<T>,
-        data: &TrainingData<T>,
-        network: &Network<T>,
+        _data: &TrainingData<T>,
+        _network: &Network<T>,
         learning_rate: T,
     ) -> Result<(), RuvFannError> {
         // Simplified weight update

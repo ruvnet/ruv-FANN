@@ -12,7 +12,7 @@
 //! - Multi-tier pressure response strategies
 
 use std::collections::{VecDeque, HashMap};
-use std::sync::{Arc, Mutex, atomic::{AtomicU64, AtomicBool, Ordering}};
+use std::sync::{Arc, Mutex, atomic::{AtomicBool, Ordering}};
 use std::time::{Duration, Instant, SystemTime};
 use std::thread;
 
@@ -634,7 +634,7 @@ impl MemoryPressureMonitor {
         self.shutdown_signal.store(true, Ordering::Relaxed);
         
         if let Some(handle) = self.background_thread.take() {
-            handle.join().map_err(|_| ComputeError::general("Failed to join monitoring thread".to_string()))?;
+            handle.join().map_err(|_| ComputeError::General("Failed to join monitoring thread".to_string()))?;
         }
         
         self.monitoring_active.store(false, Ordering::Relaxed);
@@ -712,7 +712,7 @@ impl MemoryPressureMonitor {
         // Exponential moving average updates
         let alpha = 0.1; // Learning rate
         stats.mean_pressure = stats.mean_pressure * (1.0 - alpha) + reading.pressure_ratio * alpha;
-        stats.mean_allocation_rate = stats.mean_allocation_rate * (1.0 - alpha) + reading.allocation_rate * alpha;
+        stats.mean_allocation_rate = stats.mean_allocation_rate * (1.0 - alpha as f64) + reading.allocation_rate as f64 * alpha as f64;
         
         // Standard deviation updates (simplified)
         let pressure_diff = reading.pressure_ratio - stats.mean_pressure;
@@ -776,7 +776,7 @@ impl MemoryPressureMonitor {
             .collect::<Vec<_>>();
         
         if recent_samples.len() < 3 {
-            return Err(ComputeError::general("Insufficient data for prediction".to_string()));
+            return Err(ComputeError::General("Insufficient data for prediction".to_string()));
         }
         
         let avg_pressure = recent_samples.iter()

@@ -274,7 +274,6 @@ impl<R: Read> Read for BufferedStreamReader<R> {
 
 /// Utilities for memory-efficient streaming
 pub mod memory {
-    use super::*;
     
     /// Estimate memory usage for batch processing
     pub fn estimate_batch_memory(

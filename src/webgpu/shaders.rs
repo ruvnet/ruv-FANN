@@ -170,14 +170,15 @@ pub mod webgpu_shaders {
             
             match function {
                 ActivationFunction::Sigmoid => Some(ShaderType::ActivationSigmoid),
+                ActivationFunction::SigmoidSymmetric => Some(ShaderType::ActivationSigmoid), // Use same shader
                 ActivationFunction::ReLU => Some(ShaderType::ActivationReLU),
-                ActivationFunction::LeakyReLU => Some(ShaderType::ActivationLeakyReLU),
+                ActivationFunction::ReLULeaky => Some(ShaderType::ActivationLeakyReLU),
                 ActivationFunction::Tanh => Some(ShaderType::ActivationTanh),
                 ActivationFunction::Linear => Some(ShaderType::ActivationLinear),
                 ActivationFunction::Gaussian => Some(ShaderType::ActivationGaussian),
                 ActivationFunction::GaussianSymmetric => Some(ShaderType::ActivationGaussianSymmetric),
-                ActivationFunction::Elliott => Some(ShaderType::ActivationElliott),
-                ActivationFunction::ElliottSymmetric => Some(ShaderType::ActivationElliottSymmetric),
+                ActivationFunction::Elliot => Some(ShaderType::ActivationElliott),
+                ActivationFunction::ElliotSymmetric => Some(ShaderType::ActivationElliottSymmetric),
                 ActivationFunction::Sin => Some(ShaderType::ActivationSin),
                 ActivationFunction::Cos => Some(ShaderType::ActivationCos),
                 ActivationFunction::SinSymmetric => Some(ShaderType::ActivationSinSymmetric),

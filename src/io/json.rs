@@ -2,7 +2,7 @@
 
 use std::io::{Read, Write};
 use serde::{Serialize, Deserialize};
-use crate::io::error::{IoError, IoResult};
+use crate::io::error::IoResult;
 
 /// Read JSON data from a reader
 pub fn read_json<T, R>(reader: &mut R) -> IoResult<T>

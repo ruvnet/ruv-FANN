@@ -6,8 +6,6 @@
 use std::sync::Arc;
 use std::collections::HashMap;
 use num_traits::Float;
-#[cfg(feature = "gpu")]
-use bytemuck::Pod;
 
 use crate::{ActivationFunction, Layer, Network};
 use crate::webgpu::{
@@ -44,7 +42,7 @@ pub struct PerformanceStats {
 /// This bridge provides seamless integration between Network<T> and the advanced
 /// WebGPU backend while maintaining full compatibility with existing code.
 #[derive(Debug)]
-pub struct ComputeContext<T: Float + Send + Sync + 'static> {
+pub struct ComputeContext<T: Float + std::fmt::Debug + Send + Sync + 'static> {
     /// Backend selector for intelligent backend switching
     backend_selector: BackendSelector<T>,
     /// Current backend type being used
@@ -392,8 +390,9 @@ impl<T: Float + Send + Sync + std::fmt::Debug + 'static> ComputeContext<T> {
         };
         
         #[cfg(feature = "gpu")]
-        let gpu_stats = if let Some(ref gpu_backend) = self.webgpu_backend {
-            gpu_backend.get_performance_stats()
+        let gpu_stats = if let Some(ref _gpu_backend) = self.webgpu_backend {
+            // TODO: Implement get_performance_stats in WebGPUBackend
+            Some(PerformanceStats::default())
         } else {
             None
         };
@@ -414,11 +413,11 @@ impl<T: Float + Send + Sync + std::fmt::Debug + 'static> ComputeContext<T> {
     pub fn get_daa_metrics(&self) -> DaaCoordinationMetrics {
         #[cfg(feature = "gpu")]
         {
-            if let Some(ref gpu_backend) = self.webgpu_backend {
+            if let Some(ref _gpu_backend) = self.webgpu_backend {
                 DaaCoordinationMetrics {
-                    gpu_utilization: gpu_backend.get_daa_metrics().gpu_utilization,
-                    memory_efficiency: gpu_backend.get_daa_metrics().memory_efficiency,
-                    coordination_overhead: gpu_backend.get_daa_metrics().coordination_overhead,
+                    gpu_utilization: 0.0, // TODO: Implement get_daa_metrics in WebGPUBackend
+                    memory_efficiency: 1.0,
+                    coordination_overhead: 0.0,
                     backend_switches: self.get_backend_switch_count(),
                     optimization_score: self.calculate_optimization_score(),
                 }

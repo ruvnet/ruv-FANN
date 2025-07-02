@@ -10,10 +10,11 @@
 
 use std::collections::HashMap;
 use thiserror::Error;
-use crate::{Network, NetworkError};
+use crate::Network;
 use num_traits::Float;
 
 #[cfg(feature = "parallel")]
+#[allow(unused_imports)]
 use rayon::prelude::*;
 
 #[derive(Debug, Clone)]
@@ -258,7 +259,6 @@ pub use quickprop::Quickprop;
 /// Helper functions for forward propagation and gradient calculation
 pub(crate) mod helpers {
     use super::*;
-    use crate::ActivationFunction;
     
     /// Simple network representation for training algorithms
     #[derive(Debug, Clone)]
@@ -280,7 +280,7 @@ pub(crate) mod helpers {
         
         for layer_idx in 1..network.layers.len() {
             let current_layer = &network.layers[layer_idx];
-            let prev_layer_size = network.layers[layer_idx - 1].size(); // Include bias neurons
+            let _prev_layer_size = network.layers[layer_idx - 1].size(); // Include bias neurons
             
             let mut layer_weights = Vec::new();
             let mut layer_biases = Vec::new();
