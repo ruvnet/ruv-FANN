@@ -1,6 +1,6 @@
 [package]
 name = "ruv-swarm-benchmarking"
-version = "0.2.0"
+version = "0.1.5"
 edition = "2021"
 authors = ["RUV-SWARM Team"]
 description = "Comprehensive benchmarking framework for Claude Code CLI and swarm orchestration"
@@ -46,8 +46,8 @@ tower-http = { version = "0.5", features = ["cors", "fs"] }
 config = "0.13"
 
 # Local crates
-ruv-swarm-core = { path = "../crates/ruv-swarm-core", version = "0.2.0" }
-ruv-swarm-persistence = { path = "../crates/ruv-swarm-persistence", version = "0.2.0" }
+ruv-swarm-core = { path = "../crates/ruv-swarm-core", version = "0.1.5" }
+ruv-swarm-persistence = { path = "../crates/ruv-swarm-persistence", version = "0.1.5" }
 
 [dev-dependencies]
 tempfile = "3.8"

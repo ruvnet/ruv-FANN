@@ -13,13 +13,13 @@ members = [
     "crates/ruv-swarm-cli",
     "ml-training",
     "benchmarking",                   # Comprehensive benchmarking framework
-    # "crates/ruv-swarm-wasm-unified", # Temporarily disabled due to path resolution issues
+    "crates/ruv-swarm-wasm-unified", # Re-enabled: fixed workspace configuration
 ]
 
 resolver = "2"
 
 [workspace.package]
-version = "0.2.0"
+version = "0.1.5"
 edition = "2021"
 authors = ["rUv Contributors <noreply@ruvnet.com>"]
 license = "MIT OR Apache-2.0"

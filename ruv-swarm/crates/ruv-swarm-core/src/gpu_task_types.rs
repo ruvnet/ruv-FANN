@@ -11,8 +11,7 @@
 //! - Graceful CPU fallback when GPU resources are unavailable
 //! - Integration with existing ruv-swarm orchestration patterns
 
-use crate::task::{Task, TaskId, TaskPriority, TaskStatus, TaskResult, TaskPayload, CustomPayload};
-use crate::agent::{Agent, AgentMetrics, CognitivePattern};
+use crate::task::{Task, TaskId, TaskPriority, TaskStatus, TaskResult, CustomPayload};
 use crate::error::{Result, SwarmError};
 
 #[cfg(not(feature = "std"))]
@@ -20,15 +19,22 @@ use alloc::{boxed::Box, string::{String, ToString}, vec::Vec, collections::BTree
 #[cfg(feature = "std")]
 use std::collections::HashMap;
 
-use core::fmt;
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use std::time::{Duration, Instant, SystemTime};
+use std::time::{Duration, SystemTime};
 use std::sync::Arc;
 use tokio::sync::{RwLock, Mutex};
 
-/// GPU-specific task types that extend the base ruv-swarm task system
+/// Pattern types for cognitive recognition
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum PatternType {
+    Cognitive,
+    Performance,
+    Behavioral,
+    Adaptive,
+}
+
+/// GPU-specific task types that extend the base ruv-swarm task system
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum GPUTaskType {
     /// Neural network training task with GPU acceleration
     Training {
@@ -299,7 +305,7 @@ pub enum CleanupStrategy {
 }
 
 /// Coordination patterns for multi-agent GPU resource sharing
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum CoordinationPattern {
     /// Exclusive access - one agent at a time
     Exclusive,
@@ -346,7 +352,7 @@ pub struct ResourceSharingPolicy {
 }
 
 /// Compute backends available for task execution
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ComputeBackend {
     /// WebGPU backend with optimal performance
     WebGPU {
@@ -375,7 +381,7 @@ pub enum ComputeBackend {
 }
 
 /// Fallback strategies when primary backend is unavailable
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum FallbackStrategy {
     /// Fail immediately if primary backend unavailable
     Fail,
@@ -765,7 +771,7 @@ impl GPUTaskOrchestrator {
         let assignment = {
             let active = self.active_assignments.read().await;
             active.get(task_id).cloned()
-                .ok_or_else(|| SwarmError::TaskNotFound { id: task_id.to_string() })?
+                .ok_or_else(|| SwarmError::TaskExecutionFailed { reason: format!("Task not found: {}", task_id) })?
         };
         
         // Collect execution metrics
@@ -817,7 +823,7 @@ impl GPUTaskOrchestrator {
         agents: &[String],
         coordination_pattern: CoordinationPattern,
     ) -> Result<CoordinationResult> {
-        let mut resource_manager = self.resource_manager.lock().await;
+        let resource_manager = self.resource_manager.lock().await;
         
         // Create resource coordination plan
         let coordination_plan = resource_manager.create_coordination_plan(
@@ -1733,7 +1739,7 @@ impl Default for GPUOrchestratorConfig {
             },
             performance_config: GPUPerformanceConfig {
                 monitoring_interval: Duration::from_millis(100),
-                metrics_retention: Duration::from_hours(24),
+                metrics_retention: Duration::from_secs(24 * 60 * 60),
                 anomaly_detection_enabled: true,
                 real_time_optimization: true,
             },

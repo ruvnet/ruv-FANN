@@ -1,6 +1,6 @@
 [package]
 name = "ruv-swarm-daa"
-version = "1.0.4"
+version = "0.1.5"
 edition = "2021"
 description = "Decentralized Autonomous Agents (DAA) integration for ruv-swarm"
 authors = ["ruvnet <ruv@ruvnet.com>"]
@@ -11,7 +11,7 @@ keywords = ["daa", "autonomous-agents", "swarm", "coordination", "ai"]
 categories = ["science", "simulation", "algorithms"]
 
 [dependencies]
-ruv-swarm-core = { path = "../ruv-swarm-core", version = "1.0.4" }
+ruv-swarm-core = { path = "../ruv-swarm-core", version = "0.1.5" }
 tokio = { version = "1.0", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

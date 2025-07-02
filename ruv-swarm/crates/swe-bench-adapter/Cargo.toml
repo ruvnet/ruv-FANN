@@ -1,6 +1,6 @@
 [package]
 name = "swe-bench-adapter"
-version = "0.2.0"
+version = "0.1.5"
 edition = "2021"
 authors = ["ruv-swarm team"]
 description = "SWE-Bench adapter for ruv-swarm orchestration system"
@@ -11,9 +11,9 @@ categories = ["development-tools", "science", "algorithms"]
 
 [dependencies]
 # Core dependencies
-ruv-swarm-core = { path = "../ruv-swarm-core", version = "0.2.0" }
-ruv-swarm-agents = { path = "../ruv-swarm-agents", version = "0.2.0" }
-ruv-swarm-persistence = { path = "../ruv-swarm-persistence", version = "0.2.0" }
+ruv-swarm-core = { path = "../ruv-swarm-core", version = "0.1.5" }
+ruv-swarm-agents = { path = "../ruv-swarm-agents", version = "0.1.5" }
+ruv-swarm-persistence = { path = "../ruv-swarm-persistence", version = "0.1.5" }
 
 # Async runtime
 tokio = { version = "1.42", features = ["full"] }
