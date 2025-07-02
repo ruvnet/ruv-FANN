@@ -119,12 +119,18 @@ where
     }
 }
 
+impl<T: Float + std::fmt::Debug + Send + Sync + 'static> Default for BackendSelector<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T: Float + std::fmt::Debug + Send + Sync + 'static> BackendSelector<T> {
     pub fn new() -> Self {
         let mut backends = Vec::new();
         
         // Try to initialize backends in order of preference
-        #[cfg(feature = "gpu")]
+        #[cfg(feature = "webgpu")]
         {
             // WebGPU backend would be initialized here
             // Note: This requires async initialization, so we'll handle this differently
@@ -200,6 +206,12 @@ where
 {
     capabilities: BackendCapabilities,
     _phantom: std::marker::PhantomData<T>,
+}
+
+impl<T: Float + std::fmt::Debug + Send + Sync + 'static> Default for SimdBackend<T> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<T: Float + std::fmt::Debug + Send + Sync + 'static> SimdBackend<T> {
@@ -408,6 +420,12 @@ where
 {
     capabilities: BackendCapabilities,
     _phantom: std::marker::PhantomData<T>,
+}
+
+impl<T: Float + std::fmt::Debug + Send + Sync + 'static> Default for CpuBackend<T> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<T: Float + std::fmt::Debug + Send + Sync + 'static> CpuBackend<T> {

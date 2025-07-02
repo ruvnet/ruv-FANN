@@ -16,6 +16,15 @@ pub struct FallbackManager<T: Float + std::fmt::Debug + Send + Sync> {
     circuit_breaker_timeout: Duration,
 }
 
+impl<T: Float + std::fmt::Debug + Send + Sync> Default for FallbackManager<T>
+where
+    T: Send + Sync + 'static,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T: Float + std::fmt::Debug + Send + Sync> FallbackManager<T> 
 where
     T: Send + Sync + 'static,
@@ -42,7 +51,7 @@ where
         }
     }
     
-    #[cfg(feature = "gpu")]
+    #[cfg(feature = "webgpu")]
     pub async fn initialize_primary_backend(&mut self) -> Result<(), ComputeError> {
         // WebGPU backend initialization would go here
         // For now, we'll return an error to indicate it's not implemented

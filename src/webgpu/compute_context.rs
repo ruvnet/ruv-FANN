@@ -13,7 +13,7 @@ use crate::webgpu::{
     error::{ComputeError, ComputeResult},
 };
 
-#[cfg(feature = "gpu")]
+#[cfg(feature = "webgpu")]
 use crate::webgpu::webgpu_backend::WebGPUBackend;
 
 // These types are used across the module regardless of webgpu feature
@@ -48,9 +48,9 @@ pub struct ComputeContext<T: Float + std::fmt::Debug + Send + Sync + 'static> {
     /// Current backend type being used
     current_backend: BackendType,
     /// WebGPU backend instance (when available)
-    #[cfg(feature = "gpu")]
+    #[cfg(feature = "webgpu")]
     webgpu_backend: Option<Arc<WebGPUBackend<T>>>,
-    #[cfg(not(feature = "gpu"))]
+    #[cfg(not(feature = "webgpu"))]
     webgpu_backend: Option<()>,
     /// GPU acceleration enabled flag
     gpu_enabled: bool,
@@ -84,13 +84,13 @@ impl<T: Float + Send + Sync + std::fmt::Debug + 'static> ComputeContext<T> {
         let backend_selector = BackendSelector::new();
         
         // Try to initialize WebGPU backend
-        #[cfg(feature = "gpu")]
+        #[cfg(feature = "webgpu")]
         let (webgpu_backend, gpu_enabled) = match WebGPUBackend::<T>::initialize().await {
             Ok(backend) => (Some(Arc::new(backend)), true),
             Err(_) => (None, false),
         };
         
-        #[cfg(not(feature = "gpu"))]
+        #[cfg(not(feature = "webgpu"))]
         let (webgpu_backend, gpu_enabled) = (None, false);
         
         // Select initial backend based on availability
@@ -165,13 +165,34 @@ impl<T: Float + Send + Sync + std::fmt::Debug + 'static> ComputeContext<T> {
             return Ok(cached.clone());
         }
         
-        // Convert layer connections to matrix format
-        let input_size = layer.neurons.first()
-            .map(|n| n.connections.len())
-            .unwrap_or(0);
-        let output_size = layer.neurons.iter()
+        // Debug layer information
+        println!("Converting layer {} to matrix format", layer_id);
+        println!("  Layer has {} neurons", layer.neurons.len());
+        
+        // In FANN networks, bias neurons are included in the layer
+        // We need to find non-bias neurons for the output
+        let non_bias_neurons: Vec<&crate::Neuron<T>> = layer.neurons.iter()
             .filter(|n| !n.is_bias)
-            .count();
+            .collect();
+            
+        println!("  Layer has {} non-bias neurons", non_bias_neurons.len());
+        
+        // Convert layer connections to matrix format
+        // In a FANN network, the input size is the number of connections on each neuron
+        // (all neurons should have the same number of connections)
+        let input_size = if let Some(neuron) = non_bias_neurons.first() {
+            println!("  First neuron has {} connections", neuron.connections.len());
+            neuron.connections.len()
+        } else {
+            println!("  No non-bias neurons found!");
+            return Err(ComputeError::InvalidDimensions(
+                format!("Layer {} has no non-bias neurons", layer_id)
+            ));
+        };
+        
+        let output_size = non_bias_neurons.len();
+        
+        println!("  Matrix dimensions: {}x{} (output_size x input_size)", output_size, input_size);
         
         if input_size == 0 || output_size == 0 {
             return Err(ComputeError::InvalidDimensions(
@@ -182,21 +203,25 @@ impl<T: Float + Send + Sync + std::fmt::Debug + 'static> ComputeContext<T> {
         let mut weights = Vec::with_capacity(output_size * input_size);
         
         // Build weight matrix row by row (each row = one output neuron's weights)
-        for neuron in &layer.neurons {
-            if neuron.is_bias {
-                continue; // Skip bias neurons
-            }
-            
+        for neuron in &non_bias_neurons {
             // Ensure we have enough connections
-            if neuron.connections.len() < input_size {
+            if neuron.connections.len() != input_size {
                 return Err(ComputeError::InvalidDimensions(
                     format!("Neuron has {} connections, expected {}", neuron.connections.len(), input_size)
                 ));
             }
             
+            // Add weights for this neuron to the matrix
             for i in 0..input_size {
                 weights.push(neuron.connections[i].weight);
             }
+        }
+        
+        if weights.len() != output_size * input_size {
+            return Err(ComputeError::InvalidDimensions(
+                format!("Weight matrix size mismatch: got {}, expected {}",
+                    weights.len(), output_size * input_size)
+            ));
         }
         
         let dims = MatrixDims { rows: output_size, cols: input_size };
@@ -223,10 +248,16 @@ impl<T: Float + Send + Sync + std::fmt::Debug + 'static> ComputeContext<T> {
         // Get layer weights
         let (weights, dims) = self.get_layer_weights(layer, layer_id)?;
         
-        // Validate input size
-        if inputs.len() != dims.cols {
+        // Check if we need to append a bias input (value 1.0)
+        let mut input_with_bias = inputs.to_vec();
+        if dims.cols == inputs.len() + 1 {
+            // The extra column is likely for the bias input (common in FANN architecture)
+            println!("  Adding bias input to match expected dimensions");
+            input_with_bias.push(T::one()); // Add bias input with value 1.0
+        } else if inputs.len() != dims.cols {
             return Err(ComputeError::InvalidDimensions(
-                format!("Input size {} doesn't match expected {}", inputs.len(), dims.cols)
+                format!("Input size {} doesn't match expected {} and doesn't match bias pattern", 
+                    inputs.len(), dims.cols)
             ));
         }
         
@@ -237,13 +268,13 @@ impl<T: Float + Send + Sync + std::fmt::Debug + 'static> ComputeContext<T> {
         // Execute computation based on selected backend
         let result = match backend_type {
             BackendType::WebGPU if self.is_gpu_available() => {
-                self.compute_layer_gpu(layer, &weights, inputs, dims).await
+                self.compute_layer_gpu(layer, &weights, &input_with_bias, dims).await
             }
             BackendType::Simd => {
-                self.compute_layer_simd(layer, &weights, inputs, dims).await
+                self.compute_layer_simd(layer, &weights, &input_with_bias, dims).await
             }
             _ => {
-                self.compute_layer_cpu(layer, &weights, inputs, dims).await
+                self.compute_layer_cpu(layer, &weights, &input_with_bias, dims).await
             }
         };
         
@@ -267,7 +298,7 @@ impl<T: Float + Send + Sync + std::fmt::Debug + 'static> ComputeContext<T> {
     where
         T: Clone + num_traits::ToPrimitive + 'static,
     {
-        #[cfg(feature = "gpu")]
+        #[cfg(feature = "webgpu")]
         {
             if let Some(ref gpu_backend) = self.webgpu_backend {
                 // Matrix-vector multiplication
@@ -286,7 +317,7 @@ impl<T: Float + Send + Sync + std::fmt::Debug + 'static> ComputeContext<T> {
             }
         }
         
-        #[cfg(not(feature = "gpu"))]
+        #[cfg(not(feature = "webgpu"))]
         {
             Err(ComputeError::GpuUnavailable)
         }
@@ -365,12 +396,34 @@ impl<T: Float + Send + Sync + std::fmt::Debug + 'static> ComputeContext<T> {
     where
         T: Clone + num_traits::ToPrimitive + 'static,
     {
+        // Validate network has layers
+        if network.layers.is_empty() {
+            return Err(ComputeError::InvalidDimensions("Network has no layers".to_string()));
+        }
+        
+        // Validate input size matches input layer (excluding bias neuron)
+        if !network.layers.is_empty() && inputs.len() != network.num_inputs() {
+            return Err(ComputeError::InvalidDimensions(
+                format!(
+                    "Input size {} doesn't match network input size {}",
+                    inputs.len(), network.num_inputs()
+                )
+            ));
+        }
+        
         let mut current_inputs = inputs.to_vec();
         
-        // Process each layer
+        // Process each layer, starting from the first hidden layer (index 1)
+        // The input layer (index 0) is just for passing inputs
         for (layer_id, layer) in network.layers.iter().enumerate().skip(1) {
             // Skip input layer (index 0)
-            current_inputs = self.compute_layer_forward(layer, layer_id, &current_inputs).await?;
+            current_inputs = match self.compute_layer_forward(layer, layer_id, &current_inputs).await {
+                Ok(outputs) => outputs,
+                Err(e) => {
+                    eprintln!("Error in layer {}: {:?}", layer_id, e);
+                    return Err(e);
+                }
+            };
         }
         
         Ok(current_inputs)
@@ -389,15 +442,13 @@ impl<T: Float + Send + Sync + std::fmt::Debug + 'static> ComputeContext<T> {
             None
         };
         
-        #[cfg(feature = "gpu")]
-        let gpu_stats = if let Some(ref _gpu_backend) = self.webgpu_backend {
+        #[cfg(feature = "webgpu")]
+        let gpu_stats = self.webgpu_backend.as_ref().map(|_gpu_backend| {
             // TODO: Implement get_performance_stats in WebGPUBackend
-            Some(PerformanceStats::default())
-        } else {
-            None
-        };
+            PerformanceStats::default()
+        });
         
-        #[cfg(not(feature = "gpu"))]
+        #[cfg(not(feature = "webgpu"))]
         let gpu_stats = None;
         
         ComputePerformanceStats {
@@ -411,7 +462,7 @@ impl<T: Float + Send + Sync + std::fmt::Debug + 'static> ComputeContext<T> {
     
     /// Get DAA coordination metrics
     pub fn get_daa_metrics(&self) -> DaaCoordinationMetrics {
-        #[cfg(feature = "gpu")]
+        #[cfg(feature = "webgpu")]
         {
             if let Some(ref _gpu_backend) = self.webgpu_backend {
                 DaaCoordinationMetrics {
@@ -426,7 +477,7 @@ impl<T: Float + Send + Sync + std::fmt::Debug + 'static> ComputeContext<T> {
             }
         }
         
-        #[cfg(not(feature = "gpu"))]
+        #[cfg(not(feature = "webgpu"))]
         {
             DaaCoordinationMetrics::default()
         }
@@ -470,7 +521,7 @@ impl PerformanceTracker {
     
     fn record_operation(&mut self, operation: &str, duration: f64, backend: BackendType) {
         *self.operation_counts.entry(operation.to_string()).or_insert(0) += 1;
-        self.execution_times.entry(operation.to_string()).or_insert_with(Vec::new).push(duration);
+        self.execution_times.entry(operation.to_string()).or_default().push(duration);
         *self.backend_switches.entry(backend).or_insert(0) += 1;
     }
     
@@ -590,11 +641,31 @@ mod tests {
             
         let inputs = vec![0.5f32, 0.7f32];
         
+        // Debug network structure
+        println!("Network structure:");
+        println!("  Layers: {}", network.layers.len());
+        for (i, layer) in network.layers.iter().enumerate() {
+            println!("  Layer {}: {} neurons", i, layer.neurons.len());
+            
+            // Debug first neuron in each layer
+            if let Some(neuron) = layer.neurons.first() {
+                println!("    First neuron has {} connections, is_bias: {}", 
+                         neuron.connections.len(), neuron.is_bias);
+            }
+        }
+        
+        println!("Starting forward pass with {} inputs", inputs.len());
         let result = context.compute_network_forward(&network, &inputs).await;
-        assert!(result.is_ok());
+        
+        match &result {
+            Ok(outputs) => println!("Forward pass succeeded with {} outputs", outputs.len()),
+            Err(e) => println!("Forward pass failed: {:?}", e),
+        }
+        
+        assert!(result.is_ok(), "Forward pass failed");
         
         let outputs = result.unwrap();
-        assert_eq!(outputs.len(), 1); // One output neuron
+        assert_eq!(outputs.len(), 1, "Output should have 1 value");
     }
 
     #[tokio::test]

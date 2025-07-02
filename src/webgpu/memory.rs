@@ -189,6 +189,12 @@ pub mod webgpu_memory {
         next_id: u64,
     }
 
+    impl Default for GpuMemoryPool {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
+
     impl GpuMemoryPool {
         pub fn new() -> Self {
             Self {
@@ -221,6 +227,12 @@ pub mod webgpu_memory {
     pub struct WebGPUMemoryManager {
         pool: Arc<Mutex<GpuMemoryPool>>,
         stats: Arc<Mutex<super::MemoryStats>>,
+    }
+
+    impl Default for WebGPUMemoryManager {
+        fn default() -> Self {
+            Self::new()
+        }
     }
 
     impl WebGPUMemoryManager {
@@ -271,7 +283,7 @@ pub struct GpuMemoryManager {
 }
 
 #[derive(Debug, Clone)]
-struct MemoryManagerStats {
+pub struct MemoryManagerStats {
     allocations_by_size: HashMap<BufferSize, usize>,
     deallocations_by_size: HashMap<BufferSize, usize>,
     pool_hits: HashMap<BufferSize, usize>,
@@ -353,7 +365,7 @@ impl GpuMemoryManager {
             info.in_use = false;
             
             // Add to pool for reuse
-            let pool = pools.entry(info.size_category.clone()).or_insert_with(VecDeque::new);
+            let pool = pools.entry(info.size_category.clone()).or_default();
             
             // Limit pool size to prevent unbounded growth
             const MAX_POOL_SIZE: usize = 100;
@@ -727,7 +739,7 @@ impl EnhancedGpuMemoryManager {
         
         // Create pressure monitor if monitoring enabled
         if self.config.enable_monitoring {
-            let mut monitor = MemoryPressureMonitor::new(self.config.monitor_config.clone());
+            let monitor = MemoryPressureMonitor::new(self.config.monitor_config.clone());
             
             // Start monitoring if auto-start enabled
             if self.config.auto_start_monitoring {

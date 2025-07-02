@@ -198,7 +198,7 @@ impl PerformanceMonitor {
         let mut alerts = Vec::new();
         
         // Add measurement to history
-        let measurements = self.measurements.entry(key.clone()).or_insert_with(Vec::new);
+        let measurements = self.measurements.entry(key.clone()).or_default();
         measurements.push(measurement.clone());
         
         // Limit history size

@@ -712,7 +712,7 @@ impl MemoryPressureMonitor {
         // Exponential moving average updates
         let alpha = 0.1; // Learning rate
         stats.mean_pressure = stats.mean_pressure * (1.0 - alpha) + reading.pressure_ratio * alpha;
-        stats.mean_allocation_rate = stats.mean_allocation_rate * (1.0 - alpha as f64) + reading.allocation_rate as f64 * alpha as f64;
+        stats.mean_allocation_rate = stats.mean_allocation_rate * (1.0 - alpha as f64) + reading.allocation_rate * alpha as f64;
         
         // Standard deviation updates (simplified)
         let pressure_diff = reading.pressure_ratio - stats.mean_pressure;

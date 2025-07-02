@@ -4,10 +4,10 @@
 use std::collections::HashMap;
 use crate::webgpu::error::ComputeError;
 
-#[cfg(feature = "gpu")]
+#[cfg(feature = "webgpu")]
 use crate::webgpu::shaders::webgpu_shaders::ShaderType;
 
-#[cfg(not(feature = "gpu"))]
+#[cfg(not(feature = "webgpu"))]
 use crate::webgpu::pipeline_cache::ShaderType;
 
 /// GPU device capabilities and optimization parameters
@@ -167,7 +167,7 @@ impl KernelOptimizer {
     /// Record performance metrics for continuous optimization
     pub fn record_performance(&mut self, shader_type: ShaderType, data_size: usize, metrics: OptimizationMetrics) {
         let key = (shader_type, data_size);
-        let history = self.performance_history.entry(key.clone()).or_insert_with(Vec::new);
+        let history = self.performance_history.entry(key.clone()).or_default();
         history.push(metrics);
         
         // Keep only recent history (last 10 measurements)
@@ -250,7 +250,7 @@ impl KernelOptimizer {
         };
         
         let num_workgroups = [
-            (rows as u32 + workgroup_size[0] - 1) / workgroup_size[0],
+            (rows as u32).div_ceil(workgroup_size[0]),
             1,
             1,
         ];
@@ -278,8 +278,8 @@ impl KernelOptimizer {
         };
         
         let num_workgroups = [
-            (rows as u32 + workgroup_size[0] - 1) / workgroup_size[0],
-            (batch_size as u32 + workgroup_size[1] - 1) / workgroup_size[1],
+            (rows as u32).div_ceil(workgroup_size[0]),
+            (batch_size as u32).div_ceil(workgroup_size[1]),
             1,
         ];
         
@@ -304,7 +304,7 @@ impl KernelOptimizer {
         };
         
         let num_workgroups = [
-            (vector_size as u32 + workgroup_size[0] - 1) / workgroup_size[0],
+            (vector_size as u32).div_ceil(workgroup_size[0]),
             1,
             1,
         ];
@@ -321,7 +321,7 @@ impl KernelOptimizer {
     
     fn evaluate_workgroup_config(&self, _shader_type: &ShaderType, data_size: usize, workgroup_config: [u32; 3]) -> f32 {
         let threads_per_workgroup = workgroup_config[0] * workgroup_config[1] * workgroup_config[2];
-        let num_workgroups = (data_size as u32 + threads_per_workgroup - 1) / threads_per_workgroup;
+        let num_workgroups = (data_size as u32).div_ceil(threads_per_workgroup);
         
         // Calculate occupancy
         let max_workgroups_per_sm = self.gpu_capabilities.max_threads_per_workgroup / threads_per_workgroup;

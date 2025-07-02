@@ -10,14 +10,14 @@ use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 use tokio::sync::{RwLock, Mutex};
 
-#[cfg(feature = "gpu")]
+#[cfg(feature = "webgpu")]
 use {
     async_trait::async_trait,
     super::memory::GpuMemoryManager,
     crate::webgpu::device::GpuDevice,
 };
 
-#[cfg(not(feature = "gpu"))]
+#[cfg(not(feature = "webgpu"))]
 use std::future::Future;
 
 use serde::{Deserialize, Serialize};
@@ -534,7 +534,7 @@ pub struct PerformanceSnapshot {
 
 #[cfg_attr(feature = "webgpu", async_trait)]
 pub trait AllocationAlgorithm: std::fmt::Debug {
-    #[cfg(feature = "gpu")]
+    #[cfg(feature = "webgpu")]
     fn allocate<'a>(
         &'a self,
         request: &'a AllocationRequest,
@@ -542,7 +542,7 @@ pub trait AllocationAlgorithm: std::fmt::Debug {
         current_allocations: &'a HashMap<AllocationId, ResourceAllocation>,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<AllocationResult, AllocationError>> + Send + 'a>>;
     
-    #[cfg(not(feature = "gpu"))]
+    #[cfg(not(feature = "webgpu"))]
     fn allocate(
         &self,
         request: &AllocationRequest,
@@ -832,7 +832,7 @@ impl AutonomousGpuResourceManager {
                 // Emit conflict resolved event
                 self.event_bus.emit(ResourceEvent::ConflictResolved {
                     conflict_id: conflict.id,
-                    resolution_type: conflict_type.clone(),
+                    resolution_type: *conflict_type,
                     timestamp: SystemTime::now(),
                 }).await;
             }
@@ -1206,7 +1206,7 @@ impl AutonomousGpuResourceManager {
     ) -> Result<TradeResult, TradeError> {
         // Implementation would go here - for now return a placeholder
         Ok(TradeResult::Listed { 
-            trade_id: trade.id.clone(),
+            trade_id: trade.id,
         })
     }
     
@@ -1221,6 +1221,12 @@ impl AutonomousGpuResourceManager {
 // ================================================================================================
 // Supporting Implementations
 // ================================================================================================
+
+impl Default for AllocationEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl AllocationEngine {
     pub fn new() -> Self {
@@ -1280,6 +1286,12 @@ impl AllocationEngine {
         for result in results {
             self.allocation_metrics.update(result);
         }
+    }
+}
+
+impl Default for ResourceTradingSystem {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -1345,12 +1357,19 @@ impl ResourceTradingSystem {
     }
 }
 
+impl Default for OptimizationEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl OptimizationEngine {
     pub fn new() -> Self {
-        let mut strategies: Vec<Box<dyn OptimizationStrategy + Send + Sync>> = Vec::new();
-        strategies.push(Box::new(PerformanceOptimizationStrategy::new()));
-        strategies.push(Box::new(CostOptimizationStrategy::new()));
-        strategies.push(Box::new(FairnessOptimizationStrategy::new()));
+        let strategies: Vec<Box<dyn OptimizationStrategy + Send + Sync>> = vec![
+            Box::new(PerformanceOptimizationStrategy::new()),
+            Box::new(CostOptimizationStrategy::new()),
+            Box::new(FairnessOptimizationStrategy::new())
+        ];
         
         Self {
             strategies,
@@ -1368,6 +1387,12 @@ impl OptimizationEngine {
     }
 }
 
+impl Default for ConflictResolver {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ConflictResolver {
     pub fn new() -> Self {
         let mut strategies: HashMap<ConflictType, Box<dyn ConflictResolutionStrategy + Send + Sync>> = HashMap::new();
@@ -1381,6 +1406,12 @@ impl ConflictResolver {
             resolution_history: RwLock::new(VecDeque::new()),
             fairness_metrics: RwLock::new(FairnessMetrics::new()),
         }
+    }
+}
+
+impl Default for RuvTokenLedger {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -1421,6 +1452,12 @@ impl RuvTokenLedger {
     }
 }
 
+impl Default for ResourceMarket {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ResourceMarket {
     pub fn new() -> Self {
         let mut prices = HashMap::new();
@@ -1458,7 +1495,7 @@ impl ResourceMarket {
     
     pub async fn update_market_dynamics(&mut self) {
         // Update prices based on supply/demand
-        for (_resource_type, price) in &mut self.prices {
+        for price in self.prices.values_mut() {
             // Simulate market dynamics (in real implementation, this would use actual data)
             let volatility = 0.01; // 1% volatility
             let random_change = (rand::random::<f64>() - 0.5) * volatility;
@@ -1489,6 +1526,12 @@ impl ResourceMarket {
     }
 }
 
+impl Default for UsagePredictor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl UsagePredictor {
     pub fn new() -> Self {
         let mut models: HashMap<PredictionType, Box<dyn PredictionModel + Send + Sync>> = HashMap::new();
@@ -1515,7 +1558,7 @@ impl UsagePredictor {
             cost_rate: allocation.spending_rate,
         };
         
-        self.usage_history.entry(agent_id.clone()).or_insert_with(VecDeque::new).push_back(snapshot);
+        self.usage_history.entry(agent_id.clone()).or_default().push_back(snapshot);
         
         // Update prediction models
         for model in self.models.values_mut() {
@@ -1524,6 +1567,12 @@ impl UsagePredictor {
                 let _ = model.update_model(&history_vec).await;
             }
         }
+    }
+}
+
+impl Default for PerformanceAnalyzer {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -1547,7 +1596,7 @@ impl PerformanceAnalyzer {
             satisfaction_score: allocation.performance_score,
         };
         
-        self.performance_history.entry(agent_id.clone()).or_insert_with(VecDeque::new).push_back(snapshot);
+        self.performance_history.entry(agent_id.clone()).or_default().push_back(snapshot);
     }
     
     pub fn get_latest_snapshots(&self) -> HashMap<AgentId, PerformanceSnapshot> {
@@ -1556,6 +1605,12 @@ impl PerformanceAnalyzer {
                 history.back().map(|snapshot| (agent_id.clone(), snapshot.clone()))
             })
             .collect()
+    }
+}
+
+impl Default for EventBus {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -1858,7 +1913,7 @@ impl BestFitAlgorithm {
 
 #[async_trait]
 impl AllocationAlgorithm for BestFitAlgorithm {
-    #[cfg(feature = "gpu")]
+    #[cfg(feature = "webgpu")]
     fn allocate<'a>(
         &'a self,
         request: &'a AllocationRequest,
@@ -1968,7 +2023,7 @@ impl FirstFitAlgorithm {
 
 #[async_trait]
 impl AllocationAlgorithm for FirstFitAlgorithm {
-    #[cfg(feature = "gpu")]
+    #[cfg(feature = "webgpu")]
     fn allocate<'a>(
         &'a self,
         request: &'a AllocationRequest,
@@ -1976,11 +2031,11 @@ impl AllocationAlgorithm for FirstFitAlgorithm {
         _current_allocations: &'a HashMap<AllocationId, ResourceAllocation>,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<AllocationResult, AllocationError>> + Send + 'a>> {
         Box::pin(async move {
-            Ok(self.allocate_sync(request, available_pools, _current_allocations)?)
+            self.allocate_sync(request, available_pools, _current_allocations)
         })
     }
     
-    #[cfg(not(feature = "gpu"))]
+    #[cfg(not(feature = "webgpu"))]
     fn allocate(
         &self,
         request: &AllocationRequest,
@@ -2071,7 +2126,7 @@ impl MLAllocationAlgorithm {
 
 #[async_trait]
 impl AllocationAlgorithm for MLAllocationAlgorithm {
-    #[cfg(feature = "gpu")]
+    #[cfg(feature = "webgpu")]
     fn allocate<'a>(
         &'a self,
         request: &'a AllocationRequest,
@@ -2079,11 +2134,11 @@ impl AllocationAlgorithm for MLAllocationAlgorithm {
         current_allocations: &'a HashMap<AllocationId, ResourceAllocation>,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<AllocationResult, AllocationError>> + Send + 'a>> {
         Box::pin(async move {
-            Ok(self.allocate_sync(request, available_pools, current_allocations)?)
+            self.allocate_sync(request, available_pools, current_allocations)
         })
     }
     
-    #[cfg(not(feature = "gpu"))]
+    #[cfg(not(feature = "webgpu"))]
     fn allocate(
         &self,
         request: &AllocationRequest,
@@ -2226,7 +2281,7 @@ pub struct TradeExecutionResult {
 }
 
 impl TradeExecutionResult {
-    pub fn Success() -> Self {
+    pub fn success() -> Self {
         Self {
             success: true,
             actual_price: 0.0,
@@ -2499,6 +2554,12 @@ pub struct EventProcessingContext {
     pub context_data: HashMap<String, String>,
 }
 
+impl Default for EventProcessingContext {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EventProcessingContext {
     pub fn new() -> Self {
         Self {
@@ -2613,7 +2674,7 @@ struct TradeLimits {
 }
 
 #[derive(Debug, Clone)]
-struct MarketMakerInfo {
+pub struct MarketMakerInfo {
     agent_id: AgentId,
     liquidity_provided: f64,
     spread_percentage: f64,
@@ -2621,7 +2682,7 @@ struct MarketMakerInfo {
 }
 
 #[derive(Debug, Clone)]
-struct LiquidityPool {
+pub struct LiquidityPool {
     pool_id: String,
     total_liquidity: f64,
     providers: HashMap<AgentId, f64>,
@@ -2629,7 +2690,7 @@ struct LiquidityPool {
 }
 
 #[derive(Debug, Clone)]
-struct OrderBook {
+pub struct OrderBook {
     bids: Vec<Order>,
     asks: Vec<Order>,
     last_trade_price: f64,
@@ -2644,7 +2705,7 @@ struct Order {
 }
 
 #[derive(Debug, Clone)]
-struct TrendIndicator {
+pub struct TrendIndicator {
     direction: TrendDirection,
     strength: f64,
     duration: Duration,

@@ -51,7 +51,7 @@
 //! - **Pipeline Caching**: 50-90% reduction in shader compilation overhead
 //! - **Memory Pooling**: 80% reduction in allocation overhead
 
-#[cfg(feature = "gpu")]
+#[cfg(feature = "webgpu")]
 pub mod webgpu_impl {
     use num_traits::Float;
     
@@ -799,16 +799,16 @@ pub mod webgpu_impl {
 }
 
 // Re-export for convenience
-#[cfg(feature = "gpu")]
+#[cfg(feature = "webgpu")]
 pub use webgpu_impl::WebGPUBackend;
 
 // Placeholder when WebGPU is not available
-#[cfg(not(feature = "gpu"))]
+#[cfg(not(feature = "webgpu"))]
 pub struct WebGPUBackend<T> {
     _phantom: std::marker::PhantomData<T>,
 }
 
-#[cfg(not(feature = "gpu"))]
+#[cfg(not(feature = "webgpu"))]
 impl<T> WebGPUBackend<T> {
     pub fn is_available() -> bool {
         false

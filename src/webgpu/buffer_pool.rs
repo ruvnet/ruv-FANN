@@ -24,6 +24,7 @@ use ::wgpu::{Device, Buffer, BufferDescriptor, BufferUsages};
 
 // Mock types for non-WebGPU builds
 #[cfg(not(feature = "webgpu"))]
+#[derive(Debug)]
 pub struct Device;
 #[cfg(not(feature = "webgpu"))]
 pub struct Queue;
@@ -581,7 +582,7 @@ impl AdvancedBufferPool {
                     && buf.usage.contains(usage)
                     && buf.size <= size * 2 // Don't waste too much memory
             }) {
-                let mut buffer = tier_pool.buffers.swap_remove(pos);
+                let buffer = tier_pool.buffers.swap_remove(pos);
                 buffer.mark_used();
                 
                 // Update tier statistics
@@ -898,11 +899,7 @@ impl AdvancedBufferPool {
             let before_count = tier_pool.buffers.len();
             
             tier_pool.buffers.retain(|buffer| {
-                if buffer.age() > max_age || buffer.reuse_efficiency() < cleanup_threshold {
-                    false
-                } else {
-                    true
-                }
+                !(buffer.age() > max_age || buffer.reuse_efficiency() < cleanup_threshold)
             });
             
             // Also cleanup coalescing candidates
