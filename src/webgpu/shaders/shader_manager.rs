@@ -480,19 +480,19 @@ mod tests {
     #[test]
     fn test_shader_type_variants() {
         // Ensure all shader types are represented
-        let matrix_ops = vec![
+        let matrix_ops = [
             ShaderType::MatrixVectorMultiply,
             ShaderType::BatchMatrixVectorMultiply,
             ShaderType::MatrixTranspose,
         ];
         
-        let activations = vec![
+        let activations = [
             ShaderType::SigmoidFast,
             ShaderType::ReLU,
             ShaderType::TanhStable,
         ];
         
-        let gradients = vec![
+        let gradients = [
             ShaderType::ComputeOutputErrorGradients,
             ShaderType::ComputeWeightGradients,
         ];

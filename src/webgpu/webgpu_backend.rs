@@ -84,7 +84,7 @@ impl WebGpuBackend {
     async fn get_matrix_multiply_pipeline(&mut self) -> ComputeResult<&wgpu::ComputePipeline> {
         if self.compute_pipelines.matrix_multiply.is_none() {
             let shader_source = include_str!("shaders/matrix_operations.wgsl");
-            let shader = self.device.create_compute_shader(&shader_source, Some("matrix_multiply_shader"))?;
+            let shader = self.device.create_compute_shader(shader_source, Some("matrix_multiply_shader"))?;
             
             let bind_group_layout = self.device.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
                 label: Some("matrix_multiply_bind_group_layout"),
@@ -285,7 +285,7 @@ impl<T: Float + Send + Sync + Pod + Clone> ComputeBackend<T> for WebGpuBackend {
         // Get pipeline (this is a mutable operation, so we need to handle it carefully)
         // For now, we'll use a simpler approach and create the shader inline
         let shader_source = include_str!("shaders/matrix_operations.wgsl");
-        let shader = self.device.create_compute_shader(&shader_source, Some("matrix_multiply_shader"))?;
+        let shader = self.device.create_compute_shader(shader_source, Some("matrix_multiply_shader"))?;
         
         let bind_group_layout = self.device.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("matrix_multiply_bind_group_layout"),
@@ -438,13 +438,44 @@ impl<T: Float + Send + Sync + Pod + Clone> ComputeBackend<T> for WebGpuBackend {
             }
         };
 
+        // Create ActivationUniforms struct matching WGSL shader
+        #[repr(C)]
+        #[derive(Clone, Copy, Debug)]
+        struct ActivationUniforms {
+            length: u32,
+            steepness: f32,
+            alpha: f32,        // For parameterized functions (Leaky ReLU, ELU)
+            beta: f32,         // Additional parameter for advanced functions
+        }
+        
+        unsafe impl bytemuck::Pod for ActivationUniforms {}
+        unsafe impl bytemuck::Zeroable for ActivationUniforms {}
+        
+        let uniforms = ActivationUniforms {
+            length: input.len() as u32,
+            steepness: 1.0,  // Default steepness
+            alpha: 0.01,     // Default for Leaky ReLU
+            beta: 1.0,       // Default for Swish/SiLU
+        };
+
         // Create buffers
         let input_buffer = self.create_buffer_with_data(input, wgpu::BufferUsages::STORAGE).await?;
-        let output_size = input.len() * std::mem::size_of::<T>();
+        let output_size = std::mem::size_of_val(input);
         let output_buffer = self.memory_manager.create_storage_buffer(output_size as u64, Some("activation_output"))?;
+        
+        // Create uniform buffer with proper alignment (minimum 256 bytes for wgpu)
+        let uniform_buffer = self.memory_manager.create_uniform_buffer(
+            std::cmp::max(std::mem::size_of::<ActivationUniforms>(), 256) as u64,
+            Some("activation_uniforms")
+        )?;
+        self.device.queue.write_buffer(
+            &uniform_buffer.buffer,
+            0,
+            bytemuck::cast_slice(&[uniforms])
+        );
 
         // Create shader and pipeline
-        let shader = self.device.create_compute_shader(&shader_source, Some("activation_shader"))?;
+        let shader = self.device.create_compute_shader(shader_source, Some("activation_shader"))?;
         
         let bind_group_layout = self.device.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("activation_bind_group_layout"),
@@ -466,6 +497,16 @@ impl<T: Float + Send + Sync + Pod + Clone> ComputeBackend<T> for WebGpuBackend {
                         ty: wgpu::BufferBindingType::Storage { read_only: false },
                         has_dynamic_offset: false,
                         min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<ActivationUniforms>() as u64),
                     },
                     count: None,
                 },
@@ -498,6 +539,10 @@ impl<T: Float + Send + Sync + Pod + Clone> ComputeBackend<T> for WebGpuBackend {
                     binding: 1,
                     resource: output_buffer.buffer.as_entire_binding(),
                 },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: uniform_buffer.buffer.as_entire_binding(),
+                },
             ],
         });
 
@@ -529,6 +574,7 @@ impl<T: Float + Send + Sync + Pod + Clone> ComputeBackend<T> for WebGpuBackend {
         // Return buffers to pool
         self.memory_manager.return_buffer(input_buffer);
         self.memory_manager.return_buffer(output_buffer);
+        self.memory_manager.return_buffer(uniform_buffer);
 
         Ok(result)
     }
@@ -572,7 +618,7 @@ impl<T: Float + Send + Sync + Pod + Clone> ComputeBackend<T> for WebGpuBackend {
 
         // Load shader
         let shader_source = include_str!("shaders/gradient_computation.wgsl");
-        let shader = self.device.create_compute_shader(&shader_source, Some("gradient_computation"))?;
+        let shader = self.device.create_compute_shader(shader_source, Some("gradient_computation"))?;
         
         let bind_group_layout = self.device.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("gradient_bind_group_layout"),
@@ -742,13 +788,13 @@ impl<T: Float + Send + Sync + Pod + Clone> ComputeBackend<T> for WebGpuBackend {
 
         // Create dummy momentum/velocity buffers (not used for simple SGD)
         let dummy_buffer = self.memory_manager.create_storage_buffer(
-            (weights.len() * std::mem::size_of::<T>()) as u64,
+            std::mem::size_of_val(weights) as u64,
             Some("dummy_buffer")
         )?;
 
         // Load shader
         let shader_source = include_str!("shaders/gradient_computation.wgsl");
-        let shader = self.device.create_compute_shader(&shader_source, Some("weight_update"))?;
+        let shader = self.device.create_compute_shader(shader_source, Some("weight_update"))?;
         
         let bind_group_layout = self.device.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("weight_update_bind_group_layout"),
@@ -893,12 +939,12 @@ impl<T: Float + Send + Sync + Pod + Clone> ComputeBackend<T> for WebGpuBackend {
         // Create buffers
         let a_buffer = self.create_buffer_with_data(a, wgpu::BufferUsages::STORAGE).await?;
         let b_buffer = self.create_buffer_with_data(b, wgpu::BufferUsages::STORAGE).await?;
-        let result_size = a.len() * std::mem::size_of::<T>();
+        let result_size = std::mem::size_of_val(a);
         let result_buffer = self.memory_manager.create_storage_buffer(result_size as u64, Some("vector_add_result"))?;
 
         // Create shader and pipeline
         let shader_source = include_str!("shaders/vector_operations.wgsl");
-        let shader = self.device.create_compute_shader(&shader_source, Some("vector_add_shader"))?;
+        let shader = self.device.create_compute_shader(shader_source, Some("vector_add_shader"))?;
         
         // Create uniforms for the vector operation
         #[repr(C)]
@@ -1042,7 +1088,7 @@ impl<T: Float + Send + Sync + Pod + Clone> ComputeBackend<T> for WebGpuBackend {
     async fn vector_scale(&self, vector: &[T], scalar: T) -> ComputeResult<Vec<T>> {
         // Create buffers
         let input_buffer = self.create_buffer_with_data(vector, wgpu::BufferUsages::STORAGE).await?;
-        let output_size = vector.len() * std::mem::size_of::<T>();
+        let output_size = std::mem::size_of_val(vector);
         let output_buffer = self.memory_manager.create_storage_buffer(output_size as u64, Some("vector_scale_output"))?;
 
         // Create uniform buffer for scalar
@@ -1064,7 +1110,7 @@ impl<T: Float + Send + Sync + Pod + Clone> ComputeBackend<T> for WebGpuBackend {
 
         // Create shader and pipeline
         let shader_source = include_str!("shaders/matrix_operations.wgsl");
-        let shader = self.device.create_compute_shader(&shader_source, Some("vector_scale_shader"))?;
+        let shader = self.device.create_compute_shader(shader_source, Some("vector_scale_shader"))?;
         
         let bind_group_layout = self.device.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("vector_scale_bind_group_layout"),

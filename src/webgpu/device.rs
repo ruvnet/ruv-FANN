@@ -243,6 +243,6 @@ mod tests {
     #[test]
     fn test_buffer_alignment() {
         // Test that buffer alignment is reasonable
-        assert!(4 % 4 == 0); // Should be aligned to 4 bytes minimum
+        // Buffer alignment test - ensuring 4-byte alignment is reasonable for GPU operations
     }
 }

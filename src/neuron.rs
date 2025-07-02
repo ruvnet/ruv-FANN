@@ -110,9 +110,8 @@ impl<T: Float> Neuron<T> {
             }
         }
 
-        // Apply activation function (will be implemented in activation module)
-        // For now, just store the sum as the value
-        self.value = self.sum;
+        // Apply activation function
+        self.value = self.apply_activation_function(self.sum);
     }
 
     /// Sets the neuron's output value directly (used for input neurons)
@@ -136,6 +135,19 @@ impl<T: Float> Neuron<T> {
         } else {
             Err("Connection index out of bounds")
         }
+    }
+    
+    /// Apply the activation function to a value
+    fn apply_activation_function(&self, x: T) -> T {
+        self.activation_function.activate(x, self.activation_steepness)
+    }
+
+    /// Compute the derivative of the activation function for backpropagation
+    ///
+    /// # Returns
+    /// The derivative of the activation function at the current neuron state
+    pub fn activation_derivative(&self) -> T {
+        self.activation_function.derivative(self.sum, self.value, self.activation_steepness)
     }
 }
 
@@ -227,5 +239,62 @@ mod tests {
 
         // 1.0 * 0.5 + 2.0 * -0.3 + -1.0 * 0.2 = 0.5 - 0.6 - 0.2 = -0.3
         assert_eq!(neuron.sum, -0.3);
+        // For linear activation with steepness 1.0: f(x) = x * steepness = -0.3 * 1.0 = -0.3
+        assert_eq!(neuron.value, -0.3);
+    }
+
+    #[test]
+    fn test_activation_strategy_pattern() {
+        // Test that neuron delegation to activation functions works correctly
+        let mut sigmoid_neuron = Neuron::<f32>::new(ActivationFunction::Sigmoid, 1.0);
+        sigmoid_neuron.sum = 0.0; // Set sum directly for testing activation
+        sigmoid_neuron.value = sigmoid_neuron.apply_activation_function(sigmoid_neuron.sum);
+        
+        // Should be approximately 0.5 for sigmoid(0)
+        assert!((sigmoid_neuron.value - 0.5).abs() < 1e-6);
+        
+        let mut relu_neuron = Neuron::<f32>::new(ActivationFunction::ReLU, 1.0);
+        relu_neuron.sum = -1.0;
+        relu_neuron.value = relu_neuron.apply_activation_function(relu_neuron.sum);
+        assert_eq!(relu_neuron.value, 0.0);
+        
+        relu_neuron.sum = 2.0;
+        relu_neuron.value = relu_neuron.apply_activation_function(relu_neuron.sum);
+        assert_eq!(relu_neuron.value, 2.0);
+    }
+
+    #[test]
+    fn test_activation_derivative() {
+        // Test derivative computation for different activation functions
+        let mut sigmoid_neuron = Neuron::<f32>::new(ActivationFunction::Sigmoid, 1.0);
+        sigmoid_neuron.sum = 0.0;
+        sigmoid_neuron.value = sigmoid_neuron.apply_activation_function(sigmoid_neuron.sum);
+        
+        let derivative = sigmoid_neuron.activation_derivative();
+        // For sigmoid at x=0: derivative should be approximately 0.5
+        assert!((derivative - 0.5).abs() < 1e-6);
+        
+        let mut linear_neuron = Neuron::<f32>::new(ActivationFunction::Linear, 2.0);
+        linear_neuron.sum = 5.0; // Doesn't matter for linear
+        linear_neuron.value = linear_neuron.apply_activation_function(linear_neuron.sum);
+        
+        let derivative = linear_neuron.activation_derivative();
+        // For linear: derivative should equal steepness
+        assert_eq!(derivative, 2.0);
+        
+        let mut relu_neuron = Neuron::<f32>::new(ActivationFunction::ReLU, 1.0);
+        relu_neuron.sum = 1.0; // Positive input
+        relu_neuron.value = relu_neuron.apply_activation_function(relu_neuron.sum);
+        
+        let derivative = relu_neuron.activation_derivative();
+        // For ReLU with positive input: derivative should be 1.0
+        assert_eq!(derivative, 1.0);
+        
+        relu_neuron.sum = -1.0; // Negative input
+        relu_neuron.value = relu_neuron.apply_activation_function(relu_neuron.sum);
+        
+        let derivative = relu_neuron.activation_derivative();
+        // For ReLU with negative input: derivative should be 0.0
+        assert_eq!(derivative, 0.0);
     }
 }

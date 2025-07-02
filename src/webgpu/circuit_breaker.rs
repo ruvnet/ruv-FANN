@@ -135,15 +135,10 @@ impl CircuitBreaker {
     
     /// Check if requests can pass through (for use without actual operation)
     pub fn check(&self) -> Result<(), ComputeError> {
-        match self.state {
-            CircuitState::Open => {
-                if !self.should_attempt_reset() {
-                    return Err(ComputeError::backend_error(
-                        "Circuit breaker is open - backend temporarily unavailable"
-                    ));
-                }
-            }
-            _ => {}
+        if self.state == CircuitState::Open && !self.should_attempt_reset() {
+            return Err(ComputeError::backend_error(
+                "Circuit breaker is open - backend temporarily unavailable"
+            ));
         }
         Ok(())
     }

@@ -38,6 +38,30 @@ pub struct ShaderBuffers {
     pub uniform_buffers: Vec<Arc<Buffer>>,
 }
 
+/// Parameters for batch matrix-vector multiplication
+#[derive(Debug)]
+pub struct BatchMatrixVectorParams {
+    pub matrix_buffer: Arc<Buffer>,
+    pub vectors_buffer: Arc<Buffer>,
+    pub results_buffer: Arc<Buffer>,
+    pub uniforms_buffer: Arc<Buffer>,
+    pub rows: u32,
+    pub cols: u32,
+    pub batch_size: u32,
+}
+
+/// Parameters for optimizer updates
+#[derive(Debug)]
+pub struct OptimizerUpdateParams {
+    pub optimizer_type: OptimizerType,
+    pub weights_buffer: Arc<Buffer>,
+    pub gradients_buffer: Arc<Buffer>,
+    pub momentum_buffer: Arc<Buffer>,
+    pub velocity_buffer: Option<Arc<Buffer>>, // For Adam
+    pub uniforms_buffer: Arc<Buffer>,
+    pub weight_count: u32,
+}
+
 impl ShaderPipeline {
     /// Create a new shader pipeline
     pub fn new(
@@ -130,21 +154,15 @@ impl ShaderPipeline {
     /// Execute batch matrix-vector multiplication with 2D workgroup layout
     pub fn execute_batch_matrix_vector_multiply(
         &mut self,
-        matrix_buffer: Arc<Buffer>,
-        vectors_buffer: Arc<Buffer>,
-        results_buffer: Arc<Buffer>,
-        uniforms_buffer: Arc<Buffer>,
-        rows: u32,
-        cols: u32,
-        batch_size: u32,
+        params: BatchMatrixVectorParams,
     ) -> Result<ExecutionResults, ShaderPipelineError> {
-        let workgroup_count_x = self.calculate_1d_workgroup_count(rows, 16);
-        let workgroup_count_y = self.calculate_1d_workgroup_count(batch_size, 16);
+        let workgroup_count_x = self.calculate_1d_workgroup_count(params.rows, 16);
+        let workgroup_count_y = self.calculate_1d_workgroup_count(params.batch_size, 16);
         
         let buffers = ShaderBuffers {
-            input_buffers: vec![matrix_buffer, vectors_buffer],
-            output_buffers: vec![results_buffer],
-            uniform_buffers: vec![uniforms_buffer],
+            input_buffers: vec![params.matrix_buffer, params.vectors_buffer],
+            output_buffers: vec![params.results_buffer],
+            uniform_buffers: vec![params.uniforms_buffer],
         };
         
         let config = ExecutionConfig {
@@ -167,7 +185,7 @@ impl ShaderPipeline {
     ) -> Result<ExecutionResults, ShaderPipelineError> {
         // Calculate workgroups for vectorized processing (4 elements per thread)
         let elements_per_thread = 4;
-        let threads_needed = (length + elements_per_thread - 1) / elements_per_thread;
+        let threads_needed = length.div_ceil(elements_per_thread);
         let workgroup_count = self.calculate_1d_workgroup_count(threads_needed, 256);
         
         let buffers = ShaderBuffers {
@@ -216,35 +234,29 @@ impl ShaderPipeline {
     /// Execute optimizer update (SGD with momentum or Adam)
     pub fn execute_optimizer_update(
         &mut self,
-        optimizer_type: OptimizerType,
-        weights_buffer: Arc<Buffer>,
-        gradients_buffer: Arc<Buffer>,
-        momentum_buffer: Arc<Buffer>,
-        velocity_buffer: Option<Arc<Buffer>>, // For Adam
-        uniforms_buffer: Arc<Buffer>,
-        weight_count: u32,
+        params: OptimizerUpdateParams,
     ) -> Result<ExecutionResults, ShaderPipelineError> {
-        let workgroup_count = self.calculate_1d_workgroup_count(weight_count, 256);
+        let workgroup_count = self.calculate_1d_workgroup_count(params.weight_count, 256);
         
-        let mut input_buffers = vec![gradients_buffer, momentum_buffer];
-        if let Some(velocity) = velocity_buffer {
+        let mut input_buffers = vec![params.gradients_buffer, params.momentum_buffer];
+        if let Some(velocity) = params.velocity_buffer {
             input_buffers.push(velocity);
         }
         
         let buffers = ShaderBuffers {
             input_buffers,
-            output_buffers: vec![weights_buffer],
-            uniform_buffers: vec![uniforms_buffer],
+            output_buffers: vec![params.weights_buffer],
+            uniform_buffers: vec![params.uniforms_buffer],
         };
         
-        let shader_type = match optimizer_type {
+        let shader_type = match params.optimizer_type {
             OptimizerType::SgdMomentum => ShaderType::SgdMomentumUpdate,
             OptimizerType::Adam => ShaderType::AdamUpdate,
         };
         
         let config = ExecutionConfig {
             workgroup_count: (workgroup_count, 1, 1),
-            debug_label: Some(format!("{:?}_optimizer_update", optimizer_type)),
+            debug_label: Some(format!("{:?}_optimizer_update", params.optimizer_type)),
             timing_enabled: true,
         };
         
@@ -328,7 +340,7 @@ impl ShaderPipeline {
     
     /// Calculate optimal 1D workgroup count
     fn calculate_1d_workgroup_count(&self, total_threads: u32, threads_per_workgroup: u32) -> u32 {
-        (total_threads + threads_per_workgroup - 1) / threads_per_workgroup
+        total_threads.div_ceil(threads_per_workgroup)
     }
     
     /// Calculate memory transfer amount for performance metrics
@@ -458,7 +470,7 @@ impl ShaderExecutionBuilder {
             ShaderPipelineError::BufferError("Buffers not specified".to_string())
         })?;
         
-        let config = self.config.unwrap_or_else(|| ExecutionConfig {
+        let config = self.config.unwrap_or(ExecutionConfig {
             workgroup_count: (1, 1, 1),
             debug_label: None,
             timing_enabled: false,
