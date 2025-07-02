@@ -41,6 +41,11 @@ pub mod coordination;
 pub mod neural;
 pub mod patterns;
 pub mod memory;
+pub mod gpu_learning_engine;
+pub mod gpu;
+pub mod daa_gpu_agent_framework;
+pub mod coordination_protocols;
+pub mod learning_integration;
 
 #[cfg(feature = "wasm")]
 pub mod wasm;
@@ -51,6 +56,11 @@ pub use coordination::*;
 pub use neural::*;
 pub use patterns::*;
 pub use memory::*;
+pub use gpu_learning_engine::*;
+pub use gpu::*;
+pub use daa_gpu_agent_framework::*;
+pub use coordination_protocols::*;
+pub use learning_integration::*;
 
 /// Core DAA integration error types
 #[derive(Debug, thiserror::Error)]

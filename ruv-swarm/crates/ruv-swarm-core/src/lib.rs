@@ -58,6 +58,7 @@ pub mod error;
 pub mod swarm;
 pub mod task;
 pub mod topology;
+pub mod gpu_task_types;
 
 // Re-export commonly used types
 pub use agent::{
@@ -79,6 +80,11 @@ pub use task::{
     TaskResult, TaskStatus,
 };
 
+pub use gpu_task_types::{
+    GPUTaskType, GPUTaskOrchestrator, GPUTask, GPUTaskResult,
+    CoordinationPattern, ComputeBackend, TrainingAlgorithm, OptimizationTarget,
+};
+
 /// Prelude module for convenient imports
 pub mod prelude {
     pub use crate::agent::{Agent, CognitivePattern};
@@ -86,6 +92,9 @@ pub mod prelude {
     #[cfg(feature = "std")]
     pub use crate::swarm::{Swarm, SwarmConfig};
     pub use crate::task::{TaskPriority as Priority, Task, TaskId};
+    pub use crate::gpu_task_types::{
+        GPUTaskType, GPUTaskOrchestrator, CoordinationPattern, ComputeBackend,
+    };
 }
 
 /// Version information
