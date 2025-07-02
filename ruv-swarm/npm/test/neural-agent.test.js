@@ -8,7 +8,7 @@ import { NeuralAgent,
   NeuralNetwork,
   COGNITIVE_PATTERNS,
   AGENT_COGNITIVE_PROFILES,
- } from '../src/neural-agent';
+} from '../src/neural-agent';
 
 // Mock base agent
 class MockAgent {

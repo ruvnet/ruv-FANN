@@ -7,5 +7,5 @@ global.console = {
   log: jest.fn(),
   warn: jest.fn(),
   // Keep error for debugging
-  error: console.error
+  error: console.error,
 };

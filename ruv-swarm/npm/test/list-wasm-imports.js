@@ -14,7 +14,7 @@ async function listAllImports() {
   const wasmBuffer = await fs.readFile(wasmPath);
   const module = await WebAssembly.compile(wasmBuffer);
   const imports = WebAssembly.Module.imports(module);
-  
+
   console.log('All WASM imports needed:');
   imports.forEach((imp, i) => {
     console.log(`${i}: ${imp.module}.${imp.name} (${imp.kind})`);

@@ -3,10 +3,10 @@
  * Tests progressive loading, neural networks, and swarm orchestration
  */
 
-import { RuvSwarm  } from '../src/index-enhanced';
-import { WasmModuleLoader  } from '../src/wasm-loader';
-import { EnhancedMCPTools  } from '../src/mcp-tools-enhanced';
-import { NeuralNetworkManager  } from '../src/neural-network-manager';
+import { RuvSwarm } from '../src/index-enhanced';
+import { WasmModuleLoader } from '../src/wasm-loader';
+import { EnhancedMCPTools } from '../src/mcp-tools-enhanced';
+import { NeuralNetworkManager } from '../src/neural-network-manager';
 
 import assert from 'assert';
 import path from 'path';

@@ -4,7 +4,7 @@
  * Tests all 12 MCP tools with a 5-agent swarm
  */
 
-import { spawn  } from 'child_process';
+import { spawn } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';

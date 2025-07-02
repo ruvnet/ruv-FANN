@@ -18,29 +18,29 @@ class IntegrationTestRunner {
         path: 'scenarios/lifecycle/full-workflow.test.js',
         timeout: 60000,
         parallel: false,
-        critical: true
+        critical: true,
       },
       {
         name: 'Resilience Tests',
         path: 'scenarios/resilience/error-recovery.test.js',
         timeout: 45000,
         parallel: false,
-        critical: true
+        critical: true,
       },
       {
         name: 'Performance Tests',
         path: 'scenarios/performance/load-testing.test.js',
         timeout: 120000,
         parallel: true,
-        critical: false
+        critical: false,
       },
       {
         name: 'Cross-Feature Integration',
         path: 'scenarios/cross-feature/system-integration.test.js',
         timeout: 90000,
         parallel: false,
-        critical: true
-      }
+        critical: true,
+      },
     ];
 
     this.results = {
@@ -49,7 +49,7 @@ class IntegrationTestRunner {
       failed: 0,
       skipped: 0,
       duration: 0,
-      suites: []
+      suites: [],
     };
 
     this.config = {
@@ -57,7 +57,7 @@ class IntegrationTestRunner {
       verbose: process.env.VERBOSE === 'true',
       bail: process.env.BAIL_ON_FAILURE === 'true',
       coverage: process.env.COVERAGE === 'true',
-      environment: process.env.NODE_ENV || 'test'
+      environment: process.env.NODE_ENV || 'test',
     };
   }
 
@@ -83,7 +83,7 @@ class IntegrationTestRunner {
 
     this.results.duration = Date.now() - startTime;
     this.generateReport();
-    
+
     process.exit(this.results.failed > 0 ? 1 : 0);
   }
 
@@ -113,7 +113,7 @@ class IntegrationTestRunner {
     process.env.NODE_ENV = 'test';
     process.env.RUV_SWARM_TEST_MODE = 'true';
     process.env.RUV_SWARM_LOG_LEVEL = this.config.verbose ? 'debug' : 'error';
-    
+
     console.log(chalk.green('✅ Environment ready\n'));
   }
 
@@ -144,26 +144,28 @@ class IntegrationTestRunner {
 
     // Run sequential suites
     for (const suite of sequentialSuites) {
-      if (this.config.bail && this.results.failed > 0) break;
+      if (this.config.bail && this.results.failed > 0) {
+        break;
+      }
       await this.runSuite(suite);
     }
   }
 
   async runSuite(suite) {
     console.log(chalk.cyan(`📋 Running ${suite.name}...`));
-    
+
     const startTime = Date.now();
     const suitePath = path.join(__dirname, suite.path);
 
     try {
       const result = await this.executeMocha(suitePath, suite);
-      
+
       const duration = Date.now() - startTime;
       const status = result.exitCode === 0 ? 'PASSED' : 'FAILED';
       const statusColor = result.exitCode === 0 ? 'green' : 'red';
 
       console.log(chalk[statusColor](`  ${status} in ${duration}ms`));
-      
+
       if (this.config.verbose && result.output) {
         console.log(chalk.gray('  Output:'));
         console.log(chalk.gray(result.output.split('\n').map(line => `    ${line}`).join('\n')));
@@ -175,7 +177,7 @@ class IntegrationTestRunner {
         duration,
         exitCode: result.exitCode,
         output: result.output,
-        critical: suite.critical
+        critical: suite.critical,
       });
 
       if (result.exitCode === 0) {
@@ -183,7 +185,7 @@ class IntegrationTestRunner {
       } else {
         this.results.failed++;
         if (suite.critical) {
-          console.log(chalk.red.bold(`  ⚠️  Critical test suite failed!`));
+          console.log(chalk.red.bold('  ⚠️  Critical test suite failed!'));
         }
       }
 
@@ -191,13 +193,13 @@ class IntegrationTestRunner {
 
     } catch (error) {
       console.log(chalk.red(`  ERROR: ${error.message}`));
-      
+
       this.results.suites.push({
         name: suite.name,
         status: 'ERROR',
         duration: Date.now() - startTime,
         error: error.message,
-        critical: suite.critical
+        critical: suite.critical,
       });
 
       this.results.failed++;
@@ -212,7 +214,7 @@ class IntegrationTestRunner {
       const args = [
         testPath,
         '--timeout', suite.timeout.toString(),
-        '--reporter', this.config.verbose ? 'spec' : 'json'
+        '--reporter', this.config.verbose ? 'spec' : 'json',
       ];
 
       if (this.config.coverage) {
@@ -221,7 +223,7 @@ class IntegrationTestRunner {
 
       const mocha = spawn('npx', ['mocha', ...args], {
         cwd: path.join(__dirname, '../..'),
-        stdio: ['pipe', 'pipe', 'pipe']
+        stdio: ['pipe', 'pipe', 'pipe'],
       });
 
       let output = '';
@@ -239,7 +241,7 @@ class IntegrationTestRunner {
         resolve({
           exitCode,
           output: output || error,
-          error: exitCode !== 0 ? error : null
+          error: exitCode !== 0 ? error : null,
         });
       });
 
@@ -247,7 +249,7 @@ class IntegrationTestRunner {
         resolve({
           exitCode: 1,
           output: '',
-          error: err.message
+          error: err.message,
         });
       });
     });
@@ -275,9 +277,9 @@ class IntegrationTestRunner {
       const icon = suite.status === 'PASSED' ? '✅' : suite.status === 'ERROR' ? '💥' : '❌';
       const critical = suite.critical ? ' [CRITICAL]' : '';
       const duration = `${suite.duration}ms`;
-      
+
       console.log(`  ${icon} ${suite.name}${critical} - ${duration}`);
-      
+
       if (suite.error && this.config.verbose) {
         console.log(chalk.red(`    Error: ${suite.error}`));
       }
@@ -313,22 +315,22 @@ class IntegrationTestRunner {
     }
 
     const criticalFailures = this.results.suites.filter(s => s.critical && s.status !== 'PASSED').length;
-    
+
     if (criticalFailures > 0) {
       console.log(chalk.red('  🚨 Critical failures detected - do not deploy to production'));
       console.log(chalk.yellow('  📋 Review failed critical test suites immediately'));
     }
 
-    const performanceFailures = this.results.suites.filter(s => 
-      s.name.includes('Performance') && s.status !== 'PASSED'
+    const performanceFailures = this.results.suites.filter(s =>
+      s.name.includes('Performance') && s.status !== 'PASSED',
     ).length;
 
     if (performanceFailures > 0) {
       console.log(chalk.yellow('  ⚡ Performance issues detected - review system capacity'));
     }
 
-    const resilienceFailures = this.results.suites.filter(s => 
-      s.name.includes('Resilience') && s.status !== 'PASSED'
+    const resilienceFailures = this.results.suites.filter(s =>
+      s.name.includes('Resilience') && s.status !== 'PASSED',
     ).length;
 
     if (resilienceFailures > 0) {
@@ -351,7 +353,7 @@ class IntegrationTestRunner {
         ...this.results,
         timestamp: new Date().toISOString(),
         environment: this.config.environment,
-        configuration: this.config
+        configuration: this.config,
       };
 
       fs.writeFileSync(resultsPath, JSON.stringify(fullResults, null, 2));

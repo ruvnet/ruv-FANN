@@ -2,9 +2,9 @@
  * Performance benchmarks for ruv-swarm
  */
 
-import { RuvSwarm  } from '../../src/index-enhanced';
-import { NeuralNetwork  } from '../../src/neural-agent';
-import { SwarmPersistence  } from '../../src/persistence';
+import { RuvSwarm } from '../../src/index-enhanced';
+import { NeuralNetwork } from '../../src/neural-agent';
+import { SwarmPersistence } from '../../src/persistence';
 import assert from 'assert';
 import path from 'path';
 import fs from 'fs';

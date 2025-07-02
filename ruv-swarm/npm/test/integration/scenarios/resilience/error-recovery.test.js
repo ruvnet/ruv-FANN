@@ -14,7 +14,7 @@ describe('Error Recovery and Resilience Integration', () => {
     sandbox = sinon.createSandbox();
   });
 
-  afterEach(async () => {
+  afterEach(async() => {
     if (swarm) {
       await swarm.shutdown();
     }
@@ -25,18 +25,18 @@ describe('Error Recovery and Resilience Integration', () => {
   });
 
   describe('Component Failure Recovery', () => {
-    it('should recover from agent failures gracefully', async () => {
+    it('should recover from agent failures gracefully', async() => {
       swarm = new RuvSwarm();
-      await swarm.init({ 
+      await swarm.init({
         topology: 'mesh',
-        resilience: { enabled: true, retryAttempts: 3 }
+        resilience: { enabled: true, retryAttempts: 3 },
       });
 
       // Spawn multiple agents
       const agents = await Promise.all([
         swarm.spawnAgent({ type: 'coder' }),
         swarm.spawnAgent({ type: 'coder' }),
-        swarm.spawnAgent({ type: 'coder' })
+        swarm.spawnAgent({ type: 'coder' }),
       ]);
 
       // Simulate agent failure
@@ -47,14 +47,16 @@ describe('Error Recovery and Resilience Integration', () => {
       const task = await swarm.orchestrateTask({
         task: 'Process data with fault tolerance',
         strategy: 'parallel',
-        faultTolerant: true
+        faultTolerant: true,
       });
 
       // Wait for task completion
       let taskStatus;
       for (let i = 0; i < 10; i++) {
         taskStatus = await swarm.getTaskStatus(task.id);
-        if (taskStatus.status === 'completed' || taskStatus.status === 'failed') break;
+        if (taskStatus.status === 'completed' || taskStatus.status === 'failed') {
+          break;
+        }
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
@@ -65,37 +67,37 @@ describe('Error Recovery and Resilience Integration', () => {
       expect(taskStatus.result).to.exist;
     });
 
-    it('should handle cascading failures', async () => {
+    it('should handle cascading failures', async() => {
       swarm = new RuvSwarm();
-      await swarm.init({ 
+      await swarm.init({
         topology: 'hierarchical',
-        resilience: { 
+        resilience: {
           enabled: true,
           cascadeProtection: true,
-          isolationMode: 'strict'
-        }
+          isolationMode: 'strict',
+        },
       });
 
       // Create hierarchy
       const coordinator = await swarm.spawnAgent({ type: 'coordinator' });
       const midLevel = await Promise.all([
         swarm.spawnAgent({ type: 'analyst', parentId: coordinator.id }),
-        swarm.spawnAgent({ type: 'analyst', parentId: coordinator.id })
+        swarm.spawnAgent({ type: 'analyst', parentId: coordinator.id }),
       ]);
       const workers = await Promise.all([
         swarm.spawnAgent({ type: 'coder', parentId: midLevel[0].id }),
         swarm.spawnAgent({ type: 'coder', parentId: midLevel[0].id }),
-        swarm.spawnAgent({ type: 'coder', parentId: midLevel[1].id })
+        swarm.spawnAgent({ type: 'coder', parentId: midLevel[1].id }),
       ]);
 
       // Simulate mid-level failure
       sandbox.stub(midLevel[0], 'executeTask').rejects(new Error('Mid-level crash'));
-      
+
       // Execute hierarchical task
       const task = await swarm.orchestrateTask({
         task: 'Hierarchical processing with failure',
         coordinatorId: coordinator.id,
-        cascadeProtection: true
+        cascadeProtection: true,
       });
 
       // Monitor recovery
@@ -107,14 +109,14 @@ describe('Error Recovery and Resilience Integration', () => {
 
       // Verify cascade protection
       expect(recoveryEvents).to.have.lengthOf.at.least(1);
-      
+
       const status = await swarm.getStatus();
       const activeAgents = status.agents.filter(a => a.status !== 'failed');
-      
+
       // Coordinator and other branch should survive
       expect(activeAgents).to.include.deep.members([
         { id: coordinator.id, status: 'idle' },
-        { id: midLevel[1].id, status: 'idle' }
+        { id: midLevel[1].id, status: 'idle' },
       ]);
 
       // Workers under failed mid-level should be reassigned
@@ -122,27 +124,29 @@ describe('Error Recovery and Resilience Integration', () => {
       expect(reassignedWorkers).to.have.lengthOf.at.least(2);
     });
 
-    it('should implement circuit breaker pattern', async () => {
+    it('should implement circuit breaker pattern', async() => {
       swarm = new RuvSwarm();
-      await swarm.init({ 
+      await swarm.init({
         topology: 'mesh',
-        resilience: { 
+        resilience: {
           circuitBreaker: {
             enabled: true,
             threshold: 3,
             timeout: 5000,
-            halfOpenRetries: 2
-          }
-        }
+            halfOpenRetries: 2,
+          },
+        },
       });
 
       const agent = await swarm.spawnAgent({ type: 'coder' });
-      
+
       // Create a failing service
       let callCount = 0;
       const failingService = sandbox.stub().callsFake(() => {
         callCount++;
-        if (callCount <= 5) throw new Error('Service unavailable');
+        if (callCount <= 5) {
+          throw new Error('Service unavailable');
+        }
         return { success: true };
       });
 
@@ -155,7 +159,7 @@ describe('Error Recovery and Resilience Integration', () => {
         try {
           const result = await swarm.executeAgentTask(agent.id, {
             task: 'Call external service',
-            useCircuitBreaker: true
+            useCircuitBreaker: true,
           });
           results.push({ success: true, result });
         } catch (error) {
@@ -167,10 +171,10 @@ describe('Error Recovery and Resilience Integration', () => {
       // Verify circuit breaker behavior
       const failures = results.filter(r => !r.success);
       const circuitOpenErrors = failures.filter(f => f.error.includes('Circuit breaker open'));
-      
+
       expect(failures).to.have.lengthOf.at.least(3);
       expect(circuitOpenErrors).to.have.lengthOf.at.least(1);
-      
+
       // Eventually should succeed after circuit closes
       const successes = results.filter(r => r.success);
       expect(successes).to.have.lengthOf.at.least(1);
@@ -178,14 +182,14 @@ describe('Error Recovery and Resilience Integration', () => {
   });
 
   describe('Database and Persistence Recovery', () => {
-    it('should handle database connection failures', async () => {
+    it('should handle database connection failures', async() => {
       swarm = new RuvSwarm();
-      
+
       // Mock database with intermittent failures
       const mockDb = {
         prepare: sandbox.stub(),
         close: sandbox.stub(),
-        open: true
+        open: true,
       };
 
       let failureCount = 0;
@@ -196,85 +200,85 @@ describe('Error Recovery and Resilience Integration', () => {
         return {
           all: () => [],
           run: () => ({ changes: 1 }),
-          get: () => ({ id: 1 })
+          get: () => ({ id: 1 }),
         };
       });
 
-      await swarm.init({ 
+      await swarm.init({
         topology: 'mesh',
-        persistence: { 
+        persistence: {
           enabled: true,
           retryOnFailure: true,
-          maxRetries: 5
+          maxRetries: 5,
         },
-        database: mockDb
+        database: mockDb,
       });
 
       // Spawn agent with persistence
-      const agent = await swarm.spawnAgent({ 
+      const agent = await swarm.spawnAgent({
         type: 'researcher',
-        persistent: true 
+        persistent: true,
       });
 
       // Verify agent created despite initial failures
       expect(agent).to.exist;
       expect(agent.id).to.exist;
-      
+
       // Verify retries occurred
       expect(mockDb.prepare.callCount).to.be.greaterThan(2);
     });
 
-    it('should implement write-ahead logging for recovery', async () => {
+    it('should implement write-ahead logging for recovery', async() => {
       swarm = new RuvSwarm();
-      await swarm.init({ 
+      await swarm.init({
         topology: 'mesh',
-        persistence: { 
+        persistence: {
           enabled: true,
           wal: true,
-          checkpoint: 1000
-        }
+          checkpoint: 1000,
+        },
       });
 
       // Create multiple agents and tasks
       const agents = await Promise.all([
         swarm.spawnAgent({ type: 'coder' }),
-        swarm.spawnAgent({ type: 'analyst' })
+        swarm.spawnAgent({ type: 'analyst' }),
       ]);
 
       const tasks = [];
       for (let i = 0; i < 5; i++) {
         tasks.push(swarm.orchestrateTask({
           task: `Task ${i}`,
-          persistent: true
+          persistent: true,
         }));
       }
-      
+
       await Promise.all(tasks);
 
       // Simulate crash by forcing shutdown
       swarm._forceShutdown = true;
-      
+
       // Create new swarm instance
       const recoveredSwarm = new RuvSwarm();
-      await recoveredSwarm.init({ 
+      await recoveredSwarm.init({
         topology: 'mesh',
-        persistence: { 
+        persistence: {
           enabled: true,
-          recoverFromWAL: true
-        }
+          recoverFromWAL: true,
+        },
       });
 
       // Verify state recovered from WAL
       const status = await recoveredSwarm.getStatus();
       expect(status.agents).to.have.lengthOf(2);
-      
+
       const recoveredTasks = await recoveredSwarm.getAllTasks();
       expect(recoveredTasks).to.have.lengthOf(5);
 
       await recoveredSwarm.shutdown();
     });
 
-    it('should handle corrupted state gracefully', async () => {
+    it('should handle corrupted state gracefully', async() => {
       // Create corrupted database
       const corruptDb = new Database(':memory:');
       corruptDb.exec(`
@@ -293,13 +297,13 @@ describe('Error Recovery and Resilience Integration', () => {
       corruptDb.prepare('INSERT INTO tasks VALUES (?, ?)').run('task1', '{"invalid": json}');
 
       swarm = new RuvSwarm();
-      const initResult = await swarm.init({ 
+      const initResult = await swarm.init({
         topology: 'mesh',
-        persistence: { 
+        persistence: {
           enabled: true,
           handleCorruption: true,
-          database: corruptDb
-        }
+          database: corruptDb,
+        },
       });
 
       // Should initialize despite corruption
@@ -316,25 +320,25 @@ describe('Error Recovery and Resilience Integration', () => {
   });
 
   describe('Network and Communication Recovery', () => {
-    it('should handle network partition scenarios', async () => {
+    it('should handle network partition scenarios', async() => {
       swarm = new RuvSwarm();
-      await swarm.init({ 
+      await swarm.init({
         topology: 'mesh',
         network: {
           partitionTolerant: true,
-          consensusProtocol: 'raft'
-        }
+          consensusProtocol: 'raft',
+        },
       });
 
       // Create agents across partitions
       const partition1 = await Promise.all([
         swarm.spawnAgent({ type: 'coder', partition: 1 }),
-        swarm.spawnAgent({ type: 'analyst', partition: 1 })
+        swarm.spawnAgent({ type: 'analyst', partition: 1 }),
       ]);
 
       const partition2 = await Promise.all([
         swarm.spawnAgent({ type: 'coder', partition: 2 }),
-        swarm.spawnAgent({ type: 'researcher', partition: 2 })
+        swarm.spawnAgent({ type: 'researcher', partition: 2 }),
       ]);
 
       // Simulate network partition
@@ -343,12 +347,12 @@ describe('Error Recovery and Resilience Integration', () => {
       // Each partition should continue operating
       const task1 = await swarm.orchestrateTask({
         task: 'Partition 1 task',
-        partition: 1
+        partition: 1,
       });
 
       const task2 = await swarm.orchestrateTask({
         task: 'Partition 2 task',
-        partition: 2
+        partition: 2,
       });
 
       // Wait for tasks
@@ -364,13 +368,13 @@ describe('Error Recovery and Resilience Integration', () => {
       const allTasks = await swarm.getAllTasks();
       expect(allTasks).to.include.deep.members([
         { id: task1.id, status: 'completed' },
-        { id: task2.id, status: 'completed' }
+        { id: task2.id, status: 'completed' },
       ]);
 
       // Verify conflict resolution
       const conflicts = await swarm.getConflictLog();
       expect(conflicts).to.be.an('array');
-      
+
       if (conflicts.length > 0) {
         conflicts.forEach(conflict => {
           expect(conflict).to.have.property('resolved', true);
@@ -379,9 +383,9 @@ describe('Error Recovery and Resilience Integration', () => {
       }
     });
 
-    it('should implement retry with exponential backoff', async () => {
+    it('should implement retry with exponential backoff', async() => {
       swarm = new RuvSwarm();
-      await swarm.init({ 
+      await swarm.init({
         topology: 'star',
         network: {
           retryPolicy: {
@@ -389,16 +393,16 @@ describe('Error Recovery and Resilience Integration', () => {
             initialDelay: 100,
             maxDelay: 5000,
             backoffMultiplier: 2,
-            maxAttempts: 5
-          }
-        }
+            maxAttempts: 5,
+          },
+        },
       });
 
       const agent = await swarm.spawnAgent({ type: 'coder' });
-      
+
       // Mock flaky network
       let attempts = 0;
-      const flakyNetwork = sandbox.stub(swarm._network, 'send').callsFake(async () => {
+      const flakyNetwork = sandbox.stub(swarm._network, 'send').callsFake(async() => {
         attempts++;
         if (attempts < 4) {
           throw new Error('Network timeout');
@@ -409,7 +413,7 @@ describe('Error Recovery and Resilience Integration', () => {
       const startTime = Date.now();
       const result = await swarm.sendAgentMessage(agent.id, {
         type: 'task',
-        data: 'Important message'
+        data: 'Important message',
       });
 
       const elapsed = Date.now() - startTime;
@@ -417,25 +421,25 @@ describe('Error Recovery and Resilience Integration', () => {
       // Verify retries with backoff
       expect(attempts).to.equal(4);
       expect(result.success).to.be.true;
-      
+
       // Should have taken at least: 100 + 200 + 400 = 700ms
       expect(elapsed).to.be.at.least(700);
     });
 
-    it('should handle message queue overflow', async () => {
+    it('should handle message queue overflow', async() => {
       swarm = new RuvSwarm();
-      await swarm.init({ 
+      await swarm.init({
         topology: 'mesh',
         messageQueue: {
           maxSize: 100,
           overflowStrategy: 'drop-oldest',
-          persistQueue: true
-        }
+          persistQueue: true,
+        },
       });
 
       const agents = await Promise.all([
         swarm.spawnAgent({ type: 'coder' }),
-        swarm.spawnAgent({ type: 'analyst' })
+        swarm.spawnAgent({ type: 'analyst' }),
       ]);
 
       // Flood with messages
@@ -444,7 +448,7 @@ describe('Error Recovery and Resilience Integration', () => {
         messages.push(swarm.broadcastMessage({
           type: 'update',
           priority: i < 50 ? 'low' : 'high',
-          data: `Message ${i}`
+          data: `Message ${i}`,
         }));
       }
 
@@ -464,15 +468,15 @@ describe('Error Recovery and Resilience Integration', () => {
   });
 
   describe('Resource Management and Cleanup', () => {
-    it('should prevent resource leaks under stress', async () => {
+    it('should prevent resource leaks under stress', async() => {
       swarm = new RuvSwarm();
-      await swarm.init({ 
+      await swarm.init({
         topology: 'mesh',
         resourceLimits: {
           maxMemory: 512 * 1024 * 1024, // 512MB
           maxAgents: 50,
-          gcInterval: 1000
-        }
+          gcInterval: 1000,
+        },
       });
 
       // Track initial memory
@@ -481,38 +485,40 @@ describe('Error Recovery and Resilience Integration', () => {
       // Stress test with rapid agent creation/destruction
       for (let cycle = 0; cycle < 5; cycle++) {
         const agents = [];
-        
+
         // Spawn many agents
         for (let i = 0; i < 20; i++) {
-          agents.push(await swarm.spawnAgent({ 
+          agents.push(await swarm.spawnAgent({
             type: 'coder',
-            ephemeral: true 
+            ephemeral: true,
           }));
         }
 
         // Execute tasks
-        const tasks = agents.map(agent => 
+        const tasks = agents.map(agent =>
           swarm.executeAgentTask(agent.id, {
             task: 'Memory intensive operation',
-            data: Buffer.alloc(1024 * 1024) // 1MB per task
-          })
+            data: Buffer.alloc(1024 * 1024), // 1MB per task
+          }),
         );
 
         await Promise.all(tasks);
 
         // Destroy agents
         await Promise.all(agents.map(a => swarm.destroyAgent(a.id)));
-        
+
         // Force GC if available
-        if (global.gc) global.gc();
-        
+        if (global.gc) {
+          global.gc();
+        }
+
         await new Promise(resolve => setTimeout(resolve, 100));
       }
 
       // Check memory didn't grow excessively
       const finalMemory = process.memoryUsage().heapUsed;
       const memoryGrowth = finalMemory - initialMemory;
-      
+
       // Should not grow more than 50MB
       expect(memoryGrowth).to.be.lessThan(50 * 1024 * 1024);
 
@@ -521,22 +527,22 @@ describe('Error Recovery and Resilience Integration', () => {
       expect(status.agents).to.have.lengthOf(0);
     });
 
-    it('should handle graceful degradation under load', async () => {
+    it('should handle graceful degradation under load', async() => {
       swarm = new RuvSwarm();
-      await swarm.init({ 
+      await swarm.init({
         topology: 'mesh',
         loadBalancing: {
           enabled: true,
           strategy: 'least-loaded',
-          degradationThreshold: 0.8
-        }
+          degradationThreshold: 0.8,
+        },
       });
 
       // Create limited agents
       const agents = await Promise.all([
         swarm.spawnAgent({ type: 'coder', capacity: 5 }),
         swarm.spawnAgent({ type: 'coder', capacity: 5 }),
-        swarm.spawnAgent({ type: 'coder', capacity: 5 })
+        swarm.spawnAgent({ type: 'coder', capacity: 5 }),
       ]);
 
       // Generate high load
@@ -545,7 +551,7 @@ describe('Error Recovery and Resilience Integration', () => {
         tasks.push(swarm.orchestrateTask({
           task: `High load task ${i}`,
           priority: i < 10 ? 'high' : 'normal',
-          estimatedLoad: 1
+          estimatedLoad: 1,
         }));
       }
 
@@ -558,7 +564,7 @@ describe('Error Recovery and Resilience Integration', () => {
 
       // Verify graceful degradation occurred
       expect(degradationEvents).to.have.lengthOf.at.least(1);
-      
+
       const results = await Promise.allSettled(tasks);
       const completed = results.filter(r => r.status === 'fulfilled').length;
       const rejected = results.filter(r => r.status === 'rejected').length;

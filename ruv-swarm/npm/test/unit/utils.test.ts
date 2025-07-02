@@ -4,7 +4,7 @@ import {
   calculateCognitiveDiversity,
   recommendTopology,
   priorityToNumber,
-  validateSwarmOptions
+  validateSwarmOptions,
 } from '../src/utils';
 
 describe('Utils', () => {
@@ -81,7 +81,7 @@ describe('Utils', () => {
       const errors = validateSwarmOptions({
         maxAgents: 10,
         connectionDensity: 0.5,
-        topology: 'mesh'
+        topology: 'mesh',
       });
       expect(errors).toEqual([]);
     });

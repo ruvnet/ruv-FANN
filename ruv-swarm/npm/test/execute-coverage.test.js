@@ -19,41 +19,41 @@ try {
   // Test static methods
   const version = RuvSwarm.getVersion();
   console.log(`  ✓ Version: ${version}`);
-  
+
   const simdSupport = RuvSwarm.detectSIMDSupport();
   console.log(`  ✓ SIMD Support: ${simdSupport}`);
-  
+
   // Test initialization
   const ruv = await RuvSwarm.initialize({ debug: true });
   console.log('  ✓ RuvSwarm initialized');
-  
+
   // Test swarm creation
   const swarm = await ruv.createSwarm({
     name: 'test-swarm',
     topology: 'mesh',
-    maxAgents: 5
+    maxAgents: 5,
   });
   console.log(`  ✓ Swarm created: ${swarm.name}`);
-  
+
   // Test agent spawning
   const agent = await swarm.spawn({ type: 'researcher' });
   console.log(`  ✓ Agent spawned: ${agent.id}`);
-  
+
   // Test task execution
   const result = await agent.execute({ task: 'analyze', data: [1, 2, 3] });
   console.log(`  ✓ Task executed: ${result.status}`);
-  
+
   // Test orchestration
   const orchestration = await swarm.orchestrate({
     task: 'complex-analysis',
-    agents: 3
+    agents: 3,
   });
   console.log(`  ✓ Orchestration: ${orchestration.id}`);
-  
+
   // Test status
   const status = await swarm.getStatus();
   console.log(`  ✓ Status: ${status.agentCount} agents`);
-  
+
 } catch (error) {
   console.log(`  ⚠️  Mock mode: ${error.message}`);
 }
@@ -68,7 +68,7 @@ console.log('  ✓ BenchmarkCLI created');
 const arg = bench.getArg(['--type', 'wasm', '--iterations', '100'], '--type');
 console.log(`  ✓ getArg: ${arg}`);
 
-// 3. Test NeuralCLI  
+// 3. Test NeuralCLI
 console.log('\nTesting neural.js...');
 import { NeuralCLI, PATTERN_MEMORY_CONFIG } from '../src/neural.js';
 const neural = new NeuralCLI();
@@ -82,14 +82,14 @@ try {
   const neuralAgent = new NeuralAgent({
     id: 'test-agent',
     type: 'researcher',
-    model: 'transformer'
+    model: 'transformer',
   });
   console.log('  ✓ NeuralAgent created');
-  
+
   // Test initialization
   await neuralAgent.initialize();
   console.log('  ✓ NeuralAgent initialized');
-  
+
 } catch (error) {
   console.log(`  ⚠️  NeuralAgent: ${error.message}`);
 }
@@ -101,53 +101,53 @@ try {
   const persistence = new SwarmPersistence(':memory:');
   await persistence.initialize();
   console.log('  ✓ SwarmPersistence initialized');
-  
+
   // Test save/load
   await persistence.saveSwarm({
     id: 'test-123',
     name: 'Test Swarm',
     topology: 'mesh',
-    state: { agents: 3 }
+    state: { agents: 3 },
   });
   console.log('  ✓ Swarm saved');
-  
+
   const loaded = await persistence.loadSwarm('test-123');
   console.log(`  ✓ Swarm loaded: ${loaded.name}`);
-  
+
   // Test agent operations
   await persistence.saveAgent({
     id: 'agent-1',
     swarmId: 'test-123',
     type: 'researcher',
-    state: { tasks: 5 }
+    state: { tasks: 5 },
   });
   console.log('  ✓ Agent saved');
-  
+
   const agents = await persistence.getSwarmAgents('test-123');
   console.log(`  ✓ Agents retrieved: ${agents.length}`);
-  
+
   // Test task operations
   await persistence.saveTask({
     id: 'task-1',
     swarmId: 'test-123',
     type: 'analysis',
-    status: 'completed'
+    status: 'completed',
   });
   console.log('  ✓ Task saved');
-  
+
   await persistence.updateTaskStatus('task-1', 'completed', { score: 95 });
   console.log('  ✓ Task updated');
-  
+
   // Test memory operations
   await persistence.saveMemory('test-key', { data: 'test-value' });
   console.log('  ✓ Memory saved');
-  
+
   const memory = await persistence.getMemory('test-key');
   console.log(`  ✓ Memory retrieved: ${memory.data}`);
-  
+
   await persistence.close();
   console.log('  ✓ Persistence closed');
-  
+
 } catch (error) {
   console.log(`  ⚠️  Persistence: ${error.message}`);
 }
@@ -159,36 +159,36 @@ try {
   const manager = new NeuralNetworkManager();
   await manager.initialize();
   console.log('  ✓ NeuralNetworkManager initialized');
-  
+
   // Create network
   const network = await manager.createNetwork({
     layers: [10, 20, 10],
     activation: 'relu',
-    outputActivation: 'softmax'
+    outputActivation: 'softmax',
   });
   console.log('  ✓ Network created');
-  
+
   // List models
   const models = manager.listModels();
   console.log(`  ✓ Models: ${models.join(', ')}`);
-  
+
 } catch (error) {
   console.log(`  ⚠️  NeuralNetworkManager: ${error.message}`);
 }
 
-// 7. Test WasmLoader 
+// 7. Test WasmLoader
 console.log('\nTesting wasm-loader.js...');
 const WasmLoader = require('../src/wasm-loader.js');
 try {
   const loader = new WasmLoader();
   console.log('  ✓ WasmLoader created');
-  
+
   const supported = loader.isSupported();
   console.log(`  ✓ WASM supported: ${supported}`);
-  
+
   const simd = loader.hasSIMDSupport();
   console.log(`  ✓ SIMD supported: ${simd}`);
-  
+
 } catch (error) {
   console.log(`  ⚠️  WasmLoader: ${error.message}`);
 }
@@ -200,13 +200,13 @@ try {
   const enhanced = new RuvSwarmEnhanced();
   await enhanced.initialize({ enableNeuralAgents: true });
   console.log('  ✓ RuvSwarmEnhanced initialized');
-  
+
   const swarm = await enhanced.createSwarm({
     topology: 'hierarchical',
-    enableNeuralAgents: true
+    enableNeuralAgents: true,
   });
   console.log('  ✓ Enhanced swarm created');
-  
+
 } catch (error) {
   console.log(`  ⚠️  RuvSwarmEnhanced: ${error.message}`);
 }
@@ -220,21 +220,21 @@ try {
   // Test base model
   const base = new models.NeuralModel();
   console.log('  ✓ NeuralModel created');
-  
+
   // Test specific models
   const transformer = new models.TransformerModel({
     dModel: 512,
     nHeads: 8,
-    nLayers: 6
+    nLayers: 6,
   });
   console.log('  ✓ TransformerModel created');
-  
+
   const cnn = new models.CNNModel({
     inputChannels: 3,
-    outputClasses: 10
+    outputClasses: 10,
   });
   console.log('  ✓ CNNModel created');
-  
+
 } catch (error) {
   console.log(`  ⚠️  Neural models: ${error.message}`);
 }
@@ -250,18 +250,18 @@ const { PerformanceCLI } = require('../src/performance.js');
 try {
   const perf = new PerformanceCLI();
   console.log('  ✓ PerformanceCLI created');
-  
+
   // Test parseCommand
   const cmd = perf.parseCommand(['analyze', '--metric', 'cpu']);
   console.log(`  ✓ Command parsed: ${cmd.command}`);
-  
+
   // Test formatters
   const bytes = perf.formatBytes(1048576);
   console.log(`  ✓ Format bytes: ${bytes}`);
-  
+
   const duration = perf.formatDuration(1500);
   console.log(`  ✓ Format duration: ${duration}`);
-  
+
 } catch (error) {
   console.log(`  ⚠️  Performance: ${error.message}`);
 }

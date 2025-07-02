@@ -7,7 +7,7 @@ import { getMemoryConfig } from '../src/memory-config.js';
 const config = getMemoryConfig();
 console.log('✓ memory-config.js tested');
 
-// Test index.js 
+// Test index.js
 import { RuvSwarm } from '../src/index.js';
 try {
   const version = RuvSwarm.getVersion();
@@ -70,14 +70,14 @@ try {
 }
 
 // Test neural models
-import { 
+import {
   NeuralModel,
   TransformerModel,
   CNNModel,
   GRUModel,
   AutoencoderModel,
   GNNModel,
-  ResNetModel
+  ResNetModel,
 } from '../src/neural-models/index.js';
 console.log('✓ neural-models tested');
 
@@ -89,7 +89,7 @@ console.log('✓ hooks/index.js tested');
 import '../src/claude-integration/index.js';
 console.log('✓ claude-integration tested');
 
-// Test github coordinator  
+// Test github coordinator
 import '../src/github-coordinator/claude-hooks.js';
 import '../src/github-coordinator/gh-cli-coordinator.js';
 console.log('✓ github-coordinator tested');

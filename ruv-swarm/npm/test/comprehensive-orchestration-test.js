@@ -7,7 +7,7 @@
 import path from 'path';
 process.chdir(path.join(__dirname, '..'));
 
-import { EnhancedMCPTools  } from '../src/mcp-tools-enhanced';
+import { EnhancedMCPTools } from '../src/mcp-tools-enhanced';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 

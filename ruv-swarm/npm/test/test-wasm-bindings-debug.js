@@ -12,11 +12,11 @@ const __dirname = path.dirname(__filename);
 
 async function testWasmDirectly() {
   console.log('🔍 Testing WASM bindings directly...\n');
-  
+
   try {
     // Path to WASM file
     const wasmPath = path.join(__dirname, '..', 'wasm', 'ruv_swarm_wasm_bg.wasm');
-    
+
     // Check if file exists
     try {
       await fs.access(wasmPath);
@@ -25,29 +25,29 @@ async function testWasmDirectly() {
       console.error('❌ WASM file not found:', wasmPath);
       return;
     }
-    
+
     // Read WASM file
     const wasmBuffer = await fs.readFile(wasmPath);
     console.log('✅ WASM file loaded, size:', wasmBuffer.byteLength, 'bytes');
-    
+
     // Create minimal imports to see what's missing
     const imports = {
       wbg: {},
       env: {
-        memory: new WebAssembly.Memory({ initial: 256, maximum: 4096 })
-      }
+        memory: new WebAssembly.Memory({ initial: 256, maximum: 4096 }),
+      },
     };
-    
+
     // Try to instantiate
     console.log('\n🔧 Attempting WebAssembly.instantiate...\n');
-    
+
     try {
       const { instance, module } = await WebAssembly.instantiate(wasmBuffer, imports);
       console.log('✅ WASM instantiation successful!');
       console.log('Exports:', Object.keys(instance.exports));
     } catch (instantiateError) {
       console.error('❌ WebAssembly.instantiate failed:', instantiateError.message);
-      
+
       // Parse the error to find missing imports
       if (instantiateError.message.includes('Import #')) {
         console.log('\n🔍 Missing imports detected:');
@@ -58,15 +58,15 @@ async function testWasmDirectly() {
           console.log(`  - Import index: ${importMatch[1]}`);
         }
       }
-      
+
       // List all imports the WASM file expects
       console.log('\n📋 Analyzing WASM imports...');
       const module = await WebAssembly.compile(wasmBuffer);
       const importsList = WebAssembly.Module.imports(module);
-      
+
       console.log(`\nTotal imports needed: ${importsList.length}`);
       console.log('\nImports by module:');
-      
+
       const importsByModule = {};
       importsList.forEach(imp => {
         if (!importsByModule[imp.module]) {
@@ -74,10 +74,10 @@ async function testWasmDirectly() {
         }
         importsByModule[imp.module].push({
           name: imp.name,
-          kind: imp.kind
+          kind: imp.kind,
         });
       });
-      
+
       for (const [moduleName, moduleImports] of Object.entries(importsByModule)) {
         console.log(`\n  ${moduleName}: (${moduleImports.length} imports)`);
         moduleImports.slice(0, 10).forEach(imp => {
@@ -88,7 +88,7 @@ async function testWasmDirectly() {
         }
       }
     }
-    
+
   } catch (error) {
     console.error('❌ Test failed:', error);
   }

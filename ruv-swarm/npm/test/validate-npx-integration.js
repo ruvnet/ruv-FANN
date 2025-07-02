@@ -4,10 +4,10 @@
  * Tests that all components work together correctly
  */
 
-import { RuvSwarm  } from '../src/index-enhanced';
-import { EnhancedMCPTools  } from '../src/mcp-tools-enhanced';
-import { WasmModuleLoader  } from '../src/wasm-loader';
-import { NeuralNetworkManager  } from '../src/neural-network-manager';
+import { RuvSwarm } from '../src/index-enhanced';
+import { EnhancedMCPTools } from '../src/mcp-tools-enhanced';
+import { WasmModuleLoader } from '../src/wasm-loader';
+import { NeuralNetworkManager } from '../src/neural-network-manager';
 
 async function validateIntegration() {
   console.log('🔍 Validating NPX Integration...\n');

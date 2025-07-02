@@ -38,7 +38,7 @@ describe('Memory and Resource Edge Cases', () => {
           const arr = new Array(size).fill(1);
           arrays.push(arr);
           lastSuccessfulSize = size;
-          
+
           // Check memory usage periodically
           if (exp % 3 === 0) {
             const currentMemory = process.memoryUsage();
@@ -54,10 +54,12 @@ describe('Memory and Resource Edge Cases', () => {
       }
 
       expect(lastSuccessfulSize).toBeGreaterThan(0);
-      
+
       // Cleanup
       arrays.length = 0;
-      if (global.gc) global.gc();
+      if (global.gc) {
+        global.gc();
+      }
     });
 
     it('should handle memory fragmentation scenarios', () => {
@@ -86,7 +88,7 @@ describe('Memory and Resource Edge Cases', () => {
 
         const memoryAfterGC = process.memoryUsage();
         expect(memoryAfterGC.heapUsed).toBeLessThan(
-          initialMemory.heapUsed + 200 * 1024 * 1024 // 200MB limit
+          initialMemory.heapUsed + 200 * 1024 * 1024, // 200MB limit
         );
 
       } finally {
@@ -98,16 +100,16 @@ describe('Memory and Resource Edge Cases', () => {
 
     it('should handle circular reference memory leaks', () => {
       const objects = [];
-      
+
       // Create circular references
       for (let i = 0; i < 10000; i++) {
         const obj1 = { id: i, data: new Array(100).fill(i) };
         const obj2 = { id: i + 10000, data: new Array(100).fill(i + 10000) };
-        
+
         // Create circular reference
         obj1.ref = obj2;
         obj2.ref = obj1;
-        
+
         objects.push(obj1, obj2);
       }
 
@@ -122,16 +124,16 @@ describe('Memory and Resource Edge Cases', () => {
       }
 
       const memoryAfterCleanup = process.memoryUsage();
-      
+
       // Modern JS engines should handle circular references
       expect(memoryAfterCleanup.heapUsed).toBeLessThan(
-        initialMemory.heapUsed + 100 * 1024 * 1024
+        initialMemory.heapUsed + 100 * 1024 * 1024,
       );
     });
   });
 
   describe('Resource Cleanup Edge Cases', () => {
-    it('should cleanup file handles properly', async () => {
+    it('should cleanup file handles properly', async() => {
       const fs = await import('fs/promises');
       const handles = [];
 
@@ -151,12 +153,12 @@ describe('Memory and Resource Edge Cases', () => {
       } finally {
         // Cleanup all handles
         await Promise.allSettled(
-          handles.map(handle => handle?.close?.())
+          handles.map(handle => handle?.close?.()),
         );
       }
     });
 
-    it('should handle timer cleanup on object destruction', async () => {
+    it('should handle timer cleanup on object destruction', async() => {
       class TimerObject {
         constructor() {
           this.timers = [];
@@ -180,14 +182,14 @@ describe('Memory and Resource Edge Cases', () => {
       }
 
       const objects = [];
-      
+
       // Create objects with timers
       const promises = [];
       for (let i = 0; i < 50; i++) {
         const obj = new TimerObject();
         obj.startTimer(10);
         objects.push(obj);
-        
+
         // Destroy some objects randomly
         if (Math.random() > 0.5) {
           promises.push(
@@ -196,16 +198,16 @@ describe('Memory and Resource Edge Cases', () => {
                 obj.destroy();
                 resolve();
               }, Math.random() * 100);
-            })
+            }),
           );
         }
       }
 
       await Promise.all(promises);
-      
+
       // Cleanup remaining objects
       objects.forEach(obj => obj.destroy());
-      
+
       // Verify cleanup
       objects.forEach(obj => {
         expect(obj.destroyed).toBe(true);
@@ -223,10 +225,10 @@ describe('Memory and Resource Edge Cases', () => {
       // Create objects and weak references
       for (let i = 0; i < 1000; i++) {
         const obj = { id: i, data: new Array(100).fill(i) };
-        
+
         weakMap.set(obj, `value-${i}`);
         weakSet.add(obj);
-        
+
         // Keep strong references to some objects
         if (i % 3 === 0) {
           strongRefs.push(obj);
@@ -243,8 +245,12 @@ describe('Memory and Resource Edge Cases', () => {
       let weakSetCount = 0;
 
       strongRefs.forEach(obj => {
-        if (weakMap.has(obj)) weakMapCount++;
-        if (weakSet.has(obj)) weakSetCount++;
+        if (weakMap.has(obj)) {
+          weakMapCount++;
+        }
+        if (weakSet.has(obj)) {
+          weakSetCount++;
+        }
       });
 
       expect(weakMapCount).toBeGreaterThan(0);
@@ -287,7 +293,7 @@ describe('Memory and Resource Edge Cases', () => {
   });
 
   describe('Memory Monitoring Edge Cases', () => {
-    it('should detect memory leaks in event listeners', async () => {
+    it('should detect memory leaks in event listeners', async() => {
       const { EventEmitter } = await import('events');
       const emitter = new EventEmitter();
       const initialListeners = emitter.listenerCount('test');
@@ -348,7 +354,7 @@ describe('Memory and Resource Edge Cases', () => {
   });
 
   describe('Resource Pool Edge Cases', () => {
-    it('should handle resource pool exhaustion', async () => {
+    it('should handle resource pool exhaustion', async() => {
       class ResourcePool {
         constructor(maxSize = 10) {
           this.resources = [];
@@ -403,7 +409,7 @@ describe('Memory and Resource Edge Cases', () => {
       pool.destroy();
     });
 
-    it('should handle concurrent resource access', async () => {
+    it('should handle concurrent resource access', async() => {
       class ConcurrentResource {
         constructor() {
           this.users = 0;
@@ -432,7 +438,7 @@ describe('Memory and Resource Edge Cases', () => {
       // Try to use resource concurrently
       for (let i = 0; i < 10; i++) {
         promises.push(
-          resource.use().catch(error => ({ error: error.message }))
+          resource.use().catch(error => ({ error: error.message })),
         );
       }
 
@@ -487,7 +493,7 @@ describe('Memory and Resource Edge Cases', () => {
 // Run tests when executed directly
 if (import.meta.url === `file://${process.argv[1]}`) {
   console.log('Running memory and resource edge case tests...');
-  
+
   // Run all tests
   const { run } = await import('../test-runner.js');
   await run(__filename);

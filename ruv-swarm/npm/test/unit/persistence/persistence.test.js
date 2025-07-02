@@ -2,7 +2,7 @@
  * Unit tests for SwarmPersistence module
  */
 
-import { SwarmPersistence  } from '../../../src/persistence';
+import { SwarmPersistence } from '../../../src/persistence';
 import assert from 'assert';
 import fs from 'fs';
 import path from 'path';

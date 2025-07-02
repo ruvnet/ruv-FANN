@@ -10,81 +10,81 @@ const presets = ['default', 'minGPT', 'stateOfArt'];
 
 async function validateAllPresets() {
   console.log('🧬 Validating All Neural Presets...\n');
-  
+
   const results = {
     timestamp: new Date().toISOString(),
-    presets: {}
+    presets: {},
   };
-  
+
   for (const preset of presets) {
     console.log(`\n📋 Testing ${preset} preset...`);
-    
+
     try {
       // Test with the preset
       const { stdout: testOutput } = await execAsync(`npm test -- --preset=${preset}`);
-      
+
       // Extract test results
       const passed = testOutput.match(/(\d+) passed/)?.[1] || 0;
       const failed = testOutput.match(/(\d+) failed/)?.[1] || 0;
-      
+
       // Run coverage for this preset
       const { stdout: coverageOutput } = await execAsync(`npx nyc --reporter=json-summary npm test -- --preset=${preset}`);
-      
+
       // Read coverage data
       const coverageData = JSON.parse(
-        await fs.readFile('coverage/coverage-summary.json', 'utf8')
+        await fs.readFile('coverage/coverage-summary.json', 'utf8'),
       );
-      
+
       results.presets[preset] = {
         success: parseInt(failed) === 0,
         tests: {
           passed: parseInt(passed),
-          failed: parseInt(failed)
+          failed: parseInt(failed),
         },
         coverage: {
           lines: coverageData.total.lines.pct,
           branches: coverageData.total.branches.pct,
           functions: coverageData.total.functions.pct,
-          statements: coverageData.total.statements.pct
+          statements: coverageData.total.statements.pct,
         },
-        performance: await testPresetPerformance(preset)
+        performance: await testPresetPerformance(preset),
       };
-      
+
       console.log(`  ✅ Tests: ${passed} passed, ${failed} failed`);
       console.log(`  📊 Coverage: ${coverageData.total.lines.pct.toFixed(2)}% lines`);
-      
+
     } catch (error) {
       console.log(`  ❌ Error: ${error.message}`);
       results.presets[preset] = {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
-  
+
   // Save results
   await fs.writeFile(
     'preset-validation-results.json',
-    JSON.stringify(results, null, 2)
+    JSON.stringify(results, null, 2),
   );
-  
+
   // Generate report
   await generatePresetReport(results);
-  
+
   return results;
 }
 
 async function testPresetPerformance(preset) {
   try {
     const { stdout } = await execAsync(`node test/benchmarks/benchmark-neural-models.js --preset=${preset} --iterations=3`);
-    
+
     // Extract performance metrics
     const metrics = {
       initialized: stdout.includes('initialized'),
       avgTime: parseFloat(stdout.match(/Average time: ([\d.]+)ms/)?.[1] || 0),
-      memory: stdout.match(/Memory: ([\d.]+)MB/)?.[1] || 'N/A'
+      memory: stdout.match(/Memory: ([\d.]+)MB/)?.[1] || 'N/A',
     };
-    
+
     return metrics;
   } catch (error) {
     return { error: error.message };
@@ -101,23 +101,23 @@ async function generatePresetReport(results) {
 | Preset | Tests | Coverage | Performance | Status |
 |--------|-------|----------|-------------|---------|
 ${presets.map(preset => {
-  const data = results.presets[preset];
-  if (!data.success) {
-    return `| ${preset} | ❌ Error | - | - | Failed |`;
-  }
-  return `| ${preset} | ✅ ${data.tests.passed}/${data.tests.passed + data.tests.failed} | ${data.coverage.lines.toFixed(1)}% | ${data.performance.avgTime?.toFixed(2) || 'N/A'}ms | ${data.success ? 'Pass' : 'Fail'} |`;
-}).join('\n')}
+    const data = results.presets[preset];
+    if (!data.success) {
+      return `| ${preset} | ❌ Error | - | - | Failed |`;
+    }
+    return `| ${preset} | ✅ ${data.tests.passed}/${data.tests.passed + data.tests.failed} | ${data.coverage.lines.toFixed(1)}% | ${data.performance.avgTime?.toFixed(2) || 'N/A'}ms | ${data.success ? 'Pass' : 'Fail'} |`;
+  }).join('\n')}
 
 ## 📈 Detailed Results
 
 ${presets.map(preset => {
-  const data = results.presets[preset];
-  if (!data.success) {
-    return `### ❌ ${preset}
+    const data = results.presets[preset];
+    if (!data.success) {
+      return `### ❌ ${preset}
 - Error: ${data.error}`;
-  }
-  
-  return `### ${data.success ? '✅' : '❌'} ${preset}
+    }
+
+    return `### ${data.success ? '✅' : '❌'} ${preset}
 - **Tests**: ${data.tests.passed} passed, ${data.tests.failed} failed
 - **Coverage**:
   - Lines: ${data.coverage.lines.toFixed(2)}%
@@ -128,7 +128,7 @@ ${presets.map(preset => {
   - Avg Time: ${data.performance.avgTime?.toFixed(2) || 'N/A'}ms
   - Memory: ${data.performance.memory || 'N/A'}
   - Status: ${data.performance.initialized ? 'Initialized' : 'Failed'}`;
-}).join('\n\n')}
+  }).join('\n\n')}
 
 ## 🎯 Recommendations
 

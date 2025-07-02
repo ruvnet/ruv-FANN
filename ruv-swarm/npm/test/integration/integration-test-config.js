@@ -13,16 +13,16 @@ const config = {
     testMode: true,
     logLevel: process.env.CI ? 'error' : 'info',
     timeout: {
-      suite: 60000,      // 60 seconds per suite
-      test: 30000,       // 30 seconds per test
-      hook: 5000,        // 5 seconds for hooks
-      lifecycle: 120000   // 2 minutes for full lifecycle tests
+      suite: 60000, // 60 seconds per suite
+      test: 30000, // 30 seconds per test
+      hook: 5000, // 5 seconds for hooks
+      lifecycle: 120000, // 2 minutes for full lifecycle tests
     },
     retries: {
-      flaky: 2,          // Retry flaky tests twice
-      critical: 1,       // Retry critical tests once
-      performance: 0     // No retries for performance tests
-    }
+      flaky: 2, // Retry flaky tests twice
+      critical: 1, // Retry critical tests once
+      performance: 0, // No retries for performance tests
+    },
   },
 
   // Database Configuration
@@ -30,7 +30,7 @@ const config = {
     testDb: ':memory:',
     persistentTestDb: path.join(__dirname, '../../data/integration-test.db'),
     backupOnFailure: true,
-    cleanupAfterTests: true
+    cleanupAfterTests: true,
   },
 
   // Swarm Configuration
@@ -40,53 +40,53 @@ const config = {
       small: 10,
       medium: 50,
       large: 100,
-      stress: 200
+      stress: 200,
     },
     strategies: ['parallel', 'sequential', 'adaptive', 'balanced'],
     performance: {
-      targetResponseTime: 100,    // 100ms
-      maxMemoryUsage: 512 * 1024 * 1024,  // 512MB
-      minThroughput: 10,          // 10 ops/second
-      maxCpuUsage: 80             // 80%
-    }
+      targetResponseTime: 100, // 100ms
+      maxMemoryUsage: 512 * 1024 * 1024, // 512MB
+      minThroughput: 10, // 10 ops/second
+      maxCpuUsage: 80, // 80%
+    },
   },
 
   // Neural Agent Configuration
   neural: {
     models: [
       'adaptive',
-      'pattern-recognition', 
+      'pattern-recognition',
       'optimization',
       'learning',
-      'research-optimized'
+      'research-optimized',
     ],
     training: {
       iterations: 10,
       batchSize: 5,
       learningRate: 0.01,
-      convergenceThreshold: 0.95
+      convergenceThreshold: 0.95,
     },
     performance: {
       minAccuracy: 0.8,
       maxTrainingTime: 5000,
-      memoryEfficiency: 0.9
-    }
+      memoryEfficiency: 0.9,
+    },
   },
 
   // Memory Management Configuration
   memory: {
     types: ['episodic', 'semantic', 'procedural', 'collective'],
     capacity: {
-      agent: 1000,      // 1000 memories per agent
-      swarm: 10000,     // 10000 collective memories
-      session: 5000     // 5000 session memories
+      agent: 1000, // 1000 memories per agent
+      swarm: 10000, // 10000 collective memories
+      session: 5000, // 5000 session memories
     },
     persistence: {
       enabled: true,
-      interval: 1000,   // Save every second
+      interval: 1000, // Save every second
       compression: true,
-      encryption: false  // Disabled for tests
-    }
+      encryption: false, // Disabled for tests
+    },
   },
 
   // MCP Integration Configuration
@@ -99,8 +99,8 @@ const config = {
       'agent-management',
       'task-orchestration',
       'metrics-collection',
-      'state-synchronization'
-    ]
+      'state-synchronization',
+    ],
   },
 
   // Hook System Configuration
@@ -115,8 +115,8 @@ const config = {
       'pre-task-orchestrate',
       'post-task-complete',
       'pre-system-shutdown',
-      'post-system-cleanup'
-    ]
+      'post-system-cleanup',
+    ],
   },
 
   // Load Testing Configuration
@@ -125,45 +125,45 @@ const config = {
       light: {
         agents: 10,
         tasks: 50,
-        duration: 30000,    // 30 seconds
-        concurrency: 5
+        duration: 30000, // 30 seconds
+        concurrency: 5,
       },
       medium: {
         agents: 50,
         tasks: 200,
-        duration: 60000,    // 60 seconds
-        concurrency: 20
+        duration: 60000, // 60 seconds
+        concurrency: 20,
       },
       heavy: {
         agents: 100,
         tasks: 500,
-        duration: 120000,   // 2 minutes
-        concurrency: 50
+        duration: 120000, // 2 minutes
+        concurrency: 50,
       },
       stress: {
         agents: 200,
         tasks: 1000,
-        duration: 300000,   // 5 minutes
-        concurrency: 100
-      }
+        duration: 300000, // 5 minutes
+        concurrency: 100,
+      },
     },
     thresholds: {
       responseTime: {
-        p50: 100,   // 50th percentile under 100ms
-        p95: 500,   // 95th percentile under 500ms
-        p99: 1000   // 99th percentile under 1000ms
+        p50: 100, // 50th percentile under 100ms
+        p95: 500, // 95th percentile under 500ms
+        p99: 1000, // 99th percentile under 1000ms
       },
       throughput: {
-        min: 10,    // At least 10 ops/second
+        min: 10, // At least 10 ops/second
         target: 50, // Target 50 ops/second
-        max: 100    // Maximum expected 100 ops/second
+        max: 100, // Maximum expected 100 ops/second
       },
       resources: {
-        memory: 1024 * 1024 * 1024,  // 1GB max
-        cpu: 80,                      // 80% max CPU
-        handles: 1000                 // Max 1000 handles
-      }
-    }
+        memory: 1024 * 1024 * 1024, // 1GB max
+        cpu: 80, // 80% max CPU
+        handles: 1000, // Max 1000 handles
+      },
+    },
   },
 
   // Resilience Testing Configuration
@@ -171,30 +171,30 @@ const config = {
     scenarios: {
       'component-failure': {
         type: 'random-agent-crash',
-        frequency: 0.1,     // 10% chance
-        recovery: 'auto'
+        frequency: 0.1, // 10% chance
+        recovery: 'auto',
       },
       'network-partition': {
         type: 'split-brain',
-        duration: 5000,     // 5 seconds
-        healing: 'auto'
+        duration: 5000, // 5 seconds
+        healing: 'auto',
       },
       'memory-pressure': {
         type: 'leak-simulation',
         intensity: 'medium',
-        duration: 10000     // 10 seconds
+        duration: 10000, // 10 seconds
       },
       'database-corruption': {
         type: 'random-corruption',
         severity: 'recoverable',
-        backup: true
-      }
+        backup: true,
+      },
     },
     recovery: {
-      maxTime: 5000,      // 5 seconds max recovery
+      maxTime: 5000, // 5 seconds max recovery
       retries: 3,
-      backoff: 'exponential'
-    }
+      backoff: 'exponential',
+    },
   },
 
   // Performance Monitoring Configuration
@@ -206,54 +206,54 @@ const config = {
       'cpu-usage',
       'error-rate',
       'agent-utilization',
-      'task-completion-rate'
+      'task-completion-rate',
     ],
     sampling: {
-      interval: 100,      // Sample every 100ms
-      window: 10000,      // 10 second windows
-      retention: 300000   // Keep 5 minutes of data
+      interval: 100, // Sample every 100ms
+      window: 10000, // 10 second windows
+      retention: 300000, // Keep 5 minutes of data
     },
     alerts: {
-      responseTime: 1000,     // Alert if > 1 second
-      errorRate: 0.05,        // Alert if > 5% errors
-      memoryUsage: 0.9,       // Alert if > 90% memory
-      cpuUsage: 0.9           // Alert if > 90% CPU
-    }
+      responseTime: 1000, // Alert if > 1 second
+      errorRate: 0.05, // Alert if > 5% errors
+      memoryUsage: 0.9, // Alert if > 90% memory
+      cpuUsage: 0.9, // Alert if > 90% CPU
+    },
   },
 
   // CI/CD Configuration
   ci: {
     parallel: true,
     coverage: {
-      threshold: 80,      // 80% coverage required
+      threshold: 80, // 80% coverage required
       reporters: ['text', 'html', 'json'],
-      exclude: ['test/**', 'examples/**']
+      exclude: ['test/**', 'examples/**'],
     },
     reporting: {
       formats: ['junit', 'json', 'tap'],
       artifacts: ['screenshots', 'logs', 'metrics'],
-      retention: 30       // Keep 30 days of results
-    }
+      retention: 30, // Keep 30 days of results
+    },
   },
 
   // Platform-Specific Configuration
   platform: {
     linux: {
       maxAgents: 200,
-      maxMemory: 2048 * 1024 * 1024,  // 2GB
-      scheduler: 'cfs'
+      maxMemory: 2048 * 1024 * 1024, // 2GB
+      scheduler: 'cfs',
     },
     darwin: {
       maxAgents: 100,
-      maxMemory: 1024 * 1024 * 1024,  // 1GB
-      scheduler: 'default'
+      maxMemory: 1024 * 1024 * 1024, // 1GB
+      scheduler: 'default',
     },
     win32: {
       maxAgents: 50,
-      maxMemory: 512 * 1024 * 1024,   // 512MB
-      scheduler: 'default'
-    }
-  }
+      maxMemory: 512 * 1024 * 1024, // 512MB
+      scheduler: 'default',
+    },
+  },
 };
 
 // Apply platform-specific overrides
@@ -261,16 +261,16 @@ const platformConfig = config.platform[os.platform()];
 if (platformConfig) {
   config.swarm.maxAgents.stress = Math.min(config.swarm.maxAgents.stress, platformConfig.maxAgents);
   config.swarm.performance.maxMemoryUsage = Math.min(
-    config.swarm.performance.maxMemoryUsage, 
-    platformConfig.maxMemory
+    config.swarm.performance.maxMemoryUsage,
+    platformConfig.maxMemory,
   );
 }
 
 // Apply CI overrides
 if (process.env.CI) {
-  config.environment.timeout.suite *= 2;    // Double timeouts in CI
+  config.environment.timeout.suite *= 2; // Double timeouts in CI
   config.environment.timeout.test *= 2;
-  config.environment.retries.flaky = 0;     // No retries in CI
+  config.environment.retries.flaky = 0; // No retries in CI
   config.swarm.maxAgents.stress = Math.min(config.swarm.maxAgents.stress, 100); // Limit agents in CI
   config.monitoring.sampling.interval = 1000; // Less frequent sampling in CI
 }
@@ -294,7 +294,7 @@ config.getResourceLimits = () => {
   return {
     maxAgents: platformLimits.maxAgents || config.swarm.maxAgents.large,
     maxMemory: platformLimits.maxMemory || config.swarm.performance.maxMemoryUsage,
-    maxCpu: config.swarm.performance.maxCpuUsage
+    maxCpu: config.swarm.performance.maxCpuUsage,
   };
 };
 

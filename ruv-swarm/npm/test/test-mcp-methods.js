@@ -5,8 +5,8 @@
  * Tests: agent_metrics, swarm_monitor, neural_train, task_results
  */
 
-import { EnhancedMCPTools  } from '../src/mcp-tools-enhanced';
-import { RuvSwarm  } from '../src/index-enhanced';
+import { EnhancedMCPTools } from '../src/mcp-tools-enhanced';
+import { RuvSwarm } from '../src/index-enhanced';
 
 async function runTests() {
   console.log('🧪 Testing New MCP Tool Methods\n');
