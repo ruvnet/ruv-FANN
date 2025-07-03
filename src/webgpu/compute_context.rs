@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::webgpu::{
-    backend::{BackendSelector, BackendType},
+    backend::{BackendSelector, BackendType, ComputeBackend},
     error::{ComputeError, ComputeResult},
 };
 use crate::{ActivationFunction, Layer, Network};
@@ -313,10 +313,10 @@ impl<T: Float + Send + Sync + std::fmt::Debug + 'static> ComputeContext<T> {
     /// GPU-accelerated layer computation
     async fn compute_layer_gpu(
         &self,
-        _layer: &Layer<T>,
-        _weights: &[T],
-        _inputs: &[T],
-        _dims: MatrixDims,
+        layer: &Layer<T>,
+        weights: &[T],
+        inputs: &[T],
+        dims: MatrixDims,
     ) -> ComputeResult<Vec<T>>
     where
         T: Clone + num_traits::ToPrimitive + 'static,
