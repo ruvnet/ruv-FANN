@@ -46,7 +46,7 @@ uuid = { version = "1.11", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 
 # Internal dependencies
-ruv-swarm-core = "0.2.0"
+ruv-swarm-core = { path = "../ruv-swarm-core", version = "0.1.5" }
 
 [dev-dependencies]
 criterion = { workspace = true }

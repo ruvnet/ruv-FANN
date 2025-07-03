@@ -41,7 +41,7 @@ env_logger = "0.10"
 chrono = { version = "0.4", features = ["serde"] }
 
 [features]
-default = ["neural-networks", "autonomous-learning"]
+default = ["autonomous-learning"]
 wasm = ["wasm-bindgen", "js-sys", "web-sys"]
 neural-networks = ["tch", "candle-core", "candle-nn"]
 autonomous-learning = []

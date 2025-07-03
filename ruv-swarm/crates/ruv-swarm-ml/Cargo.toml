@@ -9,7 +9,7 @@ rust-version.workspace = true
 description = "Machine learning integration for RUV Swarm"
 
 [dependencies]
-ruv-swarm-core = "0.2.0"
+ruv-swarm-core = { path = "../ruv-swarm-core", version = "0.1.5" }
 
 # Core dependencies
 serde = { workspace = true }

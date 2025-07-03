@@ -9,4 +9,4 @@ rust-version.workspace = true
 description = "Specialized AI agents for RUV Swarm"
 
 [dependencies]
-ruv-swarm-core = "0.2.0"
+ruv-swarm-core = { path = "../ruv-swarm-core", version = "0.1.5" }
