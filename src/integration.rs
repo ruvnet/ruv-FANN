@@ -6,15 +6,15 @@
 
 use num_traits::Float;
 use rand::rngs::StdRng;
-use rand::{Rng, SeedableRng};
+use rand::SeedableRng;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 use thiserror::Error;
 
 use crate::{CascadeConfig, CascadeTrainer, Network, NetworkBuilder, TrainingData};
 
-#[cfg(feature = "parallel")]
-use rayon::prelude::*;
+// #[cfg(feature = "parallel")]
+// use rayon::prelude::*;
 
 #[cfg(feature = "logging")]
 use log::{debug, error, info, warn};
@@ -128,7 +128,7 @@ impl<T: Float + Send + Default> IntegrationTestSuite<T> {
     }
 
     /// Load baseline metrics for performance comparison
-    pub fn load_baseline_metrics(&mut self, path: &str) -> Result<(), IntegrationError> {
+    pub fn load_baseline_metrics(&mut self, _path: &str) -> Result<(), IntegrationError> {
         // In a real implementation, this would load from file
         // For now, we'll create some dummy baseline metrics
         let mut baseline = HashMap::new();
@@ -333,7 +333,7 @@ impl<T: Float + Send + Default> IntegrationTestSuite<T> {
 
         for (i, network) in self.test_networks.iter().enumerate() {
             let test_name = format!("basic_network_{i}");
-            let start_time = Instant::now();
+            let _start_time = Instant::now();
             let mut network_clone = network.clone();
 
             match self.run_basic_network_test(&mut network_clone) {
@@ -443,7 +443,7 @@ impl<T: Float + Send + Default> IntegrationTestSuite<T> {
     /// Run training integration test
     fn run_training_integration_test(
         &self,
-        network: Network<T>,
+        _network: Network<T>,
         data: TrainingData<T>,
     ) -> Result<BenchmarkResult, IntegrationError> {
         let start_time = Instant::now();
@@ -451,7 +451,7 @@ impl<T: Float + Send + Default> IntegrationTestSuite<T> {
         // Test different training algorithms
         use crate::training::IncrementalBackprop;
 
-        let trainer = IncrementalBackprop::new(T::from(0.1).unwrap());
+        let _trainer = IncrementalBackprop::new(T::from(0.1).unwrap());
 
         // Train for a few epochs
         let total_error = T::zero();

@@ -2,9 +2,6 @@
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::ActivationFunction;
-    use approx::assert_relative_eq;
 
     #[test]
     fn test_backend_selector_creation() {

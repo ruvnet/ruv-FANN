@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::webgpu::{
-    backend::{BackendSelector, BackendType, ComputeBackend},
+    backend::{BackendSelector, BackendType},
     error::{ComputeError, ComputeResult},
 };
 use crate::{ActivationFunction, Layer, Network};
@@ -313,10 +313,10 @@ impl<T: Float + Send + Sync + std::fmt::Debug + 'static> ComputeContext<T> {
     /// GPU-accelerated layer computation
     async fn compute_layer_gpu(
         &self,
-        layer: &Layer<T>,
-        weights: &[T],
-        inputs: &[T],
-        dims: MatrixDims,
+        _layer: &Layer<T>,
+        _weights: &[T],
+        _inputs: &[T],
+        _dims: MatrixDims,
     ) -> ComputeResult<Vec<T>>
     where
         T: Clone + num_traits::ToPrimitive + 'static,
@@ -657,7 +657,7 @@ impl Default for DaaCoordinationMetrics {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{ActivationFunction, NetworkBuilder};
+    use crate::NetworkBuilder;
 
     #[tokio::test]
     async fn test_compute_context_creation() {

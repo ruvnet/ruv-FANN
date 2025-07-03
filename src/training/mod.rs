@@ -13,8 +13,8 @@ use num_traits::Float;
 use std::collections::HashMap;
 use thiserror::Error;
 
-#[cfg(feature = "parallel")]
-use rayon::prelude::*;
+// #[cfg(feature = "parallel")]
+// use rayon::prelude::*;
 
 #[derive(Debug, Clone)]
 pub struct TrainingData<T: Float> {
@@ -319,7 +319,7 @@ pub(crate) mod helpers {
 
         for layer_idx in 1..network.layers.len() {
             let current_layer = &network.layers[layer_idx];
-            let prev_layer_size = network.layers[layer_idx - 1].size(); // Include bias neurons
+            let _prev_layer_size = network.layers[layer_idx - 1].size(); // Include bias neurons
 
             let mut layer_weights = Vec::new();
             let mut layer_biases = Vec::new();

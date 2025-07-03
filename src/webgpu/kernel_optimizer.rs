@@ -299,7 +299,11 @@ impl KernelOptimizer {
             [64, 1, 1] // Small problems - avoid underutilization
         };
 
-        let num_workgroups = [((rows as u32) + workgroup_size[0] - 1) / workgroup_size[0], 1, 1];
+        let num_workgroups = [
+            ((rows as u32 + workgroup_size[0] - 1) / workgroup_size[0]),
+            1,
+            1,
+        ];
 
         Ok(KernelConfig {
             workgroup_size,
@@ -329,8 +333,8 @@ impl KernelOptimizer {
         };
 
         let num_workgroups = [
-            ((rows as u32) + workgroup_size[0] - 1) / workgroup_size[0],
-            ((batch_size as u32) + workgroup_size[1] - 1) / workgroup_size[1],
+            ((rows as u32 + workgroup_size[0] - 1) / workgroup_size[0]),
+            ((batch_size as u32 + workgroup_size[1] - 1) / workgroup_size[1]),
             1,
         ];
 
@@ -358,7 +362,11 @@ impl KernelOptimizer {
             [64, 1, 1]
         };
 
-        let num_workgroups = [((vector_size as u32) + workgroup_size[0] - 1) / workgroup_size[0], 1, 1];
+        let num_workgroups = [
+            ((vector_size as u32 + workgroup_size[0] - 1) / workgroup_size[0]),
+            1,
+            1,
+        ];
 
         Ok(KernelConfig {
             workgroup_size,
@@ -377,7 +385,8 @@ impl KernelOptimizer {
         workgroup_config: [u32; 3],
     ) -> f32 {
         let threads_per_workgroup = workgroup_config[0] * workgroup_config[1] * workgroup_config[2];
-        let num_workgroups = ((data_size as u32) + threads_per_workgroup - 1) / threads_per_workgroup;
+        let num_workgroups =
+            (data_size as u32 + threads_per_workgroup - 1) / threads_per_workgroup;
 
         // Calculate occupancy
         let max_workgroups_per_sm =
