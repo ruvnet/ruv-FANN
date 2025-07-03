@@ -1,6 +1,6 @@
 [package]
 name = "ruv-fann"
-version = "0.2.0"
+version = "0.1.5"
 edition = "2021"
 authors = ["rUv Contributors"]
 description = "A pure Rust implementation of the Fast Artificial Neural Network (FANN) library"
