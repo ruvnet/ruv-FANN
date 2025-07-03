@@ -547,7 +547,7 @@ pub trait AllocationAlgorithm: std::fmt::Debug {
         &self,
         request: &AllocationRequest,
         available_pools: &[ResourcePool],
-        _current_allocations: &HashMap<AllocationId, ResourceAllocation>,
+        current_allocations: &HashMap<AllocationId, ResourceAllocation>,
     ) -> Result<AllocationResult, AllocationError>;
 
     fn algorithm_type(&self) -> AlgorithmType;
@@ -558,7 +558,7 @@ pub trait AllocationAlgorithm: std::fmt::Debug {
         &self,
         request: &AllocationRequest,
         available_pools: &[ResourcePool],
-        _current_allocations: &HashMap<AllocationId, ResourceAllocation>,
+        current_allocations: &HashMap<AllocationId, ResourceAllocation>,
     ) -> Result<AllocationResult, AllocationError>;
 }
 
@@ -1290,7 +1290,7 @@ impl AllocationEngine {
         &mut self,
         request: &AllocationRequest,
         available_pools: &[ResourcePool],
-        _current_allocations: &HashMap<AllocationId, ResourceAllocation>,
+        current_allocations: &HashMap<AllocationId, ResourceAllocation>,
     ) -> Result<AllocationResult, AllocationError> {
         // Try primary algorithm first
         if let Some(algorithm) = self.algorithms.get(&self.active_algorithm) {
@@ -1884,7 +1884,7 @@ fn generate_allocation_id() -> AllocationId {
 fn calculate_ml_score(
     pool: &ResourcePool,
     request: &AllocationRequest,
-    _current_allocations: &HashMap<AllocationId, ResourceAllocation>,
+    current_allocations: &HashMap<AllocationId, ResourceAllocation>,
 ) -> f64 {
     // Simplified ML scoring function
     let capacity_match = calculate_capacity_match(pool, request);
@@ -2034,7 +2034,7 @@ impl AllocationAlgorithm for BestFitAlgorithm {
         &'a self,
         request: &'a AllocationRequest,
         available_pools: &'a [ResourcePool],
-        _current_allocations: &'a HashMap<AllocationId, ResourceAllocation>,
+        current_allocations: &'a HashMap<AllocationId, ResourceAllocation>,
     ) -> std::pin::Pin<
         Box<
             dyn std::future::Future<Output = Result<AllocationResult, AllocationError>> + Send + 'a,
@@ -2094,7 +2094,7 @@ impl AllocationAlgorithm for BestFitAlgorithm {
         &self,
         request: &AllocationRequest,
         available_pools: &[ResourcePool],
-        _current_allocations: &HashMap<AllocationId, ResourceAllocation>,
+        current_allocations: &HashMap<AllocationId, ResourceAllocation>,
     ) -> Result<AllocationResult, AllocationError> {
         // Synchronous version of allocation logic
         let best_pool = available_pools
@@ -2153,13 +2153,13 @@ impl AllocationAlgorithm for FirstFitAlgorithm {
         &'a self,
         request: &'a AllocationRequest,
         available_pools: &'a [ResourcePool],
-        _current_allocations: &'a HashMap<AllocationId, ResourceAllocation>,
+        current_allocations: &'a HashMap<AllocationId, ResourceAllocation>,
     ) -> std::pin::Pin<
         Box<
             dyn std::future::Future<Output = Result<AllocationResult, AllocationError>> + Send + 'a,
         >,
     > {
-        Box::pin(async move { self.allocate_sync(request, available_pools, _current_allocations) })
+        Box::pin(async move { self.allocate_sync(request, available_pools, current_allocations) })
     }
 
     #[cfg(not(feature = "gpu"))]
@@ -2167,9 +2167,9 @@ impl AllocationAlgorithm for FirstFitAlgorithm {
         &self,
         request: &AllocationRequest,
         available_pools: &[ResourcePool],
-        _current_allocations: &HashMap<AllocationId, ResourceAllocation>,
+        current_allocations: &HashMap<AllocationId, ResourceAllocation>,
     ) -> Result<AllocationResult, AllocationError> {
-        self.allocate_internal(request, available_pools, _current_allocations)
+        self.allocate_internal(request, available_pools, current_allocations)
     }
 
     fn algorithm_type(&self) -> AlgorithmType {
@@ -2184,7 +2184,7 @@ impl AllocationAlgorithm for FirstFitAlgorithm {
         &self,
         request: &AllocationRequest,
         available_pools: &[ResourcePool],
-        _current_allocations: &HashMap<AllocationId, ResourceAllocation>,
+        current_allocations: &HashMap<AllocationId, ResourceAllocation>,
     ) -> Result<AllocationResult, AllocationError> {
         self.allocate_internal(request, available_pools, current_allocations)
     }
@@ -2196,7 +2196,7 @@ impl FirstFitAlgorithm {
         &self,
         request: &AllocationRequest,
         available_pools: &[ResourcePool],
-        _current_allocations: &HashMap<AllocationId, ResourceAllocation>,
+        current_allocations: &HashMap<AllocationId, ResourceAllocation>,
     ) -> Result<AllocationResult, AllocationError> {
         // First pool that can satisfy the request
         let pool = available_pools
@@ -2275,7 +2275,7 @@ impl AllocationAlgorithm for MLAllocationAlgorithm {
         &self,
         request: &AllocationRequest,
         available_pools: &[ResourcePool],
-        _current_allocations: &HashMap<AllocationId, ResourceAllocation>,
+        current_allocations: &HashMap<AllocationId, ResourceAllocation>,
     ) -> Result<AllocationResult, AllocationError> {
         self.allocate_sync(request, available_pools, current_allocations)
     }
@@ -2284,7 +2284,7 @@ impl AllocationAlgorithm for MLAllocationAlgorithm {
         &self,
         request: &AllocationRequest,
         available_pools: &[ResourcePool],
-        _current_allocations: &HashMap<AllocationId, ResourceAllocation>,
+        current_allocations: &HashMap<AllocationId, ResourceAllocation>,
     ) -> Result<AllocationResult, AllocationError> {
         // ML-based allocation using learned patterns
         // This would use historical data to make optimal decisions

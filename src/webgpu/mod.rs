@@ -37,10 +37,6 @@ pub mod device;
 // Autonomous GPU resource management system
 #[cfg(any(feature = "gpu", feature = "webgpu"))]
 pub mod autonomous_gpu_resource_manager;
-
-// Stub implementations for missing types
-pub mod autonomous_gpu_stubs;
-
 // WASM GPU bridge for browser deployment
 #[cfg(target_arch = "wasm32")]
 pub mod wasm_gpu_bridge;
@@ -124,15 +120,6 @@ pub use autonomous_gpu_resource_manager::{
     TradeProposal,
     TradeResult,
     UsagePredictor,
-    UtilizationSummary,
-};
-
-// Fallback exports for missing types when autonomous GPU manager is not available
-#[cfg(not(any(feature = "gpu", feature = "webgpu")))]
-pub use autonomous_gpu_stubs::{
-    AllocationError, AllocationRequest, AllocationResult, ConflictError, LatencyRequirements,
-    OptimizationError, PerformanceTier, Priority, QualityRequirements, ResourceCapacity,
-    ResourcePolicies, ResourceRequirements, ResourceType, TradeError, TradeProposal, TradeResult,
     UtilizationSummary,
 };
 

@@ -163,6 +163,61 @@ impl<T: Float + std::fmt::Debug + Send + Sync + 'static> BackendSelector<T> {
         }
     }
 
+    /// Get available backend types
+    pub fn get_available_backends(&self) -> Vec<BackendType> {
+        self.backends.iter().map(|b| b.backend_type()).collect()
+    }
+
+    /// Get current active backend type
+    pub fn get_current_backend(&self) -> BackendType {
+        // Return the first available backend (highest priority)
+        if !self.backends.is_empty() {
+            self.backends[0].backend_type()
+        } else {
+            BackendType::Cpu // Fallback
+        }
+    }
+
+    /// Set the active backend
+    pub fn set_backend(&mut self, backend_type: BackendType) {
+        // Find the backend and move it to the front if available
+        if let Some(pos) = self
+            .backends
+            .iter()
+            .position(|b| b.backend_type() == backend_type)
+        {
+            // Move the selected backend to the front
+            let backend = self.backends.remove(pos);
+            self.backends.insert(0, backend);
+        }
+        // If backend not available, it will gracefully fall back to available ones
+    }
+
+    /// Select optimal backend for given problem size
+    pub fn select_optimal_backend(&mut self, rows: usize, cols: usize) -> BackendType {
+        let matrix_size = if rows > 1000 || cols > 1000 {
+            MatrixSize::Large
+        } else if rows > 100 || cols > 100 {
+            MatrixSize::Medium
+        } else {
+            MatrixSize::Small
+        };
+
+        let profile = ComputeProfile {
+            matrix_size,
+            batch_size: 1,
+            operation_type: OperationType::Inference,
+        };
+
+        // Use existing selection logic
+        if let Some(backend) = self.select_backend(&profile) {
+            backend.backend_type()
+        } else {
+            // Fallback to first available backend
+            self.get_current_backend()
+        }
+    }
+
     pub fn select_backend(&self, profile: &ComputeProfile) -> Option<&dyn ComputeBackend<T>> {
         // Check performance cache first
         if let Some(backend_type) = self.performance_cache.get(profile) {
