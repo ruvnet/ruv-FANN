@@ -38,40 +38,48 @@ mod e2e_gpu_tests {
         println!("CPU execution time: {:?}", cpu_time);
         println!("CPU outputs: {:?}", cpu_outputs);
 
-        // Test backend selector and capabilities 
-        use ruv_fann::webgpu::{BackendSelector, get_memory_capabilities};
-        
+        // Test backend selector and capabilities
+        use ruv_fann::webgpu::{get_memory_capabilities, BackendSelector};
+
         let memory_caps = get_memory_capabilities();
         println!("Memory capabilities: {}", memory_caps.summary());
-        
+
         // Test backend selection
         let selector = BackendSelector::<f32>::new();
         let available_backends = selector.get_available_backends();
         println!("Available backends: {:?}", available_backends);
-        
+
         let capabilities = selector.capabilities();
         for (i, cap) in capabilities.iter().enumerate() {
-            println!("Backend {}: max_buffer_size={}, max_compute_units={}", 
-                    i, cap.max_buffer_size, cap.max_compute_units);
+            println!(
+                "Backend {}: max_buffer_size={}, max_compute_units={}",
+                i, cap.max_buffer_size, cap.max_compute_units
+            );
         }
-        
+
         // Test optimal backend selection for different problem sizes
         let mut selector = BackendSelector::<f32>::new();
-        
+
         let small_backend = selector.select_optimal_backend(50, 50);
         let medium_backend = selector.select_optimal_backend(500, 500);
         let large_backend = selector.select_optimal_backend(5000, 5000);
-        
+
         println!("Small problem (50x50) -> Backend: {:?}", small_backend);
         println!("Medium problem (500x500) -> Backend: {:?}", medium_backend);
         println!("Large problem (5000x5000) -> Backend: {:?}", large_backend);
-        
+
         // Verify that we have GPU testing infrastructure available
-        assert!(!available_backends.is_empty(), "Should have at least one backend available");
-        assert!(memory_caps.buffer_pooling, "Buffer pooling should be available");
-        
+        assert!(
+            !available_backends.is_empty(),
+            "Should have at least one backend available"
+        );
+        assert!(
+            memory_caps.buffer_pooling,
+            "Buffer pooling should be available"
+        );
+
         println!("✅ GPU infrastructure validation completed successfully");
-        
+
         // Compare regular network execution with backend-accelerated execution
         let start_enhanced = Instant::now();
         let mut enhanced_outputs = Vec::new();
@@ -83,9 +91,9 @@ mod e2e_gpu_tests {
                 1 => selector.select_optimal_backend(input.len() * 10, 10),
                 _ => selector.select_optimal_backend(input.len() * 100, 100),
             };
-            
+
             println!("Input {}: Using backend {:?}", i, backend_type);
-            
+
             // For now, use regular network execution as the enhanced execution
             // Future implementation would use the selected backend
             let output = network.run(input);
@@ -98,8 +106,14 @@ mod e2e_gpu_tests {
         println!("Enhanced outputs: {:?}", enhanced_outputs);
 
         // Compare results (should be identical since we're using same implementation)
-        for (i, (cpu_out, enhanced_out)) in cpu_outputs.iter().zip(enhanced_outputs.iter()).enumerate() {
-            assert_eq!(cpu_out.len(), enhanced_out.len(), "Output lengths should match");
+        for (i, (cpu_out, enhanced_out)) in
+            cpu_outputs.iter().zip(enhanced_outputs.iter()).enumerate()
+        {
+            assert_eq!(
+                cpu_out.len(),
+                enhanced_out.len(),
+                "Output lengths should match"
+            );
             for (j, (c, e)) in cpu_out.iter().zip(enhanced_out.iter()).enumerate() {
                 let diff = (c - e).abs();
                 assert!(
