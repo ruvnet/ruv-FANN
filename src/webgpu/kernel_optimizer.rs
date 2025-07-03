@@ -385,8 +385,7 @@ impl KernelOptimizer {
         workgroup_config: [u32; 3],
     ) -> f32 {
         let threads_per_workgroup = workgroup_config[0] * workgroup_config[1] * workgroup_config[2];
-        let num_workgroups =
-            (data_size as u32 + threads_per_workgroup - 1) / threads_per_workgroup;
+        let num_workgroups = (data_size as u32 + threads_per_workgroup - 1) / threads_per_workgroup;
 
         // Calculate occupancy
         let max_workgroups_per_sm =
