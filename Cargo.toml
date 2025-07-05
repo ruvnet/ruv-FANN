@@ -48,7 +48,7 @@ exclude = [
 
 [workspace]
 # This makes this package a standalone workspace, not part of the parent workspace
-exclude = ["neuro-divergent"]
+exclude = ["neuro-divergent", "examples/ran/cell-sleep-forecaster"]
 
 [dependencies]
 # Core dependencies
