@@ -54,6 +54,8 @@
 extern crate alloc;
 
 pub mod agent;
+#[cfg(feature = "std")]
+pub mod communication;
 pub mod error;
 pub mod swarm;
 pub mod task;
@@ -62,10 +64,16 @@ pub mod topology;
 // Re-export commonly used types
 pub use agent::{
     Agent, AgentMessage, AgentMetadata, AgentMetrics, BoxedAgent, CognitivePattern, ErasedAgent,
-    HealthStatus, MessageType, ResourceRequirements,
+    HealthStatus, MessageType, MessageUrgency, ResourceRequirements,
 };
 
 pub use error::{Result, SwarmError};
+
+#[cfg(feature = "std")]
+pub use communication::{
+    CommunicationChannel, CommunicationStats, InProcessCommunicationBus, KnowledgeEntry,
+    SwarmCommunicationManager,
+};
 
 #[cfg(feature = "std")]
 pub use swarm::{Swarm, SwarmConfig, SwarmMetrics};
@@ -78,7 +86,9 @@ pub use task::{
 
 /// Prelude module for convenient imports
 pub mod prelude {
-    pub use crate::agent::{Agent, CognitivePattern};
+    pub use crate::agent::{Agent, AgentMessage, CognitivePattern, MessageType, MessageUrgency};
+    #[cfg(feature = "std")]
+    pub use crate::communication::{SwarmCommunicationManager, KnowledgeEntry, CommunicationStats};
     pub use crate::error::Result;
     #[cfg(feature = "std")]
     pub use crate::swarm::{Swarm, SwarmConfig};

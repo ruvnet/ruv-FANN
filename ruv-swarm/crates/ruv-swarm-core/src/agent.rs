@@ -329,6 +329,10 @@ pub struct DynamicAgent {
     metadata: AgentMetadata,
     status: AgentStatus,
     processor: Box<dyn AgentProcessor>,
+    #[cfg(feature = "std")]
+    message_receiver: Option<tokio::sync::mpsc::Receiver<AgentMessage<serde_json::Value>>>,
+    #[cfg(feature = "std")]
+    communication_manager: Option<std::sync::Arc<crate::communication::SwarmCommunicationManager>>,
 }
 
 impl DynamicAgent {
@@ -340,6 +344,10 @@ impl DynamicAgent {
             metadata: AgentMetadata::default(),
             status: AgentStatus::Running,
             processor: Box::new(DefaultProcessor),
+            #[cfg(feature = "std")]
+            message_receiver: None,
+            #[cfg(feature = "std")]
+            communication_manager: None,
         }
     }
 
@@ -386,6 +394,69 @@ impl DynamicAgent {
         self.status = AgentStatus::Offline;
         Ok(())
     }
+
+    /// Set the message receiver for this agent
+    #[cfg(feature = "std")]
+    pub fn set_message_receiver(&mut self, receiver: tokio::sync::mpsc::Receiver<AgentMessage<serde_json::Value>>) {
+        self.message_receiver = Some(receiver);
+    }
+
+    /// Set the communication manager for this agent
+    #[cfg(feature = "std")]
+    pub fn set_communication_manager(&mut self, manager: std::sync::Arc<crate::communication::SwarmCommunicationManager>) {
+        self.communication_manager = Some(manager);
+    }
+
+    /// Receive a message (non-blocking)
+    #[cfg(feature = "std")]
+    pub fn try_receive_message(&mut self) -> Option<AgentMessage<serde_json::Value>> {
+        if let Some(receiver) = &mut self.message_receiver {
+            receiver.try_recv().ok()
+        } else {
+            None
+        }
+    }
+
+    /// Receive a message (blocking)
+    #[cfg(feature = "std")]
+    pub async fn receive_message(&mut self) -> Option<AgentMessage<serde_json::Value>> {
+        if let Some(receiver) = &mut self.message_receiver {
+            receiver.recv().await
+        } else {
+            None
+        }
+    }
+
+    /// Send a message to another agent
+    #[cfg(feature = "std")]
+    pub async fn send_message<T: serde::Serialize + Send + Sync + 'static>(
+        &self,
+        message: AgentMessage<T>,
+    ) -> crate::error::Result<()> {
+        if let Some(manager) = &self.communication_manager {
+            manager.send_message(message).await
+        } else {
+            Err(crate::error::SwarmError::Custom("Communication manager not set for agent".to_string()))
+        }
+    }
+
+    /// Update knowledge in the shared knowledge base
+    #[cfg(feature = "std")]
+    pub fn update_knowledge(&self, key: String, value: serde_json::Value) {
+        if let Some(manager) = &self.communication_manager {
+            manager.update_knowledge(key, value);
+        }
+    }
+
+    /// Query knowledge from the shared knowledge base
+    #[cfg(feature = "std")]
+    pub fn query_knowledge(&self, query: &str) -> Vec<(String, crate::communication::KnowledgeEntry)> {
+        if let Some(manager) = &self.communication_manager {
+            manager.query_knowledge(query)
+        } else {
+            Vec::new()
+        }
+    }
 }
 
 /// Default processor for dynamic agents
@@ -424,6 +495,15 @@ pub struct AgentMessage<T> {
 
     /// Correlation ID for request/response
     pub correlation_id: Option<String>,
+
+    /// Semantic type of the information being communicated (e.g., "task_status", "intermediate_result", "environmental_data")
+    pub info_type: Option<String>,
+
+    /// Contextual metadata relevant to the message (e.g., task_id, sub_task_id, data_schema_version)
+    pub context: Option<serde_json::Value>,
+
+    /// Urgency or priority of the message
+    pub urgency: Option<MessageUrgency>,
 }
 
 /// Types of agent messages
@@ -439,6 +519,27 @@ pub enum MessageType {
     Coordination,
     /// Error report
     Error,
+    /// Agent requests specific information
+    InformationRequest,
+    /// Agent shares information proactively
+    InformationShare,
+    /// Agent queries a knowledge base
+    Query,
+    /// Response to a query or request
+    Response,
+}
+
+/// Urgency levels for messages
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MessageUrgency {
+    /// Low priority message
+    Low,
+    /// Medium priority message
+    Medium,
+    /// High priority message
+    High,
+    /// Critical priority message requiring immediate attention
+    Critical,
 }
 
 #[cfg(test)]

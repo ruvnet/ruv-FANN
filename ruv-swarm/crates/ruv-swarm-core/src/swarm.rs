@@ -1,9 +1,21 @@
 //! Swarm orchestrator implementation
 
-use crate::agent::{AgentId, AgentStatus, DynamicAgent};
+use crate::agent::{AgentId, AgentStatus, DynamicAgent, AgentMessage};
 use crate::error::{Result, SwarmError};
 use crate::task::{DistributionStrategy, Task, TaskId};
 use crate::topology::{Topology, TopologyType};
+
+#[cfg(feature = "std")]
+use crate::communication::{SwarmCommunicationManager, CommunicationStats};
+
+#[cfg(feature = "std")]
+use std::sync::Arc;
+
+#[cfg(feature = "std")]
+use tokio::sync::mpsc;
+
+#[cfg(feature = "std")]
+use serde_json::Value;
 
 #[cfg(not(feature = "std"))]
 use alloc::{
@@ -51,6 +63,8 @@ pub struct Swarm {
     task_queue: Vec<Task>,
     task_assignments: HashMap<TaskId, AgentId>,
     agent_loads: HashMap<AgentId, usize>,
+    #[cfg(feature = "std")]
+    communication_manager: Arc<SwarmCommunicationManager>,
 }
 
 impl Swarm {
@@ -63,10 +77,61 @@ impl Swarm {
             task_queue: Vec::new(),
             task_assignments: HashMap::new(),
             agent_loads: HashMap::new(),
+            #[cfg(feature = "std")]
+            communication_manager: Arc::new(SwarmCommunicationManager::new()),
         }
     }
 
     /// Register an agent with the swarm
+    #[cfg(feature = "std")]
+    pub fn register_agent(&mut self, mut agent: DynamicAgent) -> Result<()> {
+        if self.agents.len() >= self.config.max_agents {
+            return Err(SwarmError::ResourceExhausted {
+                resource: "agent slots".into(),
+            });
+        }
+
+        let agent_id = agent.id().to_string();
+        
+        // Set up communication channel for the agent
+        let (tx, rx) = mpsc::channel::<AgentMessage<Value>>(100);
+        self.communication_manager.register_agent_mailbox(agent_id.clone(), tx);
+        
+        // Configure agent for communication
+        agent.set_message_receiver(rx);
+        agent.set_communication_manager(Arc::clone(&self.communication_manager));
+        
+        self.agents.insert(agent_id.clone(), agent);
+        self.agent_loads.insert(agent_id.clone(), 0);
+
+        // Update topology based on type
+        match self.config.topology_type {
+            TopologyType::Mesh => {
+                // Connect to all existing agents
+                for existing_id in self.agents.keys() {
+                    if existing_id != &agent_id {
+                        self.topology
+                            .add_connection(agent_id.clone(), existing_id.clone());
+                    }
+                }
+            }
+            TopologyType::Star => {
+                // Connect to the first agent (coordinator)
+                if let Some(coordinator) = self.agents.keys().next() {
+                    if coordinator != &agent_id {
+                        self.topology
+                            .add_connection(agent_id.clone(), coordinator.clone());
+                    }
+                }
+            }
+            _ => {}
+        }
+
+        Ok(())
+    }
+
+    /// Register an agent with the swarm (no-std version)
+    #[cfg(not(feature = "std"))]
     pub fn register_agent(&mut self, agent: DynamicAgent) -> Result<()> {
         if self.agents.len() >= self.config.max_agents {
             return Err(SwarmError::ResourceExhausted {
@@ -256,6 +321,39 @@ impl Swarm {
         Ok(())
     }
 
+    /// Get the communication manager for direct access
+    #[cfg(feature = "std")]
+    pub fn get_communication_manager(&self) -> Arc<SwarmCommunicationManager> {
+        Arc::clone(&self.communication_manager)
+    }
+
+    /// Send a message through the swarm communication system
+    #[cfg(feature = "std")]
+    pub async fn send_message<T: serde::Serialize + Send + Sync + 'static>(
+        &self,
+        message: AgentMessage<T>,
+    ) -> Result<()> {
+        self.communication_manager.send_message(message).await
+    }
+
+    /// Update shared knowledge base
+    #[cfg(feature = "std")]
+    pub fn update_knowledge(&self, key: String, value: serde_json::Value) {
+        self.communication_manager.update_knowledge(key, value);
+    }
+
+    /// Query the shared knowledge base
+    #[cfg(feature = "std")]
+    pub fn query_knowledge(&self, query: &str) -> Vec<(String, crate::communication::KnowledgeEntry)> {
+        self.communication_manager.query_knowledge(query)
+    }
+
+    /// Get communication statistics
+    #[cfg(feature = "std")]
+    pub fn get_communication_stats(&self) -> CommunicationStats {
+        self.communication_manager.get_stats()
+    }
+
     /// Get swarm metrics
     pub fn metrics(&self) -> SwarmMetrics {
         SwarmMetrics {
@@ -268,6 +366,10 @@ impl Swarm {
             queued_tasks: self.task_queue.len(),
             assigned_tasks: self.task_assignments.len(),
             total_connections: self.topology.connection_count(),
+            #[cfg(feature = "std")]
+            communication_stats: Some(self.communication_manager.get_stats()),
+            #[cfg(not(feature = "std"))]
+            communication_stats: None,
         }
     }
 }
@@ -285,4 +387,9 @@ pub struct SwarmMetrics {
     pub assigned_tasks: usize,
     /// Total number of inter-agent connections
     pub total_connections: usize,
+    /// Communication statistics (std feature only)
+    #[cfg(feature = "std")]
+    pub communication_stats: Option<CommunicationStats>,
+    #[cfg(not(feature = "std"))]
+    pub communication_stats: Option<()>,
 }

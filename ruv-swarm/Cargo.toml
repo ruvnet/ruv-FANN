@@ -35,7 +35,7 @@ rust-version = "1.85"
 
 [workspace.dependencies]
 # Async runtime (WASM-compatible subset)
-tokio = { version = "1.40", features = ["sync", "macros", "time"], default-features = false }
+tokio = { version = "1.40", features = ["sync", "macros", "time", "rt-multi-thread"], default-features = false }
 async-trait = "0.1"
 
 # Error handling
