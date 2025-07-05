@@ -1,0 +1,331 @@
+syntax = "proto3";
+
+package cell_clustering;
+
+// Service definition for automated cell profiling
+service CellClusteringService {
+    // Perform cell clustering analysis
+    rpc PerformClustering(ClusteringRequest) returns (ClusteringResponse);
+    
+    // Get cell behavior profiles
+    rpc GetCellProfiles(ProfileRequest) returns (ProfileResponse);
+    
+    // Get cluster insights and recommendations
+    rpc GetClusterInsights(InsightsRequest) returns (InsightsResponse);
+    
+    // Update clustering model with new data
+    rpc UpdateClustering(UpdateRequest) returns (UpdateResponse);
+    
+    // Get clustering statistics and metrics
+    rpc GetClusteringMetrics(MetricsRequest) returns (MetricsResponse);
+    
+    // Visualize clustering results
+    rpc GenerateVisualization(VisualizationRequest) returns (VisualizationResponse);
+}
+
+// Request for clustering analysis
+message ClusteringRequest {
+    string session_id = 1;
+    repeated PrbUtilizationVector prb_vectors = 2;
+    ClusteringConfig config = 3;
+    repeated string cell_ids = 4;
+    string time_window = 5; // "24h", "7d", "30d"
+}
+
+// PRB utilization vector for 24-hour period
+message PrbUtilizationVector {
+    string cell_id = 1;
+    string date = 2; // ISO 8601 date
+    repeated double hourly_prb_utilization = 3; // 24 values (0-100%)
+    CellMetadata metadata = 4;
+    repeated double additional_features = 5; // Additional derived features
+}
+
+// Cell metadata for contextual clustering
+message CellMetadata {
+    string cell_id = 1;
+    string site_id = 2;
+    string technology = 3; // "LTE", "5G", "UMTS"
+    string frequency_band = 4;
+    double tx_power = 5;
+    int32 antenna_count = 6;
+    double bandwidth_mhz = 7;
+    Location location = 8;
+    string cell_type = 9; // "macro", "micro", "pico", "femto"
+    double height_meters = 10;
+    string environment = 11; // "urban", "suburban", "rural"
+}
+
+// Geographic location
+message Location {
+    double latitude = 1;
+    double longitude = 2;
+    double altitude = 3;
+}
+
+// Clustering configuration
+message ClusteringConfig {
+    ClusteringAlgorithm algorithm = 1;
+    int32 num_clusters = 2; // For K-means, 0 for auto-detection
+    double eps = 3; // For DBSCAN
+    int32 min_samples = 4; // For DBSCAN
+    bool auto_tune = 5; // Automatically optimize parameters
+    repeated string features = 6; // Features to use for clustering
+    string distance_metric = 7; // "euclidean", "manhattan", "cosine"
+    bool normalize_features = 8;
+    int32 max_iterations = 9;
+    double convergence_threshold = 10;
+}
+
+// Clustering algorithm selection
+enum ClusteringAlgorithm {
+    KMEANS = 0;
+    DBSCAN = 1;
+    HIERARCHICAL = 2;
+    GAUSSIAN_MIXTURE = 3;
+    SPECTRAL = 4;
+    HYBRID = 5; // Ensemble of multiple algorithms
+}
+
+// Clustering response
+message ClusteringResponse {
+    string session_id = 1;
+    repeated ClusterResult clusters = 2;
+    ClusteringMetrics metrics = 3;
+    repeated CellProfile cell_profiles = 4;
+    string status = 5;
+    string message = 6;
+    string visualization_url = 7;
+}
+
+// Individual cluster result
+message ClusterResult {
+    int32 cluster_id = 1;
+    string cluster_name = 2;
+    string behavior_pattern = 3;
+    repeated string cell_ids = 4;
+    ClusterCharacteristics characteristics = 5;
+    repeated double centroid = 6;
+    double inertia = 7;
+    int32 size = 8;
+    double density = 9;
+    double silhouette_score = 10;
+}
+
+// Cluster characteristics
+message ClusterCharacteristics {
+    string primary_pattern = 1; // "peak_morning", "peak_evening", "flat", "irregular"
+    double avg_utilization = 2;
+    double peak_utilization = 3;
+    double utilization_variance = 4;
+    string peak_hours = 5; // "08:00-10:00,17:00-20:00"
+    string load_profile = 6; // "high", "medium", "low"
+    double predictability = 7; // 0-1 score
+    string anomaly_level = 8; // "none", "low", "medium", "high"
+    repeated string dominant_patterns = 9;
+}
+
+// Cell behavior profile
+message CellProfile {
+    string cell_id = 1;
+    int32 cluster_id = 2;
+    double cluster_confidence = 3;
+    string behavior_type = 4;
+    repeated double typical_pattern = 5; // 24-hour typical pattern
+    ProfileStatistics statistics = 6;
+    repeated Anomaly anomalies = 7;
+    repeated string recommendations = 8;
+    string last_updated = 9;
+}
+
+// Profile statistics
+message ProfileStatistics {
+    double mean_utilization = 1;
+    double std_utilization = 2;
+    double min_utilization = 3;
+    double max_utilization = 4;
+    double median_utilization = 5;
+    double percentile_95 = 6;
+    double trend_slope = 7;
+    double seasonality_strength = 8;
+    double autocorrelation = 9;
+    double coefficient_of_variation = 10;
+}
+
+// Anomaly detection
+message Anomaly {
+    string timestamp = 1;
+    string anomaly_type = 2;
+    double severity = 3;
+    string description = 4;
+    double confidence = 5;
+    repeated string suggested_actions = 6;
+}
+
+// Request for cell profiles
+message ProfileRequest {
+    repeated string cell_ids = 1;
+    string time_window = 2;
+    bool include_statistics = 3;
+    bool include_anomalies = 4;
+    bool include_recommendations = 5;
+}
+
+// Response with cell profiles
+message ProfileResponse {
+    repeated CellProfile profiles = 1;
+    string status = 2;
+    string message = 3;
+}
+
+// Request for cluster insights
+message InsightsRequest {
+    string session_id = 1;
+    repeated int32 cluster_ids = 2;
+    string insight_type = 3; // "strategic", "operational", "planning"
+    string time_horizon = 4; // "1d", "7d", "30d", "90d"
+}
+
+// Response with insights
+message InsightsResponse {
+    repeated ClusterInsight insights = 1;
+    StrategicRecommendations strategic_recommendations = 2;
+    string status = 3;
+    string message = 4;
+}
+
+// Cluster insight
+message ClusterInsight {
+    int32 cluster_id = 1;
+    string insight_type = 2;
+    string title = 3;
+    string description = 4;
+    double confidence = 5;
+    repeated string key_findings = 6;
+    repeated string actionable_recommendations = 7;
+    string impact_level = 8; // "low", "medium", "high", "critical"
+    string urgency = 9; // "low", "medium", "high", "urgent"
+}
+
+// Strategic recommendations
+message StrategicRecommendations {
+    repeated string capacity_planning = 1;
+    repeated string optimization_opportunities = 2;
+    repeated string resource_allocation = 3;
+    repeated string performance_improvements = 4;
+    repeated string anomaly_mitigation = 5;
+    repeated string predictive_insights = 6;
+    string overall_health_score = 7;
+    repeated string priority_actions = 8;
+}
+
+// Update request
+message UpdateRequest {
+    string session_id = 1;
+    repeated PrbUtilizationVector new_data = 2;
+    bool retrain_model = 3;
+    bool incremental_update = 4;
+}
+
+// Update response
+message UpdateResponse {
+    string status = 1;
+    string message = 2;
+    ClusteringMetrics updated_metrics = 3;
+    int32 cells_updated = 4;
+    int32 clusters_modified = 5;
+}
+
+// Metrics request
+message MetricsRequest {
+    string session_id = 1;
+    bool include_performance = 2;
+    bool include_quality = 3;
+    bool include_stability = 4;
+}
+
+// Metrics response
+message MetricsResponse {
+    ClusteringMetrics metrics = 1;
+    string status = 2;
+    string message = 3;
+}
+
+// Clustering quality metrics
+message ClusteringMetrics {
+    double silhouette_score = 1;
+    double calinski_harabasz_score = 2;
+    double davies_bouldin_score = 3;
+    double inertia = 4;
+    int32 num_clusters = 5;
+    int32 num_cells = 6;
+    double cluster_separation = 7;
+    double cluster_cohesion = 8;
+    double stability_score = 9;
+    double coverage = 10;
+    PerformanceMetrics performance = 11;
+    QualityMetrics quality = 12;
+}
+
+// Performance metrics
+message PerformanceMetrics {
+    double processing_time_ms = 1;
+    double memory_usage_mb = 2;
+    double throughput_cells_per_second = 3;
+    double cpu_utilization = 4;
+    string algorithm_used = 5;
+    int32 iterations = 6;
+}
+
+// Quality metrics
+message QualityMetrics {
+    double accuracy = 1;
+    double precision = 2;
+    double recall = 3;
+    double f1_score = 4;
+    double cluster_purity = 5;
+    double noise_ratio = 6;
+    double outlier_detection_rate = 7;
+    double pattern_consistency = 8;
+}
+
+// Visualization request
+message VisualizationRequest {
+    string session_id = 1;
+    string visualization_type = 2; // "clusters", "profiles", "trends", "heatmap"
+    repeated int32 cluster_ids = 3;
+    string format = 4; // "svg", "png", "html", "json"
+    VisualizationConfig config = 5;
+}
+
+// Visualization configuration
+message VisualizationConfig {
+    int32 width = 1;
+    int32 height = 2;
+    string color_scheme = 3;
+    bool show_labels = 4;
+    bool show_centroids = 5;
+    bool show_statistics = 6;
+    string projection = 7; // "2d", "3d", "tsne", "umap"
+    bool interactive = 8;
+}
+
+// Visualization response
+message VisualizationResponse {
+    string visualization_data = 1; // Base64 encoded or URL
+    string format = 2;
+    string status = 3;
+    string message = 4;
+    VisualizationMetadata metadata = 5;
+}
+
+// Visualization metadata
+message VisualizationMetadata {
+    string title = 1;
+    string description = 2;
+    repeated string legend = 3;
+    string created_at = 4;
+    string projection_method = 5;
+    int32 num_clusters = 6;
+    int32 num_cells = 7;
+}

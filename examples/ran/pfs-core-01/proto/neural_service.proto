@@ -1,0 +1,185 @@
+syntax = "proto3";
+
+package neural_service;
+
+// Neural Service for RAN Intelligence Platform
+// Provides training and prediction capabilities using ruv-FANN
+service NeuralService {
+  // Train a neural network model
+  rpc Train(TrainRequest) returns (TrainResponse);
+  
+  // Make predictions using a trained model
+  rpc Predict(PredictRequest) returns (PredictResponse);
+  
+  // Get model information
+  rpc GetModelInfo(GetModelInfoRequest) returns (GetModelInfoResponse);
+  
+  // List available models
+  rpc ListModels(ListModelsRequest) returns (ListModelsResponse);
+  
+  // Delete a model
+  rpc DeleteModel(DeleteModelRequest) returns (DeleteModelResponse);
+  
+  // Health check
+  rpc Health(HealthRequest) returns (HealthResponse);
+}
+
+// Training request
+message TrainRequest {
+  ModelConfig model_config = 1;
+  TrainingData training_data = 2;
+  TrainingConfig training_config = 3;
+}
+
+// Training response
+message TrainResponse {
+  string model_id = 1;
+  TrainingResults results = 2;
+  string status = 3;
+  string message = 4;
+}
+
+// Prediction request
+message PredictRequest {
+  string model_id = 1;
+  repeated double input_vector = 2;
+}
+
+// Prediction response
+message PredictResponse {
+  repeated double output_vector = 1;
+  string status = 2;
+  string message = 3;
+  double confidence = 4;
+}
+
+// Model configuration
+message ModelConfig {
+  string name = 1;
+  string description = 2;
+  repeated uint32 layers = 3;  // Number of neurons in each layer
+  ActivationFunction activation = 4;
+  double learning_rate = 5;
+  uint32 max_epochs = 6;
+  double desired_error = 7;
+  TrainingAlgorithm training_algorithm = 8;
+}
+
+// Training data
+message TrainingData {
+  repeated TrainingExample examples = 1;
+  uint32 input_size = 2;
+  uint32 output_size = 3;
+}
+
+// Training example
+message TrainingExample {
+  repeated double inputs = 1;
+  repeated double outputs = 2;
+}
+
+// Training configuration
+message TrainingConfig {
+  uint32 batch_size = 1;
+  bool shuffle = 2;
+  double validation_split = 3;
+  uint32 patience = 4;
+  bool save_best = 5;
+}
+
+// Training results
+message TrainingResults {
+  uint32 epochs_completed = 1;
+  double final_error = 2;
+  repeated double error_history = 3;
+  double training_time_seconds = 4;
+  double validation_error = 5;
+}
+
+// Activation function enum
+enum ActivationFunction {
+  SIGMOID = 0;
+  TANH = 1;
+  RELU = 2;
+  LEAKY_RELU = 3;
+  LINEAR = 4;
+  SOFTMAX = 5;
+}
+
+// Training algorithm enum
+enum TrainingAlgorithm {
+  BACKPROPAGATION = 0;
+  RPROP = 1;
+  QUICKPROP = 2;
+  BATCH = 3;
+}
+
+// Model info request
+message GetModelInfoRequest {
+  string model_id = 1;
+}
+
+// Model info response
+message GetModelInfoResponse {
+  string model_id = 1;
+  ModelConfig config = 2;
+  ModelMetadata metadata = 3;
+  string status = 4;
+  string message = 5;
+}
+
+// Model metadata
+message ModelMetadata {
+  string created_at = 1;
+  string updated_at = 2;
+  uint64 size_bytes = 3;
+  uint32 total_parameters = 4;
+  string version = 5;
+}
+
+// List models request
+message ListModelsRequest {
+  uint32 page = 1;
+  uint32 page_size = 2;
+  string filter = 3;
+}
+
+// List models response
+message ListModelsResponse {
+  repeated ModelSummary models = 1;
+  uint32 total_count = 2;
+  string status = 3;
+  string message = 4;
+}
+
+// Model summary
+message ModelSummary {
+  string model_id = 1;
+  string name = 2;
+  string description = 3;
+  string created_at = 4;
+  uint64 size_bytes = 5;
+  string status = 6;
+}
+
+// Delete model request
+message DeleteModelRequest {
+  string model_id = 1;
+}
+
+// Delete model response
+message DeleteModelResponse {
+  string status = 1;
+  string message = 2;
+}
+
+// Health request
+message HealthRequest {}
+
+// Health response
+message HealthResponse {
+  string status = 1;
+  string version = 2;
+  uint32 active_models = 3;
+  double uptime_seconds = 4;
+}

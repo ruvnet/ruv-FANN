@@ -1,0 +1,58 @@
+# PFS-DATA-01 Configuration File
+# File-based Data Ingestion Service for RAN Intelligence Platform
+
+# File processing configuration
+file_patterns = ["*.csv", "*.json"]
+recursive = true
+exclude_patterns = ["*.tmp", "*.processing", ".*", "*.log"]
+
+# Performance configuration
+batch_size = 10000
+max_concurrent_files = 4
+processing_timeout_seconds = 300
+
+# Error handling configuration
+max_error_rate = 0.01  # 1% maximum error rate
+skip_malformed_rows = true
+max_retries = 3
+retry_delay_seconds = 30
+
+# Output configuration
+compression_codec = "snappy"  # Options: snappy, gzip, lz4, brotli, zstd, uncompressed
+row_group_size = 1000000
+enable_statistics = true
+enable_dictionary_encoding = true
+
+# Monitoring configuration
+enable_metrics = true
+metrics_interval_seconds = 60
+log_level = "info"  # Options: trace, debug, info, warn, error
+
+# Resource limits
+max_memory_mb = 8192    # 8GB
+max_file_size_mb = 10240  # 10GB
+max_concurrent_jobs = 10
+
+# Schema configuration
+[schema]
+timestamp_column = "timestamp"
+cell_id_column = "cell_id"
+kpi_name_column = "kpi_name"
+kpi_value_column = "kpi_value"
+ue_id_column = "ue_id"
+sector_id_column = "sector_id"
+
+# Column type mappings
+[schema.column_types]
+timestamp = "timestamp"
+cell_id = "string"
+kpi_name = "string"
+kpi_value = "float64"
+ue_id = "string"
+sector_id = "string"
+
+# Optional: Restrict allowed KPI names for validation
+# [schema.allowed_kpi_names]
+# throughput = ["throughput_dl", "throughput_ul", "throughput_total"]
+# latency = ["latency_rtt", "latency_processing", "latency_transmission"]
+# utilization = ["prb_utilization_dl", "prb_utilization_ul", "cpu_utilization", "memory_utilization"]

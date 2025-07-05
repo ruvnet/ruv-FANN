@@ -1,0 +1,65 @@
+[package]
+name = "pfs-feat-01"
+version = "0.1.0"
+edition = "2021"
+authors = ["RAN Intelligence Platform"]
+description = "Time-series feature generation agent for RAN intelligence platform"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+# Core dependencies
+ruv-fann = { path = "../../../", features = ["std", "serde", "parallel", "io"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+thiserror = "1.0"
+anyhow = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.0", features = ["v4"] }
+
+# Time-series processing
+polars = { version = "0.41", features = ["lazy", "temporal", "parquet", "csv", "json", "dtype-datetime", "rolling_window", "round_series", "strings", "ipc"] }
+
+# Statistical operations
+statrs = "0.16"
+ndarray = "0.15"
+ndarray-stats = "0.5"
+
+# Parallel processing
+rayon = "1.8"
+num_cpus = "1.16"
+
+# gRPC (disabled for now)
+# tonic = "0.11"
+# tonic-build = "0.11"
+# prost = "0.12"
+# prost-types = "0.12"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Configuration
+config = "0.14"
+toml = "0.8"
+
+# File system operations (simplified)
+# walkdir = "2.4"
+# notify = "6.1"
+
+[dev-dependencies]
+tempfile = "3.8"
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1.4"
+approx = "0.5"
+pretty_assertions = "1.4"
+
+[[bench]]
+name = "feature_generation"
+harness = false
+
+# [build-dependencies]
+# tonic-build = "0.11"
+
+[workspace]
+# This makes this package a standalone workspace

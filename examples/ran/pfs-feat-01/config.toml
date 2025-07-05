@@ -1,0 +1,86 @@
+# PFS-FEAT-01 Feature Engineering Agent Configuration
+
+[service]
+host = "127.0.0.1"
+port = 50051
+name = "feature-engineering-service"
+version = "0.1.0"
+max_concurrent_requests = 100
+request_timeout_seconds = 300
+
+[default_features]
+
+[default_features.lag_features]
+enabled = true
+lag_periods = [1, 2, 3, 6, 12, 24, 48]  # Extended lags for RAN patterns
+target_columns = [
+    "kpi_value",
+    "prb_utilization_dl", 
+    "prb_utilization_ul",
+    "active_users",
+    "throughput_dl",
+    "throughput_ul",
+    "rsrp_avg",
+    "sinr_avg"
+]
+
+[default_features.rolling_window]
+enabled = true
+window_sizes = [3, 6, 12, 24, 48, 72]  # Up to 72 hours for weekly patterns
+statistics = [
+    "mean",
+    "std", 
+    "min",
+    "max",
+    "median",
+    "q25",
+    "q75",
+    "q90",
+    "q95",
+    "iqr",
+    "skew"
+]
+target_columns = [
+    "kpi_value",
+    "prb_utilization_dl",
+    "prb_utilization_ul", 
+    "active_users",
+    "throughput_dl",
+    "throughput_ul",
+    "rsrp_avg",
+    "sinr_avg"
+]
+
+[default_features.time_features]
+enabled = true
+features = [
+    "hour_of_day",
+    "day_of_week", 
+    "day_of_month",
+    "month",
+    "quarter",
+    "is_weekend",
+    "is_business_hour",
+    "is_peak_hour"
+]
+timestamp_column = "timestamp"
+timezone = "UTC"
+
+[default_features.output]
+format = "parquet"
+compression = "snappy"
+include_metadata = true
+validate_schema = true
+
+[processing]
+max_parallel_jobs = 8  # Adjust based on available CPU cores
+batch_size = 1000
+memory_limit_mb = 4096
+temp_directory = "/tmp/feature-engineering"
+streaming_mode = false
+
+[logging]
+level = "info"
+format = "json"
+output = "stdout"
+file_path = "/var/log/pfs-feat-01.log"

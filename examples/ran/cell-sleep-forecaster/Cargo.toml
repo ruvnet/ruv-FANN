@@ -1,0 +1,80 @@
+[package]
+name = "cell-sleep-forecaster"
+version = "0.1.0"
+edition = "2021"
+authors = ["EnergySavingsAgent <energy@ran-intelligence.com>"]
+description = "OPT-ENG-01 Cell Sleep Mode Forecaster for RAN Intelligence Platform"
+keywords = ["ran", "5g", "energy", "forecasting", "cellular"]
+categories = ["network-programming", "algorithms", "mathematics"]
+
+[workspace]
+# This package is a standalone workspace
+
+[dependencies]
+# Time series forecasting
+smartcore = { version = "0.3", features = ["serde"] }
+linfa = "0.7"
+linfa-linear = "0.7"
+ndarray = "0.15"
+
+# Statistical analysis
+statrs = "0.16"
+argmin = "0.8"
+argmin-math = "0.3"
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+time = "0.3"
+
+# Async runtime
+tokio = { version = "1.0", features = ["full"] }
+async-trait = "0.1"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Logging
+log = "0.4"
+env_logger = "0.10"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Metrics and monitoring
+prometheus = { version = "0.13", features = ["process"] }
+
+# Configuration
+config = "0.13"
+toml = "0.8"
+
+# Network interfaces
+reqwest = { version = "0.11", features = ["json"] }
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.4", features = ["cors", "trace"] }
+
+# Database
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid"] }
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+# Math utilities
+nalgebra = "0.32"
+num-traits = "0.2"
+rand = "0.8"
+
+# CLI
+clap = { version = "4.0", features = ["derive"] }
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1.0"
+
+[[bin]]
+name = "cell-sleep-forecaster"
+path = "src/main.rs"
+
+[[bench]]
+name = "forecasting_benchmark"
+harness = false

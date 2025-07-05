@@ -1,0 +1,20 @@
+[package]
+name = "ran-proto"
+version = "0.1.0"
+edition = "2021"
+description = "Protocol buffer definitions for RAN Intelligence Platform"
+
+[dependencies]
+tonic = { workspace = true }
+prost = { workspace = true }
+prost-types = "0.12"
+serde = { workspace = true, features = ["derive"] }
+chrono = { workspace = true, features = ["serde"] }
+uuid = { workspace = true, features = ["v4", "serde"] }
+
+[build-dependencies]
+tonic-build = { workspace = true }
+
+[lib]
+name = "ran_proto"
+path = "src/lib.rs"

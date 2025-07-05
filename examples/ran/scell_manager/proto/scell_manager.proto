@@ -1,0 +1,138 @@
+syntax = "proto3";
+
+package scell_manager;
+
+// Primary service for SCell activation predictions
+service SCellManagerService {
+    // Predict if a UE needs SCell activation
+    rpc PredictScellNeed(PredictScellNeedRequest) returns (PredictScellNeedResponse);
+    
+    // Train the prediction model with new data
+    rpc TrainModel(TrainModelRequest) returns (TrainModelResponse);
+    
+    // Get model performance metrics
+    rpc GetModelMetrics(GetModelMetricsRequest) returns (GetModelMetricsResponse);
+    
+    // Get real-time system status
+    rpc GetSystemStatus(GetSystemStatusRequest) returns (GetSystemStatusResponse);
+    
+    // Stream real-time predictions
+    rpc StreamPredictions(StreamPredictionsRequest) returns (stream PredictionUpdate);
+}
+
+// Request for SCell activation prediction
+message PredictScellNeedRequest {
+    string ue_id = 1;
+    UEMetrics current_metrics = 2;
+    repeated UEMetrics historical_metrics = 3;
+    int32 prediction_horizon_seconds = 4;
+}
+
+// Response with SCell activation recommendation
+message PredictScellNeedResponse {
+    string ue_id = 1;
+    bool scell_activation_recommended = 2;
+    float confidence_score = 3;
+    float predicted_throughput_demand = 4;
+    string reasoning = 5;
+    int64 timestamp_utc = 6;
+}
+
+// UE metrics structure
+message UEMetrics {
+    string ue_id = 1;
+    float pcell_throughput_mbps = 2;
+    int64 buffer_status_report_bytes = 3;
+    float pcell_cqi = 4;
+    float pcell_rsrp = 5;
+    float pcell_sinr = 6;
+    int32 active_bearers = 7;
+    float data_rate_req_mbps = 8;
+    int64 timestamp_utc = 9;
+}
+
+// Training request
+message TrainModelRequest {
+    string model_id = 1;
+    repeated TrainingExample training_data = 2;
+    TrainingConfig config = 3;
+}
+
+// Training response
+message TrainModelResponse {
+    string model_id = 1;
+    bool success = 2;
+    string error_message = 3;
+    ModelMetrics metrics = 4;
+}
+
+// Training example
+message TrainingExample {
+    UEMetrics input_metrics = 1;
+    repeated UEMetrics historical_sequence = 2;
+    bool actual_scell_needed = 3;
+    float actual_throughput_demand = 4;
+}
+
+// Training configuration
+message TrainingConfig {
+    int32 epochs = 1;
+    float learning_rate = 2;
+    int32 batch_size = 3;
+    float validation_split = 4;
+    int32 sequence_length = 5;
+}
+
+// Model performance metrics
+message ModelMetrics {
+    float accuracy = 1;
+    float precision = 2;
+    float recall = 3;
+    float f1_score = 4;
+    float auc_roc = 5;
+    float mean_absolute_error = 6;
+    int32 total_predictions = 7;
+    int32 true_positives = 8;
+    int32 false_positives = 9;
+    int32 true_negatives = 10;
+    int32 false_negatives = 11;
+}
+
+// Get model metrics request
+message GetModelMetricsRequest {
+    string model_id = 1;
+}
+
+// Get model metrics response
+message GetModelMetricsResponse {
+    string model_id = 1;
+    ModelMetrics metrics = 2;
+    int64 last_updated_utc = 3;
+}
+
+// System status request
+message GetSystemStatusRequest {}
+
+// System status response
+message GetSystemStatusResponse {
+    bool healthy = 1;
+    string version = 2;
+    int32 active_models = 3;
+    int64 total_predictions = 4;
+    float average_prediction_time_ms = 5;
+    int64 uptime_seconds = 6;
+    map<string, string> system_info = 7;
+}
+
+// Streaming predictions request
+message StreamPredictionsRequest {
+    repeated string ue_ids = 1;
+    int32 update_interval_seconds = 2;
+}
+
+// Streaming prediction update
+message PredictionUpdate {
+    string ue_id = 1;
+    PredictScellNeedResponse prediction = 2;
+    int64 timestamp_utc = 3;
+}

@@ -1,0 +1,118 @@
+use sea_orm_migration::prelude::*;
+
+#[derive(DeriveMigrationName)]
+pub struct Migration;
+
+#[async_trait::async_trait]
+impl MigrationTrait for Migration {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .create_table(
+                Table::create()
+                    .table(Models::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(Models::Id)
+                            .string()
+                            .not_null()
+                            .primary_key(),
+                    )
+                    .col(
+                        ColumnDef::new(Models::Name)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Models::Description)
+                            .text(),
+                    )
+                    .col(
+                        ColumnDef::new(Models::Category)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Models::ModelType)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Models::Status)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Models::Tags)
+                            .json(),
+                    )
+                    .col(
+                        ColumnDef::new(Models::Capabilities)
+                            .json(),
+                    )
+                    .col(
+                        ColumnDef::new(Models::Configuration)
+                            .json(),
+                    )
+                    .col(
+                        ColumnDef::new(Models::Metadata)
+                            .json(),
+                    )
+                    .col(
+                        ColumnDef::new(Models::CreatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Models::UpdatedAt)
+                            .timestamp_with_time_zone()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Models::CreatedBy)
+                            .string()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(Models::StoragePath)
+                            .string(),
+                    )
+                    .col(
+                        ColumnDef::new(Models::Checksum)
+                            .string(),
+                    )
+                    .col(
+                        ColumnDef::new(Models::SizeBytes)
+                            .big_integer(),
+                    )
+                    .to_owned(),
+            )
+            .await
+    }
+
+    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        manager
+            .drop_table(Table::drop().table(Models::Table).to_owned())
+            .await
+    }
+}
+
+#[derive(Iden)]
+enum Models {
+    Table,
+    Id,
+    Name,
+    Description,
+    Category,
+    ModelType,
+    Status,
+    Tags,
+    Capabilities,
+    Configuration,
+    Metadata,
+    CreatedAt,
+    UpdatedAt,
+    CreatedBy,
+    StoragePath,
+    Checksum,
+    SizeBytes,
+}

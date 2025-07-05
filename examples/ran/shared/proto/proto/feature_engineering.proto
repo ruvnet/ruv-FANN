@@ -1,0 +1,196 @@
+syntax = "proto3";
+
+package ran.feature_engineering;
+
+import "common.proto";
+import "google/protobuf/timestamp.proto";
+
+// Feature Engineering Service - Transforms raw data into ML features
+service FeatureEngineeringService {
+    // Feature generation
+    rpc GenerateFeatures(GenerateFeaturesRequest) returns (GenerateFeaturesResponse);
+    rpc GetFeatureJob(GetFeatureJobRequest) returns (GetFeatureJobResponse);
+    rpc ListFeatureJobs(ListFeatureJobsRequest) returns (ListFeatureJobsResponse);
+    
+    // Feature templates
+    rpc CreateFeatureTemplate(CreateFeatureTemplateRequest) returns (CreateFeatureTemplateResponse);
+    rpc GetFeatureTemplate(GetFeatureTemplateRequest) returns (GetFeatureTemplateResponse);
+    rpc ListFeatureTemplates(ListFeatureTemplatesRequest) returns (ListFeatureTemplatesResponse);
+    
+    // Health check
+    rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+message GenerateFeaturesRequest {
+    string input_path = 1;
+    string output_path = 2;
+    repeated FeatureSpec features = 3;
+    FeatureConfig config = 4;
+    ran.common.Metadata metadata = 5;
+}
+
+message FeatureSpec {
+    string name = 1;
+    FeatureType type = 2;
+    map<string, string> parameters = 3;
+    repeated string input_columns = 4;
+    string output_column = 5;
+}
+
+enum FeatureType {
+    // Time-series features
+    LAG = 0;
+    ROLLING_MEAN = 1;
+    ROLLING_STD = 2;
+    ROLLING_MIN = 3;
+    ROLLING_MAX = 4;
+    ROLLING_SUM = 5;
+    
+    // Time-based features
+    HOUR_OF_DAY = 6;
+    DAY_OF_WEEK = 7;
+    DAY_OF_MONTH = 8;
+    MONTH_OF_YEAR = 9;
+    IS_WEEKEND = 10;
+    IS_HOLIDAY = 11;
+    
+    // Mathematical features
+    DIFFERENCE = 12;
+    PERCENTAGE_CHANGE = 13;
+    LOG_TRANSFORM = 14;
+    SQRT_TRANSFORM = 15;
+    
+    // Statistical features
+    Z_SCORE = 16;
+    PERCENTILE_RANK = 17;
+    
+    // Custom features
+    CUSTOM = 18;
+}
+
+message FeatureConfig {
+    string grouping_column = 1; // Usually cell_id
+    string timestamp_column = 2;
+    string value_column = 3;
+    bool handle_missing = 4;
+    string missing_strategy = 5; // FORWARD_FILL, BACKWARD_FILL, INTERPOLATE, DROP
+    int32 max_lag_periods = 6;
+    repeated int32 window_sizes = 7;
+}
+
+message GenerateFeaturesResponse {
+    string job_id = 1;
+    string status = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message GetFeatureJobRequest {
+    string job_id = 1;
+    ran.common.Metadata metadata = 2;
+}
+
+message GetFeatureJobResponse {
+    string job_id = 1;
+    FeatureJobStatus status = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message FeatureJobStatus {
+    string state = 1; // PENDING, RUNNING, COMPLETED, FAILED
+    int64 features_generated = 2;
+    int64 features_total = 3;
+    int64 records_processed = 4;
+    double progress = 5;
+    google.protobuf.Timestamp started_at = 6;
+    google.protobuf.Timestamp completed_at = 7;
+    repeated string error_messages = 8;
+    FeatureJobMetrics metrics = 9;
+}
+
+message FeatureJobMetrics {
+    double processing_time_seconds = 1;
+    int64 input_records = 2;
+    int64 output_records = 3;
+    double memory_usage_mb = 4;
+    map<string, double> feature_statistics = 5;
+}
+
+message ListFeatureJobsRequest {
+    string filter = 1;
+    int32 page_size = 2;
+    string page_token = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message ListFeatureJobsResponse {
+    repeated FeatureJob jobs = 1;
+    string next_page_token = 2;
+    int32 total_count = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message FeatureJob {
+    string job_id = 1;
+    string input_path = 2;
+    string output_path = 3;
+    repeated FeatureSpec features = 4;
+    FeatureJobStatus status = 5;
+    google.protobuf.Timestamp created_at = 6;
+}
+
+message CreateFeatureTemplateRequest {
+    string template_name = 1;
+    string description = 2;
+    repeated FeatureSpec features = 3;
+    FeatureConfig config = 4;
+    ran.common.Metadata metadata = 5;
+}
+
+message CreateFeatureTemplateResponse {
+    string template_id = 1;
+    string status = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message GetFeatureTemplateRequest {
+    string template_id = 1;
+    ran.common.Metadata metadata = 2;
+}
+
+message GetFeatureTemplateResponse {
+    string template_id = 1;
+    FeatureTemplate template = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message FeatureTemplate {
+    string template_id = 1;
+    string name = 2;
+    string description = 3;
+    repeated FeatureSpec features = 4;
+    FeatureConfig config = 5;
+    google.protobuf.Timestamp created_at = 6;
+    google.protobuf.Timestamp updated_at = 7;
+}
+
+message ListFeatureTemplatesRequest {
+    string filter = 1;
+    int32 page_size = 2;
+    string page_token = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message ListFeatureTemplatesResponse {
+    repeated FeatureTemplate templates = 1;
+    string next_page_token = 2;
+    int32 total_count = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message HealthCheckRequest {
+    ran.common.Metadata metadata = 1;
+}
+
+message HealthCheckResponse {
+    ran.common.HealthCheck health = 1;
+}

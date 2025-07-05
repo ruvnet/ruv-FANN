@@ -1,0 +1,92 @@
+[package]
+name = "pfs-reg-01"
+version = "0.1.0"
+edition = "2021"
+description = "PFS-REG-01: Model Registry & Lifecycle Service for RAN Intelligence Platform"
+license = "MIT OR Apache-2.0"
+authors = ["RAN Intelligence Platform Team"]
+
+[dependencies]
+# Core ruv-FANN integration
+ruv-fann = { path = "../../../", features = ["std", "serde", "parallel", "io"] }
+
+# Neuro-divergent registry system
+neuro-divergent-registry = { path = "../../../neuro-divergent/neuro-divergent-registry" }
+
+# gRPC dependencies
+tonic = "0.12"
+prost = "0.13"
+tokio = { version = "1.0", features = ["macros", "rt-multi-thread", "sync", "time", "fs"] }
+tokio-stream = "0.1"
+
+# Database dependencies
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "sqlite", "chrono", "uuid", "json"] }
+sea-orm = { version = "0.12", features = ["sqlx-postgres", "sqlx-sqlite", "runtime-tokio-rustls", "macros"] }
+sea-orm-migration = "0.12"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+bincode = "1.3"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# Utilities
+uuid = { version = "1.0", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# Async utilities
+futures = "0.3"
+async-trait = "0.1"
+
+# Configuration
+config = "0.14"
+
+# File system operations
+walkdir = "2.3"
+dirs = "5.0"
+
+# Compression for model storage
+flate2 = "1.0"
+tar = "0.4"
+
+# Hashing for model verification
+blake3 = "1.5"
+
+# Metrics collection
+prometheus = "0.13"
+
+[build-dependencies]
+tonic-build = "0.12"
+
+[dev-dependencies]
+tempfile = "3.0"
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1.4"
+tokio-test = "0.4"
+
+[[bench]]
+name = "registry_performance"
+harness = false
+
+[[bench]]
+name = "model_storage_performance"
+harness = false
+
+[[bin]]
+name = "pfs-reg-01-server"
+path = "src/bin/server.rs"
+
+[[bin]]
+name = "pfs-reg-01-client"
+path = "src/bin/client.rs"
+
+[[bin]]
+name = "pfs-reg-01-migration"
+path = "src/bin/migration.rs"

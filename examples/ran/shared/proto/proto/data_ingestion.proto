@@ -1,0 +1,156 @@
+syntax = "proto3";
+
+package ran.data_ingestion;
+
+import "common.proto";
+import "google/protobuf/timestamp.proto";
+
+// Data Ingestion Service - Handles raw data processing
+service DataIngestionService {
+    // File-based ingestion
+    rpc IngestFiles(IngestFilesRequest) returns (IngestFilesResponse);
+    rpc GetIngestionStatus(GetIngestionStatusRequest) returns (GetIngestionStatusResponse);
+    rpc ListIngestionJobs(ListIngestionJobsRequest) returns (ListIngestionJobsResponse);
+    
+    // Stream-based ingestion
+    rpc IngestStream(stream StreamDataRequest) returns (stream StreamDataResponse);
+    
+    // Data validation
+    rpc ValidateData(ValidateDataRequest) returns (ValidateDataResponse);
+    
+    // Health check
+    rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+message IngestFilesRequest {
+    string directory_path = 1;
+    string file_pattern = 2;
+    DataFormat format = 3;
+    IngestionConfig config = 4;
+    ran.common.Metadata metadata = 5;
+}
+
+enum DataFormat {
+    CSV = 0;
+    JSON = 1;
+    PARQUET = 2;
+    AVRO = 3;
+}
+
+message IngestionConfig {
+    string output_path = 1;
+    bool normalize_schema = 2;
+    bool validate_data = 3;
+    map<string, string> column_mappings = 4;
+    repeated string required_columns = 5;
+    double error_threshold = 6; // Max allowed error rate
+}
+
+message IngestFilesResponse {
+    string job_id = 1;
+    string status = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message GetIngestionStatusRequest {
+    string job_id = 1;
+    ran.common.Metadata metadata = 2;
+}
+
+message GetIngestionStatusResponse {
+    string job_id = 1;
+    IngestionStatus status = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message IngestionStatus {
+    string state = 1; // PENDING, RUNNING, COMPLETED, FAILED
+    int64 files_processed = 2;
+    int64 files_total = 3;
+    int64 records_processed = 4;
+    int64 records_failed = 5;
+    double error_rate = 6;
+    google.protobuf.Timestamp started_at = 7;
+    google.protobuf.Timestamp completed_at = 8;
+    repeated string error_messages = 9;
+}
+
+message ListIngestionJobsRequest {
+    string filter = 1;
+    int32 page_size = 2;
+    string page_token = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message ListIngestionJobsResponse {
+    repeated IngestionJob jobs = 1;
+    string next_page_token = 2;
+    int32 total_count = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message IngestionJob {
+    string job_id = 1;
+    string directory_path = 2;
+    DataFormat format = 3;
+    IngestionStatus status = 4;
+    google.protobuf.Timestamp created_at = 5;
+}
+
+message StreamDataRequest {
+    string stream_id = 1;
+    repeated ran.common.DataPoint data_points = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message StreamDataResponse {
+    string stream_id = 1;
+    string status = 2;
+    int64 records_processed = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message ValidateDataRequest {
+    string data_path = 1;
+    ValidationRules rules = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message ValidationRules {
+    repeated string required_columns = 1;
+    map<string, string> column_types = 2;
+    map<string, double> min_values = 3;
+    map<string, double> max_values = 4;
+    repeated string unique_columns = 5;
+}
+
+message ValidateDataResponse {
+    bool is_valid = 1;
+    repeated ValidationError errors = 2;
+    ValidationSummary summary = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message ValidationError {
+    string column = 1;
+    string error_type = 2;
+    string error_message = 3;
+    int64 row_number = 4;
+    string sample_value = 5;
+}
+
+message ValidationSummary {
+    int64 total_records = 1;
+    int64 valid_records = 2;
+    int64 invalid_records = 3;
+    double validity_rate = 4;
+    map<string, int64> error_counts = 5;
+}
+
+message HealthCheckRequest {
+    ran.common.Metadata metadata = 1;
+}
+
+message HealthCheckResponse {
+    ran.common.HealthCheck health = 1;
+}

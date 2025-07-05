@@ -1,0 +1,131 @@
+syntax = "proto3";
+
+package interference_classifier;
+
+// The interference classifier service definition
+service InterferenceClassifier {
+    // Classify uplink interference type
+    rpc ClassifyUlInterference(ClassifyRequest) returns (ClassifyResponse);
+    
+    // Get classification confidence for a specific cell
+    rpc GetClassificationConfidence(ConfidenceRequest) returns (ConfidenceResponse);
+    
+    // Get mitigation recommendations
+    rpc GetMitigationRecommendations(MitigationRequest) returns (MitigationResponse);
+    
+    // Train the classifier with new data
+    rpc TrainModel(TrainRequest) returns (TrainResponse);
+    
+    // Get model performance metrics
+    rpc GetModelMetrics(MetricsRequest) returns (MetricsResponse);
+}
+
+// Request message for classification
+message ClassifyRequest {
+    string cell_id = 1;
+    repeated NoiseFloorMeasurement measurements = 2;
+    CellParameters cell_params = 3;
+}
+
+// Response message for classification
+message ClassifyResponse {
+    string interference_class = 1;
+    double confidence = 2;
+    string timestamp = 3;
+    repeated double feature_vector = 4;
+}
+
+// Request message for confidence scoring
+message ConfidenceRequest {
+    string cell_id = 1;
+    repeated NoiseFloorMeasurement measurements = 2;
+}
+
+// Response message for confidence scoring
+message ConfidenceResponse {
+    double confidence = 1;
+    string model_version = 2;
+    int32 sample_count = 3;
+}
+
+// Request message for mitigation recommendations
+message MitigationRequest {
+    string cell_id = 1;
+    string interference_class = 2;
+    double confidence = 3;
+}
+
+// Response message for mitigation recommendations
+message MitigationResponse {
+    repeated string recommendations = 1;
+    int32 priority_level = 2;
+    string estimated_impact = 3;
+}
+
+// Request message for model training
+message TrainRequest {
+    repeated TrainingExample examples = 1;
+    ModelConfig config = 2;
+}
+
+// Response message for model training
+message TrainResponse {
+    string model_id = 1;
+    double training_accuracy = 2;
+    double validation_accuracy = 3;
+    int32 epochs_trained = 4;
+    string training_time = 5;
+}
+
+// Request message for model metrics
+message MetricsRequest {
+    string model_id = 1;
+}
+
+// Response message for model metrics
+message MetricsResponse {
+    double accuracy = 1;
+    double precision = 2;
+    double recall = 3;
+    double f1_score = 4;
+    map<string, double> class_metrics = 5;
+}
+
+// Noise floor measurement data
+message NoiseFloorMeasurement {
+    string timestamp = 1;
+    double noise_floor_pusch = 2;
+    double noise_floor_pucch = 3;
+    double cell_ret = 4;
+    double rsrp = 5;
+    double sinr = 6;
+    int32 active_users = 7;
+    double prb_utilization = 8;
+}
+
+// Cell parameters
+message CellParameters {
+    string cell_id = 1;
+    string frequency_band = 2;
+    double tx_power = 3;
+    int32 antenna_count = 4;
+    double bandwidth_mhz = 5;
+    string technology = 6; // LTE, NR, etc.
+}
+
+// Training example
+message TrainingExample {
+    repeated NoiseFloorMeasurement measurements = 1;
+    CellParameters cell_params = 2;
+    string true_interference_class = 3;
+}
+
+// Model configuration
+message ModelConfig {
+    repeated int32 hidden_layers = 1;
+    double learning_rate = 2;
+    int32 max_epochs = 3;
+    double target_accuracy = 4;
+    string activation_function = 5;
+    double dropout_rate = 6;
+}

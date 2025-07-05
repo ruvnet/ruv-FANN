@@ -1,0 +1,256 @@
+syntax = "proto3";
+
+package ran.predictive_optimization;
+
+import "common.proto";
+import "google/protobuf/timestamp.proto";
+
+// Predictive Optimization Services - Proactive network optimization
+service PredictiveOptimizationService {
+    // Mobility & Load Management
+    rpc PredictHandover(PredictHandoverRequest) returns (PredictHandoverResponse);
+    rpc GetHandoverRecommendations(GetHandoverRecommendationsRequest) returns (GetHandoverRecommendationsResponse);
+    
+    // Energy Savings
+    rpc ForecastSleepWindow(ForecastSleepWindowRequest) returns (ForecastSleepWindowResponse);
+    rpc GetEnergySavingRecommendations(GetEnergySavingRecommendationsRequest) returns (GetEnergySavingRecommendationsResponse);
+    
+    // Resource Management
+    rpc PredictScellNeed(PredictScellNeedRequest) returns (PredictScellNeedResponse);
+    rpc GetResourceRecommendations(GetResourceRecommendationsRequest) returns (GetResourceRecommendationsResponse);
+    
+    // Health check
+    rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// Mobility & Load Management Messages
+message PredictHandoverRequest {
+    string ue_id = 1;
+    UeMetrics current_metrics = 2;
+    repeated NeighborCellMetrics neighbor_metrics = 3;
+    int32 prediction_horizon_seconds = 4;
+    ran.common.Metadata metadata = 5;
+}
+
+message UeMetrics {
+    string ue_id = 1;
+    double serving_rsrp = 2;
+    double serving_sinr = 3;
+    double speed_kmh = 4;
+    string serving_cell_id = 5;
+    google.protobuf.Timestamp timestamp = 6;
+    double cqi = 7;
+    double throughput_mbps = 8;
+}
+
+message NeighborCellMetrics {
+    string cell_id = 1;
+    double rsrp = 2;
+    double sinr = 3;
+    double distance_meters = 4;
+    double load_percentage = 5;
+    bool is_available = 6;
+}
+
+message PredictHandoverResponse {
+    string ue_id = 1;
+    double handover_probability = 2;
+    string recommended_target_cell = 3;
+    double confidence = 4;
+    int32 estimated_time_seconds = 5;
+    string reasoning = 6;
+    ran.common.Metadata metadata = 7;
+}
+
+message GetHandoverRecommendationsRequest {
+    string cell_id = 1;
+    int32 time_window_minutes = 2;
+    double probability_threshold = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message GetHandoverRecommendationsResponse {
+    string cell_id = 1;
+    repeated HandoverRecommendation recommendations = 2;
+    HandoverStatistics statistics = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message HandoverRecommendation {
+    string ue_id = 1;
+    string current_cell = 2;
+    string target_cell = 3;
+    double probability = 4;
+    int32 estimated_time_seconds = 5;
+    string priority = 6; // HIGH, MEDIUM, LOW
+    string reasoning = 7;
+}
+
+message HandoverStatistics {
+    int32 total_ues = 1;
+    int32 handover_candidates = 2;
+    int32 high_priority_candidates = 3;
+    double average_probability = 4;
+    google.protobuf.Timestamp last_updated = 5;
+}
+
+// Energy Savings Messages
+message ForecastSleepWindowRequest {
+    string cell_id = 1;
+    int32 forecast_horizon_minutes = 2;
+    double low_traffic_threshold = 3;
+    int32 minimum_sleep_duration_minutes = 4;
+    ran.common.Metadata metadata = 5;
+}
+
+message ForecastSleepWindowResponse {
+    string cell_id = 1;
+    repeated SleepWindow sleep_windows = 2;
+    EnergyForecast forecast = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message SleepWindow {
+    google.protobuf.Timestamp start_time = 1;
+    google.protobuf.Timestamp end_time = 2;
+    double predicted_prb_utilization = 3;
+    int32 predicted_active_users = 4;
+    double confidence = 5;
+    double energy_savings_kwh = 6;
+}
+
+message EnergyForecast {
+    string cell_id = 1;
+    repeated double prb_utilization_forecast = 2;
+    repeated google.protobuf.Timestamp forecast_timestamps = 3;
+    double forecast_accuracy = 4;
+    double total_energy_savings_kwh = 5;
+}
+
+message GetEnergySavingRecommendationsRequest {
+    repeated string cell_ids = 1;
+    int32 time_window_hours = 2;
+    double energy_price_per_kwh = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message GetEnergySavingRecommendationsResponse {
+    repeated EnergySavingRecommendation recommendations = 1;
+    EnergySavingSummary summary = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message EnergySavingRecommendation {
+    string cell_id = 1;
+    string recommendation_type = 2; // SLEEP, REDUCE_POWER, OPTIMIZE_SCHEDULE
+    repeated SleepWindow sleep_windows = 3;
+    double potential_savings_kwh = 4;
+    double cost_savings = 5;
+    string priority = 6;
+    string reasoning = 7;
+}
+
+message EnergySavingSummary {
+    int32 total_cells = 1;
+    int32 cells_with_savings = 2;
+    double total_potential_savings_kwh = 3;
+    double total_cost_savings = 4;
+    double average_savings_per_cell = 5;
+    google.protobuf.Timestamp last_updated = 6;
+}
+
+// Resource Management Messages
+message PredictScellNeedRequest {
+    string ue_id = 1;
+    UeResourceMetrics current_metrics = 2;
+    CellResourceMetrics cell_metrics = 3;
+    int32 prediction_horizon_seconds = 4;
+    ran.common.Metadata metadata = 5;
+}
+
+message UeResourceMetrics {
+    string ue_id = 1;
+    double pcell_throughput_mbps = 2;
+    int64 buffer_status_bytes = 3;
+    double pcell_cqi = 4;
+    double data_demand_mbps = 5;
+    string traffic_type = 6; // VIDEO, VOICE, DATA, GAMING
+    google.protobuf.Timestamp timestamp = 7;
+}
+
+message CellResourceMetrics {
+    string cell_id = 1;
+    double prb_utilization = 2;
+    int32 active_users = 3;
+    double available_throughput_mbps = 4;
+    repeated ScellCandidate scell_candidates = 5;
+    double congestion_level = 6;
+}
+
+message ScellCandidate {
+    string cell_id = 1;
+    double rsrp = 2;
+    double sinr = 3;
+    double available_capacity_mbps = 4;
+    double prb_utilization = 5;
+    bool is_available = 6;
+}
+
+message PredictScellNeedResponse {
+    string ue_id = 1;
+    bool scell_activation_recommended = 2;
+    string recommended_scell = 3;
+    double probability = 4;
+    double confidence = 5;
+    string reasoning = 6;
+    ResourceBenefit benefit = 7;
+    ran.common.Metadata metadata = 8;
+}
+
+message ResourceBenefit {
+    double expected_throughput_improvement_mbps = 1;
+    double expected_latency_improvement_ms = 2;
+    double resource_efficiency_gain = 3;
+    double user_experience_score = 4;
+}
+
+message GetResourceRecommendationsRequest {
+    string cell_id = 1;
+    int32 time_window_minutes = 2;
+    double demand_threshold = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message GetResourceRecommendationsResponse {
+    string cell_id = 1;
+    repeated ResourceRecommendation recommendations = 2;
+    ResourceStatistics statistics = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message ResourceRecommendation {
+    string ue_id = 1;
+    string recommendation_type = 2; // SCELL_ACTIVATION, LOAD_BALANCING, BAND_SWITCHING
+    string recommended_scell = 3;
+    double probability = 4;
+    string priority = 5;
+    ResourceBenefit benefit = 6;
+    string reasoning = 7;
+}
+
+message ResourceStatistics {
+    int32 total_ues = 1;
+    int32 resource_constrained_ues = 2;
+    int32 scell_candidates = 3;
+    double average_resource_utilization = 4;
+    double predicted_capacity_gain = 5;
+    google.protobuf.Timestamp last_updated = 6;
+}
+
+message HealthCheckRequest {
+    ran.common.Metadata metadata = 1;
+}
+
+message HealthCheckResponse {
+    ran.common.HealthCheck health = 1;
+}

@@ -1,0 +1,98 @@
+syntax = "proto3";
+
+package handover_predictor;
+
+service HandoverPredictor {
+    // Predict handover probability for a UE
+    rpc PredictHandover(HandoverPredictionRequest) returns (HandoverPredictionResponse);
+    
+    // Batch prediction for multiple UEs
+    rpc BatchPredictHandover(BatchHandoverPredictionRequest) returns (BatchHandoverPredictionResponse);
+    
+    // Get model information
+    rpc GetModelInfo(ModelInfoRequest) returns (ModelInfoResponse);
+    
+    // Health check
+    rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+message HandoverPredictionRequest {
+    string ue_id = 1;
+    repeated UeMetric metrics = 2;
+    int64 prediction_horizon_seconds = 3;
+}
+
+message HandoverPredictionResponse {
+    string ue_id = 1;
+    double ho_probability = 2;
+    string target_cell_id = 3;
+    double confidence = 4;
+    int64 prediction_timestamp = 5;
+    repeated string candidate_cells = 6;
+    repeated double candidate_probabilities = 7;
+}
+
+message BatchHandoverPredictionRequest {
+    repeated HandoverPredictionRequest requests = 1;
+}
+
+message BatchHandoverPredictionResponse {
+    repeated HandoverPredictionResponse responses = 1;
+}
+
+message UeMetric {
+    int64 timestamp = 1;
+    string ue_id = 2;
+    double serving_rsrp = 3;
+    double serving_sinr = 4;
+    double neighbor_rsrp_best = 5;
+    double ue_speed_kmh = 6;
+    string serving_cell_id = 7;
+    repeated NeighborCell neighbor_cells = 8;
+    double serving_rsrq = 9;
+    double serving_cqi = 10;
+    double serving_ta = 11;
+    double serving_phr = 12;
+}
+
+message NeighborCell {
+    string cell_id = 1;
+    double rsrp = 2;
+    double rsrq = 3;
+    double sinr = 4;
+    double distance_km = 5;
+    string frequency_band = 6;
+}
+
+message ModelInfoRequest {}
+
+message ModelInfoResponse {
+    string model_id = 1;
+    string model_version = 2;
+    string training_timestamp = 3;
+    double training_accuracy = 4;
+    double validation_accuracy = 5;
+    int32 total_features = 6;
+    repeated string feature_names = 7;
+    ModelStats stats = 8;
+}
+
+message ModelStats {
+    int32 total_training_samples = 1;
+    int32 total_validation_samples = 2;
+    double precision = 3;
+    double recall = 4;
+    double f1_score = 5;
+    double auc_roc = 6;
+    repeated double confusion_matrix = 7;
+}
+
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+    bool healthy = 1;
+    string status = 2;
+    int64 uptime_seconds = 3;
+    int64 total_predictions = 4;
+    double avg_prediction_time_ms = 5;
+}

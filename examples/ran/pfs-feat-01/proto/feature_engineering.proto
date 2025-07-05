@@ -1,0 +1,180 @@
+syntax = "proto3";
+
+package feature_engineering;
+
+// Time-series feature generation service
+service FeatureEngineeringService {
+    // Generate features for a single time-series
+    rpc GenerateFeatures(GenerateFeaturesRequest) returns (GenerateFeaturesResponse);
+    
+    // Generate features for multiple time-series in batch
+    rpc GenerateBatchFeatures(GenerateBatchFeaturesRequest) returns (GenerateBatchFeaturesResponse);
+    
+    // Validate feature generation output
+    rpc ValidateFeatures(ValidateFeaturesRequest) returns (ValidateFeaturesResponse);
+    
+    // Get feature generation statistics
+    rpc GetFeatureStats(GetFeatureStatsRequest) returns (GetFeatureStatsResponse);
+    
+    // Health check
+    rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// Request to generate features for a single time-series
+message GenerateFeaturesRequest {
+    string time_series_id = 1;
+    string input_path = 2;
+    string output_path = 3;
+    FeatureConfig config = 4;
+}
+
+// Response for single time-series feature generation
+message GenerateFeaturesResponse {
+    string time_series_id = 1;
+    string output_path = 2;
+    FeatureGenerationStats stats = 3;
+    repeated string generated_features = 4;
+}
+
+// Request to generate features for multiple time-series
+message GenerateBatchFeaturesRequest {
+    repeated string time_series_ids = 1;
+    string input_directory = 2;
+    string output_directory = 3;
+    FeatureConfig config = 4;
+    int32 max_parallel_jobs = 5;
+}
+
+// Response for batch feature generation
+message GenerateBatchFeaturesResponse {
+    repeated GenerateFeaturesResponse results = 1;
+    BatchProcessingStats batch_stats = 2;
+}
+
+// Request to validate feature generation output
+message ValidateFeaturesRequest {
+    string output_path = 1;
+    int32 expected_series_count = 2;
+    repeated string expected_features = 3;
+}
+
+// Response for feature validation
+message ValidateFeaturesResponse {
+    bool is_valid = 1;
+    repeated string validation_errors = 2;
+    ValidationStats validation_stats = 3;
+}
+
+// Request for feature statistics
+message GetFeatureStatsRequest {
+    string time_series_id = 1;
+    string feature_name = 2;
+}
+
+// Response for feature statistics
+message GetFeatureStatsResponse {
+    FeatureStats stats = 1;
+}
+
+// Health check request
+message HealthCheckRequest {
+    string service_name = 1;
+}
+
+// Health check response
+message HealthCheckResponse {
+    bool is_healthy = 1;
+    string status = 2;
+    string version = 3;
+    int64 uptime_seconds = 4;
+}
+
+// Feature generation configuration
+message FeatureConfig {
+    // Lag features configuration
+    LagFeatureConfig lag_features = 1;
+    
+    // Rolling window statistics configuration
+    RollingWindowConfig rolling_window = 2;
+    
+    // Time-based features configuration
+    TimeBasedFeatureConfig time_features = 3;
+    
+    // Output format configuration
+    OutputConfig output = 4;
+}
+
+// Lag features configuration
+message LagFeatureConfig {
+    bool enabled = 1;
+    repeated int32 lag_periods = 2;  // e.g., [1, 2, 3, 6, 12, 24]
+    repeated string target_columns = 3;
+}
+
+// Rolling window statistics configuration
+message RollingWindowConfig {
+    bool enabled = 1;
+    repeated int32 window_sizes = 2;  // e.g., [3, 6, 12, 24, 48]
+    repeated string statistics = 3;   // e.g., ["mean", "std", "min", "max", "median"]
+    repeated string target_columns = 4;
+}
+
+// Time-based features configuration
+message TimeBasedFeatureConfig {
+    bool enabled = 1;
+    repeated string features = 2;  // e.g., ["hour_of_day", "day_of_week", "is_weekend", "is_holiday"]
+    string timestamp_column = 3;
+    string timezone = 4;
+}
+
+// Output configuration
+message OutputConfig {
+    string format = 1;  // "parquet", "csv", "json"
+    string compression = 2;  // "snappy", "gzip", "lz4", "brotli"
+    bool include_metadata = 3;
+    bool validate_schema = 4;
+}
+
+// Feature generation statistics
+message FeatureGenerationStats {
+    int64 processing_time_ms = 1;
+    int64 input_rows = 2;
+    int64 output_rows = 3;
+    int32 features_generated = 4;
+    int64 memory_usage_mb = 5;
+    repeated string feature_names = 6;
+}
+
+// Batch processing statistics
+message BatchProcessingStats {
+    int64 total_processing_time_ms = 1;
+    int32 total_time_series = 2;
+    int32 successful_series = 3;
+    int32 failed_series = 4;
+    int64 total_input_rows = 5;
+    int64 total_output_rows = 6;
+    int64 peak_memory_usage_mb = 7;
+}
+
+// Validation statistics
+message ValidationStats {
+    int64 validation_time_ms = 1;
+    int32 total_series_validated = 2;
+    int32 valid_series = 3;
+    int32 invalid_series = 4;
+    repeated string schema_errors = 5;
+}
+
+// Feature statistics
+message FeatureStats {
+    string feature_name = 1;
+    string time_series_id = 2;
+    double mean = 3;
+    double std_dev = 4;
+    double min_value = 5;
+    double max_value = 6;
+    double median = 7;
+    int64 null_count = 8;
+    int64 total_count = 9;
+    repeated double percentiles = 10;  // 25th, 50th, 75th, 90th, 95th, 99th
+}

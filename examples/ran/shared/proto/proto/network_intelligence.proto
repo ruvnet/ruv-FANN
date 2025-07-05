@@ -1,0 +1,369 @@
+syntax = "proto3";
+
+package ran.network_intelligence;
+
+import "common.proto";
+import "google/protobuf/timestamp.proto";
+
+// Network Intelligence Services - Deep insights and strategic planning
+service NetworkIntelligenceService {
+    // Cell Behavior Clustering
+    rpc ProfileCells(ProfileCellsRequest) returns (ProfileCellsResponse);
+    rpc GetCellProfile(GetCellProfileRequest) returns (GetCellProfileResponse);
+    rpc ListCellProfiles(ListCellProfilesRequest) returns (ListCellProfilesResponse);
+    
+    // Capacity & Coverage Planning
+    rpc ForecastCapacityCliff(ForecastCapacityCliffRequest) returns (ForecastCapacityCliffResponse);
+    rpc GetCapacityPlan(GetCapacityPlanRequest) returns (GetCapacityPlanResponse);
+    
+    // Network Slice Management
+    rpc PredictSlaBreach(PredictSlaBreachRequest) returns (PredictSlaBreachResponse);
+    rpc GetSliceAnalysis(GetSliceAnalysisRequest) returns (GetSliceAnalysisResponse);
+    
+    // Health check
+    rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// Cell Behavior Clustering Messages
+message ProfileCellsRequest {
+    repeated string cell_ids = 1;
+    int32 analysis_period_days = 2;
+    ProfileConfig config = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message ProfileConfig {
+    repeated string features = 1; // PRB_UTILIZATION, THROUGHPUT, USERS, HANDOVERS
+    string clustering_method = 2; // KMEANS, DBSCAN, HIERARCHICAL
+    int32 num_clusters = 3;
+    double similarity_threshold = 4;
+    bool include_temporal_patterns = 5;
+}
+
+message ProfileCellsResponse {
+    string job_id = 1;
+    string status = 2;
+    ProfileJobStatus job_status = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message ProfileJobStatus {
+    string state = 1; // PENDING, RUNNING, COMPLETED, FAILED
+    int32 cells_processed = 2;
+    int32 cells_total = 3;
+    double progress = 4;
+    google.protobuf.Timestamp started_at = 5;
+    google.protobuf.Timestamp completed_at = 6;
+    repeated string error_messages = 7;
+}
+
+message GetCellProfileRequest {
+    string cell_id = 1;
+    ran.common.Metadata metadata = 2;
+}
+
+message GetCellProfileResponse {
+    string cell_id = 1;
+    CellProfile profile = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message CellProfile {
+    string cell_id = 1;
+    string profile_id = 2;
+    string profile_name = 3;
+    string profile_type = 4; // URBAN_CORE, SUBURBAN, RURAL, HIGHWAY, INDOOR
+    CellCharacteristics characteristics = 5;
+    repeated string similar_cells = 6;
+    double similarity_score = 7;
+    google.protobuf.Timestamp profiled_at = 8;
+}
+
+message CellCharacteristics {
+    TrafficPattern traffic_pattern = 1;
+    UserBehavior user_behavior = 2;
+    PerformanceMetrics performance = 3;
+    GeographicContext geographic = 4;
+    map<string, double> custom_features = 5;
+}
+
+message TrafficPattern {
+    string pattern_type = 1; // BUSINESS, RESIDENTIAL, MIXED, HIGHWAY, EVENT
+    repeated double hourly_profile = 2; // 24-hour pattern
+    repeated double daily_profile = 3; // 7-day pattern
+    double peak_hour_utilization = 4;
+    double off_peak_utilization = 5;
+    double traffic_variability = 6;
+}
+
+message UserBehavior {
+    double average_session_duration = 1;
+    double handover_rate = 2;
+    double mobility_score = 3;
+    map<string, double> application_usage = 4;
+    double user_density = 5;
+}
+
+message PerformanceMetrics {
+    double average_throughput = 1;
+    double peak_throughput = 2;
+    double latency_p99 = 3;
+    double availability = 4;
+    double quality_score = 5;
+    double efficiency_score = 6;
+}
+
+message GeographicContext {
+    string area_type = 1; // URBAN, SUBURBAN, RURAL
+    string location_type = 2; // OUTDOOR, INDOOR, MIXED
+    double coverage_radius_meters = 3;
+    int32 neighbor_count = 4;
+    double population_density = 5;
+}
+
+message ListCellProfilesRequest {
+    string profile_type = 1;
+    double similarity_threshold = 2;
+    int32 page_size = 3;
+    string page_token = 4;
+    ran.common.Metadata metadata = 5;
+}
+
+message ListCellProfilesResponse {
+    repeated CellProfile profiles = 1;
+    string next_page_token = 2;
+    int32 total_count = 3;
+    ProfileSummary summary = 4;
+    ran.common.Metadata metadata = 5;
+}
+
+message ProfileSummary {
+    int32 total_cells = 1;
+    map<string, int32> profile_distribution = 2;
+    double average_similarity = 3;
+    int32 unique_profiles = 4;
+    google.protobuf.Timestamp last_updated = 5;
+}
+
+// Capacity & Coverage Planning Messages
+message ForecastCapacityCliffRequest {
+    string cell_id = 1;
+    int32 forecast_horizon_months = 2;
+    CapacityThreshold threshold = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message CapacityThreshold {
+    double prb_utilization_threshold = 1;
+    double throughput_threshold_mbps = 2;
+    double user_count_threshold = 3;
+    double quality_threshold = 4;
+}
+
+message ForecastCapacityCliffResponse {
+    string cell_id = 1;
+    CapacityForecast forecast = 2;
+    repeated CapacityBreachPrediction breaches = 3;
+    CapacityRecommendations recommendations = 4;
+    ran.common.Metadata metadata = 5;
+}
+
+message CapacityForecast {
+    string cell_id = 1;
+    repeated CapacityDataPoint forecast_points = 2;
+    double forecast_accuracy = 3;
+    GrowthAnalysis growth_analysis = 4;
+    google.protobuf.Timestamp forecast_generated = 5;
+}
+
+message CapacityDataPoint {
+    google.protobuf.Timestamp timestamp = 1;
+    double predicted_prb_utilization = 2;
+    double predicted_throughput = 3;
+    double predicted_user_count = 4;
+    double confidence_interval_lower = 5;
+    double confidence_interval_upper = 6;
+}
+
+message CapacityBreachPrediction {
+    string metric_type = 1; // PRB_UTILIZATION, THROUGHPUT, USER_COUNT
+    google.protobuf.Timestamp predicted_breach_date = 2;
+    double breach_probability = 3;
+    double predicted_value = 4;
+    double threshold_value = 5;
+    string severity = 6; // LOW, MEDIUM, HIGH, CRITICAL
+}
+
+message GrowthAnalysis {
+    double user_growth_rate = 1;
+    double traffic_growth_rate = 2;
+    double capacity_growth_rate = 3;
+    string growth_trend = 4; // LINEAR, EXPONENTIAL, SEASONAL
+    repeated string growth_drivers = 5;
+}
+
+message CapacityRecommendations {
+    repeated CapacityAction actions = 1;
+    CapacityPlan plan = 2;
+    double total_investment = 3;
+    double roi_estimate = 4;
+}
+
+message CapacityAction {
+    string action_type = 1; // CARRIER_ADDITION, CELL_SPLIT, SMALL_CELL_DEPLOYMENT
+    string description = 2;
+    google.protobuf.Timestamp recommended_date = 3;
+    double cost_estimate = 4;
+    double capacity_benefit = 5;
+    string priority = 6;
+}
+
+message CapacityPlan {
+    string cell_id = 1;
+    repeated CapacityAction planned_actions = 2;
+    double total_capacity_increase = 3;
+    double total_cost = 4;
+    google.protobuf.Timestamp plan_horizon = 5;
+}
+
+message GetCapacityPlanRequest {
+    repeated string cell_ids = 1;
+    int32 planning_horizon_months = 2;
+    double budget_constraint = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message GetCapacityPlanResponse {
+    repeated CapacityPlan plans = 1;
+    CapacityPlanSummary summary = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message CapacityPlanSummary {
+    int32 total_cells = 1;
+    int32 cells_requiring_expansion = 2;
+    double total_investment_required = 3;
+    double total_capacity_increase = 4;
+    double roi_estimate = 5;
+    repeated CapacityBreachPrediction critical_breaches = 6;
+}
+
+// Network Slice Management Messages
+message PredictSlaBreachRequest {
+    string slice_id = 1;
+    SliceMetrics current_metrics = 2;
+    int32 prediction_horizon_minutes = 3;
+    SlaSla sla_definition = 4;
+    ran.common.Metadata metadata = 5;
+}
+
+message SliceMetrics {
+    string slice_id = 1;
+    double prb_usage = 2;
+    double throughput_mbps = 3;
+    int32 pdu_session_count = 4;
+    double latency_ms = 5;
+    double availability = 6;
+    double resource_utilization = 7;
+    google.protobuf.Timestamp timestamp = 8;
+}
+
+message SlaSla {
+    string slice_id = 1;
+    double guaranteed_throughput_mbps = 2;
+    double max_latency_ms = 3;
+    double min_availability = 4;
+    double max_packet_loss = 5;
+    int32 max_pdu_sessions = 6;
+    map<string, double> custom_slas = 7;
+}
+
+message PredictSlaBreachRequest {
+    string slice_id = 1;
+    SliceMetrics current_metrics = 2;
+    int32 prediction_horizon_minutes = 3;
+    SlaSla sla_definition = 4;
+    ran.common.Metadata metadata = 5;
+}
+
+message PredictSlaBreachResponse {
+    string slice_id = 1;
+    repeated SlaBreachPrediction breach_predictions = 2;
+    SliceRiskAnalysis risk_analysis = 3;
+    repeated SliceRecommendation recommendations = 4;
+    ran.common.Metadata metadata = 5;
+}
+
+message SlaBreachPrediction {
+    string metric_type = 1; // THROUGHPUT, LATENCY, AVAILABILITY, PACKET_LOSS
+    double breach_probability = 2;
+    google.protobuf.Timestamp predicted_breach_time = 3;
+    double predicted_value = 4;
+    double sla_threshold = 5;
+    double confidence = 6;
+}
+
+message SliceRiskAnalysis {
+    string slice_id = 1;
+    double overall_risk_score = 2;
+    string risk_level = 3; // LOW, MEDIUM, HIGH, CRITICAL
+    repeated string risk_factors = 4;
+    double resource_contention_score = 5;
+    double demand_volatility_score = 6;
+}
+
+message SliceRecommendation {
+    string recommendation_type = 1; // RESOURCE_ALLOCATION, PRIORITY_ADJUSTMENT, TRAFFIC_SHAPING
+    string description = 2;
+    double effectiveness = 3;
+    double implementation_cost = 4;
+    string priority = 5;
+    string implementation = 6;
+}
+
+message GetSliceAnalysisRequest {
+    repeated string slice_ids = 1;
+    int32 analysis_window_hours = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message GetSliceAnalysisResponse {
+    repeated SliceAnalysis analyses = 1;
+    SliceAnalysisSummary summary = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message SliceAnalysis {
+    string slice_id = 1;
+    SliceMetrics current_metrics = 2;
+    SlicePerformance performance = 3;
+    SliceRiskAnalysis risk_analysis = 4;
+    repeated SliceRecommendation recommendations = 5;
+    google.protobuf.Timestamp last_updated = 6;
+}
+
+message SlicePerformance {
+    double sla_compliance_rate = 1;
+    double resource_efficiency = 2;
+    double quality_score = 3;
+    string performance_trend = 4;
+    map<string, double> kpi_performance = 5;
+}
+
+message SliceAnalysisSummary {
+    int32 total_slices = 1;
+    int32 compliant_slices = 2;
+    int32 at_risk_slices = 3;
+    int32 breaching_slices = 4;
+    double overall_compliance_rate = 5;
+    double network_slice_efficiency = 6;
+    repeated string top_issues = 7;
+}
+
+message HealthCheckRequest {
+    ran.common.Metadata metadata = 1;
+}
+
+message HealthCheckResponse {
+    ran.common.HealthCheck health = 1;
+}

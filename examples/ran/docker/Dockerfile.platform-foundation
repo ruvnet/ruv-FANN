@@ -1,0 +1,55 @@
+# Dockerfile for Platform Foundation Services
+FROM rust:1.75-slim as builder
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    protobuf-compiler \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy workspace configuration
+COPY Cargo.toml Cargo.lock ./
+COPY shared/ ./shared/
+COPY platform-foundation/ ./platform-foundation/
+
+# Build the specific service
+ARG SERVICE_NAME
+WORKDIR /app/platform-foundation/${SERVICE_NAME}
+
+# Build the service
+RUN cargo build --release
+
+# Runtime image
+FROM debian:bookworm-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    libssl3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app user
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+ARG SERVICE_NAME
+COPY --from=builder /app/target/release/${SERVICE_NAME} /usr/local/bin/service
+
+# Create directories for data and models
+RUN mkdir -p /app/data /app/models /app/config && \
+    chown -R appuser:appuser /app
+
+USER appuser
+WORKDIR /app
+
+# Expose gRPC port
+EXPOSE 50051
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD /usr/local/bin/service --health-check || exit 1
+
+# Run the service
+CMD ["/usr/local/bin/service"]

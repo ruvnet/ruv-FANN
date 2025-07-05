@@ -1,0 +1,50 @@
+[package]
+name = "pfs-data-01"
+version = "0.1.0"
+edition = "2021"
+description = "RAN Intelligence Platform - File-based Data Ingestion Service (PFS-DATA-01)"
+license = "MIT OR Apache-2.0"
+authors = ["DataIngestionAgent <agent@ruv-fann.ai>"]
+
+[dependencies]
+tokio = { version = "1.0", features = ["full"] }
+tokio-stream = "0.1"
+tonic = "0.11"
+prost = "0.12"
+prost-types = "0.12"
+arrow = "53.0"
+parquet = "53.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+csv = "1.3"
+uuid = { version = "1.0", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+anyhow = "1.0"
+thiserror = "1.0"
+notify = "6.0"
+futures = "0.3"
+clap = { version = "4.0", features = ["derive"] }
+config = "0.14"
+toml = "0.8"
+regex = "1.10"
+bytes = "1.5"
+async-trait = "0.1"
+
+[build-dependencies]
+tonic-build = "0.11"
+
+[dev-dependencies]
+tempfile = "3.8"
+criterion = { version = "0.5", features = ["html_reports", "async_tokio"] }
+mockall = "0.12"
+serde_json = "1.0"
+
+[[bench]]
+name = "ingestion_benchmark"
+harness = false
+
+[[bin]]
+name = "pfs-data-01"
+path = "src/main.rs"

@@ -1,0 +1,69 @@
+[package]
+name = "scell_manager"
+version = "0.1.0"
+edition = "2021"
+authors = ["ResourceManagerAgent <agent@ruv-fann.com>"]
+description = "Predictive Carrier Aggregation SCell Manager for RAN Intelligence Platform"
+license = "MIT OR Apache-2.0"
+keywords = ["ran", "5g", "machine-learning", "carrier-aggregation", "scell"]
+categories = ["network-programming", "science"]
+
+[dependencies]
+# Core dependencies
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.0", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1.0"
+thiserror = "1.0"
+log = "0.4"
+env_logger = "0.10"
+
+# ML and Data Processing
+ndarray = "0.15"
+ndarray-linalg = "0.16"
+arrow = "52.0"
+parquet = "52.0"
+polars = { version = "0.33", features = ["lazy", "temporal", "parquet"] }
+
+# Network and gRPC
+tonic = "0.10"
+tonic-build = "0.10"
+prost = "0.12"
+
+# RAN Intelligence specific
+ruv-fann = { path = "../../../" }
+
+# Statistics and ML utilities
+statistical = "1.0"
+linreg = "0.1"
+
+# Performance monitoring
+prometheus = "0.13"
+dashmap = "5.0"
+
+# Configuration
+config = "0.13"
+clap = { version = "4.0", features = ["derive"] }
+
+[build-dependencies]
+tonic-build = "0.10"
+
+[dev-dependencies]
+criterion = "0.5"
+proptest = "1.0"
+mockall = "0.11"
+
+[[bin]]
+name = "scell_manager_server"
+path = "src/bin/server.rs"
+
+[[bin]]
+name = "scell_manager_client"
+path = "src/bin/client.rs"
+
+[features]
+default = ["metrics"]
+metrics = ["prometheus"]
+gpu = []

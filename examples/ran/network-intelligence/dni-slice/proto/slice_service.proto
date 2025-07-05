@@ -1,0 +1,415 @@
+syntax = "proto3";
+
+package dni.slice;
+
+import "google/protobuf/timestamp.proto";
+import "common.proto";
+
+// Network Slice SLA Breach Prediction Service
+service SliceService {
+    // Core SLA breach prediction
+    rpc PredictSlaBreach(PredictSlaBreachRequest) returns (PredictSlaBreachResponse);
+    
+    // Slice monitoring and analysis
+    rpc MonitorSlice(MonitorSliceRequest) returns (stream SliceMonitoringData);
+    rpc GetSliceAnalysis(GetSliceAnalysisRequest) returns (GetSliceAnalysisResponse);
+    
+    // Slice lifecycle management
+    rpc CreateSliceProfile(CreateSliceProfileRequest) returns (CreateSliceProfileResponse);
+    rpc UpdateSliceProfile(UpdateSliceProfileRequest) returns (UpdateSliceProfileResponse);
+    rpc DeleteSliceProfile(DeleteSliceProfileRequest) returns (DeleteSliceProfileResponse);
+    
+    // SLA management
+    rpc CreateSlaDefinition(CreateSlaDefinitionRequest) returns (CreateSlaDefinitionResponse);
+    rpc UpdateSlaDefinition(UpdateSlaDefinitionRequest) returns (UpdateSlaDefinitionResponse);
+    rpc GetSlaDefinition(GetSlaDefinitionRequest) returns (GetSlaDefinitionResponse);
+    
+    // Optimization and recommendations
+    rpc GetSliceOptimizationRecommendations(GetSliceOptimizationRecommendationsRequest) returns (GetSliceOptimizationRecommendationsResponse);
+    
+    // Alerting
+    rpc SubscribeToAlerts(SubscribeToAlertsRequest) returns (stream SliceAlert);
+    
+    // Health check
+    rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// Core prediction messages
+message PredictSlaBreachRequest {
+    string slice_id = 1;
+    SliceMetrics current_metrics = 2;
+    repeated SliceMetrics historical_metrics = 3;
+    int32 prediction_horizon_minutes = 4;
+    SlaDefinition sla_definition = 5;
+    PredictionConfig config = 6;
+    ran.common.Metadata metadata = 7;
+}
+
+message PredictSlaBreachResponse {
+    string slice_id = 1;
+    repeated SlaBreachPrediction breach_predictions = 2;
+    SliceRiskAnalysis risk_analysis = 3;
+    repeated SliceRecommendation recommendations = 4;
+    double model_confidence = 5;
+    string model_version = 6;
+    google.protobuf.Timestamp prediction_timestamp = 7;
+    ran.common.Metadata metadata = 8;
+}
+
+message SliceMetrics {
+    string slice_id = 1;
+    double prb_usage_percent = 2;
+    double throughput_mbps = 3;
+    int32 pdu_session_count = 4;
+    double latency_ms = 5;
+    double jitter_ms = 6;
+    double packet_loss_percent = 7;
+    double availability_percent = 8;
+    double resource_utilization_percent = 9;
+    int32 active_users = 10;
+    double cpu_usage_percent = 11;
+    double memory_usage_percent = 12;
+    map<string, double> custom_metrics = 13;
+    google.protobuf.Timestamp timestamp = 14;
+}
+
+message SlaDefinition {
+    string slice_id = 1;
+    string sla_id = 2;
+    string slice_type = 3; // eMBB, URLLC, mMTC
+    double guaranteed_throughput_mbps = 4;
+    double max_latency_ms = 5;
+    double max_jitter_ms = 6;
+    double max_packet_loss_percent = 7;
+    double min_availability_percent = 8;
+    int32 max_pdu_sessions = 9;
+    double priority_level = 10;
+    string service_level = 11; // GOLD, SILVER, BRONZE
+    map<string, double> custom_slas = 12;
+    google.protobuf.Timestamp valid_from = 13;
+    google.protobuf.Timestamp valid_until = 14;
+}
+
+message PredictionConfig {
+    string model_type = 1; // LSTM, GRU, TRANSFORMER, ENSEMBLE
+    int32 lookback_window_minutes = 2;
+    int32 prediction_window_minutes = 3;
+    double confidence_threshold = 4;
+    bool enable_feature_importance = 5;
+    bool enable_uncertainty_quantification = 6;
+    repeated string feature_weights = 7;
+}
+
+message SlaBreachPrediction {
+    string metric_type = 1; // THROUGHPUT, LATENCY, JITTER, PACKET_LOSS, AVAILABILITY
+    double breach_probability = 2;
+    google.protobuf.Timestamp predicted_breach_time = 3;
+    double predicted_value = 4;
+    double sla_threshold = 5;
+    double confidence_lower = 6;
+    double confidence_upper = 7;
+    double severity_score = 8;
+    string breach_type = 9; // GRADUAL, SUDDEN, SPIKE
+    repeated string contributing_factors = 10;
+}
+
+message SliceRiskAnalysis {
+    string slice_id = 1;
+    double overall_risk_score = 2;
+    string risk_level = 3; // LOW, MEDIUM, HIGH, CRITICAL
+    repeated RiskFactor risk_factors = 4;
+    double resource_contention_score = 5;
+    double demand_volatility_score = 6;
+    double historical_stability_score = 7;
+    double network_congestion_score = 8;
+    string trend_analysis = 9;
+    google.protobuf.Timestamp analysis_timestamp = 10;
+}
+
+message RiskFactor {
+    string factor_type = 1;
+    string description = 2;
+    double impact_score = 3;
+    double probability = 4;
+    string mitigation_strategy = 5;
+}
+
+message SliceRecommendation {
+    string recommendation_id = 1;
+    string recommendation_type = 2; // RESOURCE_ALLOCATION, PRIORITY_ADJUSTMENT, TRAFFIC_SHAPING, LOAD_BALANCING
+    string title = 3;
+    string description = 4;
+    double effectiveness_score = 5;
+    double implementation_cost = 6;
+    double roi_estimate = 7;
+    string priority = 8; // LOW, MEDIUM, HIGH, URGENT
+    string complexity = 9; // SIMPLE, MODERATE, COMPLEX
+    repeated string prerequisites = 10;
+    string implementation_guide = 11;
+    google.protobuf.Timestamp recommendation_timestamp = 12;
+    int32 estimated_implementation_time_minutes = 13;
+}
+
+// Monitoring messages
+message MonitorSliceRequest {
+    string slice_id = 1;
+    int32 monitoring_interval_seconds = 2;
+    repeated string metrics_to_monitor = 3;
+    bool include_predictions = 4;
+    ran.common.Metadata metadata = 5;
+}
+
+message SliceMonitoringData {
+    string slice_id = 1;
+    SliceMetrics current_metrics = 2;
+    repeated SlaBreachPrediction active_predictions = 3;
+    SliceHealthStatus health_status = 4;
+    repeated SliceAlert active_alerts = 5;
+    google.protobuf.Timestamp timestamp = 6;
+}
+
+message SliceHealthStatus {
+    string slice_id = 1;
+    string overall_health = 2; // HEALTHY, DEGRADED, CRITICAL, FAILED
+    double health_score = 3;
+    repeated string health_issues = 4;
+    repeated string performance_warnings = 5;
+    google.protobuf.Timestamp last_health_check = 6;
+}
+
+message GetSliceAnalysisRequest {
+    repeated string slice_ids = 1;
+    int32 analysis_window_hours = 2;
+    string analysis_type = 3; // PERFORMANCE, TREND, COMPARATIVE
+    bool include_recommendations = 4;
+    ran.common.Metadata metadata = 5;
+}
+
+message GetSliceAnalysisResponse {
+    repeated SliceAnalysis analyses = 1;
+    SliceAnalysisSummary summary = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message SliceAnalysis {
+    string slice_id = 1;
+    SliceMetrics current_metrics = 2;
+    SlicePerformanceAnalysis performance = 3;
+    SliceTrendAnalysis trend = 4;
+    SliceRiskAnalysis risk_analysis = 5;
+    repeated SliceRecommendation recommendations = 6;
+    google.protobuf.Timestamp analysis_timestamp = 7;
+}
+
+message SlicePerformanceAnalysis {
+    double sla_compliance_rate = 1;
+    double resource_efficiency_score = 2;
+    double quality_score = 3;
+    string performance_trend = 4; // IMPROVING, STABLE, DEGRADING
+    map<string, double> kpi_performance = 5;
+    repeated string performance_bottlenecks = 6;
+    double utilization_variance = 7;
+}
+
+message SliceTrendAnalysis {
+    string slice_id = 1;
+    repeated TrendDataPoint trend_data = 2;
+    string trend_direction = 3; // UPWARD, DOWNWARD, STABLE, VOLATILE
+    double trend_strength = 4;
+    repeated string trend_drivers = 5;
+    google.protobuf.Timestamp forecast_horizon = 6;
+}
+
+message TrendDataPoint {
+    google.protobuf.Timestamp timestamp = 1;
+    double value = 2;
+    string metric_type = 3;
+    double trend_component = 4;
+    double seasonal_component = 5;
+    double residual = 6;
+}
+
+message SliceAnalysisSummary {
+    int32 total_slices = 1;
+    int32 compliant_slices = 2;
+    int32 at_risk_slices = 3;
+    int32 breaching_slices = 4;
+    double overall_compliance_rate = 5;
+    double network_slice_efficiency = 6;
+    repeated string top_issues = 7;
+    repeated string improvement_opportunities = 8;
+    double total_resource_utilization = 9;
+}
+
+// Slice lifecycle management
+message CreateSliceProfileRequest {
+    string slice_id = 1;
+    string slice_name = 2;
+    string slice_type = 3;
+    SliceConfiguration configuration = 4;
+    SlaDefinition sla_definition = 5;
+    ran.common.Metadata metadata = 6;
+}
+
+message CreateSliceProfileResponse {
+    string slice_id = 1;
+    string profile_id = 2;
+    string status = 3;
+    google.protobuf.Timestamp created_at = 4;
+    ran.common.Metadata metadata = 5;
+}
+
+message SliceConfiguration {
+    string slice_id = 1;
+    repeated string covered_cells = 2;
+    double allocated_bandwidth_mbps = 3;
+    double allocated_compute_units = 4;
+    double allocated_memory_gb = 5;
+    int32 max_concurrent_users = 6;
+    string priority_class = 7;
+    string isolation_level = 8;
+    map<string, string> custom_configuration = 9;
+}
+
+message UpdateSliceProfileRequest {
+    string slice_id = 1;
+    string profile_id = 2;
+    SliceConfiguration configuration = 3;
+    SlaDefinition sla_definition = 4;
+    ran.common.Metadata metadata = 5;
+}
+
+message UpdateSliceProfileResponse {
+    string slice_id = 1;
+    string profile_id = 2;
+    string status = 3;
+    google.protobuf.Timestamp updated_at = 4;
+    ran.common.Metadata metadata = 5;
+}
+
+message DeleteSliceProfileRequest {
+    string slice_id = 1;
+    string profile_id = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message DeleteSliceProfileResponse {
+    string slice_id = 1;
+    string profile_id = 2;
+    string status = 3;
+    google.protobuf.Timestamp deleted_at = 4;
+    ran.common.Metadata metadata = 5;
+}
+
+// SLA management
+message CreateSlaDefinitionRequest {
+    string slice_id = 1;
+    SlaDefinition sla_definition = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message CreateSlaDefinitionResponse {
+    string slice_id = 1;
+    string sla_id = 2;
+    string status = 3;
+    google.protobuf.Timestamp created_at = 4;
+    ran.common.Metadata metadata = 5;
+}
+
+message UpdateSlaDefinitionRequest {
+    string slice_id = 1;
+    string sla_id = 2;
+    SlaDefinition sla_definition = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message UpdateSlaDefinitionResponse {
+    string slice_id = 1;
+    string sla_id = 2;
+    string status = 3;
+    google.protobuf.Timestamp updated_at = 4;
+    ran.common.Metadata metadata = 5;
+}
+
+message GetSlaDefinitionRequest {
+    string slice_id = 1;
+    string sla_id = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message GetSlaDefinitionResponse {
+    string slice_id = 1;
+    SlaDefinition sla_definition = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+// Optimization
+message GetSliceOptimizationRecommendationsRequest {
+    repeated string slice_ids = 1;
+    string optimization_goal = 2; // PERFORMANCE, COST, EFFICIENCY, RELIABILITY
+    double optimization_budget = 3;
+    int32 optimization_horizon_hours = 4;
+    ran.common.Metadata metadata = 5;
+}
+
+message GetSliceOptimizationRecommendationsResponse {
+    repeated SliceOptimizationPlan optimization_plans = 1;
+    OptimizationSummary summary = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message SliceOptimizationPlan {
+    string slice_id = 1;
+    repeated SliceRecommendation recommendations = 2;
+    double expected_improvement = 3;
+    double estimated_cost = 4;
+    double roi_estimate = 5;
+    string implementation_timeline = 6;
+    repeated string dependencies = 7;
+}
+
+message OptimizationSummary {
+    int32 total_slices = 1;
+    int32 optimizable_slices = 2;
+    double total_potential_improvement = 3;
+    double total_implementation_cost = 4;
+    double overall_roi = 5;
+    string recommended_approach = 6;
+}
+
+// Alerting
+message SubscribeToAlertsRequest {
+    repeated string slice_ids = 1;
+    repeated string alert_types = 2;
+    string severity_threshold = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message SliceAlert {
+    string alert_id = 1;
+    string slice_id = 2;
+    string alert_type = 3; // SLA_BREACH, PERFORMANCE_DEGRADATION, RESOURCE_EXHAUSTION
+    string severity = 4; // LOW, MEDIUM, HIGH, CRITICAL
+    string title = 5;
+    string description = 6;
+    string affected_metric = 7;
+    double current_value = 8;
+    double threshold_value = 9;
+    google.protobuf.Timestamp timestamp = 10;
+    repeated string suggested_actions = 11;
+    string escalation_level = 12;
+    bool auto_mitigation_available = 13;
+}
+
+// Health check
+message HealthCheckRequest {
+    ran.common.Metadata metadata = 1;
+}
+
+message HealthCheckResponse {
+    ran.common.HealthCheck health = 1;
+    repeated string service_status = 2;
+    int32 active_slices = 3;
+    int32 active_predictions = 4;
+    double system_load = 5;
+}

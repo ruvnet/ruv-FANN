@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package ran.common;
+
+import "google/protobuf/timestamp.proto";
+
+// Common data types used across all services
+message Metadata {
+    string service_name = 1;
+    string version = 2;
+    google.protobuf.Timestamp timestamp = 3;
+    string request_id = 4;
+}
+
+message DataPoint {
+    google.protobuf.Timestamp timestamp = 1;
+    string cell_id = 2;
+    string kpi_name = 3;
+    double kpi_value = 4;
+    map<string, string> tags = 5;
+}
+
+message TimeSeriesData {
+    string series_id = 1;
+    repeated DataPoint data_points = 2;
+    Metadata metadata = 3;
+}
+
+message ModelConfig {
+    string model_type = 1;
+    map<string, string> parameters = 2;
+    repeated string input_features = 3;
+    repeated string output_features = 4;
+}
+
+message TrainingData {
+    repeated TimeSeriesData time_series = 1;
+    ModelConfig config = 2;
+}
+
+message PredictionInput {
+    string model_id = 1;
+    repeated double features = 2;
+    Metadata metadata = 3;
+}
+
+message PredictionOutput {
+    repeated double predictions = 1;
+    double confidence = 2;
+    Metadata metadata = 3;
+}
+
+message HealthCheck {
+    string service_name = 1;
+    string status = 2;
+    google.protobuf.Timestamp last_updated = 3;
+    map<string, string> details = 4;
+}
+
+// Standard error response
+message ErrorResponse {
+    string error_code = 1;
+    string error_message = 2;
+    string service_name = 3;
+    google.protobuf.Timestamp timestamp = 4;
+}

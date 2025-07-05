@@ -1,0 +1,443 @@
+syntax = "proto3";
+
+package pfs_reg_01;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+// Model Registry service definition
+service ModelRegistry {
+    // Model Registration and Management
+    rpc RegisterModel(RegisterModelRequest) returns (RegisterModelResponse);
+    rpc UnregisterModel(UnregisterModelRequest) returns (UnregisterModelResponse);
+    rpc UpdateModel(UpdateModelRequest) returns (UpdateModelResponse);
+    
+    // Model Retrieval
+    rpc GetModel(GetModelRequest) returns (GetModelResponse);
+    rpc ListModels(ListModelsRequest) returns (ListModelsResponse);
+    rpc SearchModels(SearchModelsRequest) returns (SearchModelsResponse);
+    
+    // Model Versioning
+    rpc CreateModelVersion(CreateModelVersionRequest) returns (CreateModelVersionResponse);
+    rpc GetModelVersions(GetModelVersionsRequest) returns (GetModelVersionsResponse);
+    rpc ActivateModelVersion(ActivateModelVersionRequest) returns (ActivateModelVersionResponse);
+    rpc DeactivateModelVersion(DeactivateModelVersionRequest) returns (DeactivateModelVersionResponse);
+    
+    // Model Deployment
+    rpc DeployModel(DeployModelRequest) returns (DeployModelResponse);
+    rpc RetireModel(RetireModelRequest) returns (RetireModelResponse);
+    rpc GetDeploymentStatus(GetDeploymentStatusRequest) returns (GetDeploymentStatusResponse);
+    
+    // Model Performance and Monitoring
+    rpc RecordModelMetrics(RecordModelMetricsRequest) returns (RecordModelMetricsResponse);
+    rpc GetModelMetrics(GetModelMetricsRequest) returns (GetModelMetricsResponse);
+    rpc GetModelHealth(GetModelHealthRequest) returns (GetModelHealthResponse);
+    
+    // Registry Statistics
+    rpc GetRegistryStats(google.protobuf.Empty) returns (GetRegistryStatsResponse);
+    rpc GetModelUsageStats(GetModelUsageStatsRequest) returns (GetModelUsageStatsResponse);
+}
+
+// Data Types
+message ModelInfo {
+    string model_id = 1;
+    string name = 2;
+    string description = 3;
+    string version = 4;
+    ModelCategory category = 5;
+    ModelType model_type = 6;
+    repeated string tags = 7;
+    ModelCapabilities capabilities = 8;
+    ModelConfiguration configuration = 9;
+    ModelMetadata metadata = 10;
+    google.protobuf.Timestamp created_at = 11;
+    google.protobuf.Timestamp updated_at = 12;
+    string created_by = 13;
+    ModelStatus status = 14;
+}
+
+message ModelVersion {
+    string version_id = 1;
+    string model_id = 2;
+    string version_number = 3;
+    string description = 4;
+    ModelArtifact artifact = 5;
+    ModelPerformanceMetrics performance = 6;
+    google.protobuf.Timestamp created_at = 7;
+    string created_by = 8;
+    bool is_active = 9;
+    VersionStatus status = 10;
+}
+
+message ModelArtifact {
+    string artifact_id = 1;
+    string storage_path = 2;
+    string checksum = 3;
+    int64 size_bytes = 4;
+    ArtifactFormat format = 5;
+    map<string, string> properties = 6;
+}
+
+message ModelConfiguration {
+    map<string, string> hyperparameters = 1;
+    string training_config = 2;
+    string architecture_config = 3;
+    repeated string feature_names = 4;
+    string target_kpi = 5;
+    TrainingDataInfo training_data = 6;
+}
+
+message TrainingDataInfo {
+    string dataset_id = 1;
+    string data_source = 2;
+    google.protobuf.Timestamp training_start = 3;
+    google.protobuf.Timestamp training_end = 4;
+    int64 sample_count = 5;
+    map<string, string> data_schema = 6;
+}
+
+message ModelPerformanceMetrics {
+    double accuracy = 1;
+    double precision = 2;
+    double recall = 3;
+    double f1_score = 4;
+    double mse = 5;
+    double mae = 6;
+    double rmse = 7;
+    double r2_score = 8;
+    map<string, double> custom_metrics = 9;
+    google.protobuf.Timestamp measured_at = 10;
+}
+
+message ModelCapabilities {
+    bool supports_batch_prediction = 1;
+    bool supports_streaming_prediction = 2;
+    bool supports_online_learning = 3;
+    bool supports_gpu_acceleration = 4;
+    bool supports_quantization = 5;
+    bool supports_pruning = 6;
+    int32 max_input_size = 7;
+    int32 expected_output_size = 8;
+    repeated string supported_data_types = 9;
+}
+
+message ModelMetadata {
+    string author = 1;
+    string organization = 2;
+    string license = 3;
+    string documentation_url = 4;
+    string repository_url = 5;
+    repeated string papers = 6;
+    map<string, string> custom_fields = 7;
+}
+
+message DeploymentInfo {
+    string deployment_id = 1;
+    string model_id = 2;
+    string version_id = 3;
+    string environment = 4;
+    DeploymentStatus deployment_status = 5;
+    DeploymentConfig config = 6;
+    google.protobuf.Timestamp deployed_at = 7;
+    string deployed_by = 8;
+    map<string, string> deployment_properties = 9;
+}
+
+message DeploymentConfig {
+    int32 replicas = 1;
+    string resource_requirements = 2;
+    map<string, string> environment_variables = 3;
+    string health_check_endpoint = 4;
+    int32 health_check_interval = 5;
+}
+
+message ModelUsageMetrics {
+    string model_id = 1;
+    string version_id = 2;
+    int64 prediction_count = 3;
+    double average_latency_ms = 4;
+    double error_rate = 5;
+    int64 active_users = 6;
+    google.protobuf.Timestamp last_used = 7;
+    map<string, double> performance_metrics = 8;
+}
+
+// Enums
+enum ModelCategory {
+    MODEL_CATEGORY_UNSPECIFIED = 0;
+    MODEL_CATEGORY_PREDICTIVE_OPTIMIZATION = 1;
+    MODEL_CATEGORY_SERVICE_ASSURANCE = 2;
+    MODEL_CATEGORY_NETWORK_INTELLIGENCE = 3;
+    MODEL_CATEGORY_ANOMALY_DETECTION = 4;
+    MODEL_CATEGORY_FORECASTING = 5;
+    MODEL_CATEGORY_CLASSIFICATION = 6;
+    MODEL_CATEGORY_REGRESSION = 7;
+    MODEL_CATEGORY_CLUSTERING = 8;
+}
+
+enum ModelType {
+    MODEL_TYPE_UNSPECIFIED = 0;
+    MODEL_TYPE_NEURAL_NETWORK = 1;
+    MODEL_TYPE_RANDOM_FOREST = 2;
+    MODEL_TYPE_SVM = 3;
+    MODEL_TYPE_LINEAR_REGRESSION = 4;
+    MODEL_TYPE_LOGISTIC_REGRESSION = 5;
+    MODEL_TYPE_ENSEMBLE = 6;
+    MODEL_TYPE_DEEP_LEARNING = 7;
+    MODEL_TYPE_TIME_SERIES = 8;
+}
+
+enum ModelStatus {
+    MODEL_STATUS_UNSPECIFIED = 0;
+    MODEL_STATUS_REGISTERED = 1;
+    MODEL_STATUS_TRAINING = 2;
+    MODEL_STATUS_TRAINED = 3;
+    MODEL_STATUS_DEPLOYED = 4;
+    MODEL_STATUS_RETIRED = 5;
+    MODEL_STATUS_FAILED = 6;
+}
+
+enum VersionStatus {
+    VERSION_STATUS_UNSPECIFIED = 0;
+    VERSION_STATUS_DRAFT = 1;
+    VERSION_STATUS_ACTIVE = 2;
+    VERSION_STATUS_DEPRECATED = 3;
+    VERSION_STATUS_ARCHIVED = 4;
+}
+
+enum DeploymentStatus {
+    DEPLOYMENT_STATUS_UNSPECIFIED = 0;
+    DEPLOYMENT_STATUS_PENDING = 1;
+    DEPLOYMENT_STATUS_DEPLOYING = 2;
+    DEPLOYMENT_STATUS_ACTIVE = 3;
+    DEPLOYMENT_STATUS_FAILED = 4;
+    DEPLOYMENT_STATUS_RETIRING = 5;
+    DEPLOYMENT_STATUS_RETIRED = 6;
+}
+
+enum ArtifactFormat {
+    ARTIFACT_FORMAT_UNSPECIFIED = 0;
+    ARTIFACT_FORMAT_RUVRANN_BINARY = 1;
+    ARTIFACT_FORMAT_ONNX = 2;
+    ARTIFACT_FORMAT_PICKLE = 3;
+    ARTIFACT_FORMAT_TENSORFLOW_SAVED_MODEL = 4;
+    ARTIFACT_FORMAT_PYTORCH = 5;
+    ARTIFACT_FORMAT_COMPRESSED_TAR = 6;
+}
+
+// Request/Response Messages
+
+// Model Registration
+message RegisterModelRequest {
+    ModelInfo model_info = 1;
+    bytes model_artifact = 2;
+    bool auto_deploy = 3;
+}
+
+message RegisterModelResponse {
+    string model_id = 1;
+    string version_id = 2;
+    bool success = 3;
+    string message = 4;
+}
+
+message UnregisterModelRequest {
+    string model_id = 1;
+    bool force = 2;
+}
+
+message UnregisterModelResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message UpdateModelRequest {
+    string model_id = 1;
+    ModelInfo updated_info = 2;
+}
+
+message UpdateModelResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+// Model Retrieval
+message GetModelRequest {
+    string model_id = 1;
+    string version_id = 2; // Optional, gets latest if not specified
+    bool include_artifact = 3;
+}
+
+message GetModelResponse {
+    ModelInfo model_info = 1;
+    ModelVersion version_info = 2;
+    bytes model_artifact = 3; // Only if include_artifact is true
+}
+
+message ListModelsRequest {
+    ModelCategory category = 1; // Optional filter
+    ModelStatus status = 2; // Optional filter
+    int32 page_size = 3;
+    string page_token = 4;
+}
+
+message ListModelsResponse {
+    repeated ModelInfo models = 1;
+    string next_page_token = 2;
+    int32 total_count = 3;
+}
+
+message SearchModelsRequest {
+    string query = 1;
+    repeated string tags = 2;
+    ModelCategory category = 3;
+    ModelType model_type = 4;
+    int32 page_size = 5;
+    string page_token = 6;
+}
+
+message SearchModelsResponse {
+    repeated ModelInfo models = 1;
+    string next_page_token = 2;
+    int32 total_count = 3;
+    repeated string suggestions = 4;
+}
+
+// Model Versioning
+message CreateModelVersionRequest {
+    string model_id = 1;
+    string version_number = 2;
+    string description = 3;
+    bytes model_artifact = 4;
+    ModelPerformanceMetrics performance = 5;
+    bool activate = 6;
+}
+
+message CreateModelVersionResponse {
+    string version_id = 1;
+    bool success = 2;
+    string message = 3;
+}
+
+message GetModelVersionsRequest {
+    string model_id = 1;
+    int32 page_size = 2;
+    string page_token = 3;
+}
+
+message GetModelVersionsResponse {
+    repeated ModelVersion versions = 1;
+    string next_page_token = 2;
+}
+
+message ActivateModelVersionRequest {
+    string model_id = 1;
+    string version_id = 2;
+}
+
+message ActivateModelVersionResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message DeactivateModelVersionRequest {
+    string model_id = 1;
+    string version_id = 2;
+}
+
+message DeactivateModelVersionResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+// Model Deployment
+message DeployModelRequest {
+    string model_id = 1;
+    string version_id = 2;
+    string environment = 3;
+    DeploymentConfig config = 4;
+}
+
+message DeployModelResponse {
+    string deployment_id = 1;
+    bool success = 2;
+    string message = 3;
+}
+
+message RetireModelRequest {
+    string deployment_id = 1;
+    string reason = 2;
+}
+
+message RetireModelResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message GetDeploymentStatusRequest {
+    string deployment_id = 1;
+}
+
+message GetDeploymentStatusResponse {
+    DeploymentInfo deployment_info = 1;
+    ModelUsageMetrics usage_metrics = 2;
+}
+
+// Performance and Monitoring
+message RecordModelMetricsRequest {
+    string model_id = 1;
+    string version_id = 2;
+    ModelUsageMetrics metrics = 3;
+}
+
+message RecordModelMetricsResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message GetModelMetricsRequest {
+    string model_id = 1;
+    string version_id = 2;
+    google.protobuf.Timestamp start_time = 3;
+    google.protobuf.Timestamp end_time = 4;
+}
+
+message GetModelMetricsResponse {
+    repeated ModelUsageMetrics metrics = 1;
+    ModelPerformanceMetrics aggregated_performance = 2;
+}
+
+message GetModelHealthRequest {
+    string model_id = 1;
+    string version_id = 2;
+}
+
+message GetModelHealthResponse {
+    bool is_healthy = 1;
+    double health_score = 2;
+    repeated string health_issues = 3;
+    google.protobuf.Timestamp last_health_check = 4;
+}
+
+// Registry Statistics
+message GetRegistryStatsResponse {
+    int32 total_models = 1;
+    int32 total_versions = 2;
+    int32 active_deployments = 3;
+    map<string, int32> models_by_category = 4;
+    map<string, int32> models_by_status = 5;
+    int64 total_predictions_served = 6;
+    double average_model_latency_ms = 7;
+    google.protobuf.Timestamp last_updated = 8;
+}
+
+message GetModelUsageStatsRequest {
+    string model_id = 1;
+    google.protobuf.Timestamp start_time = 2;
+    google.protobuf.Timestamp end_time = 3;
+}
+
+message GetModelUsageStatsResponse {
+    ModelUsageMetrics usage_stats = 1;
+    repeated ModelUsageMetrics historical_stats = 2;
+}

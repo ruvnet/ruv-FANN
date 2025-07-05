@@ -1,0 +1,51 @@
+# PFS-REG-01 Model Registry Configuration
+
+[server]
+host = "0.0.0.0"
+port = 50052
+tls_enabled = false
+timeout_seconds = 30
+max_message_size = 4194304  # 4MB
+
+[database]
+url = "sqlite:./pfs_registry.db"
+max_connections = 10
+connect_timeout_seconds = 10
+query_timeout_seconds = 30
+auto_migrate = true
+enable_logging = false
+
+[storage]
+backend = "Filesystem"
+base_path = "./storage"
+enable_compression = true
+compression_algorithm = "Gzip"
+compression_level = 6
+enable_integrity_check = true
+cleanup_interval_hours = 24
+max_artifact_size_bytes = 1073741824  # 1GB
+
+[monitoring]
+enable_metrics = true
+metrics_port = 9090
+enable_health_checks = true
+health_check_interval_seconds = 30
+enable_tracing = true
+log_level = "info"
+
+[security]
+enable_auth = false
+token_expiration_hours = 24
+enable_api_keys = false
+api_keys = []
+enable_audit_log = false
+
+[performance]
+enable_connection_pooling = true
+connection_pool_size = 10
+enable_caching = true
+cache_size = 1000
+cache_ttl_seconds = 3600
+enable_rate_limiting = false
+rate_limit_per_minute = 100
+batch_size = 100

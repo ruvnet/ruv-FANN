@@ -1,0 +1,137 @@
+syntax = "proto3";
+
+package ran.ml_core;
+
+import "common.proto";
+import "google/protobuf/timestamp.proto";
+
+// ML Core Service - Wraps ruv-FANN functionality
+service MLCoreService {
+    // Model management
+    rpc CreateModel(CreateModelRequest) returns (CreateModelResponse);
+    rpc TrainModel(TrainModelRequest) returns (TrainModelResponse);
+    rpc Predict(PredictRequest) returns (PredictResponse);
+    rpc GetModel(GetModelRequest) returns (GetModelResponse);
+    rpc DeleteModel(DeleteModelRequest) returns (DeleteModelResponse);
+    rpc ListModels(ListModelsRequest) returns (ListModelsResponse);
+    
+    // Health check
+    rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+message CreateModelRequest {
+    ran.common.ModelConfig config = 1;
+    ran.common.Metadata metadata = 2;
+}
+
+message CreateModelResponse {
+    string model_id = 1;
+    string status = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message TrainModelRequest {
+    string model_id = 1;
+    ran.common.TrainingData training_data = 2;
+    TrainingParameters parameters = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message TrainingParameters {
+    int32 epochs = 1;
+    double learning_rate = 2;
+    double validation_split = 3;
+    int32 batch_size = 4;
+    bool early_stopping = 5;
+    double patience = 6;
+}
+
+message TrainModelResponse {
+    string model_id = 1;
+    TrainingMetrics metrics = 2;
+    string status = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message TrainingMetrics {
+    double training_loss = 1;
+    double validation_loss = 2;
+    double training_accuracy = 3;
+    double validation_accuracy = 4;
+    int32 epochs_completed = 5;
+    google.protobuf.Timestamp training_start = 6;
+    google.protobuf.Timestamp training_end = 7;
+}
+
+message PredictRequest {
+    string model_id = 1;
+    repeated double input_features = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message PredictResponse {
+    repeated double predictions = 1;
+    double confidence = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message GetModelRequest {
+    string model_id = 1;
+    ran.common.Metadata metadata = 2;
+}
+
+message GetModelResponse {
+    string model_id = 1;
+    ran.common.ModelConfig config = 2;
+    ModelStatus status = 3;
+    TrainingMetrics metrics = 4;
+    ran.common.Metadata metadata = 5;
+}
+
+message ModelStatus {
+    string state = 1; // CREATED, TRAINING, TRAINED, FAILED, DELETED
+    google.protobuf.Timestamp created_at = 2;
+    google.protobuf.Timestamp updated_at = 3;
+    string version = 4;
+}
+
+message DeleteModelRequest {
+    string model_id = 1;
+    ran.common.Metadata metadata = 2;
+}
+
+message DeleteModelResponse {
+    string model_id = 1;
+    string status = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message ListModelsRequest {
+    string filter = 1;
+    int32 page_size = 2;
+    string page_token = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message ListModelsResponse {
+    repeated ModelInfo models = 1;
+    string next_page_token = 2;
+    int32 total_count = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message ModelInfo {
+    string model_id = 1;
+    string name = 2;
+    string description = 3;
+    ran.common.ModelConfig config = 4;
+    ModelStatus status = 5;
+}
+
+message HealthCheckRequest {
+    ran.common.Metadata metadata = 1;
+}
+
+message HealthCheckResponse {
+    ran.common.HealthCheck health = 1;
+}

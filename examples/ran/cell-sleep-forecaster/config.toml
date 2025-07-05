@@ -1,0 +1,97 @@
+# Cell Sleep Mode Forecaster Configuration
+# OPT-ENG-01 - RAN Intelligence Platform
+
+# Minimum number of historical data points required for forecasting
+min_data_points = 144  # 24 hours of 10-minute intervals
+
+# Forecast horizon in minutes
+forecast_horizon_minutes = 60
+
+# Minimum confidence score for sleep window recommendations (0.0 - 1.0)
+min_confidence_score = 0.8
+
+# Maximum risk score for sleep window recommendations (0.0 - 1.0)
+max_risk_score = 0.2
+
+# Low traffic threshold as percentage of PRB utilization
+low_traffic_threshold = 20.0
+
+# Minimum sleep window duration in minutes
+min_sleep_duration_minutes = 15
+
+# Maximum sleep window duration in minutes
+max_sleep_duration_minutes = 120
+
+# Model retraining interval in hours
+model_retrain_interval_hours = 6
+
+[database]
+# Database connection URL
+url = "postgresql://localhost/cell_sleep_forecaster"
+
+# Maximum number of database connections
+max_connections = 10
+
+# Database operation timeout in seconds
+timeout_seconds = 30
+
+# Number of retry attempts for failed operations
+retry_attempts = 3
+
+[network]
+# Base URL for cellular network management API
+base_url = "http://localhost:8080/api/v1"
+
+# Network request timeout in seconds
+timeout_seconds = 10
+
+# Number of retry attempts for failed requests
+retry_attempts = 3
+
+# Rate limit: maximum requests per minute
+rate_limit_requests_per_minute = 100
+
+# Optional authentication token for API access
+# auth_token = "your_auth_token_here"
+
+[monitoring]
+# Enable monitoring and alerting
+enabled = true
+
+# Port for Prometheus metrics endpoint
+metrics_port = 9090
+
+# Logging level (trace, debug, info, warn, error)
+log_level = "info"
+
+# Prometheus namespace for metrics
+prometheus_namespace = "cell_sleep_forecaster"
+
+[monitoring.alert_thresholds]
+# MAPE threshold for accuracy alerts (percentage)
+mape_threshold = 10.0
+
+# Detection rate threshold for accuracy alerts (percentage)
+detection_rate_threshold = 95.0
+
+# Prediction latency threshold for performance alerts (milliseconds)
+prediction_latency_ms = 1000
+
+# Error rate threshold for system health alerts (percentage)
+error_rate_threshold = 5.0
+
+[targets]
+# Target MAPE for forecasting accuracy (percentage)
+target_mape = 10.0
+
+# Target detection rate for low-traffic windows (percentage)
+target_detection_rate = 95.0
+
+# Target prediction latency (milliseconds)
+target_prediction_latency_ms = 1000
+
+# Target system throughput (requests per second)
+target_throughput_rps = 1000
+
+# Target system availability (percentage)
+target_availability = 99.9

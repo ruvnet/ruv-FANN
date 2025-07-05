@@ -1,0 +1,37 @@
+[package]
+name = "ran-intelligence-platform"
+version = "0.1.0"
+edition = "2021"
+authors = ["RAN Intelligence Team"]
+description = "AI-Powered RAN Intelligence & Automation Platform"
+license = "MIT OR Apache-2.0"
+
+[workspace]
+members = ["pfs-data-01"]
+# Standalone workspace
+
+[dependencies]
+ruv-fann = { path = "../.." }
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.0", features = ["v4"] }
+thiserror = "1.0"
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+clap = { version = "4.0", features = ["derive"] }
+async-trait = "0.1"
+
+[[bin]]
+name = "test_build"
+path = "src/bin/test_build.rs"
+
+[[bin]]
+name = "asa-5g-01"
+path = "src/bin/asa_5g_01.rs"
+
+[lib]
+name = "ran_intelligence"
+path = "src/lib.rs"

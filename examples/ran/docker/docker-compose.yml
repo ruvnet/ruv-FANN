@@ -1,0 +1,308 @@
+version: '3.8'
+
+services:
+  # Platform Foundation Services
+  pfs-data:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.platform-foundation
+      args:
+        SERVICE_NAME: pfs-data
+    image: ran-intelligence/pfs-data:latest
+    container_name: ran-pfs-data
+    ports:
+      - "50051:50051"
+      - "9090:9090"  # Metrics
+    environment:
+      - RUST_LOG=info
+      - GRPC_PORT=50051
+      - METRICS_PORT=9090
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/ran_intelligence
+      - DATA_PATH=/app/data
+    volumes:
+      - data_volume:/app/data
+      - ./config:/app/config:ro
+    depends_on:
+      - postgres
+    networks:
+      - ran-network
+    restart: unless-stopped
+
+  pfs-feat:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.platform-foundation
+      args:
+        SERVICE_NAME: pfs-feat
+    image: ran-intelligence/pfs-feat:latest
+    container_name: ran-pfs-feat
+    ports:
+      - "50052:50051"
+      - "9091:9090"
+    environment:
+      - RUST_LOG=info
+      - GRPC_PORT=50051
+      - METRICS_PORT=9090
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/ran_intelligence
+      - DATA_PATH=/app/data
+    volumes:
+      - data_volume:/app/data
+      - ./config:/app/config:ro
+    depends_on:
+      - postgres
+      - pfs-data
+    networks:
+      - ran-network
+    restart: unless-stopped
+
+  pfs-core:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.platform-foundation
+      args:
+        SERVICE_NAME: pfs-core
+    image: ran-intelligence/pfs-core:latest
+    container_name: ran-pfs-core
+    ports:
+      - "50053:50051"
+      - "9092:9090"
+    environment:
+      - RUST_LOG=info
+      - GRPC_PORT=50051
+      - METRICS_PORT=9090
+      - MODEL_PATH=/app/models
+    volumes:
+      - model_volume:/app/models
+      - ./config:/app/config:ro
+    networks:
+      - ran-network
+    restart: unless-stopped
+
+  pfs-reg:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.platform-foundation
+      args:
+        SERVICE_NAME: pfs-reg
+    image: ran-intelligence/pfs-reg:latest
+    container_name: ran-pfs-reg
+    ports:
+      - "50054:50051"
+      - "9093:9090"
+    environment:
+      - RUST_LOG=info
+      - GRPC_PORT=50051
+      - METRICS_PORT=9090
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/ran_intelligence
+      - MODEL_PATH=/app/models
+    volumes:
+      - model_volume:/app/models
+      - ./config:/app/config:ro
+    depends_on:
+      - postgres
+      - pfs-core
+    networks:
+      - ran-network
+    restart: unless-stopped
+
+  # Predictive Optimization Services
+  opt-mob:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.predictive-optimization
+      args:
+        SERVICE_NAME: opt-mob
+    image: ran-intelligence/opt-mob:latest
+    container_name: ran-opt-mob
+    ports:
+      - "50055:50051"
+      - "9094:9090"
+    environment:
+      - RUST_LOG=info
+      - GRPC_PORT=50051
+      - METRICS_PORT=9090
+      - PFS_CORE_URL=http://pfs-core:50051
+      - PFS_REG_URL=http://pfs-reg:50051
+    depends_on:
+      - pfs-core
+      - pfs-reg
+    networks:
+      - ran-network
+    restart: unless-stopped
+
+  opt-eng:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.predictive-optimization
+      args:
+        SERVICE_NAME: opt-eng
+    image: ran-intelligence/opt-eng:latest
+    container_name: ran-opt-eng
+    ports:
+      - "50056:50051"
+      - "9095:9090"
+    environment:
+      - RUST_LOG=info
+      - GRPC_PORT=50051
+      - METRICS_PORT=9090
+      - PFS_CORE_URL=http://pfs-core:50051
+      - PFS_REG_URL=http://pfs-reg:50051
+    depends_on:
+      - pfs-core
+      - pfs-reg
+    networks:
+      - ran-network
+    restart: unless-stopped
+
+  opt-res:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.predictive-optimization
+      args:
+        SERVICE_NAME: opt-res
+    image: ran-intelligence/opt-res:latest
+    container_name: ran-opt-res
+    ports:
+      - "50057:50051"
+      - "9096:9090"
+    environment:
+      - RUST_LOG=info
+      - GRPC_PORT=50051
+      - METRICS_PORT=9090
+      - PFS_CORE_URL=http://pfs-core:50051
+      - PFS_REG_URL=http://pfs-reg:50051
+    depends_on:
+      - pfs-core
+      - pfs-reg
+    networks:
+      - ran-network
+    restart: unless-stopped
+
+  # Service Assurance Services
+  asa-int:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.service-assurance
+      args:
+        SERVICE_NAME: asa-int
+    image: ran-intelligence/asa-int:latest
+    container_name: ran-asa-int
+    ports:
+      - "50058:50051"
+      - "9097:9090"
+    environment:
+      - RUST_LOG=info
+      - GRPC_PORT=50051
+      - METRICS_PORT=9090
+      - PFS_CORE_URL=http://pfs-core:50051
+      - PFS_REG_URL=http://pfs-reg:50051
+    depends_on:
+      - pfs-core
+      - pfs-reg
+    networks:
+      - ran-network
+    restart: unless-stopped
+
+  # Network Intelligence Services
+  dni-clus:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.network-intelligence
+      args:
+        SERVICE_NAME: dni-clus
+    image: ran-intelligence/dni-clus:latest
+    container_name: ran-dni-clus
+    ports:
+      - "50059:50051"
+      - "9098:9090"
+    environment:
+      - RUST_LOG=info
+      - GRPC_PORT=50051
+      - METRICS_PORT=9090
+      - PFS_FEAT_URL=http://pfs-feat:50051
+    depends_on:
+      - pfs-feat
+    networks:
+      - ran-network
+    restart: unless-stopped
+
+  # Infrastructure Services
+  postgres:
+    image: postgres:15-alpine
+    container_name: ran-postgres
+    environment:
+      - POSTGRES_DB=ran_intelligence
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    networks:
+      - ran-network
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ran-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - ran-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ran-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    networks:
+      - ran-network
+    restart: unless-stopped
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: ran-jaeger
+    ports:
+      - "16686:16686"
+      - "14268:14268"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - ran-network
+    restart: unless-stopped
+
+networks:
+  ran-network:
+    driver: bridge
+
+volumes:
+  data_volume:
+    driver: local
+  model_volume:
+    driver: local
+  postgres_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local

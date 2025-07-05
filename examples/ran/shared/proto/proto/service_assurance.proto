@@ -1,0 +1,308 @@
+syntax = "proto3";
+
+package ran.service_assurance;
+
+import "common.proto";
+import "google/protobuf/timestamp.proto";
+
+// Service Assurance Services - Proactive issue detection and mitigation
+service ServiceAssuranceService {
+    // Uplink Interference Management
+    rpc ClassifyUlInterference(ClassifyUlInterferenceRequest) returns (ClassifyUlInterferenceResponse);
+    rpc GetInterferenceAnalysis(GetInterferenceAnalysisRequest) returns (GetInterferenceAnalysisResponse);
+    
+    // 5G NSA/SA Service Assurance
+    rpc PredictEndcFailure(PredictEndcFailureRequest) returns (PredictEndcFailureResponse);
+    rpc Get5GServiceHealth(Get5GServiceHealthRequest) returns (Get5GServiceHealthResponse);
+    
+    // Quality of Service/Experience
+    rpc ForecastVoLTEJitter(ForecastVoLTEJitterRequest) returns (ForecastVoLTEJitterResponse);
+    rpc GetQosAnalysis(GetQosAnalysisRequest) returns (GetQosAnalysisResponse);
+    
+    // Health check
+    rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// Uplink Interference Management Messages
+message ClassifyUlInterferenceRequest {
+    string cell_id = 1;
+    UlInterferenceMetrics metrics = 2;
+    int32 analysis_window_minutes = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message UlInterferenceMetrics {
+    string cell_id = 1;
+    double noise_floor_pusch = 2;
+    double noise_floor_pucch = 3;
+    double cell_ret = 4;
+    double ul_sinr_average = 5;
+    double ul_interference_power = 6;
+    repeated double frequency_spectrum = 7;
+    google.protobuf.Timestamp timestamp = 8;
+}
+
+message ClassifyUlInterferenceResponse {
+    string cell_id = 1;
+    InterferenceClassification classification = 2;
+    double confidence = 3;
+    InterferenceAnalysis analysis = 4;
+    repeated InterferenceMitigation mitigations = 5;
+    ran.common.Metadata metadata = 6;
+}
+
+message InterferenceClassification {
+    string class = 1; // EXTERNAL_JAMMER, PIM, ADJACENT_CHANNEL, THERMAL_NOISE, LEGITIMATE_TRAFFIC
+    double confidence = 2;
+    string subclass = 3;
+    InterferenceCharacteristics characteristics = 4;
+}
+
+message InterferenceCharacteristics {
+    double frequency_range_mhz = 1;
+    double power_level_dbm = 2;
+    string pattern = 3; // CONTINUOUS, INTERMITTENT, PERIODIC
+    double bandwidth_mhz = 4;
+    repeated double affected_frequencies = 5;
+}
+
+message InterferenceAnalysis {
+    string cell_id = 1;
+    double severity_level = 2; // 0-10 scale
+    double impact_on_capacity = 3;
+    double impact_on_quality = 4;
+    int32 affected_users = 5;
+    string root_cause = 6;
+    repeated string contributing_factors = 7;
+}
+
+message InterferenceMitigation {
+    string strategy = 1; // FREQUENCY_HOPPING, POWER_CONTROL, BEAMFORMING, ANTENNA_TILT
+    double effectiveness = 2;
+    string implementation = 3;
+    double estimated_improvement = 4;
+    string priority = 5;
+}
+
+message GetInterferenceAnalysisRequest {
+    repeated string cell_ids = 1;
+    int32 time_window_hours = 2;
+    double severity_threshold = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message GetInterferenceAnalysisResponse {
+    repeated InterferenceReport reports = 1;
+    InterferenceSummary summary = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message InterferenceReport {
+    string cell_id = 1;
+    InterferenceClassification classification = 2;
+    InterferenceAnalysis analysis = 3;
+    repeated InterferenceMitigation mitigations = 4;
+    google.protobuf.Timestamp last_updated = 5;
+}
+
+message InterferenceSummary {
+    int32 total_cells = 1;
+    int32 affected_cells = 2;
+    map<string, int32> interference_types = 3;
+    double average_severity = 4;
+    int32 total_affected_users = 5;
+    double network_impact_score = 6;
+}
+
+// 5G NSA/SA Service Assurance Messages
+message PredictEndcFailureRequest {
+    string ue_id = 1;
+    EndcMetrics metrics = 2;
+    int32 prediction_horizon_seconds = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message EndcMetrics {
+    string ue_id = 1;
+    double lte_rsrp = 2;
+    double lte_sinr = 3;
+    double nr_ssb_rsrp = 4;
+    double nr_ssb_sinr = 5;
+    double endc_setup_success_rate_cell = 6;
+    string current_bearer_config = 7;
+    double data_volume_mbps = 8;
+    google.protobuf.Timestamp timestamp = 9;
+}
+
+message PredictEndcFailureResponse {
+    string ue_id = 1;
+    double failure_probability = 2;
+    string predicted_failure_type = 3; // INITIAL_SETUP, BEARER_SETUP, BEARER_MODIFICATION, RELEASE
+    double confidence = 4;
+    FailureAnalysis analysis = 5;
+    repeated FailureMitigation mitigations = 6;
+    ran.common.Metadata metadata = 7;
+}
+
+message FailureAnalysis {
+    string ue_id = 1;
+    string root_cause = 2;
+    repeated string contributing_factors = 3;
+    double signal_quality_score = 4;
+    double network_congestion_score = 5;
+    double ue_capability_score = 6;
+    string risk_level = 7; // LOW, MEDIUM, HIGH, CRITICAL
+}
+
+message FailureMitigation {
+    string strategy = 1; // BEARER_RECONFIGURATION, CELL_RESELECTION, PARAMETER_OPTIMIZATION
+    double effectiveness = 2;
+    string implementation = 3;
+    double estimated_improvement = 4;
+    string priority = 5;
+}
+
+message Get5GServiceHealthRequest {
+    repeated string cell_ids = 1;
+    int32 time_window_hours = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message Get5GServiceHealthResponse {
+    repeated ServiceHealthReport reports = 1;
+    ServiceHealthSummary summary = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message ServiceHealthReport {
+    string cell_id = 1;
+    double endc_success_rate = 2;
+    double bearer_setup_success_rate = 3;
+    double handover_success_rate = 4;
+    double throughput_performance = 5;
+    double latency_performance = 6;
+    string health_status = 7; // HEALTHY, DEGRADED, CRITICAL
+    repeated string issues = 8;
+    google.protobuf.Timestamp last_updated = 9;
+}
+
+message ServiceHealthSummary {
+    int32 total_cells = 1;
+    int32 healthy_cells = 2;
+    int32 degraded_cells = 3;
+    int32 critical_cells = 4;
+    double average_endc_success_rate = 5;
+    double average_throughput_performance = 6;
+    double network_health_score = 7;
+}
+
+// Quality of Service/Experience Messages
+message ForecastVoLTEJitterRequest {
+    string cell_id = 1;
+    VoLTEMetrics current_metrics = 2;
+    int32 forecast_horizon_minutes = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message VoLTEMetrics {
+    string cell_id = 1;
+    double prb_utilization_dl = 2;
+    int32 active_volte_users = 3;
+    double competing_gbr_traffic_mbps = 4;
+    double current_jitter_ms = 5;
+    double packet_loss_rate = 6;
+    double delay_ms = 7;
+    google.protobuf.Timestamp timestamp = 8;
+}
+
+message ForecastVoLTEJitterResponse {
+    string cell_id = 1;
+    repeated JitterForecast forecasts = 2;
+    JitterAnalysis analysis = 3;
+    repeated QualityRecommendation recommendations = 4;
+    ran.common.Metadata metadata = 5;
+}
+
+message JitterForecast {
+    google.protobuf.Timestamp timestamp = 1;
+    double predicted_jitter_ms = 2;
+    double confidence = 3;
+    double prediction_interval_lower = 4;
+    double prediction_interval_upper = 5;
+}
+
+message JitterAnalysis {
+    string cell_id = 1;
+    double baseline_jitter_ms = 2;
+    double peak_jitter_ms = 3;
+    double jitter_variability = 4;
+    repeated string contributing_factors = 5;
+    double quality_impact_score = 6;
+    string quality_trend = 7; // IMPROVING, STABLE, DEGRADING
+}
+
+message QualityRecommendation {
+    string recommendation_type = 1; // TRAFFIC_SHAPING, RESOURCE_ALLOCATION, PRIORITY_ADJUSTMENT
+    string description = 2;
+    double expected_improvement_ms = 3;
+    string priority = 4;
+    string implementation = 5;
+}
+
+message GetQosAnalysisRequest {
+    repeated string cell_ids = 1;
+    string service_type = 2; // VOLTE, VIDEO, DATA, GAMING
+    int32 time_window_hours = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message GetQosAnalysisResponse {
+    repeated QosReport reports = 1;
+    QosSummary summary = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message QosReport {
+    string cell_id = 1;
+    string service_type = 2;
+    QosMetrics metrics = 3;
+    QosAnalysis analysis = 4;
+    repeated QualityRecommendation recommendations = 5;
+    google.protobuf.Timestamp last_updated = 6;
+}
+
+message QosMetrics {
+    double throughput_mbps = 1;
+    double latency_ms = 2;
+    double jitter_ms = 3;
+    double packet_loss_rate = 4;
+    double availability = 5;
+    double user_satisfaction_score = 6;
+}
+
+message QosAnalysis {
+    string cell_id = 1;
+    string service_type = 2;
+    double performance_score = 3;
+    string performance_trend = 4;
+    repeated string quality_issues = 5;
+    double sla_compliance = 6;
+    string risk_level = 7;
+}
+
+message QosSummary {
+    int32 total_cells = 1;
+    map<string, QosMetrics> service_performance = 2;
+    double overall_network_quality = 3;
+    double sla_compliance_rate = 4;
+    int32 cells_with_issues = 5;
+    repeated string top_issues = 6;
+}
+
+message HealthCheckRequest {
+    ran.common.Metadata metadata = 1;
+}
+
+message HealthCheckResponse {
+    ran.common.HealthCheck health = 1;
+}

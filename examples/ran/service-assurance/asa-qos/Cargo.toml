@@ -1,0 +1,81 @@
+[package]
+name = "asa-qos"
+version = "0.1.0"
+edition = "2021"
+authors = ["RAN Intelligence Team"]
+description = "ASA-QOS-01 - Predictive VoLTE Jitter Forecaster"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+# Core ML engine
+ruv-fann = { path = "../../../.." }
+
+# gRPC and networking
+tonic = "0.11"
+tonic-build = "0.11"
+prost = "0.12"
+tokio = { version = "1.0", features = ["full"] }
+tower = "0.4"
+hyper = "0.14"
+
+# Data processing and time-series
+arrow = "53.0"
+parquet = "53.0"
+polars = { version = "0.42", features = ["lazy", "temporal", "csv-file", "json"] }
+ndarray = "0.15"
+statrs = "0.16"
+
+# Storage
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Monitoring and tracing
+tracing = "0.1"
+tracing-subscriber = "0.3"
+metrics = "0.23"
+prometheus = "0.13"
+
+# Configuration
+config = "0.14"
+clap = { version = "4.0", features = ["derive"] }
+
+# Time and UUID
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+# Async utilities
+futures = "0.3"
+async-trait = "0.1"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Mathematical and statistical functions
+nalgebra = "0.32"
+libm = "0.2"
+
+# Shared modules
+ran-proto = { path = "../../shared/proto" }
+ran-common = { path = "../../shared/common" }
+
+[dev-dependencies]
+testcontainers = "0.17"
+pretty_assertions = "1.4"
+tokio-test = "0.4"
+
+[build-dependencies]
+tonic-build = "0.11"
+
+[[bin]]
+name = "asa-qos-server"
+path = "src/bin/server.rs"
+
+[[bin]]
+name = "asa-qos-client"
+path = "src/bin/client.rs"
+
+[features]
+default = ["postgres"]
+postgres = ["sqlx/postgres"]

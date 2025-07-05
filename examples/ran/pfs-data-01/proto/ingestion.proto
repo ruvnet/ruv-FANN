@@ -1,0 +1,169 @@
+syntax = "proto3";
+
+package pfs.data.v1;
+
+// Data Ingestion Service for RAN Intelligence Platform
+// Handles batch processing of CSV/JSON files to normalized Parquet format
+service DataIngestionService {
+    // Start ingestion for a directory
+    rpc StartIngestion(StartIngestionRequest) returns (StartIngestionResponse);
+    
+    // Stop ingestion for a directory
+    rpc StopIngestion(StopIngestionRequest) returns (StopIngestionResponse);
+    
+    // Get ingestion status
+    rpc GetIngestionStatus(GetIngestionStatusRequest) returns (GetIngestionStatusResponse);
+    
+    // Get ingestion metrics
+    rpc GetIngestionMetrics(GetIngestionMetricsRequest) returns (GetIngestionMetricsResponse);
+    
+    // List active ingestion jobs
+    rpc ListIngestionJobs(ListIngestionJobsRequest) returns (ListIngestionJobsResponse);
+    
+    // Stream ingestion events
+    rpc StreamIngestionEvents(StreamIngestionEventsRequest) returns (stream IngestionEvent);
+}
+
+message StartIngestionRequest {
+    string input_directory = 1;
+    string output_directory = 2;
+    IngestionConfig config = 3;
+}
+
+message StartIngestionResponse {
+    string job_id = 1;
+    string status = 2;
+    string message = 3;
+}
+
+message StopIngestionRequest {
+    string job_id = 1;
+}
+
+message StopIngestionResponse {
+    string job_id = 1;
+    string status = 2;
+    string message = 3;
+}
+
+message GetIngestionStatusRequest {
+    string job_id = 1;
+}
+
+message GetIngestionStatusResponse {
+    string job_id = 1;
+    string status = 2;
+    IngestionProgress progress = 3;
+    repeated string errors = 4;
+}
+
+message GetIngestionMetricsRequest {
+    string job_id = 1;
+}
+
+message GetIngestionMetricsResponse {
+    string job_id = 1;
+    IngestionMetrics metrics = 2;
+}
+
+message ListIngestionJobsRequest {
+    string status_filter = 1; // Optional: "active", "completed", "failed"
+}
+
+message ListIngestionJobsResponse {
+    repeated IngestionJob jobs = 1;
+}
+
+message StreamIngestionEventsRequest {
+    string job_id = 1; // Optional: filter by job_id
+}
+
+message IngestionEvent {
+    string job_id = 1;
+    string event_type = 2; // "file_started", "file_completed", "file_failed", "job_completed"
+    string file_path = 3;
+    string timestamp = 4;
+    string message = 5;
+    map<string, string> metadata = 6;
+}
+
+message IngestionConfig {
+    // File processing configuration
+    repeated string file_patterns = 1; // e.g., ["*.csv", "*.json"]
+    bool recursive = 2;
+    
+    // Data normalization configuration
+    StandardSchema schema = 3;
+    
+    // Performance configuration
+    int32 batch_size = 4;
+    int32 max_concurrent_files = 5;
+    
+    // Error handling configuration
+    double max_error_rate = 6; // Maximum allowed error rate (0.01 = 1%)
+    bool skip_malformed_rows = 7;
+    
+    // Output configuration
+    string compression_codec = 8; // "snappy", "gzip", "lz4", "brotli"
+    int32 row_group_size = 9;
+}
+
+message StandardSchema {
+    // Standard RAN data schema
+    string timestamp_column = 1;
+    string cell_id_column = 2;
+    string kpi_name_column = 3;
+    string kpi_value_column = 4;
+    
+    // Optional columns
+    string ue_id_column = 5;
+    string sector_id_column = 6;
+    
+    // Data type mappings
+    map<string, string> column_types = 7;
+}
+
+message IngestionProgress {
+    int64 total_files = 1;
+    int64 processed_files = 2;
+    int64 failed_files = 3;
+    int64 total_rows = 4;
+    int64 processed_rows = 5;
+    int64 failed_rows = 6;
+    double progress_percentage = 7;
+    string current_file = 8;
+    string estimated_completion = 9;
+}
+
+message IngestionMetrics {
+    // Performance metrics
+    double throughput_mb_per_second = 1;
+    double rows_per_second = 2;
+    double average_file_processing_time_ms = 3;
+    
+    // Quality metrics
+    double error_rate = 4;
+    int64 total_parsing_errors = 5;
+    int64 total_validation_errors = 6;
+    
+    // Resource utilization
+    double cpu_usage_percent = 7;
+    double memory_usage_mb = 8;
+    
+    // Size metrics
+    int64 input_size_bytes = 9;
+    int64 output_size_bytes = 10;
+    double compression_ratio = 11;
+}
+
+message IngestionJob {
+    string job_id = 1;
+    string input_directory = 2;
+    string output_directory = 3;
+    string status = 4; // "running", "completed", "failed", "paused"
+    string created_at = 5;
+    string updated_at = 6;
+    IngestionConfig config = 7;
+    IngestionProgress progress = 8;
+    IngestionMetrics metrics = 9;
+}

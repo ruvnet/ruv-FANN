@@ -1,0 +1,262 @@
+syntax = "proto3";
+
+package ran.model_registry;
+
+import "common.proto";
+import "google/protobuf/timestamp.proto";
+
+// Model Registry Service - Manages model lifecycle and metadata
+service ModelRegistryService {
+    // Model registration
+    rpc RegisterModel(RegisterModelRequest) returns (RegisterModelResponse);
+    rpc GetModel(GetModelRequest) returns (GetModelResponse);
+    rpc UpdateModel(UpdateModelRequest) returns (UpdateModelResponse);
+    rpc DeleteModel(DeleteModelRequest) returns (DeleteModelResponse);
+    rpc ListModels(ListModelsRequest) returns (ListModelsResponse);
+    
+    // Model versioning
+    rpc CreateModelVersion(CreateModelVersionRequest) returns (CreateModelVersionResponse);
+    rpc GetModelVersion(GetModelVersionRequest) returns (GetModelVersionResponse);
+    rpc ListModelVersions(ListModelVersionsRequest) returns (ListModelVersionsResponse);
+    rpc PromoteModel(PromoteModelRequest) returns (PromoteModelResponse);
+    
+    // Model artifacts
+    rpc UploadModelArtifact(stream UploadModelArtifactRequest) returns (UploadModelArtifactResponse);
+    rpc DownloadModelArtifact(DownloadModelArtifactRequest) returns (stream DownloadModelArtifactResponse);
+    
+    // Health check
+    rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+message RegisterModelRequest {
+    string model_name = 1;
+    string description = 2;
+    ModelMetadata metadata = 3;
+    ran.common.Metadata request_metadata = 4;
+}
+
+message ModelMetadata {
+    string model_type = 1;
+    string framework = 2;
+    string framework_version = 3;
+    repeated string input_features = 4;
+    repeated string output_features = 5;
+    string target_kpi = 6;
+    map<string, string> hyperparameters = 7;
+    map<string, string> tags = 8;
+    string owner = 9;
+    string use_case = 10;
+}
+
+message RegisterModelResponse {
+    string model_id = 1;
+    string status = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message GetModelRequest {
+    string model_id = 1;
+    ran.common.Metadata metadata = 2;
+}
+
+message GetModelResponse {
+    string model_id = 1;
+    ModelInfo model_info = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message ModelInfo {
+    string model_id = 1;
+    string model_name = 2;
+    string description = 3;
+    ModelMetadata metadata = 4;
+    ModelStatus status = 5;
+    repeated ModelVersion versions = 6;
+    google.protobuf.Timestamp created_at = 7;
+    google.protobuf.Timestamp updated_at = 8;
+}
+
+message ModelStatus {
+    string state = 1; // REGISTERED, TRAINING, VALIDATED, PRODUCTION, DEPRECATED, RETIRED
+    string active_version = 2;
+    string production_version = 3;
+    google.protobuf.Timestamp last_updated = 4;
+}
+
+message UpdateModelRequest {
+    string model_id = 1;
+    string description = 2;
+    ModelMetadata metadata = 3;
+    ran.common.Metadata request_metadata = 4;
+}
+
+message UpdateModelResponse {
+    string model_id = 1;
+    string status = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message DeleteModelRequest {
+    string model_id = 1;
+    bool force = 2; // Force delete even if in production
+    ran.common.Metadata metadata = 3;
+}
+
+message DeleteModelResponse {
+    string model_id = 1;
+    string status = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message ListModelsRequest {
+    string filter = 1;
+    repeated string tags = 2;
+    string owner = 3;
+    string use_case = 4;
+    int32 page_size = 5;
+    string page_token = 6;
+    ran.common.Metadata metadata = 7;
+}
+
+message ListModelsResponse {
+    repeated ModelInfo models = 1;
+    string next_page_token = 2;
+    int32 total_count = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message CreateModelVersionRequest {
+    string model_id = 1;
+    string version_name = 2;
+    string description = 3;
+    ModelPerformanceMetrics performance = 4;
+    string artifact_path = 5;
+    ran.common.Metadata metadata = 6;
+}
+
+message ModelPerformanceMetrics {
+    double training_accuracy = 1;
+    double validation_accuracy = 2;
+    double test_accuracy = 3;
+    double training_loss = 4;
+    double validation_loss = 5;
+    double test_loss = 6;
+    map<string, double> custom_metrics = 7;
+    int32 training_epochs = 8;
+    double training_time_seconds = 9;
+    google.protobuf.Timestamp evaluated_at = 10;
+}
+
+message CreateModelVersionResponse {
+    string model_id = 1;
+    string version_id = 2;
+    string status = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message GetModelVersionRequest {
+    string model_id = 1;
+    string version_id = 2;
+    ran.common.Metadata metadata = 3;
+}
+
+message GetModelVersionResponse {
+    string model_id = 1;
+    string version_id = 2;
+    ModelVersion version = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message ModelVersion {
+    string version_id = 1;
+    string version_name = 2;
+    string description = 3;
+    ModelPerformanceMetrics performance = 4;
+    string artifact_path = 5;
+    string status = 6; // CREATED, VALIDATED, PRODUCTION, DEPRECATED
+    google.protobuf.Timestamp created_at = 7;
+    google.protobuf.Timestamp updated_at = 8;
+}
+
+message ListModelVersionsRequest {
+    string model_id = 1;
+    string status_filter = 2;
+    int32 page_size = 3;
+    string page_token = 4;
+    ran.common.Metadata metadata = 5;
+}
+
+message ListModelVersionsResponse {
+    string model_id = 1;
+    repeated ModelVersion versions = 2;
+    string next_page_token = 3;
+    int32 total_count = 4;
+    ran.common.Metadata metadata = 5;
+}
+
+message PromoteModelRequest {
+    string model_id = 1;
+    string version_id = 2;
+    string environment = 3; // STAGING, PRODUCTION
+    ran.common.Metadata metadata = 4;
+}
+
+message PromoteModelResponse {
+    string model_id = 1;
+    string version_id = 2;
+    string status = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message UploadModelArtifactRequest {
+    oneof data {
+        UploadMetadata metadata = 1;
+        bytes chunk = 2;
+    }
+}
+
+message UploadMetadata {
+    string model_id = 1;
+    string version_id = 2;
+    string file_name = 3;
+    string content_type = 4;
+    int64 file_size = 5;
+    string checksum = 6;
+}
+
+message UploadModelArtifactResponse {
+    string model_id = 1;
+    string version_id = 2;
+    string artifact_path = 3;
+    string status = 4;
+    ran.common.Metadata metadata = 5;
+}
+
+message DownloadModelArtifactRequest {
+    string model_id = 1;
+    string version_id = 2;
+    string artifact_path = 3;
+    ran.common.Metadata metadata = 4;
+}
+
+message DownloadModelArtifactResponse {
+    oneof data {
+        DownloadMetadata metadata = 1;
+        bytes chunk = 2;
+    }
+}
+
+message DownloadMetadata {
+    string file_name = 1;
+    string content_type = 2;
+    int64 file_size = 3;
+    string checksum = 4;
+}
+
+message HealthCheckRequest {
+    ran.common.Metadata metadata = 1;
+}
+
+message HealthCheckResponse {
+    ran.common.HealthCheck health = 1;
+}
