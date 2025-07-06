@@ -37,7 +37,7 @@ use web_sys::{
 };
 
 // WebGPU types - conditionally compiled when available
-#[cfg(all(target_arch = "wasm32", feature = "experimental-webgpu"))]
+#[cfg(all(target_arch = "wasm32", feature = "webgpu"))]
 use web_sys::{
     Gpu, GpuAdapter, GpuBindGroup, GpuBuffer, GpuCanvasContext, GpuCommandEncoder,
     GpuComputePassEncoder, GpuComputePipeline, GpuDevice, GpuQueue, GpuTexture,
@@ -617,7 +617,7 @@ impl WasmGpuBridge {
 
     /// Initialize WebGPU context from JavaScript
     #[wasm_bindgen]
-    #[cfg(feature = "experimental-webgpu")]
+    #[cfg(feature = "webgpu")]
     pub async fn initialize_webgpu(&self, canvas_id: Option<String>) -> Result<(), JsValue> {
         let window = web_sys::window().ok_or("No window object")?;
         let navigator = window.navigator();
@@ -692,14 +692,14 @@ impl WasmGpuBridge {
 
     /// Fallback initialization when WebGPU is not available
     #[wasm_bindgen]
-    #[cfg(not(feature = "experimental-webgpu"))]
+    #[cfg(not(feature = "webgpu"))]
     pub async fn initialize_webgpu(&self, _canvas_id: Option<String>) -> Result<(), JsValue> {
         console::log_1(&"WebGPU not available, using CPU fallback".into());
         Ok(())
     }
 
     /// Get WebGPU capabilities
-    #[cfg(feature = "experimental-webgpu")]
+    #[cfg(feature = "webgpu")]
     async fn get_webgpu_capabilities(
         &self,
         adapter: &GpuAdapter,

@@ -76,7 +76,7 @@ where
                     Err(e) => {
                         self.record_failure(backend_type);
                         #[cfg(feature = "logging")]
-                        log::warn!("Primary backend failed: {}, falling back", e);
+                        log::warn!("Primary backend failed: {e}, falling back");
                     }
                 }
             }
@@ -94,7 +94,7 @@ where
                     Err(e) => {
                         self.record_failure(backend_type);
                         #[cfg(feature = "logging")]
-                        log::warn!("Fallback backend {:?} failed: {}", backend_type, e);
+                        log::warn!("Fallback backend {backend_type:?} failed: {e}");
                     }
                 }
             }

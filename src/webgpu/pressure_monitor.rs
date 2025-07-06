@@ -606,7 +606,10 @@ impl MemoryPressureMonitor {
                     if config.anomaly_detection_enabled {
                         if let Some(anomaly) = Self::detect_anomalies(&anomaly_detector, &reading) {
                             monitoring_stats.lock().unwrap().anomalies_detected += 1;
-                            log::warn!("Memory anomaly detected: {:?}", anomaly);
+                            #[cfg(feature = "logging")]
+                            log::warn!("Memory anomaly detected: {anomaly:?}");
+                            #[cfg(not(feature = "logging"))]
+                            eprintln!("Memory anomaly detected: {:?}", anomaly);
                         }
                     }
 
@@ -902,17 +905,28 @@ impl MemoryPressureMonitor {
                 }
                 ResponseAction::TriggerGarbageCollection => {
                     // Would trigger GC in full implementation
+                    #[cfg(feature = "logging")]
                     log::info!("DAA triggered garbage collection");
+                    #[cfg(not(feature = "logging"))]
+                    println!("DAA triggered garbage collection");
                 }
                 ResponseAction::AlertOperator { severity } => {
+                    #[cfg(feature = "logging")]
                     log::warn!(
+                        "DAA alert: Memory pressure requires operator attention (severity: {severity:?})"
+                    );
+                    #[cfg(not(feature = "logging"))]
+                    eprintln!(
                         "DAA alert: Memory pressure requires operator attention (severity: {:?})",
                         severity
                     );
                 }
                 _ => {
                     // Other actions would be implemented based on specific requirements
-                    log::info!("DAA executed response action: {:?}", action);
+                    #[cfg(feature = "logging")]
+                    log::info!("DAA executed response action: {action:?}");
+                    #[cfg(not(feature = "logging"))]
+                    println!("DAA executed response action: {:?}", action);
                 }
             }
         }

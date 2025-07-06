@@ -645,8 +645,7 @@ impl AdvancedBufferPool {
                 .memory_pressure_events
                 .fetch_add(1, Ordering::Relaxed);
             return Err(ComputeError::MemoryError(format!(
-                "Critical memory pressure detected: {:?}",
-                pressure
+                "Critical memory pressure detected: {pressure:?}"
             )));
         }
 

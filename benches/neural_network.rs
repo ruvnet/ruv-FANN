@@ -73,7 +73,9 @@ fn bench_training(c: &mut Criterion) {
     group.bench_function("XOR_100_epochs", |b| {
         b.iter(|| {
             let mut network = Network::new(&[2, 3, 1]);
-            network.train(black_box(&xor_inputs), black_box(&xor_outputs), 0.1, 100);
+            network
+                .train(black_box(&xor_inputs), black_box(&xor_outputs), 0.1, 100)
+                .expect("Training failed");
         });
     });
 
@@ -90,7 +92,9 @@ fn bench_training(c: &mut Criterion) {
     group.bench_function("Large_dataset_50_epochs", |b| {
         b.iter(|| {
             let mut network = Network::new(&[2, 10, 5, 1]);
-            network.train(black_box(&large_inputs), black_box(&large_outputs), 0.1, 50);
+            network
+                .train(black_box(&large_inputs), black_box(&large_outputs), 0.1, 50)
+                .expect("Training failed");
         });
     });
 
@@ -123,7 +127,9 @@ fn bench_training_algorithms(c: &mut Criterion) {
             b.iter(|| {
                 let mut network = Network::new(&[2, 4, 1]);
                 network.set_training_algorithm(algorithm);
-                network.train(black_box(&inputs), black_box(&outputs), 0.01, 500);
+                network
+                    .train(black_box(&inputs), black_box(&outputs), 0.01, 500)
+                    .expect("Training failed");
             });
         });
     }
@@ -182,7 +188,8 @@ fn bench_serialization(c: &mut Criterion) {
 
         group.bench_function(format!("{name}_deserialize"), |b| {
             b.iter(|| {
-                let loaded = Network::<f32>::from_bytes(black_box(&bytes));
+                let loaded =
+                    Network::<f32>::from_bytes(black_box(&bytes)).expect("Deserialization failed");
                 black_box(loaded);
             });
         });
@@ -242,7 +249,9 @@ fn bench_weight_operations(c: &mut Criterion) {
 
     group.bench_function("set_weights", |b| {
         b.iter(|| {
-            network.set_weights(black_box(&weights));
+            network
+                .set_weights(black_box(&weights))
+                .expect("Setting weights failed");
         });
     });
 
@@ -297,7 +306,9 @@ fn bench_parallel_training(c: &mut Criterion) {
                         options
                     );
                     */
-                    network.train(black_box(&inputs), black_box(&outputs), 0.01, 10);
+                    network
+                        .train(black_box(&inputs), black_box(&outputs), 0.01, 10)
+                        .expect("Training failed");
                 });
             },
         );

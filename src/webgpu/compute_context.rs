@@ -172,7 +172,7 @@ impl<T: Float + Send + Sync + std::fmt::Debug + 'static> ComputeContext<T> {
         }
 
         // Debug layer information
-        println!("Converting layer {} to matrix format", layer_id);
+        println!("Converting layer {layer_id} to matrix format");
         println!("  Layer has {} neurons", layer.neurons.len());
 
         // In FANN networks, bias neurons are included in the layer
@@ -194,22 +194,17 @@ impl<T: Float + Send + Sync + std::fmt::Debug + 'static> ComputeContext<T> {
         } else {
             println!("  No non-bias neurons found!");
             return Err(ComputeError::InvalidDimensions(format!(
-                "Layer {} has no non-bias neurons",
-                layer_id
+                "Layer {layer_id} has no non-bias neurons"
             )));
         };
 
         let output_size = non_bias_neurons.len();
 
-        println!(
-            "  Matrix dimensions: {}x{} (output_size x input_size)",
-            output_size, input_size
-        );
+        println!("  Matrix dimensions: {output_size}x{input_size} (output_size x input_size)");
 
         if input_size == 0 || output_size == 0 {
             return Err(ComputeError::InvalidDimensions(format!(
-                "Invalid layer dimensions: {}x{}",
-                output_size, input_size
+                "Invalid layer dimensions: {output_size}x{input_size}"
             )));
         }
 
@@ -455,7 +450,7 @@ impl<T: Float + Send + Sync + std::fmt::Debug + 'static> ComputeContext<T> {
             {
                 Ok(outputs) => outputs,
                 Err(e) => {
-                    eprintln!("Error in layer {}: {:?}", layer_id, e);
+                    eprintln!("Error in layer {layer_id}: {e:?}");
                     return Err(e);
                 }
             };
@@ -714,7 +709,7 @@ mod tests {
 
         match &result {
             Ok(outputs) => println!("Forward pass succeeded with {} outputs", outputs.len()),
-            Err(e) => println!("Forward pass failed: {:?}", e),
+            Err(e) => println!("Forward pass failed: {e:?}"),
         }
 
         assert!(result.is_ok(), "Forward pass failed");

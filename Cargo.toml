@@ -2,7 +2,7 @@
 name = "ruv-fann"
 version = "0.1.6"
 edition = "2021"
-rust-version = "1.70"
+rust-version = "1.81"
 authors = ["rUv Contributors"]
 description = "A pure Rust implementation of the Fast Artificial Neural Network (FANN) library"
 repository = "https://github.com/ruvnet/ruv-FANN"
@@ -127,7 +127,7 @@ wasm = ["no_std", "serde", "logging", "dep:wasm-bindgen", "dep:js-sys", "dep:web
 
 # GPU acceleration support
 gpu = ["dep:wgpu", "dep:futures", "dep:pollster", "dep:bytemuck", "dep:tokio", "dep:async-trait", "std"]
-webgpu = ["dep:wgpu", "dep:futures", "dep:bytemuck", "wasm"]
+webgpu = ["dep:wgpu", "dep:futures", "dep:bytemuck", "wasm", "logging"]
 wasm-gpu = ["webgpu", "wasm"]
 
 # Swarm integration - external features that may not be available

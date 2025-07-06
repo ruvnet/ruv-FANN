@@ -38,7 +38,7 @@ pub mod device;
 #[cfg(all(any(feature = "gpu", feature = "webgpu"), not(target_arch = "wasm32")))]
 pub mod autonomous_gpu_resource_manager;
 // WASM GPU bridge for browser deployment
-#[cfg(all(target_arch = "wasm32", feature = "experimental-webgpu"))]
+#[cfg(all(target_arch = "wasm32", feature = "webgpu"))]
 pub mod wasm_gpu_bridge;
 
 // Re-export main types
@@ -124,7 +124,7 @@ pub use autonomous_gpu_resource_manager::{
 };
 
 // Re-export WASM GPU bridge for browser deployment
-#[cfg(all(target_arch = "wasm32", feature = "experimental-webgpu"))]
+#[cfg(all(target_arch = "wasm32", feature = "webgpu"))]
 pub use wasm_gpu_bridge::{
     BrowserCompatibility, CrossOriginManager, CrossTabCoordinator, DaaWebRuntime,
     ServiceWorkerAgent, SharedBuffer, WasmGpuBridge, WasmMemoryManager, WasmPerformanceMonitor,
