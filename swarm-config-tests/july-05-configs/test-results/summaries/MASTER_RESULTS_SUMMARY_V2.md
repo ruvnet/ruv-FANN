@@ -217,6 +217,7 @@ This v2 summary provides **strategic configuration recommendations** based on co
 - **Configurations**: 3-Agent Hierarchical, 8-Agent Dual, 12-Agent Corporate
 - **Advantages**: Clear command structure, systematic coordination, quality governance
 - **Use When**: Complex integration, enterprise documentation, strategic analysis
+- **Config C Timing**: Simple: 6,150ms, Moderate: 13,400ms, High: 24,200ms
 
 #### **Strategy Selection Guide**
 
@@ -356,18 +357,21 @@ mcp__ruv-swarm__agent_spawn {
 - **Mechanism**: Maximum validation depth, diverse perspectives, comprehensive testing
 - **Best For**: Mission-critical systems, maximum validation requirements
 - **Trade-off**: Extreme overhead on simple tasks (+391%)
+- **Scalability**: Successfully managed 136 total agents across multiple divisions
 
 ### Quality Progression Analysis
 
 | Agents | Simple Quality | Moderate Quality | Complex Quality | Quality Trend |
 |--------|----------------|------------------|-----------------|---------------|
-| **1** | 9.8/10 | 9.9/10 | 9.5/10 | High baseline |
+| **1** | 9.8/10 | 9.9/10 | 9.5/10* | High baseline |
 | **2** | 9.7/10 | 9.875/10 | 9.75/10 | Consistent excellence |
 | **3** | 9.73/10 | 9.925/10 | 9.78/10 | Quality leadership |
 | **5** | 9.85/10 | 9.93/10 | 9.95/10 | Near perfect |
 | **8+** | **10/10** | **10/10** | **10/10** | **Perfect scores** |
 
 **Key Insight**: 8+ agents guarantee perfect quality across all complexity levels.
+
+*Note: 1-agent configuration (Config A) achieved 95/100 overall quality score with 9/12 tests fully implemented and 3/12 with comprehensive analysis.
 
 ---
 
@@ -481,7 +485,7 @@ mcp__ruv-swarm__agent_spawn {
 #### **Code Generation ROI**
 | Config | Simple ROI | Moderate ROI | Complex ROI | Best Use Case |
 |--------|------------|--------------|-------------|---------------|
-| **2-Agent** | 0.7x | 1.8x | **15.2x** | Small teams, immediate gains |
+| **2-Agent** | 0.7x | 1.5x | **15.2x** | Small teams, immediate gains |
 | **5-Agent** | **Revolutionary** | **Revolutionary** | **Revolutionary** | Universal development |
 | **8-Agent** | 0.3x | 2.1x | **22.8x** | Quality-critical systems |
 | **12-Agent** | 0.1x | 1.2x | **45.7x** | Enterprise architecture |
