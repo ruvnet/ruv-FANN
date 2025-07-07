@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello World from Bradley | 5-Agent Swarm Creation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /* ==== WEB ARCHITECT: Core Foundation ==== */
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --dark-gradient: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            --neural-glow: 0 0 30px rgba(102, 126, 234, 0.6);
+            --swarm-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        }
+
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .mono-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* ==== CSS DESIGNER: Advanced Visual Effects ==== */
+        .gradient-primary {
+            background: var(--primary-gradient);
+        }
+
+        .gradient-secondary {
+            background: var(--secondary-gradient);
+        }
+
+        .gradient-accent {
+            background: var(--accent-gradient);
+        }
+
+        .gradient-text {
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .gradient-border {
+            background: var(--primary-gradient);
+            padding: 2px;
+            border-radius: 12px;
+        }
+
+        .gradient-border > * {
+            background: white;
+            border-radius: 10px;
+        }
+
+        /* ==== FRONTEND DEVELOPER: Interactive Animations ==== */
+        .swarm-float {
+            animation: swarmFloat 6s ease-in-out infinite;
+        }
+
+        .swarm-pulse {
+            animation: swarmPulse 3s ease-in-out infinite;
+        }
+
+        .swarm-orbit {
+            animation: swarmOrbit 8s linear infinite;
+        }
+
+        .swarm-glow {
+            animation: swarmGlow 4s ease-in-out infinite alternate;
+        }
+
+        @keyframes swarmFloat {
+            0%, 100% { transform: translateY(0px) rotateX(0deg); }
+            25% { transform: translateY(-20px) rotateX(5deg); }
+            50% { transform: translateY(-15px) rotateX(0deg); }
+            75% { transform: translateY(-25px) rotateX(-5deg); }
+        }
+
+        @keyframes swarmPulse {
+            0% { transform: scale(1) rotate(0deg); opacity: 0.8; }
+            50% { transform: scale(1.05) rotate(180deg); opacity: 1; }
+            100% { transform: scale(1) rotate(360deg); opacity: 0.8; }
+        }
+
+        @keyframes swarmOrbit {
+            0% { transform: rotate(0deg) translateX(100px) rotate(0deg); }
+            100% { transform: rotate(360deg) translateX(100px) rotate(-360deg); }
+        }
+
+        @keyframes swarmGlow {
+            0% { box-shadow: var(--neural-glow), inset 0 0 20px rgba(255,255,255,0.1); }
+            100% { box-shadow: 0 0 50px rgba(245, 87, 108, 0.8), inset 0 0 30px rgba(255,255,255,0.2); }
+        }
+
+        /* ==== PERFORMANCE ENGINEER: Optimized Effects ==== */
+        .neural-grid {
+            background-image: 
+                radial-gradient(circle at 25% 25%, rgba(102, 126, 234, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(118, 75, 162, 0.1) 0%, transparent 50%),
+                linear-gradient(45deg, transparent 40%, rgba(102, 126, 234, 0.05) 50%, transparent 60%);
+            background-size: 100px 100px, 150px 150px, 50px 50px;
+            animation: neuralShift 20s linear infinite;
+        }
+
+        @keyframes neuralShift {
+            0% { background-position: 0% 0%, 0% 0%, 0% 0%; }
+            100% { background-position: 100% 100%, -100% -100%, 50% 50%; }
+        }
+
+        .glass-morphism {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: var(--swarm-shadow);
+        }
+
+        .agent-card {
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-style: preserve-3d;
+        }
+
+        .agent-card:hover {
+            transform: translateY(-15px) rotateX(10deg) rotateY(5deg);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        /* ==== QA SPECIALIST: Responsive & Accessible Design ==== */
+        .typewriter-effect {
+            overflow: hidden;
+            border-right: 3px solid rgba(102, 126, 234, 0.75);
+            white-space: nowrap;
+            animation: 
+                typing 4s steps(40, end) 1s both,
+                blinkCaret 1s step-end infinite 5s;
+        }
+
+        @keyframes typing {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+
+        @keyframes blinkCaret {
+            from, to { border-color: transparent; }
+            50% { border-color: rgba(102, 126, 234, 0.75); }
+        }
+
+        .swarm-indicator {
+            position: relative;
+            display: inline-block;
+        }
+
+        .swarm-indicator::after {
+            content: '';
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 12px;
+            height: 12px;
+            background: #10B981;
+            border-radius: 50%;
+            animation: swarmActive 2s ease-in-out infinite;
+        }
+
+        @keyframes swarmActive {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.2); }
+        }
+
+        /* Responsive breakpoints */
+        @media (max-width: 768px) {
+            .agent-card {
+                transform: none;
+            }
+            .agent-card:hover {
+                transform: translateY(-5px);
+            }
+        }
+
+        /* High contrast mode support */
+        @media (prefers-contrast: high) {
+            .gradient-text {
+                background: #000;
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+        }
+
+        /* Reduced motion support */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            .glass-morphism {
+                background: rgba(0, 0, 0, 0.3);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 neural-grid overflow-x-hidden">
+    <!-- Navigation - Designed by Web Architect -->
+    <nav class="fixed top-0 w-full z-50 glass-morphism">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 gradient-primary rounded-lg swarm-pulse flex items-center justify-center">
+                        <span class="text-white font-bold">🧠</span>
+                    </div>
+                    <div class="text-2xl font-bold gradient-text swarm-indicator">Bradley</div>
+                </div>
+                <div class="hidden md:flex space-x-8">
+                    <a href="#home" class="text-gray-700 hover:text-purple-600 transition-all duration-300 font-medium">Home</a>
+                    <a href="#swarm" class="text-gray-700 hover:text-purple-600 transition-all duration-300 font-medium">Swarm</a>
+                    <a href="#agents" class="text-gray-700 hover:text-purple-600 transition-all duration-300 font-medium">Agents</a>
+                    <a href="#contact" class="text-gray-700 hover:text-purple-600 transition-all duration-300 font-medium">Contact</a>
+                </div>
+                <div class="md:hidden">
+                    <button class="text-gray-700 hover:text-purple-600 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section - Coordinated by 5-Agent Swarm -->
+    <section id="home" class="min-h-screen flex items-center justify-center relative overflow-hidden pt-20">
+        <!-- Background Elements - CSS Designer -->
+        <div class="absolute inset-0">
+            <div class="absolute top-20 left-20 w-64 h-64 gradient-primary opacity-20 rounded-full swarm-float blur-xl"></div>
+            <div class="absolute bottom-40 right-20 w-80 h-80 gradient-secondary opacity-15 rounded-full swarm-float blur-2xl" style="animation-delay: -2s;"></div>
+            <div class="absolute top-1/2 left-1/3 w-48 h-48 gradient-accent opacity-25 rounded-full swarm-float blur-lg" style="animation-delay: -4s;"></div>
+            
+            <!-- Neural Network Visualization -->
+            <div class="absolute inset-0 overflow-hidden">
+                <div class="absolute top-32 left-32 w-2 h-2 bg-purple-400 rounded-full swarm-orbit opacity-60"></div>
+                <div class="absolute top-64 right-64 w-3 h-3 bg-blue-400 rounded-full swarm-orbit opacity-60" style="animation-delay: -1s;"></div>
+                <div class="absolute bottom-48 left-48 w-2 h-2 bg-pink-400 rounded-full swarm-orbit opacity-60" style="animation-delay: -3s;"></div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="text-center z-10 px-4 max-w-6xl mx-auto">
+            <!-- Swarm Status Indicator -->
+            <div class="inline-flex items-center space-x-2 glass-morphism px-4 py-2 rounded-full mb-8 swarm-glow">
+                <div class="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                <span class="text-sm font-medium mono-font text-gray-700">5-Agent Swarm Active</span>
+            </div>
+
+            <h1 class="text-6xl md:text-8xl lg:text-9xl font-black mb-6 leading-tight">
+                <span class="gradient-text typewriter-effect">Hello World</span>
+            </h1>
+            
+            <h2 class="text-3xl md:text-5xl lg:text-6xl font-light mb-8 text-gray-700">
+                from <span class="gradient-text font-bold">Bradley</span>
+            </h2>
+
+            <div class="glass-morphism p-6 rounded-2xl mb-12 max-w-4xl mx-auto">
+                <p class="text-xl md:text-2xl text-gray-600 leading-relaxed">
+                    This landing page was crafted by a <span class="gradient-text font-semibold">5-agent swarm</span> using 
+                    <span class="text-purple-600 font-semibold">mesh topology</span> and 
+                    <span class="text-blue-600 font-semibold">adaptive strategy</span>. 
+                    Experience the power of coordinated AI development.
+                </p>
+            </div>
+
+            <!-- CTA Buttons - Frontend Developer -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+                <button class="gradient-primary text-white px-8 py-4 rounded-2xl font-semibold text-lg shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300 swarm-glow">
+                    Experience the Swarm
+                </button>
+                <button class="glass-morphism text-gray-700 px-8 py-4 rounded-2xl font-semibold text-lg hover:bg-white hover:shadow-xl transition-all duration-300">
+                    Learn More
+                </button>
+            </div>
+
+            <!-- Swarm Metrics -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto">
+                <div class="glass-morphism p-4 rounded-xl text-center">
+                    <div class="text-2xl font-bold gradient-text">5</div>
+                    <div class="text-sm text-gray-600 mono-font">Agents</div>
+                </div>
+                <div class="glass-morphism p-4 rounded-xl text-center">
+                    <div class="text-2xl font-bold gradient-text">Mesh</div>
+                    <div class="text-sm text-gray-600 mono-font">Topology</div>
+                </div>
+                <div class="glass-morphism p-4 rounded-xl text-center">
+                    <div class="text-2xl font-bold gradient-text">Adaptive</div>
+                    <div class="text-sm text-gray-600 mono-font">Strategy</div>
+                </div>
+                <div class="glass-morphism p-4 rounded-xl text-center">
+                    <div class="text-2xl font-bold gradient-text">Active</div>
+                    <div class="text-sm text-gray-600 mono-font">Status</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scroll Indicator -->
+        <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2">
+            <div class="swarm-float">
+                <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                </svg>
+            </div>
+        </div>
+    </section>
+
+    <!-- Swarm Architecture Section -->
+    <section id="swarm" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl md:text-5xl font-bold gradient-text mb-6">Swarm Architecture</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    Built using adaptive mesh topology for optimal coordination and parallel execution.
+                </p>
+            </div>
+
+            <!-- Architecture Diagram -->
+            <div class="relative max-w-4xl mx-auto mb-16">
+                <div class="grid grid-cols-3 gap-8 items-center">
+                    <!-- Agent Nodes -->
+                    <div class="col-span-3 relative">
+                        <svg viewBox="0 0 400 300" class="w-full h-64">
+                            <!-- Connections -->
+                            <g stroke="#667eea" stroke-width="2" opacity="0.5">
+                                <line x1="80" y1="80" x2="200" y2="50" class="swarm-pulse"/>
+                                <line x1="80" y1="80" x2="320" y2="80" class="swarm-pulse" style="animation-delay: -0.5s"/>
+                                <line x1="80" y1="80" x2="160" y2="200" class="swarm-pulse" style="animation-delay: -1s"/>
+                                <line x1="80" y1="80" x2="240" y2="200" class="swarm-pulse" style="animation-delay: -1.5s"/>
+                                <line x1="200" y1="50" x2="320" y2="80" class="swarm-pulse" style="animation-delay: -2s"/>
+                                <line x1="200" y1="50" x2="160" y2="200" class="swarm-pulse" style="animation-delay: -2.5s"/>
+                                <line x1="200" y1="50" x2="240" y2="200" class="swarm-pulse" style="animation-delay: -3s"/>
+                                <line x1="320" y1="80" x2="160" y2="200" class="swarm-pulse" style="animation-delay: -3.5s"/>
+                                <line x1="320" y1="80" x2="240" y2="200" class="swarm-pulse" style="animation-delay: -4s"/>
+                                <line x1="160" y1="200" x2="240" y2="200" class="swarm-pulse" style="animation-delay: -4.5s"/>
+                            </g>
+                            
+                            <!-- Agent Nodes -->
+                            <circle cx="80" cy="80" r="20" class="gradient-primary swarm-glow"/>
+                            <circle cx="200" cy="50" r="20" class="gradient-secondary swarm-glow" style="animation-delay: -1s"/>
+                            <circle cx="320" cy="80" r="20" class="gradient-accent swarm-glow" style="animation-delay: -2s"/>
+                            <circle cx="160" cy="200" r="20" class="gradient-primary swarm-glow" style="animation-delay: -3s"/>
+                            <circle cx="240" cy="200" r="20" class="gradient-secondary swarm-glow" style="animation-delay: -4s"/>
+                            
+                            <!-- Labels -->
+                            <text x="80" y="110" text-anchor="middle" class="text-xs fill-gray-600 mono-font">Coordinator</text>
+                            <text x="200" y="40" text-anchor="middle" class="text-xs fill-gray-600 mono-font">Frontend</text>
+                            <text x="320" y="110" text-anchor="middle" class="text-xs fill-gray-600 mono-font">CSS</text>
+                            <text x="160" y="230" text-anchor="middle" class="text-xs fill-gray-600 mono-font">Performance</text>
+                            <text x="240" y="230" text-anchor="middle" class="text-xs fill-gray-600 mono-font">QA</text>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Architecture Features -->
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="text-center">
+                    <div class="w-16 h-16 gradient-primary rounded-2xl mx-auto mb-4 flex items-center justify-center swarm-pulse">
+                        <span class="text-white text-2xl">🔗</span>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Mesh Topology</h3>
+                    <p class="text-gray-600">Peer-to-peer connections enable direct communication and eliminate bottlenecks for optimal parallel processing.</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 gradient-secondary rounded-2xl mx-auto mb-4 flex items-center justify-center swarm-pulse" style="animation-delay: -1s">
+                        <span class="text-white text-2xl">⚡</span>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Adaptive Strategy</h3>
+                    <p class="text-gray-600">Dynamic role assignment and real-time optimization based on task characteristics and agent capabilities.</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 gradient-accent rounded-2xl mx-auto mb-4 flex items-center justify-center swarm-pulse" style="animation-delay: -2s">
+                        <span class="text-white text-2xl">🎯</span>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Parallel Execution</h3>
+                    <p class="text-gray-600">Simultaneous task execution across specialized agents for maximum efficiency and quality outcomes.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Agent Showcase Section -->
+    <section id="agents" class="py-20 bg-gray-50 neural-grid">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl md:text-5xl font-bold gradient-text mb-6">Meet the Agents</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    Each agent brings specialized expertise to create this exceptional web experience.
+                </p>
+            </div>
+
+            <div class="grid lg:grid-cols-5 md:grid-cols-3 sm:grid-cols-2 gap-6">
+                <!-- Web Architect Agent -->
+                <div class="agent-card glass-morphism p-6 rounded-2xl text-center">
+                    <div class="w-16 h-16 gradient-primary rounded-2xl mx-auto mb-4 flex items-center justify-center swarm-glow">
+                        <span class="text-white text-2xl">🏗️</span>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2 gradient-text">Web Architect</h3>
+                    <p class="text-sm text-gray-600 mb-3 mono-font">coordinator</p>
+                    <p class="text-xs text-gray-500">Designed overall structure, navigation, and user experience flow</p>
+                </div>
+
+                <!-- Frontend Developer Agent -->
+                <div class="agent-card glass-morphism p-6 rounded-2xl text-center">
+                    <div class="w-16 h-16 gradient-secondary rounded-2xl mx-auto mb-4 flex items-center justify-center swarm-glow" style="animation-delay: -1s">
+                        <span class="text-white text-2xl">💻</span>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2 gradient-text">Frontend Developer</h3>
+                    <p class="text-sm text-gray-600 mb-3 mono-font">coder</p>
+                    <p class="text-xs text-gray-500">Implemented interactive elements, animations, and responsive behavior</p>
+                </div>
+
+                <!-- CSS Designer Agent -->
+                <div class="agent-card glass-morphism p-6 rounded-2xl text-center">
+                    <div class="w-16 h-16 gradient-accent rounded-2xl mx-auto mb-4 flex items-center justify-center swarm-glow" style="animation-delay: -2s">
+                        <span class="text-white text-2xl">🎨</span>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2 gradient-text">CSS Designer</h3>
+                    <p class="text-sm text-gray-600 mb-3 mono-font">coder</p>
+                    <p class="text-xs text-gray-500">Created visual effects, gradients, and advanced styling systems</p>
+                </div>
+
+                <!-- Performance Engineer Agent -->
+                <div class="agent-card glass-morphism p-6 rounded-2xl text-center">
+                    <div class="w-16 h-16 gradient-primary rounded-2xl mx-auto mb-4 flex items-center justify-center swarm-glow" style="animation-delay: -3s">
+                        <span class="text-white text-2xl">⚡</span>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2 gradient-text">Performance Engineer</h3>
+                    <p class="text-sm text-gray-600 mb-3 mono-font">optimizer</p>
+                    <p class="text-xs text-gray-500">Optimized animations, loading, and overall performance metrics</p>
+                </div>
+
+                <!-- QA Specialist Agent -->
+                <div class="agent-card glass-morphism p-6 rounded-2xl text-center">
+                    <div class="w-16 h-16 gradient-secondary rounded-2xl mx-auto mb-4 flex items-center justify-center swarm-glow" style="animation-delay: -4s">
+                        <span class="text-white text-2xl">🔍</span>
+                    </div>
+                    <h3 class="font-bold text-lg mb-2 gradient-text">QA Specialist</h3>
+                    <p class="text-sm text-gray-600 mb-3 mono-font">tester</p>
+                    <p class="text-xs text-gray-500">Ensured accessibility, responsiveness, and cross-browser compatibility</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Technical Specifications -->
+    <section class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl md:text-5xl font-bold gradient-text mb-6">Technical Specifications</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    Built with modern web technologies and optimized for performance.
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="glass-morphism p-6 rounded-2xl">
+                    <h3 class="text-lg font-bold mb-4 gradient-text">Frontend Stack</h3>
+                    <ul class="space-y-2 text-sm text-gray-600 mono-font">
+                        <li>• HTML5 Semantic</li>
+                        <li>• Tailwind CSS</li>
+                        <li>• Custom CSS3</li>
+                        <li>• Vanilla JavaScript</li>
+                    </ul>
+                </div>
+
+                <div class="glass-morphism p-6 rounded-2xl">
+                    <h3 class="text-lg font-bold mb-4 gradient-text">Performance</h3>
+                    <ul class="space-y-2 text-sm text-gray-600 mono-font">
+                        <li>• Optimized Animations</li>
+                        <li>• Lazy Loading</li>
+                        <li>• Minimal JS Footprint</li>
+                        <li>• Fast CDN Delivery</li>
+                    </ul>
+                </div>
+
+                <div class="glass-morphism p-6 rounded-2xl">
+                    <h3 class="text-lg font-bold mb-4 gradient-text">Accessibility</h3>
+                    <ul class="space-y-2 text-sm text-gray-600 mono-font">
+                        <li>• WCAG 2.1 Compliant</li>
+                        <li>• Keyboard Navigation</li>
+                        <li>• Screen Reader Ready</li>
+                        <li>• High Contrast Support</li>
+                    </ul>
+                </div>
+
+                <div class="glass-morphism p-6 rounded-2xl">
+                    <h3 class="text-lg font-bold mb-4 gradient-text">Responsive Design</h3>
+                    <ul class="space-y-2 text-sm text-gray-600 mono-font">
+                        <li>• Mobile First</li>
+                        <li>• Flexible Grid System</li>
+                        <li>• Adaptive Typography</li>
+                        <li>• Touch Optimized</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="py-20 gradient-primary">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
+            <h2 class="text-4xl md:text-5xl font-bold mb-6">Connect with Bradley</h2>
+            <p class="text-xl mb-12 opacity-90 max-w-3xl mx-auto">
+                Experience the future of AI-coordinated development. Let's build something extraordinary together.
+            </p>
+
+            <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+                <button class="bg-white text-purple-600 px-8 py-4 rounded-2xl font-semibold text-lg shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300">
+                    Get in Touch
+                </button>
+                <button class="glass-morphism text-white px-8 py-4 rounded-2xl font-semibold text-lg hover:bg-white hover:text-purple-600 transition-all duration-300">
+                    View Portfolio
+                </button>
+            </div>
+
+            <!-- Swarm Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-2xl mx-auto">
+                <div class="glass-morphism p-4 rounded-xl">
+                    <div class="text-2xl font-bold mb-1">168</div>
+                    <div class="text-sm opacity-80 mono-font">Total Agents</div>
+                </div>
+                <div class="glass-morphism p-4 rounded-xl">
+                    <div class="text-2xl font-bold mb-1">25ms</div>
+                    <div class="text-sm opacity-80 mono-font">Coordination Time</div>
+                </div>
+                <div class="glass-morphism p-4 rounded-xl">
+                    <div class="text-2xl font-bold mb-1">100%</div>
+                    <div class="text-sm opacity-80 mono-font">Success Rate</div>
+                </div>
+                <div class="glass-morphism p-4 rounded-xl">
+                    <div class="text-2xl font-bold mb-1">5MB</div>
+                    <div class="text-sm opacity-80 mono-font">Memory Usage</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="flex justify-center items-center space-x-3 mb-6">
+                <div class="w-8 h-8 gradient-primary rounded-lg swarm-pulse flex items-center justify-center">
+                    <span class="text-white text-sm">🧠</span>
+                </div>
+                <div class="text-xl font-bold gradient-text">Bradley x ruv-swarm</div>
+            </div>
+            <p class="text-gray-400 mb-6">Powered by 5-Agent Swarm Technology</p>
+            <div class="text-gray-500 text-sm mono-font">
+                Swarm ID: swarm-1751818546230 | Topology: Mesh | Strategy: Adaptive
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Performance Engineer: Optimized JavaScript
+        document.addEventListener('DOMContentLoaded', function() {
+            // Smooth scrolling for navigation
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+
+            // Navigation background on scroll
+            const nav = document.querySelector('nav');
+            const throttledScroll = throttle(() => {
+                if (window.scrollY > 50) {
+                    nav.style.background = 'rgba(255, 255, 255, 0.95)';
+                } else {
+                    nav.style.background = 'rgba(255, 255, 255, 0.1)';
+                }
+            }, 16);
+
+            window.addEventListener('scroll', throttledScroll);
+
+            // QA Specialist: Accessibility enhancements
+            // Keyboard navigation support
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Tab') {
+                    document.body.classList.add('keyboard-navigation');
+                }
+            });
+
+            document.addEventListener('mousedown', function() {
+                document.body.classList.remove('keyboard-navigation');
+            });
+
+            // Reduced motion respect
+            const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+            if (prefersReducedMotion.matches) {
+                document.documentElement.style.setProperty('--animation-duration', '0.01ms');
+            }
+        });
+
+        // Throttle function for performance
+        function throttle(func, limit) {
+            let inThrottle;
+            return function() {
+                const args = arguments;
+                const context = this;
+                if (!inThrottle) {
+                    func.apply(context, args);
+                    inThrottle = true;
+                    setTimeout(() => inThrottle = false, limit);
+                }
+            }
+        }
+
+        // Frontend Developer: Interactive features
+        // Agent status simulation
+        setInterval(() => {
+            const indicators = document.querySelectorAll('.swarm-indicator::after');
+            indicators.forEach(indicator => {
+                indicator.style.animationDelay = Math.random() * 2 + 's';
+            });
+        }, 5000);
+    </script>
+</body>
+</html>

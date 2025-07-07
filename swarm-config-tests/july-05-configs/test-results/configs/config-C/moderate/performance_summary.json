@@ -1,0 +1,70 @@
+{
+  "config_c_performance_summary": {
+    "test_level": "moderate",
+    "execution_timestamp": "2025-07-06T03:44:47.000Z",
+    "total_duration_ms": 13400,
+    "quality_score": 0.93,
+    "task_completion_rate": 1.0,
+    "coordination_effectiveness": 0.94
+  },
+  "hierarchical_coordination_metrics": {
+    "delegation_patterns": {
+      "clear_task_definition": 0.96,
+      "resource_allocation_efficiency": 0.93,
+      "progress_monitoring_effectiveness": 0.91,
+      "feedback_integration_quality": 0.89
+    },
+    "command_structure_efficiency": {
+      "decision_latency_avg_ms": 145,
+      "coordinator_utilization": 0.91,
+      "specialist_responsiveness": 0.93,
+      "communication_overhead": 0.13
+    },
+    "parallel_execution_metrics": {
+      "parallel_efficiency": 0.91,
+      "coordination_checkpoints": 22,
+      "synchronization_overhead": 0.09,
+      "work_distribution_balance": 0.89
+    }
+  },
+  "vs_flat_topology_comparison": {
+    "performance_delta": {
+      "time_difference_ms": 280,
+      "time_difference_percentage": 2.1,
+      "quality_difference": 0.1,
+      "coordination_clarity_improvement": 0.18
+    },
+    "trade_off_analysis": {
+      "benefits": {
+        "clear_accountability": 0.18,
+        "decision_speed": 0.12,
+        "role_clarity": 0.19,
+        "unified_vision": 0.16,
+        "quality_improvement": 0.1
+      },
+      "drawbacks": {
+        "coordination_overhead": 0.09,
+        "specialist_autonomy_reduction": 0.22,
+        "communication_latency": 0.07,
+        "bottleneck_risk": 0.22
+      }
+    }
+  },
+  "moderate_task_insights": {
+    "hierarchy_suitability": "good",
+    "coordination_value": "moderate",
+    "efficiency_assessment": "balanced",
+    "recommendations": [
+      "Hierarchy shows clear benefits for moderate complexity tasks",
+      "Structured workflow improves quality and reduces coordination chaos",
+      "Slight time overhead acceptable for quality and clarity gains"
+    ]
+  },
+  "structured_workflow_benefits": {
+    "task_decomposition_effectiveness": 0.94,
+    "resource_optimization": 0.91,
+    "progress_visibility": 0.93,
+    "risk_mitigation": 0.89,
+    "integration_efficiency": 0.96
+  }
+}

@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bradley ✨ | Future of Digital Excellence</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'space': ['Space Grotesk', 'sans-serif'],
+                        'mono': ['JetBrains Mono', 'monospace'],
+                        'inter': ['Inter', 'sans-serif']
+                    },
+                    colors: {
+                        'mocha': {
+                            50: '#fdf7f0',
+                            100: '#f9ede0',
+                            200: '#f2d7bf',
+                            300: '#e8b894',
+                            400: '#dd9567',
+                            500: '#d4774a',
+                            600: '#b45d3a',
+                            700: '#9a4930',
+                            800: '#7d3b2c',
+                            900: '#663126',
+                        },
+                        'cyber': {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* ==== UX RESEARCH LEAD: Foundation & Research-Based Design ==== */
+        :root {
+            /* 2025 Color Palette - Mocha Mousse (Pantone Color of the Year) */
+            --mocha-primary: #9a4930;
+            --mocha-light: #f2d7bf;
+            --mocha-dark: #663126;
+            
+            /* Glassmorphism Variables */
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.12);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+            --glass-backdrop: blur(20px);
+            
+            /* Y2K Cyber Gradients */
+            --cyber-gradient: linear-gradient(135deg, #00f5ff 0%, #ff00ff 50%, #ffff00 100%);
+            --neon-gradient: linear-gradient(135deg, #ff006e 0%, #8338ec 50%, #3a86ff 100%);
+            --retro-gradient: linear-gradient(135deg, #f72585 0%, #4361ee 50%, #4cc9f0 100%);
+            
+            /* Modern Gradients */
+            --premium-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --sunset-gradient: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+            --ocean-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            
+            /* Advanced Shadows */
+            --neumorphic-shadow: 
+                8px 8px 16px rgba(163, 177, 198, 0.6), 
+                -8px -8px 16px rgba(255, 255, 255, 0.5);
+            --floating-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            --glow-shadow: 0 0 40px rgba(102, 126, 234, 0.4);
+        }
+
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        .font-space { font-family: 'Space Grotesk', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* ==== TREND SPECIALIST: 2025 Design Trends Implementation ==== */
+        
+        /* Bold Typography Revolution */
+        .typography-hero {
+            font-size: clamp(3rem, 12vw, 12rem);
+            font-weight: 900;
+            line-height: 0.85;
+            letter-spacing: -0.05em;
+            background: var(--cyber-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 40px rgba(255, 0, 110, 0.3);
+        }
+
+        .typography-secondary {
+            font-size: clamp(1.5rem, 4vw, 4rem);
+            font-weight: 800;
+            background: var(--neon-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            color: transparent;
+        }
+
+        /* Advanced Glassmorphism */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-backdrop);
+            -webkit-backdrop-filter: var(--glass-backdrop);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow);
+            border-radius: 24px;
+        }
+
+        .glass-intense {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.12),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+
+        /* Neumorphism Elements */
+        .neomorphic {
+            background: #f0f0f3;
+            box-shadow: var(--neumorphic-shadow);
+            border-radius: 20px;
+            border: none;
+        }
+
+        .neomorphic-inset {
+            background: #f0f0f3;
+            box-shadow: 
+                inset 8px 8px 16px rgba(163, 177, 198, 0.6),
+                inset -8px -8px 16px rgba(255, 255, 255, 0.5);
+            border-radius: 20px;
+        }
+
+        /* Y2K Nostalgia Elements */
+        .y2k-grid {
+            background-image: 
+                linear-gradient(rgba(0, 245, 255, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 245, 255, 0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+            animation: gridShift 20s linear infinite;
+        }
+
+        .cyber-text {
+            font-family: 'JetBrains Mono', monospace;
+            color: #00ff41;
+            text-shadow: 0 0 10px #00ff41;
+            animation: glitch 3s infinite;
+        }
+
+        .neon-border {
+            border: 2px solid #ff006e;
+            box-shadow: 
+                0 0 20px #ff006e,
+                inset 0 0 20px rgba(255, 0, 110, 0.1);
+            animation: neonPulse 2s ease-in-out infinite alternate;
+        }
+
+        /* ==== INTERACTION DESIGNER: Micro-Interactions & Animations ==== */
+        
+        /* Advanced Hover Effects */
+        .hover-lift {
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-style: preserve-3d;
+        }
+
+        .hover-lift:hover {
+            transform: translateY(-15px) rotateX(10deg) rotateY(5deg) scale(1.02);
+            box-shadow: var(--floating-shadow);
+        }
+
+        .hover-glow {
+            transition: all 0.3s ease;
+        }
+
+        .hover-glow:hover {
+            box-shadow: var(--glow-shadow);
+            transform: scale(1.05);
+        }
+
+        /* Micro-Interactions */
+        .button-morph {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .button-morph::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .button-morph:hover::before {
+            left: 100%;
+        }
+
+        .button-morph:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Advanced Animations */
+        .float-animation {
+            animation: advancedFloat 6s ease-in-out infinite;
+        }
+
+        .pulse-glow {
+            animation: pulseGlow 3s ease-in-out infinite;
+        }
+
+        .rotate-3d {
+            animation: rotate3D 10s linear infinite;
+        }
+
+        @keyframes advancedFloat {
+            0%, 100% { transform: translate3d(0, 0px, 0) rotateX(0deg); }
+            25% { transform: translate3d(10px, -20px, 10px) rotateX(5deg); }
+            50% { transform: translate3d(-5px, -10px, 5px) rotateX(0deg); }
+            75% { transform: translate3d(-10px, -25px, -5px) rotateX(-5deg); }
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { 
+                box-shadow: 0 0 20px rgba(102, 126, 234, 0.4);
+                transform: scale(1);
+            }
+            50% { 
+                box-shadow: 0 0 40px rgba(255, 0, 110, 0.6);
+                transform: scale(1.02);
+            }
+        }
+
+        @keyframes rotate3D {
+            0% { transform: rotate3d(1, 1, 0, 0deg); }
+            100% { transform: rotate3d(1, 1, 0, 360deg); }
+        }
+
+        @keyframes gridShift {
+            0% { background-position: 0 0; }
+            100% { background-position: 20px 20px; }
+        }
+
+        @keyframes glitch {
+            0%, 100% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+        }
+
+        @keyframes neonPulse {
+            0% { 
+                box-shadow: 
+                    0 0 20px #ff006e,
+                    inset 0 0 20px rgba(255, 0, 110, 0.1);
+            }
+            100% { 
+                box-shadow: 
+                    0 0 40px #ff006e,
+                    0 0 60px #ff006e,
+                    inset 0 0 30px rgba(255, 0, 110, 0.2);
+            }
+        }
+
+        /* ==== CONVERSION EXPERT: CTA & UX Optimization ==== */
+        
+        .cta-primary {
+            background: var(--cyber-gradient);
+            color: white;
+            border: none;
+            padding: 1rem 2.5rem;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .cta-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .cta-secondary {
+            background: transparent;
+            color: var(--mocha-primary);
+            border: 2px solid var(--mocha-primary);
+            padding: 1rem 2.5rem;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .cta-secondary:hover {
+            background: var(--mocha-primary);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* ==== VISUAL DIRECTOR: Layout & Composition ==== */
+        
+        /* Bento Box Grid System */
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            grid-auto-rows: minmax(200px, auto);
+        }
+
+        .bento-item {
+            border-radius: 24px;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bento-large {
+            grid-column: span 2;
+            grid-row: span 2;
+        }
+
+        .bento-wide {
+            grid-column: span 2;
+        }
+
+        .bento-tall {
+            grid-row: span 2;
+        }
+
+        /* Advanced Backgrounds */
+        .mesh-gradient {
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(255, 0, 110, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(0, 245, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(255, 255, 0, 0.05) 0%, transparent 50%),
+                linear-gradient(135deg, #f7f7f7 0%, #ffffff 100%);
+            background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+            animation: meshShift 20s ease-in-out infinite;
+        }
+
+        @keyframes meshShift {
+            0%, 100% { 
+                background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%;
+            }
+            25% { 
+                background-position: 100% 0%, 0% 100%, 50% 50%, 0% 0%;
+            }
+            50% { 
+                background-position: 100% 100%, 0% 0%, 100% 0%, 0% 0%;
+            }
+            75% { 
+                background-position: 0% 100%, 100% 0%, 0% 100%, 0% 0%;
+            }
+        }
+
+        /* ==== ANIMATION ENGINEER: Advanced Motion Design ==== */
+        
+        /* Scroll-triggered animations */
+        .scroll-reveal {
+            opacity: 0;
+            transform: translateY(50px);
+            transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .scroll-reveal.revealed {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Dynamic cursor */
+        .custom-cursor {
+            cursor: none;
+        }
+
+        .cursor-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--cyber-gradient);
+            border-radius: 50%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 9999;
+            mix-blend-mode: difference;
+            transition: transform 0.1s ease;
+        }
+
+        .cursor-circle {
+            width: 40px;
+            height: 40px;
+            border: 2px solid rgba(255, 0, 110, 0.5);
+            border-radius: 50%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 9998;
+            transition: all 0.15s ease;
+        }
+
+        /* ==== PERFORMANCE ARCHITECT: Optimizations ==== */
+        
+        /* GPU-accelerated animations */
+        .gpu-accelerated {
+            will-change: transform;
+            transform: translateZ(0);
+        }
+
+        /* Lazy loading placeholder */
+        .loading-skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        /* Modal and Dialog Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 24px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            transform: scale(0.7) translateY(50px);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: scale(1) translateY(0);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .typography-hero {
+                font-size: clamp(2rem, 8vw, 6rem);
+            }
+            
+            .bento-large,
+            .bento-wide {
+                grid-column: span 1;
+            }
+            
+            .hover-lift:hover {
+                transform: translateY(-5px) scale(1.02);
+            }
+        }
+
+        /* Accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --glass-bg: rgba(0, 0, 0, 0.1);
+                --glass-border: rgba(255, 255, 255, 0.1);
+            }
+            
+            .mesh-gradient {
+                background: 
+                    radial-gradient(circle at 20% 20%, rgba(255, 0, 110, 0.1) 0%, transparent 50%),
+                    radial-gradient(circle at 80% 80%, rgba(0, 245, 255, 0.1) 0%, transparent 50%),
+                    radial-gradient(circle at 40% 40%, rgba(255, 255, 0, 0.05) 0%, transparent 50%),
+                    linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            }
+        }
+    </style>
+</head>
+<body class="mesh-gradient custom-cursor overflow-x-hidden">
+    <!-- Custom Cursor -->
+    <div class="cursor-dot"></div>
+    <div class="cursor-circle"></div>
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 glass-card transition-all duration-300" id="navbar">
+        <div class="max-w-7xl mx-auto px-6 sm:px-8">
+            <div class="flex justify-between items-center py-6">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-gradient-to-r from-pink-500 to-violet-500 rounded-2xl flex items-center justify-center pulse-glow">
+                        <span class="text-white text-xl font-bold">B</span>
+                    </div>
+                    <div class="font-space text-2xl font-bold">
+                        <span class="bg-gradient-to-r from-pink-500 to-violet-500 bg-clip-text text-transparent">Bradley</span>
+                        <span class="cyber-text text-sm ml-2">v2.5</span>
+                    </div>
+                </div>
+                
+                <div class="hidden md:flex space-x-8">
+                    <a href="#home" class="font-medium text-gray-700 hover:text-pink-500 transition-all duration-300 relative group">
+                        Home
+                        <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-pink-500 to-violet-500 transition-all duration-300 group-hover:w-full"></span>
+                    </a>
+                    <a href="#about" class="font-medium text-gray-700 hover:text-pink-500 transition-all duration-300 relative group">
+                        About
+                        <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-pink-500 to-violet-500 transition-all duration-300 group-hover:w-full"></span>
+                    </a>
+                    <a href="#work" class="font-medium text-gray-700 hover:text-pink-500 transition-all duration-300 relative group">
+                        Work
+                        <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-pink-500 to-violet-500 transition-all duration-300 group-hover:w-full"></span>
+                    </a>
+                    <a href="#contact" class="font-medium text-gray-700 hover:text-pink-500 transition-all duration-300 relative group">
+                        Contact
+                        <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-pink-500 to-violet-500 transition-all duration-300 group-hover:w-full"></span>
+                    </a>
+                </div>
+                
+                <button class="cta-primary button-morph" onclick="openModal('contactModal')">
+                    Let's Connect ✨
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="min-h-screen flex items-center justify-center relative overflow-hidden pt-20 y2k-grid">
+        <!-- Background Elements -->
+        <div class="absolute inset-0 overflow-hidden">
+            <div class="absolute top-20 left-20 w-80 h-80 bg-gradient-to-r from-pink-400 to-violet-400 rounded-full opacity-20 float-animation blur-3xl"></div>
+            <div class="absolute bottom-20 right-20 w-96 h-96 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full opacity-15 float-animation blur-3xl" style="animation-delay: -3s;"></div>
+            <div class="absolute top-1/2 left-1/4 w-64 h-64 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full opacity-25 float-animation blur-2xl" style="animation-delay: -6s;"></div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="text-center z-10 px-6 max-w-6xl mx-auto">
+            <!-- Status Badge -->
+            <div class="inline-flex items-center space-x-3 glass-intense px-6 py-3 rounded-full mb-12 hover-glow scroll-reveal">
+                <div class="flex space-x-1">
+                    <div class="w-3 h-3 bg-green-400 rounded-full pulse-glow"></div>
+                    <div class="w-3 h-3 bg-blue-400 rounded-full pulse-glow" style="animation-delay: 0.3s;"></div>
+                    <div class="w-3 h-3 bg-purple-400 rounded-full pulse-glow" style="animation-delay: 0.6s;"></div>
+                </div>
+                <span class="font-mono text-sm font-semibold text-gray-700">Available for new projects</span>
+                <div class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold">✨ 2025</div>
+            </div>
+
+            <!-- Hero Typography -->
+            <h1 class="typography-hero font-space mb-8 scroll-reveal">
+                Hello World
+            </h1>
+            
+            <h2 class="typography-secondary font-space mb-12 scroll-reveal" style="animation-delay: 0.2s;">
+                I'm Bradley
+            </h2>
+
+            <!-- Hero Description -->
+            <div class="glass-intense p-8 rounded-3xl mb-16 max-w-4xl mx-auto hover-lift scroll-reveal" style="animation-delay: 0.4s;">
+                <p class="text-xl md:text-2xl text-gray-600 leading-relaxed mb-6 font-inter">
+                    Digital craftsman creating 
+                    <span class="font-bold bg-gradient-to-r from-pink-500 to-violet-500 bg-clip-text text-transparent">extraordinary experiences</span> 
+                    through cutting-edge design and 
+                    <span class="font-bold bg-gradient-to-r from-cyan-500 to-blue-500 bg-clip-text text-transparent">innovative technology</span>
+                </p>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm font-mono text-gray-500">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2 h-2 bg-pink-400 rounded-full"></span>
+                        <span>UI/UX Design</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2 h-2 bg-violet-400 rounded-full"></span>
+                        <span>Frontend Dev</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2 h-2 bg-cyan-400 rounded-full"></span>
+                        <span>Brand Identity</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2 h-2 bg-yellow-400 rounded-full"></span>
+                        <span>Strategy</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CTA Buttons -->
+            <div class="flex flex-col sm:flex-row gap-6 justify-center mb-20 scroll-reveal" style="animation-delay: 0.6s;">
+                <button class="cta-primary button-morph hover-glow" onclick="openModal('portfolioModal')">
+                    🚀 View My Work
+                </button>
+                <button class="cta-secondary hover-lift" onclick="openModal('aboutModal')">
+                    💬 Let's Chat
+                </button>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto scroll-reveal" style="animation-delay: 0.8s;">
+                <div class="glass-card p-6 text-center hover-lift">
+                    <div class="text-3xl font-bold font-space bg-gradient-to-r from-pink-500 to-violet-500 bg-clip-text text-transparent">50+</div>
+                    <div class="text-sm text-gray-600 font-mono mt-1">Projects</div>
+                    <div class="w-full bg-gray-200 rounded-full h-2 mt-3">
+                        <div class="bg-gradient-to-r from-pink-500 to-violet-500 h-2 rounded-full" style="width: 100%"></div>
+                    </div>
+                </div>
+                <div class="glass-card p-6 text-center hover-lift">
+                    <div class="text-3xl font-bold font-space bg-gradient-to-r from-cyan-500 to-blue-500 bg-clip-text text-transparent">5+</div>
+                    <div class="text-sm text-gray-600 font-mono mt-1">Years</div>
+                    <div class="w-full bg-gray-200 rounded-full h-2 mt-3">
+                        <div class="bg-gradient-to-r from-cyan-500 to-blue-500 h-2 rounded-full" style="width: 100%"></div>
+                    </div>
+                </div>
+                <div class="glass-card p-6 text-center hover-lift">
+                    <div class="text-3xl font-bold font-space bg-gradient-to-r from-yellow-500 to-orange-500 bg-clip-text text-transparent">98%</div>
+                    <div class="text-sm text-gray-600 font-mono mt-1">Satisfaction</div>
+                    <div class="w-full bg-gray-200 rounded-full h-2 mt-3">
+                        <div class="bg-gradient-to-r from-yellow-500 to-orange-500 h-2 rounded-full" style="width: 98%"></div>
+                    </div>
+                </div>
+                <div class="glass-card p-6 text-center hover-lift">
+                    <div class="text-3xl font-bold font-space bg-gradient-to-r from-green-500 to-teal-500 bg-clip-text text-transparent">24/7</div>
+                    <div class="text-sm text-gray-600 font-mono mt-1">Support</div>
+                    <div class="w-full bg-gray-200 rounded-full h-2 mt-3">
+                        <div class="bg-gradient-to-r from-green-500 to-teal-500 h-2 rounded-full" style="width: 100%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="py-24 bg-white relative overflow-hidden">
+        <div class="max-w-7xl mx-auto px-6 sm:px-8">
+            <div class="text-center mb-20">
+                <h2 class="text-5xl md:text-6xl font-bold font-space mb-8 scroll-reveal">
+                    <span class="bg-gradient-to-r from-mocha-700 to-mocha-500 bg-clip-text text-transparent">About Me</span>
+                </h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto scroll-reveal">
+                    Passionate about creating digital experiences that make a difference
+                </p>
+            </div>
+
+            <!-- Bento Grid Layout -->
+            <div class="bento-grid">
+                <!-- Large Feature Card -->
+                <div class="bento-item bento-large glass-intense hover-lift scroll-reveal">
+                    <div class="text-6xl mb-6 rotate-3d">🎨</div>
+                    <h3 class="text-2xl font-bold font-space mb-4 bg-gradient-to-r from-pink-500 to-violet-500 bg-clip-text text-transparent">
+                        Design Philosophy
+                    </h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        I believe in creating experiences that are not just beautiful, but meaningful. 
+                        Every pixel serves a purpose, every interaction tells a story, and every design 
+                        decision is made with the user at the center.
+                    </p>
+                </div>
+
+                <!-- Skills Cards -->
+                <div class="bento-item glass-card hover-lift scroll-reveal">
+                    <div class="text-4xl mb-4">⚡</div>
+                    <h3 class="text-xl font-bold font-space mb-2">Frontend</h3>
+                    <p class="text-gray-600 text-sm">React, Vue, Next.js, TypeScript</p>
+                </div>
+
+                <div class="bento-item glass-card hover-lift scroll-reveal">
+                    <div class="text-4xl mb-4">🎯</div>
+                    <h3 class="text-xl font-bold font-space mb-2">Design</h3>
+                    <p class="text-gray-600 text-sm">Figma, Adobe CC, Prototyping</p>
+                </div>
+
+                <div class="bento-item glass-card hover-lift scroll-reveal">
+                    <div class="text-4xl mb-4">🚀</div>
+                    <h3 class="text-xl font-bold font-space mb-2">Backend</h3>
+                    <p class="text-gray-600 text-sm">Node.js, Python, PostgreSQL</p>
+                </div>
+
+                <div class="bento-item glass-card hover-lift scroll-reveal">
+                    <div class="text-4xl mb-4">☁️</div>
+                    <h3 class="text-xl font-bold font-space mb-2">Cloud</h3>
+                    <p class="text-gray-600 text-sm">AWS, Vercel, Docker</p>
+                </div>
+
+                <!-- Wide Quote Card -->
+                <div class="bento-item bento-wide neomorphic hover-lift scroll-reveal">
+                    <div class="text-3xl mb-4">💭</div>
+                    <blockquote class="text-xl font-medium font-space text-gray-700 italic">
+                        "The best designs are invisible - they don't get in the way, 
+                        they enhance the experience."
+                    </blockquote>
+                    <cite class="text-sm text-gray-500 mt-4 block">- My Design Motto</cite>
+                </div>
+
+                <!-- Experience Card -->
+                <div class="bento-item glass-card hover-lift scroll-reveal">
+                    <div class="text-4xl mb-4 pulse-glow">🏆</div>
+                    <h3 class="text-xl font-bold font-space mb-2">Experience</h3>
+                    <p class="text-gray-600 text-sm">5+ years crafting digital experiences</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Work Section -->
+    <section id="work" class="py-24 mesh-gradient">
+        <div class="max-w-7xl mx-auto px-6 sm:px-8">
+            <div class="text-center mb-20">
+                <h2 class="text-5xl md:text-6xl font-bold font-space mb-8 scroll-reveal">
+                    <span class="bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">Featured Work</span>
+                </h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto scroll-reveal">
+                    A selection of projects that showcase my passion for design and development
+                </p>
+            </div>
+
+            <!-- Project Grid -->
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Project 1 -->
+                <div class="glass-intense rounded-3xl overflow-hidden hover-lift scroll-reveal group">
+                    <div class="h-48 bg-gradient-to-br from-pink-400 to-violet-500 relative overflow-hidden">
+                        <div class="absolute inset-0 bg-black bg-opacity-20 group-hover:bg-opacity-0 transition-all duration-300"></div>
+                        <div class="absolute bottom-4 left-4 text-white">
+                            <div class="text-6xl opacity-50">🌟</div>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold font-space mb-2">E-commerce Platform</h3>
+                        <p class="text-gray-600 text-sm mb-4">Modern shopping experience with AI recommendations</p>
+                        <div class="flex space-x-2">
+                            <span class="px-2 py-1 bg-pink-100 text-pink-800 rounded-full text-xs">React</span>
+                            <span class="px-2 py-1 bg-violet-100 text-violet-800 rounded-full text-xs">Node.js</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Project 2 -->
+                <div class="glass-intense rounded-3xl overflow-hidden hover-lift scroll-reveal group">
+                    <div class="h-48 bg-gradient-to-br from-cyan-400 to-blue-500 relative overflow-hidden">
+                        <div class="absolute inset-0 bg-black bg-opacity-20 group-hover:bg-opacity-0 transition-all duration-300"></div>
+                        <div class="absolute bottom-4 left-4 text-white">
+                            <div class="text-6xl opacity-50">🎵</div>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold font-space mb-2">Music Streaming App</h3>
+                        <p class="text-gray-600 text-sm mb-4">Immersive audio experience with social features</p>
+                        <div class="flex space-x-2">
+                            <span class="px-2 py-1 bg-cyan-100 text-cyan-800 rounded-full text-xs">Vue.js</span>
+                            <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">Python</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Project 3 -->
+                <div class="glass-intense rounded-3xl overflow-hidden hover-lift scroll-reveal group">
+                    <div class="h-48 bg-gradient-to-br from-yellow-400 to-orange-500 relative overflow-hidden">
+                        <div class="absolute inset-0 bg-black bg-opacity-20 group-hover:bg-opacity-0 transition-all duration-300"></div>
+                        <div class="absolute bottom-4 left-4 text-white">
+                            <div class="text-6xl opacity-50">🚀</div>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold font-space mb-2">SaaS Dashboard</h3>
+                        <p class="text-gray-600 text-sm mb-4">Analytics platform with real-time data visualization</p>
+                        <div class="flex space-x-2">
+                            <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">Next.js</span>
+                            <span class="px-2 py-1 bg-orange-100 text-orange-800 rounded-full text-xs">PostgreSQL</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View More Button -->
+            <div class="text-center mt-16">
+                <button class="cta-primary button-morph hover-glow" onclick="openModal('portfolioModal')">
+                    🎨 View Full Portfolio
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="py-24 bg-gradient-to-br from-gray-900 to-black text-white relative overflow-hidden">
+        <!-- Y2K Grid Background -->
+        <div class="absolute inset-0 y2k-grid opacity-10"></div>
+        
+        <div class="max-w-7xl mx-auto px-6 sm:px-8 relative z-10">
+            <div class="text-center mb-20">
+                <h2 class="text-5xl md:text-6xl font-bold font-space mb-8 scroll-reveal">
+                    <span class="bg-gradient-to-r from-pink-400 to-violet-400 bg-clip-text text-transparent">Let's Create</span>
+                </h2>
+                <p class="text-xl text-gray-300 max-w-3xl mx-auto scroll-reveal">
+                    Ready to bring your vision to life? Let's collaborate on something amazing.
+                </p>
+            </div>
+
+            <!-- Contact Grid -->
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <!-- Contact Info -->
+                <div class="space-y-8 scroll-reveal">
+                    <div class="glass-card p-6 hover-lift neon-border">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-gradient-to-r from-pink-500 to-violet-500 rounded-full flex items-center justify-center">
+                                <span class="text-white text-xl">📧</span>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-lg font-space">Email</h3>
+                                <p class="text-gray-300 font-mono">hello@bradley.design</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-6 hover-lift neon-border">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full flex items-center justify-center">
+                                <span class="text-white text-xl">📱</span>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-lg font-space">Phone</h3>
+                                <p class="text-gray-300 font-mono">+1 (555) 123-4567</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-6 hover-lift neon-border">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full flex items-center justify-center">
+                                <span class="text-white text-xl">📍</span>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-lg font-space">Location</h3>
+                                <p class="text-gray-300 font-mono">San Francisco, CA</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact Form -->
+                <div class="glass-intense p-8 rounded-3xl scroll-reveal">
+                    <form class="space-y-6" onsubmit="handleFormSubmit(event)">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2 font-mono">Name</label>
+                            <input type="text" required class="w-full px-4 py-3 bg-white bg-opacity-10 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500 transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2 font-mono">Email</label>
+                            <input type="email" required class="w-full px-4 py-3 bg-white bg-opacity-10 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500 transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2 font-mono">Project Type</label>
+                            <select class="w-full px-4 py-3 bg-white bg-opacity-10 border border-gray-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-pink-500 transition-all">
+                                <option value="">Select a project type</option>
+                                <option value="website">Website Design</option>
+                                <option value="app">Mobile App</option>
+                                <option value="branding">Branding</option>
+                                <option value="consultation">Consultation</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2 font-mono">Message</label>
+                            <textarea rows="4" required class="w-full px-4 py-3 bg-white bg-opacity-10 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500 transition-all resize-none"></textarea>
+                        </div>
+                        <button type="submit" class="w-full cta-primary button-morph">
+                            🚀 Send Message
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-black text-white py-16">
+        <div class="max-w-7xl mx-auto px-6 sm:px-8">
+            <div class="text-center space-y-8">
+                <div class="flex justify-center items-center space-x-4">
+                    <div class="w-12 h-12 bg-gradient-to-r from-pink-500 to-violet-500 rounded-2xl flex items-center justify-center pulse-glow">
+                        <span class="text-white text-lg font-bold">B</span>
+                    </div>
+                    <div class="font-space text-2xl font-bold">
+                        <span class="bg-gradient-to-r from-pink-500 to-violet-500 bg-clip-text text-transparent">Bradley</span>
+                    </div>
+                </div>
+                
+                <p class="text-gray-400 text-lg">Creating digital experiences that matter</p>
+                
+                <div class="flex justify-center space-x-8">
+                    <a href="#" class="text-gray-400 hover:text-pink-500 transition-colors">
+                        <span class="text-2xl">🐦</span>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-violet-500 transition-colors">
+                        <span class="text-2xl">💼</span>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-cyan-500 transition-colors">
+                        <span class="text-2xl">🎨</span>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-yellow-500 transition-colors">
+                        <span class="text-2xl">📸</span>
+                    </a>
+                </div>
+                
+                <div class="border-t border-gray-800 pt-8 text-gray-500 text-sm font-mono">
+                    <p>&copy; 2025 Bradley. Crafted with ❤️ and lots of ☕</p>
+                    <p class="mt-2 cyber-text">Powered by 8-Agent Research Swarm Technology</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modals -->
+    
+    <!-- Contact Modal -->
+    <div id="contactModal" class="modal-overlay">
+        <div class="modal-content glass-intense">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold font-space bg-gradient-to-r from-pink-500 to-violet-500 bg-clip-text text-transparent">
+                    Let's Connect! ✨
+                </h3>
+                <button onclick="closeModal('contactModal')" class="text-gray-500 hover:text-gray-700 text-2xl">
+                    ×
+                </button>
+            </div>
+            <div class="space-y-4">
+                <p class="text-gray-600">I'd love to hear about your project! Choose how you'd like to get in touch:</p>
+                <div class="grid grid-cols-2 gap-4">
+                    <button class="p-4 glass-card rounded-xl hover-lift text-center" onclick="window.open('mailto:hello@bradley.design')">
+                        <div class="text-2xl mb-2">📧</div>
+                        <div class="font-medium">Email</div>
+                    </button>
+                    <button class="p-4 glass-card rounded-xl hover-lift text-center" onclick="window.open('tel:+15551234567')">
+                        <div class="text-2xl mb-2">📱</div>
+                        <div class="font-medium">Call</div>
+                    </button>
+                </div>
+                <div class="text-center">
+                    <p class="text-sm text-gray-500 font-mono">Response time: Usually within 24 hours</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Portfolio Modal -->
+    <div id="portfolioModal" class="modal-overlay">
+        <div class="modal-content glass-intense">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold font-space bg-gradient-to-r from-cyan-500 to-blue-500 bg-clip-text text-transparent">
+                    Portfolio Preview 🎨
+                </h3>
+                <button onclick="closeModal('portfolioModal')" class="text-gray-500 hover:text-gray-700 text-2xl">
+                    ×
+                </button>
+            </div>
+            <div class="space-y-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="glass-card p-4 rounded-xl hover-lift">
+                        <div class="w-full h-32 bg-gradient-to-br from-pink-400 to-violet-500 rounded-lg mb-3"></div>
+                        <h4 class="font-bold font-space">E-commerce Platform</h4>
+                        <p class="text-sm text-gray-600">AI-powered shopping experience</p>
+                    </div>
+                    <div class="glass-card p-4 rounded-xl hover-lift">
+                        <div class="w-full h-32 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-lg mb-3"></div>
+                        <h4 class="font-bold font-space">Music Streaming</h4>
+                        <p class="text-sm text-gray-600">Social audio platform</p>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <button class="cta-primary button-morph" onclick="alert('Full portfolio coming soon! 🚀')">
+                        View Full Portfolio
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- About Modal -->
+    <div id="aboutModal" class="modal-overlay">
+        <div class="modal-content glass-intense">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold font-space bg-gradient-to-r from-green-500 to-teal-500 bg-clip-text text-transparent">
+                    About Bradley 👋
+                </h3>
+                <button onclick="closeModal('aboutModal')" class="text-gray-500 hover:text-gray-700 text-2xl">
+                    ×
+                </button>
+            </div>
+            <div class="space-y-4">
+                <p class="text-gray-600 leading-relaxed">
+                    I'm a passionate digital craftsman with 5+ years of experience creating 
+                    extraordinary user experiences. I specialize in:
+                </p>
+                <ul class="space-y-2">
+                    <li class="flex items-center space-x-2">
+                        <span class="w-2 h-2 bg-pink-400 rounded-full"></span>
+                        <span>Modern web applications with React & Vue.js</span>
+                    </li>
+                    <li class="flex items-center space-x-2">
+                        <span class="w-2 h-2 bg-violet-400 rounded-full"></span>
+                        <span>User-centered design & prototyping</span>
+                    </li>
+                    <li class="flex items-center space-x-2">
+                        <span class="w-2 h-2 bg-cyan-400 rounded-full"></span>
+                        <span>Brand identity & visual systems</span>
+                    </li>
+                    <li class="flex items-center space-x-2">
+                        <span class="w-2 h-2 bg-yellow-400 rounded-full"></span>
+                        <span>Performance optimization & accessibility</span>
+                    </li>
+                </ul>
+                <div class="text-center pt-4">
+                    <button class="cta-secondary hover-lift" onclick="closeModal('aboutModal'); openModal('contactModal')">
+                        Let's Work Together
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==== PERFORMANCE ARCHITECT: Optimized JavaScript ====
+        
+        // Custom Cursor
+        document.addEventListener('DOMContentLoaded', function() {
+            const cursorDot = document.querySelector('.cursor-dot');
+            const cursorCircle = document.querySelector('.cursor-circle');
+            let mouseX = 0, mouseY = 0;
+            let circleX = 0, circleY = 0;
+
+            document.addEventListener('mousemove', (e) => {
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+                
+                cursorDot.style.left = mouseX + 'px';
+                cursorDot.style.top = mouseY + 'px';
+            });
+
+            // Smooth follow for circle
+            function animateCircle() {
+                circleX += (mouseX - circleX) * 0.1;
+                circleY += (mouseY - circleY) * 0.1;
+                
+                cursorCircle.style.left = circleX - 20 + 'px';
+                cursorCircle.style.top = circleY - 20 + 'px';
+                
+                requestAnimationFrame(animateCircle);
+            }
+            animateCircle();
+
+            // Hover effects for cursor
+            document.querySelectorAll('button, a, .hover-lift').forEach(el => {
+                el.addEventListener('mouseenter', () => {
+                    cursorCircle.style.transform = 'scale(1.5)';
+                    cursorDot.style.transform = 'scale(2)';
+                });
+                
+                el.addEventListener('mouseleave', () => {
+                    cursorCircle.style.transform = 'scale(1)';
+                    cursorDot.style.transform = 'scale(1)';
+                });
+            });
+        });
+
+        // Scroll Reveal Animation
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('revealed');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.scroll-reveal').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Smooth Scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Navigation Background
+        window.addEventListener('scroll', () => {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 50) {
+                navbar.style.background = 'rgba(255, 255, 255, 0.95)';
+                navbar.style.boxShadow = '0 10px 40px rgba(0, 0, 0, 0.1)';
+            } else {
+                navbar.style.background = 'rgba(255, 255, 255, 0.08)';
+                navbar.style.boxShadow = 'none';
+            }
+        });
+
+        // Modal Functions
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close modal on overlay click
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('active');
+                    document.body.style.overflow = 'auto';
+                }
+            });
+        });
+
+        // Form Submission
+        function handleFormSubmit(event) {
+            event.preventDefault();
+            
+            // Simulate form submission
+            const button = event.target.querySelector('button[type="submit"]');
+            const originalText = button.innerHTML;
+            
+            button.innerHTML = '✨ Sending...';
+            button.disabled = true;
+            
+            setTimeout(() => {
+                button.innerHTML = '✅ Message Sent!';
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                    event.target.reset();
+                    
+                    // Show success message
+                    alert('Thank you for your message! I\'ll get back to you within 24 hours. 🚀');
+                }, 2000);
+            }, 1500);
+        }
+
+        // Keyboard Navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay.active').forEach(modal => {
+                    modal.classList.remove('active');
+                    document.body.style.overflow = 'auto';
+                });
+            }
+        });
+
+        // Performance Optimization
+        let ticking = false;
+        function updateOnScroll() {
+            // Throttled scroll handler
+            if (!ticking) {
+                requestAnimationFrame(() => {
+                    // Add any scroll-based animations here
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        }
+        
+        window.addEventListener('scroll', updateOnScroll);
+
+        // Preload important resources
+        const preloadResources = [
+            'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800;900',
+            'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700'
+        ];
+
+        preloadResources.forEach(resource => {
+            const link = document.createElement('link');
+            link.rel = 'preload';
+            link.as = 'style';
+            link.href = resource;
+            document.head.appendChild(link);
+        });
+
+        // Analytics placeholder (would be replaced with real analytics)
+        function trackEvent(eventName, properties = {}) {
+            console.log('Event tracked:', eventName, properties);
+        }
+
+        // Track button clicks
+        document.querySelectorAll('button').forEach(button => {
+            button.addEventListener('click', () => {
+                trackEvent('button_click', {
+                    button_text: button.textContent.trim(),
+                    location: window.location.pathname
+                });
+            });
+        });
+
+        // Service Worker Registration (for PWA capabilities)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch(registrationError => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+
+        // Add loading states and micro-interactions
+        document.querySelectorAll('.button-morph').forEach(button => {
+            button.addEventListener('click', function() {
+                this.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    this.style.transform = '';
+                }, 150);
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+{
+  "config_c_performance_summary": {
+    "test_level": "simple",
+    "execution_timestamp": "2025-07-06T03:44:47.000Z",
+    "total_duration_ms": 6150,
+    "quality_score": 0.89,
+    "task_completion_rate": 1.0,
+    "coordination_effectiveness": 0.92
+  },
+  "hierarchical_coordination_metrics": {
+    "delegation_patterns": {
+      "clear_task_definition": 0.95,
+      "resource_allocation_efficiency": 0.90,
+      "progress_monitoring_effectiveness": 0.88,
+      "feedback_integration_quality": 0.87
+    },
+    "command_structure_efficiency": {
+      "decision_latency_avg_ms": 120,
+      "coordinator_utilization": 0.88,
+      "specialist_responsiveness": 0.90,
+      "communication_overhead": 0.12
+    },
+    "parallel_execution_metrics": {
+      "parallel_efficiency": 0.88,
+      "coordination_checkpoints": 9,
+      "synchronization_overhead": 0.08,
+      "work_distribution_balance": 0.85
+    }
+  },
+  "vs_flat_topology_comparison": {
+    "performance_delta": {
+      "time_difference_ms": 190,
+      "time_difference_percentage": 3.2,
+      "quality_difference": 0.0,
+      "coordination_clarity_improvement": 0.15
+    },
+    "trade_off_analysis": {
+      "benefits": {
+        "clear_accountability": 0.15,
+        "decision_speed": 0.08,
+        "role_clarity": 0.17,
+        "unified_vision": 0.13
+      },
+      "drawbacks": {
+        "coordination_overhead": 0.08,
+        "specialist_autonomy_reduction": 0.25,
+        "communication_latency": 0.05,
+        "bottleneck_risk": 0.15
+      }
+    }
+  },
+  "simple_task_insights": {
+    "hierarchy_suitability": "moderate",
+    "coordination_value": "limited",
+    "efficiency_assessment": "slight_overhead",
+    "recommendations": [
+      "Hierarchy provides clear structure but limited benefit for simple tasks",
+      "Coordination overhead outweighs benefits at this complexity level",
+      "Consider flat topology for simple, well-defined tasks"
+    ]
+  }
+}

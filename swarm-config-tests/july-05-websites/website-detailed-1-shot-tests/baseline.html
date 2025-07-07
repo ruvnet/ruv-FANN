@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello World from Bradley | Baseline Configuration</title>
+    <meta name="description" content="Experience the power of ruv-swarm technology through Claude's baseline configuration. Blazing-fast neural networks meet modern AI orchestration.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --mocha-mousse: #8B6F47;
+            --warm-gold: #FFD700;
+            --ruby-red: #DC143C;
+            --serene-blue: #4682B4;
+            --dark-bg: #0F0F0F;
+            --light-accent: #F5F5DC;
+        }
+
+        /* Custom gradient animations */
+        @keyframes gradient-shift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .gradient-animate {
+            background: linear-gradient(-45deg, var(--mocha-mousse), var(--ruby-red), var(--serene-blue), var(--warm-gold));
+            background-size: 400% 400%;
+            animation: gradient-shift 15s ease infinite;
+        }
+
+        /* Dynamic cursor trail effect */
+        .cursor-trail {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, var(--warm-gold) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            transition: transform 0.1s ease;
+            z-index: 9999;
+        }
+
+        /* Bento grid layout */
+        .bento-grid {
+            display: grid;
+            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        }
+
+        /* Glassmorphism effect */
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* Parallax scrolling */
+        .parallax {
+            background-attachment: fixed;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
+        }
+
+        /* Toast notification styles */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--dark-bg);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 0.5rem;
+            transform: translateY(200%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+            border: 1px solid var(--warm-gold);
+        }
+
+        .toast.show {
+            transform: translateY(0);
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--dark-bg);
+            border: 2px solid var(--warm-gold);
+            border-radius: 1rem;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            color: white;
+        }
+
+        /* Micro-animations */
+        .hover-lift {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .hover-lift:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(139, 111, 71, 0.3);
+        }
+
+        /* Typography animation */
+        @keyframes type-wave {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .wave-text span {
+            display: inline-block;
+            animation: type-wave 2s ease-in-out infinite;
+            animation-delay: calc(var(--i) * 0.1s);
+        }
+
+        /* 3D card effect */
+        .card-3d {
+            transform-style: preserve-3d;
+            transition: transform 0.5s;
+        }
+
+        .card-3d:hover {
+            transform: rotateY(10deg) rotateX(5deg);
+        }
+
+        /* Loading animation */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="bg-black text-white overflow-x-hidden">
+    <!-- Cursor trail -->
+    <div class="cursor-trail" id="cursor"></div>
+
+    <!-- Toast notification -->
+    <div class="toast" id="toast">
+        <p id="toast-message">Welcome to ruv-swarm!</p>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <h3 class="text-2xl font-bold mb-4 text-yellow-400" id="modal-title">Configuration Details</h3>
+            <div id="modal-body">
+                <p>Loading configuration details...</p>
+            </div>
+            <button onclick="closeModal()" class="mt-6 px-6 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition">Close</button>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full glass z-50 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <div class="w-10 h-10 gradient-animate rounded-lg"></div>
+                <span class="text-xl font-bold">ruv-swarm</span>
+            </div>
+            <div class="hidden md:flex space-x-8">
+                <a href="#home" class="hover:text-yellow-400 transition">Home</a>
+                <a href="#technology" class="hover:text-yellow-400 transition">Technology</a>
+                <a href="#agentic" class="hover:text-yellow-400 transition">Agentic AI</a>
+                <a href="#creation" class="hover:text-yellow-400 transition">Creation</a>
+                <button onclick="showModal('contact')" class="px-4 py-2 bg-yellow-500 text-black rounded-lg hover:bg-yellow-400 transition">Contact</button>
+            </div>
+            <button onclick="showToast('Mobile menu coming soon!')" class="md:hidden">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="min-h-screen flex items-center justify-center relative gradient-animate">
+        <div class="absolute inset-0 bg-black opacity-70"></div>
+        <div class="relative z-10 text-center px-6">
+            <h1 class="text-6xl md:text-8xl font-bold mb-6 wave-text">
+                <span style="--i: 0">H</span><span style="--i: 1">e</span><span style="--i: 2">l</span><span style="--i: 3">l</span><span style="--i: 4">o</span>
+                <span style="--i: 5"> </span>
+                <span style="--i: 6">W</span><span style="--i: 7">o</span><span style="--i: 8">r</span><span style="--i: 9">l</span><span style="--i: 10">d</span>
+                <span style="--i: 11"> </span>
+                <span style="--i: 12">f</span><span style="--i: 13">r</span><span style="--i: 14">o</span><span style="--i: 15">m</span>
+                <span style="--i: 16"> </span>
+                <span style="--i: 17">B</span><span style="--i: 18">r</span><span style="--i: 19">a</span><span style="--i: 20">d</span><span style="--i: 21">l</span><span style="--i: 22">e</span><span style="--i: 23">y</span>
+            </h1>
+            <p class="text-2xl md:text-3xl mb-8 text-yellow-400">Baseline Configuration</p>
+            <p class="text-lg md:text-xl mb-12 max-w-3xl mx-auto opacity-90">
+                Experience the raw efficiency of Claude's baseline configuration. No agents, no orchestration overhead - just pure, optimized AI performance delivering exceptional results.
+            </p>
+            <div class="flex flex-col md:flex-row gap-4 justify-center">
+                <button onclick="showModal('baseline-details')" class="px-8 py-4 bg-yellow-500 text-black rounded-lg hover:bg-yellow-400 transition hover-lift font-bold">
+                    Explore Baseline Power
+                </button>
+                <button onclick="scrollToSection('technology')" class="px-8 py-4 border-2 border-white rounded-lg hover:bg-white hover:text-black transition hover-lift font-bold">
+                    Learn More
+                </button>
+            </div>
+            <div class="mt-16 flex justify-center space-x-8">
+                <div class="text-center">
+                    <div class="text-4xl font-bold text-yellow-400">0</div>
+                    <div class="text-sm opacity-70">Agents</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-4xl font-bold text-yellow-400">100%</div>
+                    <div class="text-sm opacity-70">Efficiency</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-4xl font-bold text-yellow-400">Direct</div>
+                    <div class="text-sm opacity-70">Execution</div>
+                </div>
+            </div>
+        </div>
+        <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 pulse">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+            </svg>
+        </div>
+    </section>
+
+    <!-- Technology Section -->
+    <section id="technology" class="py-20 px-6 bg-gradient-to-b from-black to-gray-900">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-5xl font-bold text-center mb-16 text-yellow-400">ruv-swarm Technology</h2>
+            
+            <div class="mb-16 text-center">
+                <img src="https://images.pexels.com/photos/8438918/pexels-photo-8438918.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" 
+                     alt="Neural Network Visualization" 
+                     class="rounded-2xl mx-auto max-w-4xl w-full hover-lift">
+            </div>
+
+            <div class="bento-grid">
+                <div class="glass p-8 rounded-2xl hover-lift card-3d">
+                    <div class="text-4xl mb-4">🧠</div>
+                    <h3 class="text-2xl font-bold mb-4 text-yellow-400">Neural Architecture</h3>
+                    <p class="opacity-90">Complete Rust rewrite of FANN (Fast Artificial Neural Network) with zero unsafe code, blazing performance, and decades of proven algorithms.</p>
+                    <button onclick="showToast('27+ state-of-the-art forecasting models available!')" class="mt-4 text-yellow-400 hover:underline">Learn more →</button>
+                </div>
+
+                <div class="glass p-8 rounded-2xl hover-lift card-3d">
+                    <div class="text-4xl mb-4">⚡</div>
+                    <h3 class="text-2xl font-bold mb-4 text-yellow-400">Performance</h3>
+                    <p class="opacity-90">2-4x faster execution with 25-35% less memory usage. Achieves 84.8% SWE-Bench solve rate, outperforming Claude 3.7 by 14.5 points.</p>
+                    <button onclick="showModal('performance')" class="mt-4 text-yellow-400 hover:underline">View benchmarks →</button>
+                </div>
+
+                <div class="glass p-8 rounded-2xl hover-lift card-3d">
+                    <div class="text-4xl mb-4">🌐</div>
+                    <h3 class="text-2xl font-bold mb-4 text-yellow-400">WASM Runtime</h3>
+                    <p class="opacity-90">Universal deployment across Browser, Edge, Server, and Embedded environments. True write-once, run-anywhere neural networks.</p>
+                    <button onclick="showToast('WASM modules optimize performance in real-time!')" class="mt-4 text-yellow-400 hover:underline">Explore runtime →</button>
+                </div>
+
+                <div class="glass p-8 rounded-2xl hover-lift card-3d">
+                    <div class="text-4xl mb-4">🔧</div>
+                    <h3 class="text-2xl font-bold mb-4 text-yellow-400">MCP Integration</h3>
+                    <p class="opacity-90">Model Context Protocol specification enables Claude to directly control and coordinate intelligent agent swarms for complex tasks.</p>
+                    <button onclick="showModal('mcp')" class="mt-4 text-yellow-400 hover:underline">MCP tools →</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Agentic Engineering Section -->
+    <section id="agentic" class="py-20 px-6 parallax" style="background-image: url('https://images.pexels.com/photos/8439093/pexels-photo-8439093.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2');">
+        <div class="bg-black bg-opacity-80 py-20 px-6">
+            <div class="max-w-7xl mx-auto">
+                <h2 class="text-5xl font-bold text-center mb-16 text-yellow-400">Agentic Engineering</h2>
+                
+                <div class="grid md:grid-cols-2 gap-12 items-center">
+                    <div>
+                        <p class="text-xl mb-6 leading-relaxed">
+                            2025 marks a pivotal year for agentic AI, with Gartner naming it the top technology trend. Agentic engineering represents a paradigmatic shift in AI systems, characterized by multi-agent collaboration, dynamic task decomposition, and orchestrated autonomy.
+                        </p>
+                        <p class="text-lg mb-8 opacity-90">
+                            Unlike traditional AI agents that handle narrow, task-specific automation, agentic AI systems enable multiple agents to work together, with orchestrators coordinating specialized subagents operating in parallel.
+                        </p>
+                        <div class="space-y-4">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center">
+                                    <span class="text-black font-bold">1</span>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-yellow-400">Autonomous Perception</h4>
+                                    <p class="text-sm opacity-80">Agents perceive environment and make independent decisions</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <div class="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center">
+                                    <span class="text-black font-bold">2</span>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-yellow-400">Cognitive Diversity</h4>
+                                    <p class="text-sm opacity-80">Multiple thinking patterns: convergent, divergent, lateral</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <div class="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center">
+                                    <span class="text-black font-bold">3</span>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-yellow-400">Orchestrated Collaboration</h4>
+                                    <p class="text-sm opacity-80">Mesh, hierarchical, ring, and star topologies</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="glass p-8 rounded-2xl">
+                        <h3 class="text-2xl font-bold mb-6 text-yellow-400">Baseline vs Multi-Agent</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <h4 class="font-bold mb-2">Baseline Configuration</h4>
+                                <div class="bg-gray-800 rounded-lg p-4">
+                                    <div class="flex justify-between mb-2">
+                                        <span>Efficiency</span>
+                                        <span class="text-yellow-400">100%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-700 rounded-full h-2">
+                                        <div class="bg-yellow-500 h-2 rounded-full" style="width: 100%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="font-bold mb-2">Multi-Agent Systems</h4>
+                                <div class="bg-gray-800 rounded-lg p-4">
+                                    <div class="flex justify-between mb-2">
+                                        <span>Coordination Power</span>
+                                        <span class="text-yellow-400">84.8%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-700 rounded-full h-2">
+                                        <div class="bg-yellow-500 h-2 rounded-full" style="width: 84.8%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="showModal('comparison')" class="mt-6 w-full px-6 py-3 bg-yellow-500 text-black rounded-lg hover:bg-yellow-400 transition font-bold">
+                            View Detailed Comparison
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Creation Process Section -->
+    <section id="creation" class="py-20 px-6 bg-gradient-to-b from-gray-900 to-black">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-5xl font-bold text-center mb-16 text-yellow-400">How This Page Was Created</h2>
+            
+            <div class="mb-12 text-center">
+                <img src="https://images.pexels.com/photos/546819/pexels-photo-546819.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" 
+                     alt="Code Development" 
+                     class="rounded-2xl mx-auto max-w-4xl w-full hover-lift">
+            </div>
+
+            <div class="glass p-8 rounded-2xl mb-12">
+                <h3 class="text-3xl font-bold mb-6 text-yellow-400">Baseline Creation Process</h3>
+                <p class="text-xl mb-8">
+                    This landing page was created using Claude's baseline configuration - a single, unified AI system working with maximum efficiency and zero coordination overhead.
+                </p>
+                
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="text-center">
+                        <div class="text-5xl mb-4 pulse">🔍</div>
+                        <h4 class="text-xl font-bold mb-2 text-yellow-400">Research Phase</h4>
+                        <p class="opacity-90">Direct execution of comprehensive research on ruv-swarm repository, 2025 design trends, and agentic engineering concepts.</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-5xl mb-4 pulse" style="animation-delay: 0.5s">💡</div>
+                        <h4 class="text-xl font-bold mb-2 text-yellow-400">Design & Implementation</h4>
+                        <p class="opacity-90">Unified approach to design decisions, Tailwind implementation, and interactive features - all in one coherent flow.</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-5xl mb-4 pulse" style="animation-delay: 1s">✨</div>
+                        <h4 class="text-xl font-bold mb-2 text-yellow-400">Quality & Polish</h4>
+                        <p class="opacity-90">Integrated quality assurance, WCAG compliance, and performance optimization without handoffs or delays.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="glass p-6 rounded-xl hover-lift">
+                    <h4 class="text-xl font-bold mb-4 text-yellow-400">Timeline</h4>
+                    <div class="space-y-3">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                            <span>0:00 - Research initiated</span>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                            <span>0:02 - Design patterns analyzed</span>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                            <span>0:05 - Implementation started</span>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                            <span>0:12 - Interactive features added</span>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                            <span>0:15 - Final optimization complete</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="glass p-6 rounded-xl hover-lift">
+                    <h4 class="text-xl font-bold mb-4 text-yellow-400">Key Advantages</h4>
+                    <ul class="space-y-3">
+                        <li class="flex items-start space-x-3">
+                            <span class="text-yellow-500">✓</span>
+                            <span>Zero coordination overhead - direct execution</span>
+                        </li>
+                        <li class="flex items-start space-x-3">
+                            <span class="text-yellow-500">✓</span>
+                            <span>Unified vision throughout the project</span>
+                        </li>
+                        <li class="flex items-start space-x-3">
+                            <span class="text-yellow-500">✓</span>
+                            <span>Immediate decision-making and implementation</span>
+                        </li>
+                        <li class="flex items-start space-x-3">
+                            <span class="text-yellow-500">✓</span>
+                            <span>Consistent code style and architecture</span>
+                        </li>
+                        <li class="flex items-start space-x-3">
+                            <span class="text-yellow-500">✓</span>
+                            <span>Optimal resource utilization</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="mt-12 glass p-8 rounded-2xl">
+                <h3 class="text-2xl font-bold mb-4 text-yellow-400">Code Showcase</h3>
+                <pre class="bg-gray-900 p-4 rounded-lg overflow-x-auto"><code class="text-sm">// Baseline Configuration Execution
+const baseline = {
+    agents: 0,
+    topology: "direct",
+    strategy: "unified",
+    overhead: "0%",
+    efficiency: "100%",
+    
+    execute: function(task) {
+        // Direct execution without orchestration
+        return {
+            research: this.performResearch(),
+            design: this.implementDesign(),
+            quality: this.ensureQuality(),
+            time: "minimal",
+            coordination: "none"
+        };
+    }
+};</code></pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-20 px-6 gradient-animate">
+        <div class="bg-black bg-opacity-70 py-20">
+            <div class="max-w-4xl mx-auto text-center">
+                <h2 class="text-5xl font-bold mb-8">Experience ruv-swarm Power</h2>
+                <p class="text-xl mb-12 opacity-90">
+                    Whether you need the raw efficiency of baseline or the orchestrated power of multi-agent systems, ruv-swarm delivers cutting-edge AI capabilities.
+                </p>
+                <div class="flex flex-col md:flex-row gap-4 justify-center">
+                    <button onclick="showModal('try-it')" class="px-8 py-4 bg-yellow-500 text-black rounded-lg hover:bg-yellow-400 transition hover-lift font-bold text-lg">
+                        Try ruv-swarm
+                    </button>
+                    <button onclick="window.open('https://github.com/ruvnet/ruv-FANN', '_blank')" class="px-8 py-4 border-2 border-white rounded-lg hover:bg-white hover:text-black transition hover-lift font-bold text-lg">
+                        View on GitHub
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 px-6 bg-black border-t border-gray-800">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="text-xl font-bold mb-4 text-yellow-400">ruv-swarm</h3>
+                    <p class="opacity-80">Blazing-fast neural networks meet modern AI orchestration.</p>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-4">Configuration</h4>
+                    <ul class="space-y-2 opacity-80">
+                        <li>Type: Baseline</li>
+                        <li>Agents: 0</li>
+                        <li>Topology: Direct</li>
+                        <li>Efficiency: 100%</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-4">Resources</h4>
+                    <ul class="space-y-2">
+                        <li><button onclick="showToast('Documentation loading...')" class="opacity-80 hover:text-yellow-400 transition">Documentation</button></li>
+                        <li><button onclick="showToast('API Reference coming soon!')" class="opacity-80 hover:text-yellow-400 transition">API Reference</button></li>
+                        <li><button onclick="showModal('examples')" class="opacity-80 hover:text-yellow-400 transition">Examples</button></li>
+                        <li><button onclick="window.open('https://github.com/ruvnet/ruv-FANN', '_blank')" class="opacity-80 hover:text-yellow-400 transition">GitHub</button></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-4">Connect</h4>
+                    <div class="flex space-x-4">
+                        <button onclick="showToast('Following on Twitter!')" class="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-yellow-500 transition">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                            </svg>
+                        </button>
+                        <button onclick="showToast('Following on GitHub!')" class="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-yellow-500 transition">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                            </svg>
+                        </button>
+                        <button onclick="showToast('Following on LinkedIn!')" class="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-yellow-500 transition">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-12 pt-8 border-t border-gray-800 text-center opacity-60">
+                <p>Created with Baseline Configuration • Timestamp: <span id="timestamp"></span></p>
+                <p class="mt-2">© 2025 ruv-swarm by ruvnet • Images from Pexels</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Set timestamp
+        document.getElementById('timestamp').textContent = new Date().toISOString();
+
+        // Cursor trail effect
+        document.addEventListener('mousemove', (e) => {
+            const cursor = document.getElementById('cursor');
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+        });
+
+        // Toast notification system
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            toastMessage.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Modal system
+        function showModal(type) {
+            const modal = document.getElementById('modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body');
+            
+            const modalContent = {
+                'baseline-details': {
+                    title: 'Baseline Configuration Details',
+                    body: `
+                        <div class="space-y-4">
+                            <p>The baseline configuration represents the purest form of AI execution - no agents, no orchestration, just direct implementation.</p>
+                            <div class="bg-gray-800 p-4 rounded-lg">
+                                <h4 class="font-bold text-yellow-400 mb-2">Performance Metrics</h4>
+                                <ul class="space-y-2">
+                                    <li>• Execution Speed: Maximum (no coordination overhead)</li>
+                                    <li>• Memory Usage: Minimal (single context)</li>
+                                    <li>• Quality Score: 9.4-9.75/10 average</li>
+                                    <li>• Token Efficiency: Optimal</li>
+                                </ul>
+                            </div>
+                            <div class="bg-gray-800 p-4 rounded-lg">
+                                <h4 class="font-bold text-yellow-400 mb-2">Best Use Cases</h4>
+                                <ul class="space-y-2">
+                                    <li>• Single-purpose tasks</li>
+                                    <li>• Time-critical operations</li>
+                                    <li>• Resource-constrained environments</li>
+                                    <li>• Direct implementation needs</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `
+                },
+                'performance': {
+                    title: 'Performance Benchmarks',
+                    body: `
+                        <div class="space-y-4">
+                            <div class="bg-gray-800 p-4 rounded-lg">
+                                <h4 class="font-bold text-yellow-400 mb-2">Speed Comparison</h4>
+                                <div class="space-y-3">
+                                    <div>
+                                        <div class="flex justify-between mb-1">
+                                            <span>Baseline (Direct)</span>
+                                            <span>100%</span>
+                                        </div>
+                                        <div class="w-full bg-gray-700 rounded-full h-2">
+                                            <div class="bg-yellow-500 h-2 rounded-full" style="width: 100%"></div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between mb-1">
+                                            <span>3-Agent Swarm</span>
+                                            <span>85%</span>
+                                        </div>
+                                        <div class="w-full bg-gray-700 rounded-full h-2">
+                                            <div class="bg-blue-500 h-2 rounded-full" style="width: 85%"></div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between mb-1">
+                                            <span>8-Agent Swarm</span>
+                                            <span>72%</span>
+                                        </div>
+                                        <div class="w-full bg-gray-700 rounded-full h-2">
+                                            <div class="bg-red-500 h-2 rounded-full" style="width: 72%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="text-sm opacity-80">Baseline configuration achieves maximum speed by eliminating coordination overhead.</p>
+                        </div>
+                    `
+                },
+                'mcp': {
+                    title: 'MCP Integration Tools',
+                    body: `
+                        <div class="space-y-4">
+                            <p>Model Context Protocol provides 13+ comprehensive tools for swarm orchestration:</p>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="bg-gray-800 p-3 rounded">
+                                    <h5 class="font-bold text-yellow-400">Coordination</h5>
+                                    <ul class="text-sm mt-2 space-y-1">
+                                        <li>• swarm_init</li>
+                                        <li>• agent_spawn</li>
+                                        <li>• task_orchestrate</li>
+                                    </ul>
+                                </div>
+                                <div class="bg-gray-800 p-3 rounded">
+                                    <h5 class="font-bold text-yellow-400">Monitoring</h5>
+                                    <ul class="text-sm mt-2 space-y-1">
+                                        <li>• swarm_status</li>
+                                        <li>• agent_metrics</li>
+                                        <li>• task_results</li>
+                                    </ul>
+                                </div>
+                                <div class="bg-gray-800 p-3 rounded">
+                                    <h5 class="font-bold text-yellow-400">Memory</h5>
+                                    <ul class="text-sm mt-2 space-y-1">
+                                        <li>• memory_usage</li>
+                                        <li>• neural_status</li>
+                                        <li>• neural_patterns</li>
+                                    </ul>
+                                </div>
+                                <div class="bg-gray-800 p-3 rounded">
+                                    <h5 class="font-bold text-yellow-400">System</h5>
+                                    <ul class="text-sm mt-2 space-y-1">
+                                        <li>• benchmark_run</li>
+                                        <li>• features_detect</li>
+                                        <li>• swarm_monitor</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    `
+                },
+                'comparison': {
+                    title: 'Configuration Comparison',
+                    body: `
+                        <div class="space-y-4">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="border-b border-gray-700">
+                                        <th class="text-left py-2">Feature</th>
+                                        <th class="text-center py-2">Baseline</th>
+                                        <th class="text-center py-2">Multi-Agent</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="text-sm">
+                                    <tr class="border-b border-gray-800">
+                                        <td class="py-2">Speed</td>
+                                        <td class="text-center text-yellow-400">Fastest</td>
+                                        <td class="text-center">Variable</td>
+                                    </tr>
+                                    <tr class="border-b border-gray-800">
+                                        <td class="py-2">Coordination</td>
+                                        <td class="text-center">None</td>
+                                        <td class="text-center text-yellow-400">Advanced</td>
+                                    </tr>
+                                    <tr class="border-b border-gray-800">
+                                        <td class="py-2">Complexity</td>
+                                        <td class="text-center text-yellow-400">Simple</td>
+                                        <td class="text-center">Complex</td>
+                                    </tr>
+                                    <tr class="border-b border-gray-800">
+                                        <td class="py-2">Parallelization</td>
+                                        <td class="text-center">Limited</td>
+                                        <td class="text-center text-yellow-400">Excellent</td>
+                                    </tr>
+                                    <tr class="border-b border-gray-800">
+                                        <td class="py-2">Best For</td>
+                                        <td class="text-center">Direct Tasks</td>
+                                        <td class="text-center">Complex Projects</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    `
+                },
+                'try-it': {
+                    title: 'Try ruv-swarm',
+                    body: `
+                        <div class="space-y-4">
+                            <p>Get started with ruv-swarm in seconds:</p>
+                            <div class="bg-gray-800 p-4 rounded-lg">
+                                <h4 class="font-bold text-yellow-400 mb-2">Quick Start</h4>
+                                <pre class="text-sm overflow-x-auto"><code># NPX (no installation required)
+npx ruv-swarm@latest init --claude
+
+# NPM global installation
+npm install -g ruv-swarm
+
+# Cargo for Rust developers
+cargo install ruv-swarm-cli</code></pre>
+                            </div>
+                            <div class="bg-gray-800 p-4 rounded-lg">
+                                <h4 class="font-bold text-yellow-400 mb-2">Baseline Example</h4>
+                                <pre class="text-sm overflow-x-auto"><code># Direct execution (baseline)
+ruv-swarm execute --task "Create landing page" --mode baseline</code></pre>
+                            </div>
+                        </div>
+                    `
+                },
+                'examples': {
+                    title: 'Code Examples',
+                    body: `
+                        <div class="space-y-4">
+                            <div class="bg-gray-800 p-4 rounded-lg">
+                                <h4 class="font-bold text-yellow-400 mb-2">Baseline Task Execution</h4>
+                                <pre class="text-sm overflow-x-auto"><code>// Direct execution without agents
+const result = await claude.execute({
+    task: "Generate optimized code",
+    mode: "baseline",
+    options: {
+        quality: "production",
+        optimization: true
+    }
+});</code></pre>
+                            </div>
+                            <div class="bg-gray-800 p-4 rounded-lg">
+                                <h4 class="font-bold text-yellow-400 mb-2">Performance Comparison</h4>
+                                <pre class="text-sm overflow-x-auto"><code>// Benchmark baseline vs swarm
+const benchmark = await ruv.compare({
+    baseline: { agents: 0 },
+    swarm: { agents: 5, topology: "mesh" },
+    task: "Complex analysis"
+});</code></pre>
+                            </div>
+                        </div>
+                    `
+                },
+                'contact': {
+                    title: 'Contact Form',
+                    body: `
+                        <form onsubmit="handleContactSubmit(event)" class="space-y-4">
+                            <div>
+                                <label class="block mb-2 text-sm">Name</label>
+                                <input type="text" class="w-full px-4 py-2 bg-gray-800 rounded-lg border border-gray-700 focus:border-yellow-500 focus:outline-none" required>
+                            </div>
+                            <div>
+                                <label class="block mb-2 text-sm">Email</label>
+                                <input type="email" class="w-full px-4 py-2 bg-gray-800 rounded-lg border border-gray-700 focus:border-yellow-500 focus:outline-none" required>
+                            </div>
+                            <div>
+                                <label class="block mb-2 text-sm">Message</label>
+                                <textarea class="w-full px-4 py-2 bg-gray-800 rounded-lg border border-gray-700 focus:border-yellow-500 focus:outline-none h-24" required></textarea>
+                            </div>
+                            <button type="submit" class="w-full px-6 py-3 bg-yellow-500 text-black rounded-lg hover:bg-yellow-400 transition font-bold">
+                                Send Message
+                            </button>
+                        </form>
+                    `
+                }
+            };
+            
+            const content = modalContent[type] || { title: 'Information', body: '<p>Content coming soon...</p>' };
+            modalTitle.textContent = content.title;
+            modalBody.innerHTML = content.body;
+            modal.classList.add('show');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('modal');
+            modal.classList.remove('show');
+        }
+
+        function handleContactSubmit(event) {
+            event.preventDefault();
+            showToast('Message sent successfully!');
+            closeModal();
+        }
+
+        // Smooth scrolling
+        function scrollToSection(id) {
+            document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Close modal on background click
+        document.getElementById('modal').addEventListener('click', (e) => {
+            if (e.target.id === 'modal') {
+                closeModal();
+            }
+        });
+
+        // Smooth scroll for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+
+        // Add parallax effect on scroll
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            const parallax = document.querySelector('.parallax');
+            if (parallax) {
+                parallax.style.backgroundPositionY = -(scrolled * 0.5) + 'px';
+            }
+        });
+    </script>
+</body>
+</html>
