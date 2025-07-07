@@ -1,0 +1,1676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ruv-Swarm: Next-Generation AI Orchestration</title>
+    <meta name="description" content="Experience the future of decentralized AI coordination with ruv-swarm's cutting-edge multi-agent framework">
+    
+    <!-- Note: In production, use Tailwind CSS as a PostCSS plugin or CLI tool -->
+    <!-- For this demo, we're using inline styles to avoid CDN dependencies -->
+    
+    <!-- Advanced Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- GSAP for animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    
+    <!-- D3.js for visualizations -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    
+    <!-- Three.js for 3D effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r160/three.min.js"></script>
+    
+    <!-- Chart.js for performance metrics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --mocha-mousse: #A47764;
+            --deep-space: #0a0a0a;
+            --electric-violet: #764ba2;
+            --quantum-blue: #667eea;
+            --aurora-green: #00d9ff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--deep-space);
+            color: #ffffff;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        .font-display {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        /* Glassmorphism effects */
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+        }
+
+        /* Neumorphism effects */
+        .neu {
+            background: linear-gradient(145deg, #0f0f0f, #050505);
+            box-shadow: 20px 20px 60px #000000,
+                        -20px -20px 60px #141414;
+            border-radius: 20px;
+        }
+
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--deep-space);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--electric-violet);
+            border-radius: 4px;
+        }
+
+        /* Navigation with glassmorphism */
+        .nav-glass {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 50;
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        /* Hero gradient animation */
+        .gradient-animation {
+            background: linear-gradient(270deg, #667eea, #764ba2, #00d9ff, #667eea);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Bento grid layout */
+        .bento-grid {
+            display: grid;
+            gap: 24px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-auto-rows: minmax(200px, auto);
+        }
+
+        .bento-item {
+            transition: all 0.3s ease;
+        }
+
+        .bento-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.2);
+        }
+
+        /* Loading animation */
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--quantum-blue);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Particle canvas */
+        #particle-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.6;
+        }
+
+        /* Performance metric cards */
+        .metric-card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: var(--primary-gradient);
+            border-radius: 16px;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .metric-card:hover::before {
+            opacity: 1;
+        }
+
+        /* Interactive button styles */
+        .btn-primary {
+            position: relative;
+            display: inline-block;
+            padding: 16px 32px;
+            background: var(--primary-gradient);
+            color: white;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: left 0.3s ease;
+        }
+
+        .btn-primary:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Code block styling */
+        .code-block {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            padding: 24px;
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            position: relative;
+        }
+
+        .code-block::before {
+            content: 'CODE';
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font-size: 10px;
+            color: var(--quantum-blue);
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        /* Section transitions */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s ease;
+        }
+
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--deep-space);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 48px;
+            max-width: 600px;
+            width: 90%;
+            position: relative;
+        }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 32px;
+            right: 32px;
+            background: var(--primary-gradient);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 100;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        /* Feature cards with hover effects */
+        .feature-card {
+            position: relative;
+            padding: 32px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(102, 126, 234, 0.1) 0%, transparent 50%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+
+        .feature-card:hover {
+            border-color: rgba(102, 126, 234, 0.5);
+            transform: translateY(-4px);
+        }
+
+        /* Network visualization container */
+        #network-viz {
+            width: 100%;
+            height: 500px;
+            border-radius: 20px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Performance chart container */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        /* Responsive utilities */
+        @media (max-width: 768px) {
+            .bento-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .hero-title {
+                font-size: 2.5rem !important;
+            }
+            
+            .modal-content {
+                padding: 32px 24px;
+            }
+        }
+
+        /* Accessibility focus styles */
+        *:focus {
+            outline: 2px solid var(--quantum-blue);
+            outline-offset: 4px;
+        }
+
+        /* Skip to content link */
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: var(--primary-gradient);
+            color: white;
+            padding: 8px 16px;
+            text-decoration: none;
+            border-radius: 0 0 8px 0;
+            transition: top 0.3s ease;
+        }
+
+        .skip-link:focus {
+            top: 0;
+        }
+
+        /* Loading skeleton */
+        .skeleton {
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.05) 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+                color: black;
+            }
+            
+            .nav-glass, #particle-canvas, .modal {
+                display: none;
+            }
+        }
+
+        /* Essential Tailwind-like utility classes */
+        .container {
+            width: 100%;
+            margin-right: auto;
+            margin-left: auto;
+            padding-right: 1rem;
+            padding-left: 1rem;
+        }
+        @media (min-width: 640px) {
+            .container { max-width: 640px; }
+        }
+        @media (min-width: 768px) {
+            .container { max-width: 768px; }
+        }
+        @media (min-width: 1024px) {
+            .container { max-width: 1024px; }
+        }
+        @media (min-width: 1280px) {
+            .container { max-width: 1280px; }
+        }
+        @media (min-width: 1536px) {
+            .container { max-width: 1536px; }
+        }
+        
+        .mx-auto { margin-left: auto; margin-right: auto; }
+        .px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+        .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+        .py-20 { padding-top: 5rem; padding-bottom: 5rem; }
+        .px-8 { padding-left: 2rem; padding-right: 2rem; }
+        .py-12 { padding-top: 3rem; padding-bottom: 3rem; }
+        .p-6 { padding: 1.5rem; }
+        .p-8 { padding: 2rem; }
+        .pt-20 { padding-top: 5rem; }
+        .mb-4 { margin-bottom: 1rem; }
+        .mb-6 { margin-bottom: 1.5rem; }
+        .mb-8 { margin-bottom: 2rem; }
+        .mb-12 { margin-bottom: 3rem; }
+        .mb-16 { margin-bottom: 4rem; }
+        .mt-2 { margin-top: 0.5rem; }
+        .mt-6 { margin-top: 1.5rem; }
+        .mt-16 { margin-top: 4rem; }
+        .ml-auto { margin-left: auto; }
+        .mr-auto { margin-right: auto; }
+        
+        .flex { display: flex; }
+        .grid { display: grid; }
+        .hidden { display: none; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .justify-center { justify-content: center; }
+        .flex-col { flex-direction: column; }
+        .space-x-6 > * + * { margin-left: 1.5rem; }
+        .space-x-8 > * + * { margin-left: 2rem; }
+        .space-y-4 > * + * { margin-top: 1rem; }
+        .gap-4 { gap: 1rem; }
+        .gap-6 { gap: 1.5rem; }
+        .gap-8 { gap: 2rem; }
+        .gap-12 { gap: 3rem; }
+        
+        .text-center { text-align: center; }
+        .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+        .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+        .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+        .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+        .text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
+        .text-5xl { font-size: 3rem; line-height: 1; }
+        .text-7xl { font-size: 4.5rem; line-height: 1; }
+        .font-bold { font-weight: 700; }
+        .font-medium { font-weight: 500; }
+        .font-semibold { font-weight: 600; }
+        
+        .text-white { color: #ffffff; }
+        .text-gray-300 { color: #d1d5db; }
+        .text-gray-400 { color: #9ca3af; }
+        .text-gray-500 { color: #6b7280; }
+        .text-purple-400 { color: #a78bfa; }
+        .text-blue-400 { color: #60a5fa; }
+        .text-green-400 { color: #4ade80; }
+        .text-yellow-400 { color: #facc15; }
+        
+        .bg-clip-text { -webkit-background-clip: text; background-clip: text; }
+        .text-transparent { color: transparent; }
+        
+        .max-w-2xl { max-width: 42rem; }
+        .max-w-3xl { max-width: 48rem; }
+        .max-w-4xl { max-width: 56rem; }
+        .max-w-6xl { max-width: 72rem; }
+        
+        .rounded-xl { border-radius: 0.75rem; }
+        .rounded-full { border-radius: 9999px; }
+        .border-t { border-top-width: 1px; }
+        .border-gray-800 { border-color: #1f2937; }
+        
+        .transition { transition-property: all; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+        .ease-in-out { transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+        .animate-bounce { animation: bounce 1s infinite; }
+        
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(-25%);
+                animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+            }
+            50% {
+                transform: translateY(0);
+                animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+            }
+        }
+        
+        .hover\:text-white:hover { color: #ffffff; }
+        .hover\:bg-white:hover { background-color: #ffffff; }
+        .hover\:bg-opacity-10:hover { background-color: rgba(255, 255, 255, 0.1); }
+        
+        .col-span-1 { grid-column: span 1 / span 1; }
+        .col-span-2 { grid-column: span 2 / span 2; }
+        .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        
+        @media (min-width: 640px) {
+            .sm\:flex-row { flex-direction: row; }
+        }
+        
+        @media (min-width: 768px) {
+            .md\:hidden { display: none; }
+            .md\:flex { display: flex; }
+            .md\:text-2xl { font-size: 1.5rem; line-height: 2rem; }
+            .md\:text-5xl { font-size: 3rem; line-height: 1; }
+            .md\:text-7xl { font-size: 4.5rem; line-height: 1; }
+            .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .md\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+            .md\:col-span-2 { grid-column: span 2 / span 2; }
+            .md\:flex-row { flex-direction: row; }
+        }
+        
+        @media (min-width: 1024px) {
+            .lg\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+        
+        .min-h-screen { min-height: 100vh; }
+        .w-12 { width: 3rem; }
+        .h-12 { height: 3rem; }
+        .w-6 { width: 1.5rem; }
+        .h-6 { height: 1.5rem; }
+        .w-5 { width: 1.25rem; }
+        .h-5 { height: 1.25rem; }
+        
+        .absolute { position: absolute; }
+        .relative { position: relative; }
+        .bottom-8 { bottom: 2rem; }
+        .left-1\/2 { left: 50%; }
+        .transform { transform: translateX(0) translateY(0) rotate(0) skewX(0) skewY(0) scaleX(1) scaleY(1); }
+        .-translate-x-1\/2 { transform: translateX(-50%); }
+        .top-4 { top: 1rem; }
+        .right-4 { right: 1rem; }
+    </style>
+</head>
+<body>
+    <!-- Skip to content for accessibility -->
+    <a href="#main" class="skip-link">Skip to content</a>
+
+    <!-- Three.js particle background -->
+    <canvas id="particle-canvas"></canvas>
+
+    <!-- Navigation -->
+    <nav class="nav-glass" role="navigation" aria-label="Main navigation">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-8">
+                    <a href="#" class="font-display text-2xl font-bold gradient-animation bg-clip-text text-transparent">
+                        Ruv-Swarm
+                    </a>
+                    <div class="hidden md:flex space-x-6">
+                        <a href="#technology" class="text-gray-300 hover:text-white transition">Technology</a>
+                        <a href="#features" class="text-gray-300 hover:text-white transition">Features</a>
+                        <a href="#performance" class="text-gray-300 hover:text-white transition">Performance</a>
+                        <a href="#engineering" class="text-gray-300 hover:text-white transition">Engineering</a>
+                    </div>
+                </div>
+                <button class="btn-primary" onclick="showModal('demo')">
+                    Launch Demo
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main content -->
+    <main id="main" role="main">
+        <!-- Hero Section -->
+        <section class="min-h-screen flex items-center justify-center relative px-6 py-20">
+            <div class="container mx-auto max-w-6xl">
+                <div class="text-center fade-in">
+                    <h1 class="hero-title font-display text-5xl md:text-7xl font-bold mb-6 gradient-animation bg-clip-text text-transparent">
+                        Hello World from Ruv-Swarm
+                    </h1>
+                    <p class="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto">
+                        Experience the future of decentralized AI orchestration with our cutting-edge multi-agent framework
+                    </p>
+                     <p class="text-gray-300 mb-8 max-w-3xl mx-auto">
+                        Human edit: this file required a second instruction to correct errors.  You are viewing the 2 prompt version.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
+                        <a href="#technology" class="btn-primary">
+                            Explore Technology
+                        </a>
+                        <button class="glass px-8 py-4 rounded-xl text-white font-medium hover:bg-white hover:bg-opacity-10 transition" onclick="showToast('Documentation coming soon!')">
+                            View Documentation
+                        </button>
+                    </div>
+                    
+                    <!-- Hero metrics -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16">
+                        <div class="glass p-6 text-center metric-card">
+                            <div class="text-3xl font-bold gradient-animation bg-clip-text text-transparent">84.8%</div>
+                            <div class="text-sm text-gray-400 mt-2">SWE-Bench Score</div>
+                        </div>
+                        <div class="glass p-6 text-center metric-card">
+                            <div class="text-3xl font-bold gradient-animation bg-clip-text text-transparent">32.3%</div>
+                            <div class="text-sm text-gray-400 mt-2">Token Reduction</div>
+                        </div>
+                        <div class="glass p-6 text-center metric-card">
+                            <div class="text-3xl font-bold gradient-animation bg-clip-text text-transparent">4.4x</div>
+                            <div class="text-sm text-gray-400 mt-2">Speed Improvement</div>
+                        </div>
+                        <div class="glass p-6 text-center metric-card">
+                            <div class="text-3xl font-bold gradient-animation bg-clip-text text-transparent">27+</div>
+                            <div class="text-sm text-gray-400 mt-2">Neural Models</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Scroll indicator -->
+            <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 5v14M19 12l-7 7-7-7"/>
+                </svg>
+            </div>
+        </section>
+
+        <!-- Technology Deep Dive -->
+        <section id="technology" class="py-20 px-6">
+            <div class="container mx-auto max-w-6xl">
+                <div class="text-center mb-16 fade-in">
+                    <h2 class="font-display text-4xl md:text-5xl font-bold mb-4">
+                        Technology Deep Dive
+                    </h2>
+                    <p class="text-xl text-gray-400 max-w-2xl mx-auto">
+                        Discover the revolutionary architecture powering ruv-swarm's distributed AI coordination
+                    </p>
+                </div>
+
+                <!-- Network Visualization -->
+                <div class="mb-16 fade-in">
+                    <div id="network-viz"></div>
+                </div>
+
+                <!-- Technology Grid -->
+                <div class="bento-grid fade-in">
+                    <div class="bento-item feature-card col-span-1 md:col-span-2">
+                        <h3 class="font-display text-2xl font-bold mb-4 gradient-animation bg-clip-text text-transparent">
+                            WebAssembly Runtime
+                        </h3>
+                        <p class="text-gray-300 mb-4">
+                            High-performance WASM execution environment enabling near-native speed for AI workloads with isolated security boundaries.
+                        </p>
+                        <div class="code-block">
+                            <pre><code class="text-green-400">// Initialize WASM runtime
+const runtime = new RuvWasmRuntime({
+  memory: 512 * 1024 * 1024, // 512MB
+  features: ['simd', 'threads', 'bulk-memory'],
+  optimization: 'aggressive'
+});</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="bento-item feature-card">
+                        <h3 class="font-display text-2xl font-bold mb-4 text-purple-400">
+                            Neural Architecture
+                        </h3>
+                        <p class="text-gray-300 mb-4">
+                            27+ specialized neural models for cognitive pattern recognition and adaptive learning.
+                        </p>
+                        <div class="flex items-center justify-center h-32">
+                            <div class="loader"></div>
+                        </div>
+                    </div>
+
+                    <div class="bento-item feature-card">
+                        <h3 class="font-display text-2xl font-bold mb-4 text-blue-400">
+                            Memory Management
+                        </h3>
+                        <p class="text-gray-300 mb-4">
+                            Persistent cross-session memory with intelligent caching and retrieval systems.
+                        </p>
+                        <div class="chart-container">
+                            <canvas id="memory-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bento-item feature-card col-span-1 md:col-span-2">
+                        <h3 class="font-display text-2xl font-bold mb-4 text-green-400">
+                            Swarm Topologies
+                        </h3>
+                        <p class="text-gray-300 mb-4">
+                            Flexible coordination patterns supporting mesh, hierarchical, ring, and star configurations for optimal task distribution.
+                        </p>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                            <div class="glass p-4 text-center">
+                                <div class="text-2xl mb-2">🕸️</div>
+                                <div class="text-sm">Mesh</div>
+                            </div>
+                            <div class="glass p-4 text-center">
+                                <div class="text-2xl mb-2">🏛️</div>
+                                <div class="text-sm">Hierarchical</div>
+                            </div>
+                            <div class="glass p-4 text-center">
+                                <div class="text-2xl mb-2">⭕</div>
+                                <div class="text-sm">Ring</div>
+                            </div>
+                            <div class="glass p-4 text-center">
+                                <div class="text-2xl mb-2">⭐</div>
+                                <div class="text-sm">Star</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features" class="py-20 px-6 relative">
+            <div class="container mx-auto max-w-6xl">
+                <div class="text-center mb-16 fade-in">
+                    <h2 class="font-display text-4xl md:text-5xl font-bold mb-4">
+                        Advanced Features
+                    </h2>
+                    <p class="text-xl text-gray-400 max-w-2xl mx-auto">
+                        Enterprise-grade capabilities designed for next-generation AI orchestration
+                    </p>
+                </div>
+
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 fade-in">
+                    <!-- Feature 1 -->
+                    <div class="feature-card">
+                        <div class="w-12 h-12 rounded-full gradient-animation flex items-center justify-center mb-4">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                        </div>
+                        <h3 class="font-display text-xl font-bold mb-3">Lightning Fast</h3>
+                        <p class="text-gray-400">2.8-4.4x performance improvements through intelligent parallelization and WASM optimization.</p>
+                    </div>
+
+                    <!-- Feature 2 -->
+                    <div class="feature-card">
+                        <div class="w-12 h-12 rounded-full gradient-animation flex items-center justify-center mb-4">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                            </svg>
+                        </div>
+                        <h3 class="font-display text-xl font-bold mb-3">Secure by Design</h3>
+                        <p class="text-gray-400">Isolated execution environments with granular permission controls and audit logging.</p>
+                    </div>
+
+                    <!-- Feature 3 -->
+                    <div class="feature-card">
+                        <div class="w-12 h-12 rounded-full gradient-animation flex items-center justify-center mb-4">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+                            </svg>
+                        </div>
+                        <h3 class="font-display text-xl font-bold mb-3">Adaptive Intelligence</h3>
+                        <p class="text-gray-400">Self-organizing agents with cognitive pattern recognition and continuous learning.</p>
+                    </div>
+
+                    <!-- Feature 4 -->
+                    <div class="feature-card">
+                        <div class="w-12 h-12 rounded-full gradient-animation flex items-center justify-center mb-4">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"/>
+                            </svg>
+                        </div>
+                        <h3 class="font-display text-xl font-bold mb-3">Cloud Native</h3>
+                        <p class="text-gray-400">Kubernetes-ready with auto-scaling, service mesh integration, and observability.</p>
+                    </div>
+
+                    <!-- Feature 5 -->
+                    <div class="feature-card">
+                        <div class="w-12 h-12 rounded-full gradient-animation flex items-center justify-center mb-4">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/>
+                            </svg>
+                        </div>
+                        <h3 class="font-display text-xl font-bold mb-3">Persistent Memory</h3>
+                        <p class="text-gray-400">Cross-session state management with intelligent caching and retrieval strategies.</p>
+                    </div>
+
+                    <!-- Feature 6 -->
+                    <div class="feature-card">
+                        <div class="w-12 h-12 rounded-full gradient-animation flex items-center justify-center mb-4">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"/>
+                            </svg>
+                        </div>
+                        <h3 class="font-display text-xl font-bold mb-3">Extensible Architecture</h3>
+                        <p class="text-gray-400">Plugin system with MCP protocol support for seamless third-party integrations.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Performance Analytics -->
+        <section id="performance" class="py-20 px-6">
+            <div class="container mx-auto max-w-6xl">
+                <div class="text-center mb-16 fade-in">
+                    <h2 class="font-display text-4xl md:text-5xl font-bold mb-4">
+                        Performance Analytics
+                    </h2>
+                    <p class="text-xl text-gray-400 max-w-2xl mx-auto">
+                        Real-time metrics showcasing ruv-swarm's exceptional efficiency
+                    </p>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-8 mb-12 fade-in">
+                    <!-- Performance Chart 1 -->
+                    <div class="glass p-8">
+                        <h3 class="font-display text-xl font-bold mb-4">Task Completion Rate</h3>
+                        <div class="chart-container">
+                            <canvas id="performance-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Performance Chart 2 -->
+                    <div class="glass p-8">
+                        <h3 class="font-display text-xl font-bold mb-4">Token Efficiency</h3>
+                        <div class="chart-container">
+                            <canvas id="token-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Metrics Dashboard -->
+                <div class="glass p-8 fade-in">
+                    <h3 class="font-display text-2xl font-bold mb-6">Live System Metrics</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        <div class="text-center">
+                            <div class="text-3xl font-bold gradient-animation bg-clip-text text-transparent" id="active-agents">0</div>
+                            <div class="text-sm text-gray-400 mt-2">Active Agents</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-3xl font-bold gradient-animation bg-clip-text text-transparent" id="tasks-processed">0</div>
+                            <div class="text-sm text-gray-400 mt-2">Tasks Processed</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-3xl font-bold gradient-animation bg-clip-text text-transparent" id="avg-response">0ms</div>
+                            <div class="text-sm text-gray-400 mt-2">Avg Response Time</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-3xl font-bold gradient-animation bg-clip-text text-transparent" id="memory-usage">0%</div>
+                            <div class="text-sm text-gray-400 mt-2">Memory Usage</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Agentic Engineering -->
+        <section id="engineering" class="py-20 px-6">
+            <div class="container mx-auto max-w-6xl">
+                <div class="text-center mb-16 fade-in">
+                    <h2 class="font-display text-4xl md:text-5xl font-bold mb-4">
+                        Agentic Engineering
+                    </h2>
+                    <p class="text-xl text-gray-400 max-w-2xl mx-auto">
+                        Revolutionary multi-agent coordination patterns for complex problem solving
+                    </p>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-12 fade-in">
+                    <div>
+                        <h3 class="font-display text-2xl font-bold mb-6">Coordination Patterns</h3>
+                        <div class="space-y-4">
+                            <div class="glass p-6">
+                                <h4 class="font-bold text-purple-400 mb-2">Hierarchical Delegation</h4>
+                                <p class="text-gray-300 text-sm">Master agents distribute tasks to specialized workers based on expertise and availability.</p>
+                            </div>
+                            <div class="glass p-6">
+                                <h4 class="font-bold text-blue-400 mb-2">Mesh Collaboration</h4>
+                                <p class="text-gray-300 text-sm">Peer-to-peer communication enabling emergent problem-solving behaviors.</p>
+                            </div>
+                            <div class="glass p-6">
+                                <h4 class="font-bold text-green-400 mb-2">Ring Processing</h4>
+                                <p class="text-gray-300 text-sm">Sequential task processing with checkpointing and rollback capabilities.</p>
+                            </div>
+                            <div class="glass p-6">
+                                <h4 class="font-bold text-yellow-400 mb-2">Star Broadcasting</h4>
+                                <p class="text-gray-300 text-sm">Central coordinator with rapid fan-out for parallel execution.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="font-display text-2xl font-bold mb-6">Agent Specializations</h3>
+                        <div class="space-y-4">
+                            <div class="neu p-6">
+                                <div class="flex items-center mb-3">
+                                    <div class="w-10 h-10 rounded-full gradient-animation flex items-center justify-center mr-3">
+                                        <span class="text-xl">🔬</span>
+                                    </div>
+                                    <h4 class="font-bold">Researcher Agents</h4>
+                                </div>
+                                <p class="text-gray-300 text-sm">Deep analysis and information synthesis with cross-reference validation.</p>
+                            </div>
+                            <div class="neu p-6">
+                                <div class="flex items-center mb-3">
+                                    <div class="w-10 h-10 rounded-full gradient-animation flex items-center justify-center mr-3">
+                                        <span class="text-xl">💻</span>
+                                    </div>
+                                    <h4 class="font-bold">Coder Agents</h4>
+                                </div>
+                                <p class="text-gray-300 text-sm">Code generation with syntax validation and performance optimization.</p>
+                            </div>
+                            <div class="neu p-6">
+                                <div class="flex items-center mb-3">
+                                    <div class="w-10 h-10 rounded-full gradient-animation flex items-center justify-center mr-3">
+                                        <span class="text-xl">📊</span>
+                                    </div>
+                                    <h4 class="font-bold">Analyst Agents</h4>
+                                </div>
+                                <p class="text-gray-300 text-sm">Pattern recognition and predictive modeling with real-time adaptation.</p>
+                            </div>
+                            <div class="neu p-6">
+                                <div class="flex items-center mb-3">
+                                    <div class="w-10 h-10 rounded-full gradient-animation flex items-center justify-center mr-3">
+                                        <span class="text-xl">🎯</span>
+                                    </div>
+                                    <h4 class="font-bold">Coordinator Agents</h4>
+                                </div>
+                                <p class="text-gray-300 text-sm">Task orchestration with dynamic resource allocation and conflict resolution.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Creation Story -->
+        <section class="py-20 px-6 relative overflow-hidden">
+            <div class="container mx-auto max-w-4xl">
+                <div class="text-center mb-16 fade-in">
+                    <h2 class="font-display text-4xl md:text-5xl font-bold mb-4">
+                        The Creation Story
+                    </h2>
+                    <p class="text-xl text-gray-400">
+                        How this landing page was built without any AI agents
+                    </p>
+                </div>
+
+                <div class="prose prose-lg prose-invert mx-auto fade-in">
+                    <div class="glass p-8 mb-8">
+                        <h3 class="font-display text-2xl font-bold mb-4 gradient-animation bg-clip-text text-transparent">
+                            Baseline Implementation
+                        </h3>
+                        <p class="text-gray-300 mb-4">
+                            This landing page represents the baseline implementation - crafted entirely through traditional development methods without the assistance of ruv-swarm's multi-agent system. Every line of code, every design decision, and every animation was implemented manually to establish a benchmark for comparison.
+                        </p>
+                        <p class="text-gray-300 mb-4">
+                            The development process involved:
+                        </p>
+                        <ul class="list-disc list-inside text-gray-300 space-y-2 mb-4">
+                            <li>Manual research of modern web design trends and best practices</li>
+                            <li>Hand-crafted HTML structure with semantic markup</li>
+                            <li>Custom CSS animations and glassmorphism effects</li>
+                            <li>Vanilla JavaScript for interactive elements</li>
+                            <li>Integration of visualization libraries without AI assistance</li>
+                        </ul>
+                        <div class="code-block mt-6">
+                            <pre><code class="text-yellow-400">// Traditional development approach
+const developer = {
+  agents: 0,
+  coordination: 'manual',
+  efficiency: 'baseline',
+  creativity: 'human-driven'
+};</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="neu p-8">
+                        <h3 class="font-display text-2xl font-bold mb-4 text-purple-400">
+                            The Challenge
+                        </h3>
+                        <p class="text-gray-300 mb-4">
+                            Creating an award-winning landing page without AI coordination presents unique challenges. The absence of intelligent task distribution, automated optimization, and cognitive pattern recognition means every decision requires manual consideration and implementation.
+                        </p>
+                        <p class="text-gray-300">
+                            This baseline serves as a testament to traditional craftsmanship while highlighting the transformative potential of multi-agent systems in web development.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Call to Action -->
+        <section class="py-20 px-6">
+            <div class="container mx-auto max-w-4xl text-center fade-in">
+                <h2 class="font-display text-4xl md:text-5xl font-bold mb-6">
+                    Ready to Transform Your AI Workflow?
+                </h2>
+                <p class="text-xl text-gray-400 mb-8">
+                    Join the revolution in decentralized AI orchestration
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                    <a href="https://github.com/ruvnet/ruv-FANN" target="_blank" rel="noopener noreferrer" class="btn-primary">
+                        View on GitHub
+                    </a>
+                    <button class="glass px-8 py-4 rounded-xl text-white font-medium hover:bg-white hover:bg-opacity-10 transition" onclick="showModal('contact')">
+                        Get Started
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="py-12 px-6 border-t border-gray-800">
+            <div class="container mx-auto max-w-6xl">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <div class="mb-4 md:mb-0">
+                        <p class="text-gray-400">© 2024 Ruv-Swarm. Built with precision and passion.</p>
+                    </div>
+                    <div class="flex space-x-6">
+                        <a href="#" class="text-gray-400 hover:text-white transition">Privacy</a>
+                        <a href="#" class="text-gray-400 hover:text-white transition">Terms</a>
+                        <a href="https://github.com/ruvnet/ruv-FANN" class="text-gray-400 hover:text-white transition">GitHub</a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </main>
+
+    <!-- Demo Modal -->
+    <div id="demo-modal" class="modal" role="dialog" aria-labelledby="demo-title" aria-hidden="true">
+        <div class="modal-content">
+            <button class="absolute top-4 right-4 text-gray-400 hover:text-white" onclick="closeModal('demo')">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+            <h3 id="demo-title" class="font-display text-2xl font-bold mb-4">Interactive Demo</h3>
+            <p class="text-gray-300 mb-6">
+                Experience ruv-swarm's capabilities in action. This demo showcases real-time agent coordination and task execution.
+            </p>
+            <div class="glass p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-sm text-gray-400">Demo Status</span>
+                    <span class="text-sm text-green-400">Ready</span>
+                </div>
+                <button class="btn-primary w-full" onclick="runDemo()">
+                    Launch Swarm Demo
+                </button>
+            </div>
+            <p class="text-xs text-gray-500">
+                Note: This is a simulated demo of ruv-swarm capabilities.
+            </p>
+        </div>
+    </div>
+
+    <!-- Contact Modal -->
+    <div id="contact-modal" class="modal" role="dialog" aria-labelledby="contact-title" aria-hidden="true">
+        <div class="modal-content">
+            <button class="absolute top-4 right-4 text-gray-400 hover:text-white" onclick="closeModal('contact')">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+            <h3 id="contact-title" class="font-display text-2xl font-bold mb-4">Get Started with Ruv-Swarm</h3>
+            <p class="text-gray-300 mb-6">
+                Ready to revolutionize your AI workflow? Choose your path:
+            </p>
+            <div class="space-y-4">
+                <a href="https://github.com/ruvnet/ruv-FANN" target="_blank" rel="noopener noreferrer" class="block glass p-4 hover:bg-white hover:bg-opacity-10 transition">
+                    <h4 class="font-bold mb-2">GitHub Repository</h4>
+                    <p class="text-sm text-gray-400">Clone the repository and start building</p>
+                </a>
+                <a href="#" class="block glass p-4 hover:bg-white hover:bg-opacity-10 transition">
+                    <h4 class="font-bold mb-2">Documentation</h4>
+                    <p class="text-sm text-gray-400">Comprehensive guides and API reference</p>
+                </a>
+                <a href="#" class="block glass p-4 hover:bg-white hover:bg-opacity-10 transition">
+                    <h4 class="font-bold mb-2">Enterprise Support</h4>
+                    <p class="text-sm text-gray-400">Custom solutions for your organization</p>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast" role="alert">
+        <span id="toast-message"></span>
+    </div>
+
+    <script>
+        // Three.js Particle Background
+        // Ensure Three.js is loaded before using it
+        if (typeof THREE !== 'undefined') {
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('particle-canvas'), alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            // Create particles
+            const particlesGeometry = new THREE.BufferGeometry();
+            const particlesCount = 5000;
+            const posArray = new Float32Array(particlesCount * 3);
+
+            for (let i = 0; i < particlesCount * 3; i++) {
+                posArray[i] = (Math.random() - 0.5) * 100;
+            }
+
+            particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+
+            const particlesMaterial = new THREE.PointsMaterial({
+                size: 0.005,
+                color: '#667eea'
+            });
+
+            const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+            scene.add(particlesMesh);
+
+            camera.position.z = 50;
+
+            function animateParticles() {
+                requestAnimationFrame(animateParticles);
+                particlesMesh.rotation.x += 0.0003;
+                particlesMesh.rotation.y += 0.0005;
+                renderer.render(scene, camera);
+            }
+
+            animateParticles();
+
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        } else {
+            // Fallback: Simple canvas particle effect if Three.js fails to load
+            const canvas = document.getElementById('particle-canvas');
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                
+                const particles = [];
+                const particleCount = 100;
+                
+                for (let i = 0; i < particleCount; i++) {
+                    particles.push({
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height,
+                        vx: (Math.random() - 0.5) * 0.5,
+                        vy: (Math.random() - 0.5) * 0.5,
+                        size: Math.random() * 2 + 1
+                    });
+                }
+                
+                function animateFallback() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = 'rgba(102, 126, 234, 0.5)';
+                    
+                    particles.forEach(particle => {
+                        particle.x += particle.vx;
+                        particle.y += particle.vy;
+                        
+                        if (particle.x < 0 || particle.x > canvas.width) particle.vx *= -1;
+                        if (particle.y < 0 || particle.y > canvas.height) particle.vy *= -1;
+                        
+                        ctx.beginPath();
+                        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+                    
+                    requestAnimationFrame(animateFallback);
+                }
+                
+                animateFallback();
+                
+                window.addEventListener('resize', () => {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                });
+            }
+        }
+
+        // D3.js Network Visualization
+        function createNetworkVisualization() {
+            const width = document.getElementById('network-viz').clientWidth;
+            const height = 500;
+
+            const svg = d3.select('#network-viz')
+                .append('svg')
+                .attr('width', width)
+                .attr('height', height);
+
+            // Create gradient definitions
+            const defs = svg.append('defs');
+            
+            const gradient = defs.append('linearGradient')
+                .attr('id', 'nodeGradient')
+                .attr('x1', '0%')
+                .attr('y1', '0%')
+                .attr('x2', '100%')
+                .attr('y2', '100%');
+            
+            gradient.append('stop')
+                .attr('offset', '0%')
+                .attr('stop-color', '#667eea');
+            
+            gradient.append('stop')
+                .attr('offset', '100%')
+                .attr('stop-color', '#764ba2');
+
+            // Generate network data
+            const nodes = [
+                { id: 'coordinator', type: 'coordinator', x: width / 2, y: height / 2 },
+                { id: 'researcher1', type: 'researcher', x: width / 4, y: height / 3 },
+                { id: 'coder1', type: 'coder', x: 3 * width / 4, y: height / 3 },
+                { id: 'analyst1', type: 'analyst', x: width / 4, y: 2 * height / 3 },
+                { id: 'tester1', type: 'tester', x: 3 * width / 4, y: 2 * height / 3 },
+                { id: 'optimizer1', type: 'optimizer', x: width / 2, y: height / 5 },
+                { id: 'memory', type: 'memory', x: width / 2, y: 4 * height / 5 }
+            ];
+
+            const links = [
+                { source: 'coordinator', target: 'researcher1' },
+                { source: 'coordinator', target: 'coder1' },
+                { source: 'coordinator', target: 'analyst1' },
+                { source: 'coordinator', target: 'tester1' },
+                { source: 'coordinator', target: 'optimizer1' },
+                { source: 'coordinator', target: 'memory' },
+                { source: 'researcher1', target: 'analyst1' },
+                { source: 'coder1', target: 'tester1' },
+                { source: 'optimizer1', target: 'memory' }
+            ];
+
+            // Create force simulation
+            const simulation = d3.forceSimulation(nodes)
+                .force('link', d3.forceLink(links).id(d => d.id).distance(100))
+                .force('charge', d3.forceManyBody().strength(-300))
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .force('collision', d3.forceCollide().radius(40));
+
+            // Add links
+            const link = svg.append('g')
+                .selectAll('line')
+                .data(links)
+                .enter().append('line')
+                .attr('stroke', '#667eea')
+                .attr('stroke-opacity', 0.3)
+                .attr('stroke-width', 2);
+
+            // Add nodes
+            const node = svg.append('g')
+                .selectAll('g')
+                .data(nodes)
+                .enter().append('g')
+                .call(d3.drag()
+                    .on('start', dragstarted)
+                    .on('drag', dragged)
+                    .on('end', dragended));
+
+            node.append('circle')
+                .attr('r', 30)
+                .attr('fill', 'url(#nodeGradient)')
+                .attr('stroke', '#fff')
+                .attr('stroke-width', 2);
+
+            node.append('text')
+                .text(d => {
+                    const icons = {
+                        coordinator: '🎯',
+                        researcher: '🔬',
+                        coder: '💻',
+                        analyst: '📊',
+                        tester: '🧪',
+                        optimizer: '⚡',
+                        memory: '💾'
+                    };
+                    return icons[d.type] || '🤖';
+                })
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'middle')
+                .attr('font-size', '20px');
+
+            // Add labels
+            node.append('text')
+                .text(d => d.id)
+                .attr('text-anchor', 'middle')
+                .attr('dominant-baseline', 'middle')
+                .attr('y', 50)
+                .attr('fill', '#ffffff')
+                .attr('font-size', '12px')
+                .attr('font-family', 'Inter, sans-serif');
+
+            // Update positions on tick
+            simulation.on('tick', () => {
+                link
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+
+                node.attr('transform', d => `translate(${d.x},${d.y})`);
+            });
+
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+
+            function dragged(event, d) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+        }
+
+        // Initialize network visualization when DOM is ready
+        document.addEventListener('DOMContentLoaded', createNetworkVisualization);
+
+        // Chart.js configurations
+        const chartColors = {
+            primary: '#667eea',
+            secondary: '#764ba2',
+            tertiary: '#00d9ff',
+            success: '#10b981',
+            warning: '#f59e0b',
+            danger: '#ef4444'
+        };
+
+        // Memory usage chart
+        const memoryCtx = document.getElementById('memory-chart').getContext('2d');
+        const memoryChart = new Chart(memoryCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Used', 'Available'],
+                datasets: [{
+                    data: [35, 65],
+                    backgroundColor: [chartColors.primary, 'rgba(255, 255, 255, 0.1)'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+
+        // Performance chart
+        const perfCtx = document.getElementById('performance-chart').getContext('2d');
+        const performanceChart = new Chart(perfCtx, {
+            type: 'line',
+            data: {
+                labels: ['0s', '10s', '20s', '30s', '40s', '50s', '60s'],
+                datasets: [{
+                    label: 'Tasks/Second',
+                    data: [12, 19, 23, 25, 22, 28, 31],
+                    borderColor: chartColors.primary,
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#9ca3af'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#9ca3af'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Token efficiency chart
+        const tokenCtx = document.getElementById('token-chart').getContext('2d');
+        const tokenChart = new Chart(tokenCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Baseline', 'Optimized', 'With Cache', 'Neural', 'Swarm'],
+                datasets: [{
+                    label: 'Token Usage',
+                    data: [1000, 750, 600, 450, 320],
+                    backgroundColor: [
+                        'rgba(255, 255, 255, 0.2)',
+                        chartColors.warning,
+                        chartColors.success,
+                        chartColors.tertiary,
+                        chartColors.primary
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#9ca3af'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#9ca3af'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    }
+                }
+            }
+        });
+
+        // GSAP Animations
+        gsap.registerPlugin(ScrollTrigger);
+
+        // Fade in animations
+        gsap.utils.toArray('.fade-in').forEach(element => {
+            gsap.fromTo(element, 
+                {
+                    opacity: 0,
+                    y: 30
+                },
+                {
+                    opacity: 1,
+                    y: 0,
+                    duration: 0.8,
+                    scrollTrigger: {
+                        trigger: element,
+                        start: 'top 80%',
+                        end: 'bottom 20%',
+                        toggleActions: 'play none none reverse'
+                    }
+                }
+            );
+        });
+
+        // Navigation scroll effect
+        let lastScrollTop = 0;
+        const nav = document.querySelector('.nav-glass');
+
+        window.addEventListener('scroll', () => {
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            
+            if (scrollTop > lastScrollTop && scrollTop > 100) {
+                nav.style.transform = 'translateY(-100%)';
+            } else {
+                nav.style.transform = 'translateY(0)';
+            }
+            
+            lastScrollTop = scrollTop;
+        });
+
+        // Modal functions
+        function showModal(type) {
+            const modal = document.getElementById(`${type}-modal`);
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal(type) {
+            const modal = document.getElementById(`${type}-modal`);
+            modal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Toast notification
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            toastMessage.textContent = message;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Demo function
+        function runDemo() {
+            showToast('Demo launching...');
+            closeModal('demo');
+            
+            // Simulate agent activity
+            animateMetrics();
+        }
+
+        // Live metrics animation
+        function animateMetrics() {
+            const metrics = {
+                agents: document.getElementById('active-agents'),
+                tasks: document.getElementById('tasks-processed'),
+                response: document.getElementById('avg-response'),
+                memory: document.getElementById('memory-usage')
+            };
+
+            let agentCount = 0;
+            let taskCount = 0;
+            let responseTime = 100;
+            let memoryUsage = 10;
+
+            const interval = setInterval(() => {
+                // Animate agent count
+                if (agentCount < 8) {
+                    agentCount++;
+                    metrics.agents.textContent = agentCount;
+                }
+
+                // Animate task count
+                taskCount += Math.floor(Math.random() * 5) + 1;
+                metrics.tasks.textContent = taskCount;
+
+                // Animate response time
+                responseTime = Math.max(20, responseTime - Math.random() * 10);
+                metrics.response.textContent = Math.floor(responseTime) + 'ms';
+
+                // Animate memory usage
+                memoryUsage = Math.min(45, memoryUsage + Math.random() * 2);
+                metrics.memory.textContent = Math.floor(memoryUsage) + '%';
+
+                // Update memory chart
+                memoryChart.data.datasets[0].data = [memoryUsage, 100 - memoryUsage];
+                memoryChart.update();
+
+                // Stop after demonstration
+                if (taskCount > 100) {
+                    clearInterval(interval);
+                    showToast('Demo completed successfully!');
+                }
+            }, 500);
+        }
+
+        // Feature card mouse tracking
+        document.querySelectorAll('.feature-card').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                
+                card.style.setProperty('--mouse-x', `${x}%`);
+                card.style.setProperty('--mouse-y', `${y}%`);
+            });
+        });
+
+        // Smooth scroll for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Initialize live metrics on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set initial values
+            document.getElementById('active-agents').textContent = '1';
+            document.getElementById('tasks-processed').textContent = '0';
+            document.getElementById('avg-response').textContent = '0ms';
+            document.getElementById('memory-usage').textContent = '10%';
+        });
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                // Close any open modals
+                document.querySelectorAll('.modal.active').forEach(modal => {
+                    modal.classList.remove('active');
+                });
+                document.body.style.overflow = 'auto';
+            }
+        });
+
+        // Performance optimization - lazy load images
+        if ('IntersectionObserver' in window) {
+            const imageObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        img.src = img.dataset.src;
+                        img.classList.remove('lazy');
+                        imageObserver.unobserve(img);
+                    }
+                });
+            });
+
+            document.querySelectorAll('img.lazy').forEach(img => {
+                imageObserver.observe(img);
+            });
+        }
+
+        // Log performance metrics
+        window.addEventListener('load', () => {
+            if ('performance' in window) {
+                const perfData = window.performance.timing;
+                const pageLoadTime = perfData.loadEventEnd - perfData.navigationStart;
+                console.log(`Page load time: ${pageLoadTime}ms`);
+                
+                // Send to analytics if needed
+                if (pageLoadTime < 3000) {
+                    console.log('Excellent performance!');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

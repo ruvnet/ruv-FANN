@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Award-winning landing page showcasing Ruv-Swarm agentic engineering and visualization." />
+  <title>Ruv-Swarm | Award-Winning Agentic Innovation</title>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #fdfdfd; }
+    .glass { backdrop-filter: blur(12px); background: rgba(255, 255, 255, 0.15); border-radius: 20px; }
+    .neumorphic { box-shadow: 8px 8px 16px #d1d9e6, -8px -8px 16px #ffffff; border-radius: 20px; }
+  </style>
+</head>
+<body class="text-gray-800 bg-gradient-to-br from-[#f9f9fa] to-[#e8ecf3] overflow-x-hidden">
+
+  <!-- Hero Section -->
+  <section class="h-screen flex items-center justify-center relative">
+    <div class="text-center px-6 glass p-10 shadow-xl">
+      <h1 class="text-5xl font-extrabold tracking-tight leading-tight mb-4">Hello World from Ruv-Swarm</h1>
+      <p class="text-lg text-gray-600 mb-6">Multi-Agent Coordination for the Future of Intelligent Systems</p>
+      <button class="bg-[#3b82f6] text-white px-6 py-3 rounded-xl shadow-md hover:bg-[#2563eb] transition-all">Explore Agents</button>
+    </div>
+    <canvas id="particles" class="absolute inset-0 z-0 pointer-events-none"></canvas>
+  </section>
+
+  <!-- Agent Configuration -->
+  <section class="py-24 px-6 max-w-6xl mx-auto">
+    <h2 class="text-4xl font-bold mb-6">Agent Configuration</h2>
+    <p class="mb-4 text-gray-700">Our system dynamically assembles 1–20 intelligent agents into optimized task-based clusters using Ruv-Swarm's configuration patterns.</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div class="neumorphic p-6">
+        <h3 class="text-xl font-semibold mb-2">Explorers</h3>
+        <p>Scan and interpret user prompts, link to contextual memory using Supabase DSMG.</p>
+      </div>
+      <div class="neumorphic p-6">
+        <h3 class="text-xl font-semibold mb-2">Planners</h3>
+        <p>Translate raw input into symbolic tasks and coordinate LLM-tool interfacing agents.</p>
+      </div>
+      <div class="neumorphic p-6">
+        <h3 class="text-xl font-semibold mb-2">Executors</h3>
+        <p>Manage interaction loops and validate response output with live evaluation agents.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Technology Deep Dive -->
+  <section class="py-24 px-6 bg-white">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="text-4xl font-bold mb-6">Technology Deep Dive</h2>
+      <div id="network-diagram" class="h-[400px] border rounded-lg"></div>
+      <p class="mt-4 text-gray-700">The Ruv-FANN system builds agent intelligence through fast adaptive neural networks combined with symbolic task routing. See visual connections in real time.</p>
+    </div>
+  </section>
+
+  <!-- Creation Story -->
+  <section class="py-24 px-6 max-w-6xl mx-auto">
+    <h2 class="text-4xl font-bold mb-6">Creation Story</h2>
+    <p class="text-gray-700 mb-4">This page was autonomously created by a Ruv-Swarm configuration. From prompt to deployment, the system handled planning, coding, and visual execution.</p>
+    <p class="text-gray-700">Timeline: Conceptualized July 2025 · Created by 2025-07-07</p>
+  </section>
+
+  <!-- Performance Analytics -->
+  <section class="py-24 px-6 bg-white">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="text-4xl font-bold mb-6">Performance Analytics</h2>
+      <p class="mb-6 text-gray-700">Visualizing agent performance using live coordination metrics.</p>
+      <div id="chart" class="w-full h-[300px] border rounded-lg"></div>
+    </div>
+  </section>
+
+  <footer class="text-center py-10 text-gray-500 text-sm">
+    &copy; 2025 Ruv-Swarm Agents | Built for award-winning excellence.
+  </footer>
+
+  <script>
+    // Sample D3 chart (replace with real metrics)
+    const data = [{x: 0, y: 2}, {x: 1, y: 4}, {x: 2, y: 6}, {x: 3, y: 5}];
+    const svg = d3.select("#chart").append("svg")
+      .attr("width", "100%")
+      .attr("height", 300);
+    const width = document.getElementById("chart").clientWidth;
+    const height = 300;
+    const x = d3.scaleLinear().domain([0, 3]).range([0, width]);
+    const y = d3.scaleLinear().domain([0, 6]).range([height, 0]);
+    const line = d3.line().x(d => x(d.x)).y(d => y(d.y));
+    svg.append("path")
+      .datum(data)
+      .attr("fill", "none")
+      .attr("stroke", "#3b82f6")
+      .attr("stroke-width", 2)
+      .attr("d", line);
+  </script>
+</body>
+</html>
