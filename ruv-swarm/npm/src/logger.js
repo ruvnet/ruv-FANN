@@ -121,6 +121,33 @@ export class Logger {
         });
     }
 
+    logMcp(direction, method, data = {}) {
+        this.debug(`MCP ${direction.toUpperCase()}: ${method}`, {
+            direction,
+            method,
+            ...data
+        });
+    }
+
+    logMemoryUsage(component) {
+        const memUsage = process.memoryUsage();
+        this.trace(`Memory usage for ${component}`, {
+            component,
+            rss: `${(memUsage.rss / 1024 / 1024).toFixed(2)}MB`,
+            heapUsed: `${(memUsage.heapUsed / 1024 / 1024).toFixed(2)}MB`,
+            heapTotal: `${(memUsage.heapTotal / 1024 / 1024).toFixed(2)}MB`,
+            external: `${(memUsage.external / 1024 / 1024).toFixed(2)}MB`
+        });
+    }
+
+    getConnectionMetrics() {
+        return {
+            activeOperations: this.operations.size,
+            correlationId: this.correlationId,
+            uptime: process.uptime()
+        };
+    }
+
     // Static methods for backward compatibility
     static info(message, ...args) {
         const logger = new Logger();

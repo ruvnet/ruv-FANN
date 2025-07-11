@@ -1,0 +1,48 @@
+{
+  "testSuite": "mcp-server-validation",
+  "version": "1.0.6",
+  "timestamp": "2025-07-11T22:22:17.593Z",
+  "tests": [
+    {
+      "name": "MCP Server Start",
+      "status": "passed",
+      "message": "Server started successfully"
+    },
+    {
+      "name": "MCP Server Start",
+      "status": "passed",
+      "message": "Server started successfully"
+    },
+    {
+      "name": "MCP Server Start",
+      "status": "passed",
+      "message": "Server started successfully"
+    },
+    {
+      "name": "MCP Server Start",
+      "status": "passed",
+      "message": "Server started successfully"
+    },
+    {
+      "name": "MCP Server Start",
+      "status": "passed",
+      "message": "Server started successfully"
+    },
+    {
+      "name": "stdio Connection",
+      "status": "passed",
+      "message": "MCP server running in stdio mode"
+    },
+    {
+      "name": "Test Suite",
+      "status": "passed",
+      "message": "Server startup and basic functionality verified"
+    }
+  ],
+  "summary": {
+    "total": 7,
+    "passed": 7,
+    "failed": 0,
+    "passRate": "100.00"
+  }
+}

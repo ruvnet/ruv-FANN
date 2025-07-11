@@ -662,6 +662,11 @@ class EnhancedMCPTools {
     try {
       const { verbose = false, swarmId = null } = params;
 
+      // Ensure RuvSwarm is initialized
+      if (!this.ruvSwarm) {
+        await this.initialize();
+      }
+
       if (swarmId) {
         const swarm = this.activeSwarms.get(swarmId);
         if (!swarm) {

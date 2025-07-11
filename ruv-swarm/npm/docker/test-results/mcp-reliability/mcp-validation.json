@@ -1,24 +1,31 @@
 {
   "testSuite": "mcp-server-validation",
-  "version": "1.0.6",
-  "timestamp": "2025-07-08T15:23:42.074Z",
+  "version": "1.0.17",
+  "timestamp": "2025-07-11T22:22:37.827Z",
   "tests": [
     {
       "name": "MCP Server Start",
-      "status": "failed",
-      "message": "Server startup timeout"
+      "status": "passed",
+      "duration": "1439ms",
+      "timestamp": "2025-07-11T22:22:39.266Z"
     },
     {
-      "name": "Test Suite",
-      "status": "failed",
-      "message": "Suite execution failed",
-      "error": "Server startup timeout"
+      "name": "Tools List Request",
+      "status": "passed",
+      "duration": "2005ms",
+      "timestamp": "2025-07-11T22:22:41.273Z"
+    },
+    {
+      "name": "Tool Call Request",
+      "status": "passed",
+      "duration": "2006ms",
+      "timestamp": "2025-07-11T22:22:43.279Z"
     }
   ],
   "summary": {
-    "total": 2,
-    "passed": 0,
-    "failed": 2,
-    "passRate": "0.00"
+    "total": 3,
+    "passed": 3,
+    "failed": 0,
+    "passRate": "100.00%"
   }
 }
