@@ -1,0 +1,112 @@
+{
+  "auditReportVersion": 2,
+  "vulnerabilities": {
+    "axios": {
+      "name": "axios",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1097679,
+          "name": "axios",
+          "dependency": "axios",
+          "title": "Axios Cross-Site Request Forgery Vulnerability",
+          "url": "https://github.com/advisories/GHSA-wf5p-g6vw-rhxx",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-352"
+          ],
+          "cvss": {
+            "score": 6.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:N/A:N"
+          },
+          "range": ">=0.8.1 <0.28.0"
+        },
+        {
+          "source": 1103617,
+          "name": "axios",
+          "dependency": "axios",
+          "title": "axios Requests Vulnerable To Possible SSRF and Credential Leakage via Absolute URL",
+          "url": "https://github.com/advisories/GHSA-jr5f-v2jv-69x6",
+          "severity": "high",
+          "cwe": [
+            "CWE-918"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": "<0.30.0"
+        }
+      ],
+      "effects": [
+        "binary-install"
+      ],
+      "range": "<=0.29.0",
+      "nodes": [
+        "node_modules/axios"
+      ],
+      "fixAvailable": {
+        "name": "wasm-pack",
+        "version": "0.0.0",
+        "isSemVerMajor": true
+      }
+    },
+    "binary-install": {
+      "name": "binary-install",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "axios"
+      ],
+      "effects": [
+        "wasm-pack"
+      ],
+      "range": "*",
+      "nodes": [
+        "node_modules/binary-install"
+      ],
+      "fixAvailable": {
+        "name": "wasm-pack",
+        "version": "0.0.0",
+        "isSemVerMajor": true
+      }
+    },
+    "wasm-pack": {
+      "name": "wasm-pack",
+      "severity": "high",
+      "isDirect": true,
+      "via": [
+        "binary-install"
+      ],
+      "effects": [],
+      "range": ">=0.8.1",
+      "nodes": [
+        "node_modules/wasm-pack"
+      ],
+      "fixAvailable": {
+        "name": "wasm-pack",
+        "version": "0.0.0",
+        "isSemVerMajor": true
+      }
+    }
+  },
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 3,
+      "critical": 0,
+      "total": 3
+    },
+    "dependencies": {
+      "prod": 41,
+      "dev": 957,
+      "optional": 133,
+      "peer": 0,
+      "peerOptional": 0,
+      "total": 997
+    }
+  }
+}
