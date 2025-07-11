@@ -151,6 +151,11 @@ export class Logger {
         const logger = new Logger();
         logger.trace(message, ...args);
     }
+
+    // Add missing logMcp method for MCP functionality
+    logMcp(level, message, data = {}) {
+        this._log(level, `[MCP] ${message}`, data);
+    }
 }
 
 export default Logger;

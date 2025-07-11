@@ -367,7 +367,7 @@ class EnhancedMCPTools {
         created: new Date().toISOString(),
         performance: {
           initialization_time_ms: performance.now() - startTime,
-          memory_usage_mb: this.ruvSwarm.wasmLoader.getTotalMemoryUsage() / (1024 * 1024),
+          memory_usage_mb: this.ruvSwarm?.wasmLoader?.getTotalMemoryUsage() / (1024 * 1024) || 0,
         },
       };
 
@@ -670,8 +670,8 @@ class EnhancedMCPTools {
 
         const status = await swarm.getStatus(verbose);
         status.wasm_metrics = {
-          memory_usage_mb: this.ruvSwarm.wasmLoader.getTotalMemoryUsage() / (1024 * 1024),
-          loaded_modules: this.ruvSwarm.wasmLoader.getModuleStatus(),
+          memory_usage_mb: this.ruvSwarm?.wasmLoader?.getTotalMemoryUsage() / (1024 * 1024) || 0,
+          loaded_modules: this.ruvSwarm?.wasmLoader?.getModuleStatus() || {},
           features: this.ruvSwarm.features,
         };
 
@@ -1128,7 +1128,7 @@ class EnhancedMCPTools {
         results: benchmarks,
         environment: {
           features: this.ruvSwarm.features,
-          memory_usage_mb: this.ruvSwarm.wasmLoader.getTotalMemoryUsage() / (1024 * 1024),
+          memory_usage_mb: this.ruvSwarm?.wasmLoader?.getTotalMemoryUsage() / (1024 * 1024) || 0,
           runtime_features: RuvSwarm.getRuntimeFeatures(),
         },
         performance: {
@@ -2327,7 +2327,7 @@ class EnhancedMCPTools {
         total_swarms: this.activeSwarms.size,
         total_agents: Array.from(this.activeSwarms.values())
           .reduce((sum, swarm) => sum + swarm.agents.size, 0),
-        wasm_memory_usage_mb: this.ruvSwarm.wasmLoader.getTotalMemoryUsage() / (1024 * 1024),
+        wasm_memory_usage_mb: this.ruvSwarm?.wasmLoader?.getTotalMemoryUsage() / (1024 * 1024) || 0,
         system_uptime_ms: Date.now() - (this.systemStartTime || Date.now()),
         features_available: Object.keys(this.ruvSwarm.features).filter(f => this.ruvSwarm.features[f]).length,
       };
