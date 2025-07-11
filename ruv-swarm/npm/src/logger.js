@@ -121,6 +121,10 @@ export class Logger {
         });
     }
 
+    logMcp(level, message, data = {}) {
+        this._log(level, `[MCP] ${message}`, data);
+    }
+
     // Static methods for backward compatibility
     static info(message, ...args) {
         const logger = new Logger();

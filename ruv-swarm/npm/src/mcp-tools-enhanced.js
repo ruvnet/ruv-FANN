@@ -670,8 +670,8 @@ class EnhancedMCPTools {
 
         const status = await swarm.getStatus(verbose);
         status.wasm_metrics = {
-          memory_usage_mb: this.ruvSwarm.wasmLoader.getTotalMemoryUsage() / (1024 * 1024),
-          loaded_modules: this.ruvSwarm.wasmLoader.getModuleStatus(),
+          memory_usage_mb: this.ruvSwarm?.wasmLoader?.getTotalMemoryUsage() / (1024 * 1024) || 0,
+          loaded_modules: this.ruvSwarm?.wasmLoader?.getModuleStatus() || {},
           features: this.ruvSwarm.features,
         };
 
