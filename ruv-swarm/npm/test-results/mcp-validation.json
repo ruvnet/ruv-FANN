@@ -1,0 +1,24 @@
+{
+  "testSuite": "mcp-server-validation",
+  "version": "1.0.6",
+  "timestamp": "2025-07-11T23:13:56.652Z",
+  "tests": [
+    {
+      "name": "MCP Server Start",
+      "status": "failed",
+      "message": "Server startup timeout"
+    },
+    {
+      "name": "Test Suite",
+      "status": "failed",
+      "message": "Suite execution failed",
+      "error": "Server startup timeout"
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "passed": 0,
+    "failed": 2,
+    "passRate": "0.00"
+  }
+}
