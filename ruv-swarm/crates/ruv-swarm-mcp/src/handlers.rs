@@ -349,9 +349,10 @@ impl RequestHandler {
         }
 
         // Spawn agent
+        let agent_name = name.unwrap_or_else(|| format!("{:?}", agent_type));
         let agent_id = self
             .orchestrator
-            .spawn_agent(agent_type, name, capabilities)
+            .spawn_agent(agent_type, agent_name, capabilities)
             .await?;
 
         // Update resource tracking
@@ -449,7 +450,7 @@ impl RequestHandler {
         // Spawn async task
         tokio::spawn(async move {
             match orchestrator
-                .orchestrate_task(&task_id, &objective_str, config)
+                .create_task("orchestration".to_string(), objective_str, vec![], "adaptive".to_string())
                 .await
             {
                 Ok(result) => {
@@ -491,7 +492,7 @@ impl RequestHandler {
         });
 
         if include_metrics {
-            let metrics = self.orchestrator.get_metrics().await?;
+            let metrics = self.orchestrator.get_performance_metrics().await?;
             result["metrics"] = json!(metrics);
         }
 
@@ -530,7 +531,7 @@ impl RequestHandler {
 
             while start.elapsed() < duration {
                 tokio::select! {
-                    Some(event) = event_rx.recv() => {
+                    Ok(event) = event_rx.recv() => {
                         let notification = json!({
                             "method": "ruv-swarm/event",
                             "params": {
@@ -573,14 +574,24 @@ impl RequestHandler {
             .and_then(|v| v.as_bool())
             .unwrap_or(false);
 
+        // Extract target metric and threshold from params
+        let target_metric = params
+            .get("target_metric")
+            .and_then(|v| v.as_str())
+            .unwrap_or("throughput")
+            .to_string();
+            
+        let threshold = params
+            .get("threshold")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.8);
+
         // Get optimization recommendations
-        let recommendations = self.orchestrator.analyze_performance().await?;
+        let recommendations = self.orchestrator.optimize_performance(target_metric.clone(), threshold).await?;
 
         if auto_apply {
-            // Apply optimizations
-            for rec in &recommendations {
-                self.orchestrator.apply_optimization(rec).await?;
-            }
+            // TODO: Implement optimization application
+            info!("Auto-apply optimization recommendations: {:?}", recommendations);
         }
 
         let result = json!({
@@ -727,13 +738,26 @@ impl RequestHandler {
             .and_then(|s| Uuid::parse_str(s).ok());
 
         // Create task
+        let requirements = if let Some(agent_id) = assigned_agent {
+            vec![format!("agent:{}", agent_id)]
+        } else {
+            vec![]
+        };
+        
+        let strategy = match priority {
+            crate::types::TaskPriority::Critical => "urgent",
+            crate::types::TaskPriority::High => "high_priority", 
+            crate::types::TaskPriority::Medium => "normal",
+            crate::types::TaskPriority::Low => "background",
+        }.to_string();
+
         let task_id = self
             .orchestrator
             .create_task(
                 task_type.to_string(),
                 description.to_string(),
-                priority,
-                assigned_agent,
+                requirements,
+                strategy,
             )
             .await?;
 
@@ -790,8 +814,49 @@ impl RequestHandler {
             let workflow_path = workflow_path.to_string();
 
             tokio::spawn(async move {
+                // Create workflow definition from parameters
+                let mut steps = vec![];
+                
+                // Try to extract steps from parameters
+                if let Some(step_array) = parameters.get("steps").and_then(|v| v.as_array()) {
+                    for (i, step_value) in step_array.iter().enumerate() {
+                        let step_name = step_value.get("name")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or(&format!("Step {}", i + 1))
+                            .to_string();
+                        let task_type = step_value.get("task_type")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("generic_task")
+                            .to_string();
+                        let dependencies = step_value.get("dependencies")
+                            .and_then(|v| v.as_array())
+                            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+                            .unwrap_or_default();
+                            
+                        steps.push(crate::types::WorkflowStep {
+                            name: step_name,
+                            task_type,
+                            dependencies,
+                        });
+                    }
+                }
+                
+                // If no steps provided, create a default step
+                if steps.is_empty() {
+                    steps.push(crate::types::WorkflowStep {
+                        name: "Execute workflow".to_string(),
+                        task_type: "workflow_execution".to_string(),
+                        dependencies: vec![],
+                    });
+                }
+                
+                let workflow_def = crate::types::WorkflowDefinition {
+                    name: workflow_path.clone(),
+                    steps,
+                };
+                
                 match orchestrator
-                    .execute_workflow(&workflow_id, &workflow_path, parameters)
+                    .execute_workflow(workflow_def)
                     .await
                 {
                     Ok(result) => {
@@ -812,9 +877,49 @@ impl RequestHandler {
             Ok(McpResponse::success(id, result))
         } else {
             // Execute synchronously
+            let mut steps = vec![];
+            
+            // Try to extract steps from parameters
+            if let Some(step_array) = parameters.get("steps").and_then(|v| v.as_array()) {
+                for (i, step_value) in step_array.iter().enumerate() {
+                    let step_name = step_value.get("name")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or(&format!("Step {}", i + 1))
+                        .to_string();
+                    let task_type = step_value.get("task_type")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("generic_task")
+                        .to_string();
+                    let dependencies = step_value.get("dependencies")
+                        .and_then(|v| v.as_array())
+                        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+                        .unwrap_or_default();
+                        
+                    steps.push(crate::types::WorkflowStep {
+                        name: step_name,
+                        task_type,
+                        dependencies,
+                    });
+                }
+            }
+            
+            // If no steps provided, create a default step
+            if steps.is_empty() {
+                steps.push(crate::types::WorkflowStep {
+                    name: "Execute workflow".to_string(),
+                    task_type: "workflow_execution".to_string(),
+                    dependencies: vec![],
+                });
+            }
+            
+            let workflow_def = crate::types::WorkflowDefinition {
+                name: workflow_path.to_string(),
+                steps,
+            };
+            
             let result = self
                 .orchestrator
-                .execute_workflow(&workflow_id, workflow_path, parameters)
+                .execute_workflow(workflow_def)
                 .await?;
 
             Ok(McpResponse::success(
@@ -844,7 +949,7 @@ impl RequestHandler {
             .and_then(|v| v.as_str())
             .unwrap_or("created_at");
 
-        let agents = self.orchestrator.list_agents(include_inactive).await?;
+        let agents = self.orchestrator.list_agents().await?;
 
         let result = json!({
             "agents": agents,
@@ -874,34 +979,29 @@ impl RequestHandler {
 
         let metrics = if let Some(agent_id) = agent_id {
             // Get metrics for specific agent
-            self.orchestrator.get_agent_metrics(&agent_id).await?
+            vec![self.orchestrator.get_agent_metrics(agent_id).await?]
         } else {
             // Get metrics for all agents
             self.orchestrator.get_all_agent_metrics().await?
         };
 
         let filtered_metrics = match metric_type {
-            "cpu" => json!({
-                "cpu_usage": metrics.get("cpu_usage").unwrap_or(&json!({})),
-                "cpu_utilization": metrics.get("cpu_utilization").unwrap_or(&json!({})),
-            }),
-            "memory" => json!({
-                "memory_usage": metrics.get("memory_usage").unwrap_or(&json!({})),
-                "memory_peak": metrics.get("memory_peak").unwrap_or(&json!({})),
-            }),
             "tasks" => json!({
-                "tasks_completed": metrics.get("tasks_completed").unwrap_or(&json!(0)),
-                "tasks_failed": metrics.get("tasks_failed").unwrap_or(&json!(0)),
-                "tasks_in_progress": metrics.get("tasks_in_progress").unwrap_or(&json!(0)),
-                "average_task_duration": metrics.get("average_task_duration").unwrap_or(&json!(0)),
+                "metrics": metrics.iter().map(|m| json!({
+                    "agent_id": m.agent_id,
+                    "tasks_completed": m.tasks_completed,
+                    "success_rate": m.success_rate,
+                    "error_count": m.error_count,
+                })).collect::<Vec<_>>()
             }),
             "performance" => json!({
-                "throughput": metrics.get("throughput").unwrap_or(&json!({})),
-                "response_time": metrics.get("response_time").unwrap_or(&json!({})),
-                "error_rate": metrics.get("error_rate").unwrap_or(&json!({})),
+                "metrics": metrics.iter().map(|m| json!({
+                    "agent_id": m.agent_id,
+                    "response_time": m.response_time,
+                    "success_rate": m.success_rate,
+                })).collect::<Vec<_>>()
             }),
-            "all" => metrics,
-            _ => metrics,
+            _ => json!(metrics),
         };
 
         let result = json!({
@@ -938,13 +1038,13 @@ impl RequestHandler {
 
     /// Handle swarm status
     async fn handle_swarm_status(&self, request: McpRequest) -> anyhow::Result<McpResponse> {
-        let status = self.orchestrator.get_status().await?;
+        let status = self.orchestrator.get_swarm_state().await?;
         Ok(McpResponse::success(request.id, json!(status)))
     }
 
     /// Handle swarm metrics
     async fn handle_swarm_metrics(&self, request: McpRequest) -> anyhow::Result<McpResponse> {
-        let metrics = self.orchestrator.get_metrics().await?;
+        let metrics = self.orchestrator.get_performance_metrics().await?;
         Ok(McpResponse::success(request.id, json!(metrics)))
     }
 }

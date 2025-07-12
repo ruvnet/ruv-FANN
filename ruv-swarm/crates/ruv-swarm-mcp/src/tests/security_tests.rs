@@ -17,7 +17,7 @@ use tokio::time::timeout;
 #[tokio::test]
 async fn test_malformed_request_handling() {
     let swarm_config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config));
+    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
     let mcp_config = McpConfig::default();
     let server = McpServer::new(orchestrator, mcp_config);
 
@@ -37,7 +37,7 @@ async fn test_malformed_request_handling() {
 #[tokio::test]
 async fn test_tool_parameter_validation() {
     let swarm_config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config));
+    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
     let mcp_config = McpConfig::default();
     let _server = McpServer::new(orchestrator, mcp_config);
 
@@ -63,7 +63,7 @@ async fn test_tool_parameter_validation() {
 #[tokio::test]
 async fn test_resource_limits() {
     let swarm_config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config));
+    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
     let mcp_config = McpConfig::default();
     let _server = McpServer::new(orchestrator, mcp_config);
 
@@ -94,7 +94,7 @@ async fn test_resource_limits() {
 #[tokio::test]
 async fn test_session_isolation() {
     let swarm_config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config));
+    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
     let mcp_config = McpConfig::default();
     let _server = McpServer::new(orchestrator, mcp_config);
 
@@ -134,7 +134,7 @@ async fn test_session_isolation() {
 #[tokio::test]
 async fn test_secure_error_handling() {
     let swarm_config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config));
+    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
     let mcp_config = McpConfig::default();
     let _server = McpServer::new(orchestrator, mcp_config);
 
@@ -157,7 +157,7 @@ async fn test_secure_error_handling() {
 #[tokio::test]
 async fn test_memory_storage_limits() {
     let swarm_config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config));
+    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
     let mcp_config = McpConfig::default();
     let _server = McpServer::new(orchestrator, mcp_config);
 
@@ -186,7 +186,7 @@ async fn test_memory_storage_limits() {
 #[tokio::test]
 async fn test_workflow_path_validation() {
     let swarm_config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config));
+    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
     let mcp_config = McpConfig::default();
     let _server = McpServer::new(orchestrator, mcp_config);
 
@@ -222,7 +222,7 @@ async fn test_workflow_path_validation() {
 #[tokio::test]
 async fn test_rate_limiting_behavior() {
     let swarm_config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config));
+    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
     let mcp_config = McpConfig::default();
     let _server = McpServer::new(orchestrator, mcp_config);
 
@@ -251,7 +251,7 @@ async fn test_rate_limiting_behavior() {
 #[tokio::test]
 async fn test_numeric_parameter_boundaries() {
     let swarm_config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config));
+    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
     let mcp_config = McpConfig::default();
     let _server = McpServer::new(orchestrator, mcp_config);
 
@@ -287,7 +287,7 @@ async fn test_numeric_parameter_boundaries() {
 #[tokio::test]
 async fn test_concurrent_connections() {
     let swarm_config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config));
+    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
     let mcp_config = McpConfig::default();
     let _server = McpServer::new(orchestrator.clone(), mcp_config);
 
@@ -313,13 +313,13 @@ async fn test_concurrent_connections() {
 #[tokio::test]
 async fn test_agent_metrics_security() {
     let swarm_config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config));
+    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
     let mcp_config = McpConfig::default();
     let _server = McpServer::new(orchestrator.clone(), mcp_config);
 
     // Test metrics for non-existent agent
     let fake_agent_id = uuid::Uuid::new_v4();
-    let metrics_result = orchestrator.get_agent_metrics(&fake_agent_id).await;
+    let metrics_result = orchestrator.get_agent_metrics(fake_agent_id).await;
     
     // Should handle gracefully with appropriate error
     assert!(metrics_result.is_err());
@@ -329,7 +329,7 @@ async fn test_agent_metrics_security() {
 #[tokio::test]
 async fn test_websocket_message_limits() {
     let swarm_config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config));
+    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
     let mcp_config = McpConfig::default();
     let _server = McpServer::new(orchestrator, mcp_config);
 
@@ -357,7 +357,7 @@ async fn test_websocket_message_limits() {
 #[tokio::test]
 async fn test_monitoring_duration_limits() {
     let swarm_config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config));
+    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
     let mcp_config = McpConfig::default();
     let _server = McpServer::new(orchestrator, mcp_config);
 

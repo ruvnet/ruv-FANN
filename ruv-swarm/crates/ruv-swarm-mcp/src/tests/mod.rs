@@ -14,8 +14,7 @@ fn test_version_info() {
 
 #[tokio::test]
 async fn test_basic_mcp_server_creation() {
-    let config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(config));
+    let orchestrator = Arc::new(SwarmOrchestrator::new(SwarmConfig::default()).await);
     let mcp_config = McpConfig::default();
 
     let server = McpServer::new(orchestrator, mcp_config);

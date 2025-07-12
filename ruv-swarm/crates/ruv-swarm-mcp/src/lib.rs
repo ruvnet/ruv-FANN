@@ -23,7 +23,7 @@
 //! # #[tokio::main]
 //! # async fn main() -> anyhow::Result<()> {
 //! // Create swarm orchestrator
-//! let orchestrator = Arc::new(SwarmOrchestrator::new(SwarmConfig::default()));
+//! let orchestrator = Arc::new(SwarmOrchestrator::new(SwarmConfig::default()).await);
 //!
 //! // Configure MCP server
 //! let config = McpConfig::default();
@@ -70,21 +70,19 @@ use tracing::{debug, error, info};
 use uuid::Uuid;
 
 pub mod error;
-// pub mod handlers;  // Temporarily disabled for simple service test
-// pub mod limits;    // Temporarily disabled for simple service test
+pub mod handlers;
+pub mod limits;
 pub mod orchestrator;
 pub mod service;
-// pub mod tools;     // Temporarily disabled for simple service test
+pub mod tools;
 pub mod types;
-// pub mod validation;   // Temporarily disabled for simple service test
+pub mod validation;
 
 use crate::orchestrator::SwarmOrchestrator;
+use crate::handlers::RequestHandler;
+use crate::limits::{ResourceLimiter, ResourceLimits};
+use crate::tools::ToolRegistry;
 
-// use crate::handlers::RequestHandler;  // Temporarily disabled
-// use crate::limits::{ResourceLimiter, ResourceLimits};  // Temporarily disabled
-// use crate::tools::ToolRegistry;  // Temporarily disabled
-
-/*
 /// MCP Server configuration
 /// 
 /// This struct defines the configuration options for the MCP server,
@@ -167,7 +165,7 @@ pub struct Session {
 /// 
 /// # #[tokio::main]
 /// # async fn main() -> anyhow::Result<()> {
-/// let orchestrator = Arc::new(SwarmOrchestrator::new(SwarmConfig::default()));
+/// let orchestrator = Arc::new(SwarmOrchestrator::new(SwarmConfig::default()).await);
 /// let config = McpConfig::default();
 /// let server = McpServer::new(orchestrator, config);
 /// 
@@ -182,19 +180,6 @@ pub struct McpServer {
 
 impl McpServer {
     /// Create a new MCP server
-    /// 
-    /// Creates a new MCP server instance with the provided orchestrator and configuration.
-    /// The server will automatically register all available tools and initialize the
-    /// session management system.
-    /// 
-    /// # Arguments
-    /// 
-    /// * `orchestrator` - The swarm orchestrator instance to use
-    /// * `config` - Server configuration options
-    /// 
-    /// # Returns
-    /// 
-    /// A new `McpServer` instance ready to start serving requests
     pub fn new(orchestrator: Arc<SwarmOrchestrator>, config: McpConfig) -> Self {
         let tools = Arc::new(ToolRegistry::new());
 
@@ -216,32 +201,6 @@ impl McpServer {
     }
 
     /// Start the MCP server
-    /// 
-    /// Starts the MCP server and begins listening for connections on the configured
-    /// bind address. This method will block until the server is stopped.
-    /// 
-    /// # Returns
-    /// 
-    /// Returns `Ok(())` if the server starts successfully, or an error if there's
-    /// an issue binding to the address or starting the server.
-    /// 
-    /// # Example
-    /// 
-    /// ```rust,no_run
-    /// # use std::sync::Arc;
-    /// # use ruv_swarm_core::SwarmConfig;
-    /// # use ruv_swarm_mcp::{orchestrator::SwarmOrchestrator, McpConfig, McpServer};
-    /// # #[tokio::main]
-    /// # async fn main() -> anyhow::Result<()> {
-    /// let orchestrator = Arc::new(SwarmOrchestrator::new(SwarmConfig::default()));
-    /// let config = McpConfig::default();
-    /// let server = McpServer::new(orchestrator, config);
-    /// 
-    /// // This will block until the server is stopped
-    /// server.start().await?;
-    /// # Ok(())
-    /// # }
-    /// ```
     pub async fn start(&self) -> anyhow::Result<()> {
         let app = self.build_router();
         let addr = self.state.config.bind_addr;
@@ -486,8 +445,6 @@ pub struct McpError {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub data: Option<Value>,
 }
-
-*/
 
 #[cfg(test)]
 mod tests;
