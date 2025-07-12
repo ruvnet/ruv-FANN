@@ -1,6 +1,6 @@
 [package]
 name = "cuda-rust-wasm"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["CUDA-Rust Team"]
 description = "CUDA to Rust transpiler with WebGPU/WASM support"

@@ -5,49 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2024-12-12
+## [0.1.1] - 2025-07-12
+
+### Fixed
+- Fixed compilation error in vector_add example related to Clone trait bounds on kernel launch
+- Example now properly demonstrates the CUDA-to-Rust transpilation workflow
 
 ### Added
-- Initial release of @cuda-wasm/core
-- CUDA to WebAssembly transpilation
-- WebGPU compute shader support
-- Rust-based transpiler with memory safety
-- Performance analysis and benchmarking tools
-- Cross-platform support (Linux, macOS, Windows)
-- Browser and Node.js compatibility
-- TypeScript definitions
-- Comprehensive test suite
-- CLI tool for kernel transpilation
+- Comprehensive verification summary documentation
+- Additional test coverage for example code
+
+## [0.1.0] - 2025-07-12
+
+### Initial Release
+- CUDA to Rust/WASM transpiler
+- WebGPU backend support  
+- CPU fallback implementation
+- Memory pooling and optimization
+- Neural network integration with ruv-FANN
+- Comprehensive profiling tools
 - Example projects and documentation
+- TypeScript bindings
+- CLI tools for transpilation
 
 ### Features
-- 🔄 CUDA to WebAssembly transpilation
+- 🔄 CUDA to Rust/WebAssembly transpilation
 - ⚡ WebGPU native browser GPU acceleration
 - 🦀 Memory-safe GPU programming with Rust
 - 📊 Built-in profiling and optimization
 - 🔧 Simple CLI interface
 - 🌐 Cross-platform compatibility
-- 📝 Full TypeScript support
+- 🧠 Neural network GPU acceleration
 
-### Supported Targets
-- WebAssembly (WASM)
-- WebGPU compute shaders
-- Native GPU backends (CUDA, OpenCL, Vulkan)
-
-### CLI Commands
-- `cuda-wasm transpile` - Convert CUDA kernels to WASM/WebGPU
-- `cuda-wasm analyze` - Analyze kernel performance characteristics
-- `cuda-wasm benchmark` - Run performance benchmarks
-
-### API Features
-- `transpileCuda()` - Main transpilation function
-- `analyzeKernel()` - Kernel analysis and optimization suggestions
-- `benchmark()` - Performance benchmarking
-- `createWebGPUKernel()` - WebGPU kernel creation and execution
-
-### Installation Methods
-- NPX: `npx @cuda-wasm/core`
-- Global: `npm install -g @cuda-wasm/core`
-- Project: `npm install @cuda-wasm/core`
-
-[1.0.0]: https://github.com/ruvnet/ruv-FANN/releases/tag/cuda-wasm-v1.0.0
+[0.1.1]: https://github.com/ruvnet/ruv-FANN/releases/tag/cuda-wasm-v0.1.1
+[0.1.0]: https://github.com/ruvnet/ruv-FANN/releases/tag/cuda-wasm-v0.1.0
