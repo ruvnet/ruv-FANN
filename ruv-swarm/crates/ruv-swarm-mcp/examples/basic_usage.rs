@@ -16,7 +16,7 @@ async fn main() -> anyhow::Result<()> {
     let swarm_config = SwarmConfig::default();
 
     // Create the swarm orchestrator
-    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config));
+    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
 
     // Configure the MCP server
     let mcp_config = McpConfig {
