@@ -1,0 +1,28 @@
+[package]
+name = "opencv-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "OpenCV Core module - fundamental data structures and operations"
+keywords = ["opencv", "core", "mat", "point", "rect"]
+
+[dependencies]
+libc = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+log = { workspace = true }
+once_cell = { workspace = true }
+nalgebra = { workspace = true }
+ndarray = { workspace = true }
+serde = { workspace = true, optional = true }
+
+[features]
+default = ["serde"]
+serde = ["dep:serde"]
+
+[dev-dependencies]
+criterion = "0.5"
+proptest = "1.0"
+

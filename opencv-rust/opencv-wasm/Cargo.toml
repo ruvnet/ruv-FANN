@@ -1,0 +1,39 @@
+[package]
+name = "opencv-wasm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "OpenCV WebAssembly bindings for browser deployment"
+keywords = ["opencv", "wasm", "webassembly", "browser", "computer-vision"]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+opencv-core = { path = "../opencv-core", version = "4.8.0" }
+wasm-bindgen = { workspace = true }
+js-sys = { workspace = true }
+web-sys = { workspace = true, features = [
+  "console",
+  "CanvasRenderingContext2d",
+  "Document",
+  "Element",
+  "HtmlCanvasElement",
+  "HtmlImageElement",
+  "ImageData",
+  "Window",
+  "FileReader",
+  "File",
+  "Blob",
+  "Url"
+]}
+wee_alloc = "0.4"
+console_error_panic_hook = { version = "0.1", optional = true }
+
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+
+[features]
+default = ["console_error_panic_hook"]

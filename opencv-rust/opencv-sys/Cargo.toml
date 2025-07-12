@@ -1,0 +1,27 @@
+[package]
+name = "opencv-sys"
+version = "0.1.0"
+edition = "2021"
+authors = ["ruv-FANN Team <team@ruv-fann.org>"]
+description = "Low-level Rust bindings for OpenCV"
+license = "Apache-2.0"
+repository = "https://github.com/ruvnet/ruv-FANN"
+homepage = "https://github.com/ruvnet/ruv-FANN"
+documentation = "https://docs.rs/opencv-sys"
+keywords = ["opencv", "ffi", "bindings", "computer-vision"]
+categories = ["external-ffi-bindings", "computer-vision"]
+links = "opencv"
+
+[dependencies]
+libc = "0.2"
+
+[build-dependencies]
+bindgen = "0.69"
+cc = "1.0"
+cmake = "0.1"
+pkg-config = "0.3"
+
+[features]
+default = []
+cuda = []
+contrib = []

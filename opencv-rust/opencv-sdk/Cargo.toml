@@ -1,0 +1,39 @@
+[package]
+name = "opencv-sdk"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "OpenCV SDK with C/C++/Python API compatibility layer"
+keywords = ["opencv", "sdk", "ffi", "bindings", "compatibility"]
+
+[lib]
+name = "opencv_sdk"
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dependencies]
+opencv-core = { path = "../opencv-core", version = "4.8.0" }
+libc = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+log = { workspace = true }
+once_cell = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+
+# Python bindings
+pyo3 = { version = "0.20", features = ["auto-initialize"], optional = true }
+
+# WASM support  
+opencv-wasm = { path = "../opencv-wasm", version = "4.8.0", optional = true }
+
+[features]
+default = []
+full = ["wasm", "python"]
+
+# Optional features
+wasm = ["opencv-wasm"]
+python = ["pyo3"]
+
+[build-dependencies]
+cbindgen = "0.26"
