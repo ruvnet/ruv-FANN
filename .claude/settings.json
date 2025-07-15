@@ -34,70 +34,56 @@
     ]
   },
   "hooks": {
-    "preEditHook": {
-      "command": "npx",
-      "args": ["claude-flow", "hooks", "pre-edit", "--file", "${file}", "--auto-assign-agents", "true", "--load-context", "true"],
-      "alwaysRun": false,
-      "outputFormat": "json"
-    },
-    "postEditHook": {
-      "command": "npx",
-      "args": ["claude-flow", "hooks", "post-edit", "--file", "${file}", "--format", "true", "--update-memory", "true", "--train-neural", "true"],
-      "alwaysRun": true,
-      "outputFormat": "json"
-    },
-    "preCommandHook": {
-      "command": "npx",
-      "args": ["claude-flow", "hooks", "pre-command", "--command", "${command}", "--validate-safety", "true", "--prepare-resources", "true"],
-      "alwaysRun": false,
-      "outputFormat": "json"
-    },
-    "postCommandHook": {
-      "command": "npx",
-      "args": ["claude-flow", "hooks", "post-command", "--command", "${command}", "--track-metrics", "true", "--store-results", "true"],
-      "alwaysRun": false,
-      "outputFormat": "json"
-    },
-    "sessionEndHook": {
-      "command": "npx",
-      "args": ["claude-flow", "hooks", "session-end", "--generate-summary", "true", "--persist-state", "true", "--export-metrics", "true"],
-      "alwaysRun": true,
-      "outputFormat": "json"
-    }
-  },
-  "mcpServers": {
-    "claude-flow": {
-      "command": "npx",
-      "args": [
-        "claude-flow",
-        "mcp",
-        "start"
-      ],
-      "env": {
-        "CLAUDE_FLOW_HOOKS_ENABLED": "true",
-        "CLAUDE_FLOW_TELEMETRY_ENABLED": "true",
-        "CLAUDE_FLOW_REMOTE_READY": "true",
-        "CLAUDE_FLOW_GITHUB_INTEGRATION": "true"
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx claude-flow@alpha hooks pre-command --command \"${command}\" --validate-safety true --prepare-resources true"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx claude-flow@alpha hooks pre-edit --file \"${file}\" --auto-assign-agents true --load-context true"
+          }
+        ]
       }
-    }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx claude-flow@alpha hooks post-command --command \"${command}\" --track-metrics true --store-results true"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx claude-flow@alpha hooks post-edit --file \"${file}\" --format true --update-memory true --train-neural true"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx claude-flow@alpha hooks session-end --generate-summary true --persist-state true --export-metrics true"
+          }
+        ]
+      }
+    ]
   },
-  "includeCoAuthoredBy": true,
-  "features": {
-    "autoTopologySelection": true,
-    "parallelExecution": true,
-    "neuralTraining": true,
-    "bottleneckAnalysis": true,
-    "smartAutoSpawning": true,
-    "selfHealingWorkflows": true,
-    "crossSessionMemory": true,
-    "githubIntegration": true
-  },
-  "performance": {
-    "maxAgents": 10,
-    "defaultTopology": "hierarchical",
-    "executionStrategy": "parallel",
-    "tokenOptimization": true,
-    "cacheEnabled": true,
-    "telemetryLevel": "detailed"
-  }
+  "includeCoAuthoredBy": true
 }

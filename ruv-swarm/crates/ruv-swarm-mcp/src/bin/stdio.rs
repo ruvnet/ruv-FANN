@@ -7,6 +7,7 @@
 use rmcp::{ServiceExt, transport::stdio};
 use ruv_swarm_mcp::service::RealSwarmService;
 use ruv_swarm_mcp::orchestrator::SwarmOrchestrator;
+use ruv_swarm_core::SwarmConfig;
 use tracing_subscriber::{EnvFilter};
 use std::sync::Arc;
 
@@ -22,7 +23,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::info!("Starting ruv-swarm-mcp stdio server");
 
     // Create the orchestrator and service
-    let orchestrator = Arc::new(SwarmOrchestrator::new().await);
+    let swarm_config = SwarmConfig::default();
+    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
     let service = RealSwarmService::new(orchestrator);
     
     // Create and run the server with STDIO transport
