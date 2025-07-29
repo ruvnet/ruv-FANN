@@ -105,7 +105,7 @@ class MCPServerTester {
                 env: { ...process.env, MCP_TEST_MODE: 'true', DEBUG: 'false' }
             });
 
-            let responses = [];
+            const responses = [];
             let buffer = '';
 
             server.stdout.on('data', (data) => {
@@ -204,7 +204,7 @@ class MCPServerTester {
                 env: { ...process.env, MCP_TEST_MODE: 'true', DEBUG: 'true' } // Enable debug logs
             });
 
-            let jsonResponses = [];
+            const jsonResponses = [];
             let stderrOutput = '';
             let buffer = '';
 

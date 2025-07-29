@@ -360,7 +360,7 @@ class SwarmPersistencePooled {
     
     return this.trackOperation(async () => {
       let sql = 'SELECT * FROM agents WHERE swarm_id = ?';
-      let params = [swarmId];
+      const params = [swarmId];
       
       if (filter !== 'all') {
         sql += ' AND status = ?';
@@ -439,7 +439,7 @@ class SwarmPersistencePooled {
     
     return this.trackOperation(async () => {
       let sql = 'SELECT * FROM tasks WHERE swarm_id = ?';
-      let params = [swarmId];
+      const params = [swarmId];
       
       if (status) {
         sql += ' AND status = ?';
@@ -605,7 +605,7 @@ class SwarmPersistencePooled {
     
     return this.trackOperation(async () => {
       let sql = 'SELECT * FROM metrics WHERE entity_type = ? AND entity_id = ?';
-      let params = [entityType, entityId];
+      const params = [entityType, entityId];
       
       if (metricName) {
         sql += ' AND metric_name = ?';

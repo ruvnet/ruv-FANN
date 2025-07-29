@@ -515,7 +515,7 @@ describe('Performance Under Load Integration Tests', () => {
       }, 100);
 
       // Wait for completion
-      // eslint-disable-next-line no-unmodified-loop-condition
+       
       while (processedItems < totalItems) {
         await new Promise(resolve => setTimeout(resolve, 100));
       }

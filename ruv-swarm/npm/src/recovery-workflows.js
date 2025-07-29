@@ -788,7 +788,7 @@ export class RecoveryWorkflows extends EventEmitter {
     this.logger.info(`Clearing cache: ${cacheType}`);
     
     // Clear various caches based on type
-    let clearedCaches = [];
+    const clearedCaches = [];
     
     if (cacheType === 'all' || cacheType === 'memory') {
       // Clear memory caches

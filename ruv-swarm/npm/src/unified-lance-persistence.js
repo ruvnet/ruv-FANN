@@ -403,7 +403,7 @@ export class UnifiedLancePersistence {
     const { entityType, filters, orderBy } = query;
     
     let sql = '';
-    let params = [];
+    const params = [];
     
     switch (entityType) {
       case 'swarms':
@@ -464,7 +464,7 @@ export class UnifiedLancePersistence {
         WHERE eg.depth < ?
     `;
     
-    let params = [entityType, entityId, maxDepth];
+    const params = [entityType, entityId, maxDepth];
     
     if (relationshipTypes.length > 0) {
       sql += ` AND r.relationship_type IN (${relationshipTypes.map(() => '?').join(',')})`;

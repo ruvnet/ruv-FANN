@@ -26,7 +26,7 @@ const TEST_CONFIG = {
 };
 
 // Test result tracking
-let testResults = {
+const testResults = {
   passed: 0,
   failed: 0,
   details: []

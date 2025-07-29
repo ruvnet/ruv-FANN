@@ -216,7 +216,7 @@ describe('Async Operations Edge Cases', () => {
         yield 1;
         yield 2;
         throw new Error('Generator error');
-        yield 3; // eslint-disable-line no-unreachable
+        yield 3;  
       }
 
       const results = [];

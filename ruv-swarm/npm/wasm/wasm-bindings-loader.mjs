@@ -184,7 +184,7 @@ class WasmBindingsLoader {
     };
     
     imports.wbg.__wbg_error_7534b8e9a36f1ab4 = function(arg0, arg1) {
-      var v0 = getStringFromWasm0(arg0, arg1).slice();
+      const v0 = getStringFromWasm0(arg0, arg1).slice();
       if (this.wasm && this.wasm.__wbindgen_export_1) {
         this.wasm.__wbindgen_export_1(arg0, arg1 * 1, 1);
       }
