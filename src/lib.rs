@@ -42,6 +42,7 @@ pub mod errors;
 pub mod integration;
 pub mod layer;
 pub mod memory_manager;
+pub mod swarm_memory_manager;
 pub mod network;
 pub mod neuron;
 pub mod training;
