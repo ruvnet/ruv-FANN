@@ -6,11 +6,11 @@
  */
 
 import { EventEmitter } from 'events';
-import { RuvSwarm } from './index';
-import { SessionManager, SessionState, SessionConfig } from './session-manager';
-import { SwarmPersistencePooled } from './persistence-pooled';
-import { SwarmState, SwarmOptions, SwarmEvent, AgentConfig, Task } from './types';
-import { SessionValidator, SessionSerializer, SessionRecovery } from './session-utils';
+import { RuvSwarm } from './index.js';
+import { SessionManager, SessionState, SessionConfig } from './session-manager.js';
+import { SwarmPersistencePooled } from './persistence-pooled.js';
+import { SwarmState, SwarmOptions, SwarmEvent, AgentConfig, Task } from './types.js';
+import { SessionValidator, SessionSerializer, SessionRecovery } from './session-utils.js';
 
 /**
  * Enhanced RuvSwarm with session management capabilities
@@ -38,7 +38,7 @@ export class SessionEnabledSwarm extends RuvSwarm {
   /**
    * Initialize swarm with session support
    */
-  async init(): Promise<void> {
+  override async init(): Promise<void> {
     // Initialize base swarm
     await super.init();
 
@@ -237,7 +237,7 @@ export class SessionEnabledSwarm extends RuvSwarm {
   /**
    * Enhanced agent operations with session persistence
    */
-  addAgent(config: AgentConfig): string {
+  override addAgent(config: AgentConfig): string {
     const agentId = super.addAgent(config);
 
     // Auto-save to session if enabled
@@ -257,7 +257,7 @@ export class SessionEnabledSwarm extends RuvSwarm {
   /**
    * Enhanced task submission with session persistence
    */
-  async submitTask(task: Omit<Task, 'id' | 'status'>): Promise<string> {
+  override async submitTask(task: Omit<Task, 'id' | 'status'>): Promise<string> {
     const taskId = await super.submitTask(task);
 
     // Auto-save to session if enabled
@@ -277,7 +277,7 @@ export class SessionEnabledSwarm extends RuvSwarm {
   /**
    * Enhanced destroy with session cleanup
    */
-  async destroy(): Promise<void> {
+  override async destroy(): Promise<void> {
     // Save session before destroying if there's an active session
     if (this.currentSessionId) {
       try {
@@ -471,7 +471,7 @@ export class SessionRecoveryService extends EventEmitter {
     } catch (error) {
       this.emit('recovery:failed', { 
         sessionId, 
-        reason: error.message 
+        reason: error instanceof Error ? error.message : String(error)
       });
       return false;
     } finally {
@@ -551,7 +551,7 @@ export class SessionRecoveryService extends EventEmitter {
       } catch (error) {
         this.emit('auto_recovery:session_failed', { 
           sessionId, 
-          error: error.message 
+          error: error instanceof Error ? error.message : String(error)
         });
       }
     }
@@ -573,10 +573,4 @@ export function createSessionEnabledSwarm(
   return new SessionEnabledSwarm(swarmOptions, sessionConfig, persistence);
 }
 
-/**
- * Export session integration components
- */
-export {
-  SessionEnabledSwarm,
-  SessionRecoveryService,
-};
+// Components are already exported inline above

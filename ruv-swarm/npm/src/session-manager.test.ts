@@ -3,27 +3,28 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
-import { SessionManager, SessionState, SessionConfig } from './session-manager';
-import { SessionEnabledSwarm, SessionRecoveryService } from './session-integration';
-import { SessionValidator, SessionSerializer, SessionRecovery, SessionStats } from './session-utils';
-import { SwarmPersistencePooled } from './persistence-pooled';
-import { SwarmOptions, SwarmState } from './types';
+import { SessionManager, SessionState, SessionConfig } from './session-manager.js';
+import { SessionEnabledSwarm, SessionRecoveryService } from './session-integration.js';
+import { SessionValidator, SessionSerializer, SessionRecovery, SessionStats } from './session-utils.js';
+import { SwarmPersistencePooled } from './persistence-pooled.js';
+import { SwarmOptions, SwarmState } from './types.js';
 
 // Mock persistence layer
 class MockPersistence extends SwarmPersistencePooled {
   private mockData: Map<string, any> = new Map();
+  public initialized: boolean = false;
   
   constructor() {
     super(':memory:'); // Use in-memory SQLite for testing
   }
 
-  async initialize() {
+  override async initialize() {
     // Mock initialization
     this.initialized = true;
   }
 
   // Mock pool with read/write methods
-  pool = {
+  override pool = {
     read: jest.fn(async (sql: string, params?: any[]) => {
       if (sql.includes('sessions')) {
         return Array.from(this.mockData.values()).filter((item: any) => item.type === 'session');

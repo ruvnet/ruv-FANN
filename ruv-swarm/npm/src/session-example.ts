@@ -7,12 +7,11 @@
 
 import { 
   SessionEnabledSwarm, 
-  SessionRecoveryService,
-  SessionManager,
-  SessionState 
-} from './session-integration';
-import { SwarmPersistencePooled } from './persistence-pooled';
-import { SessionStats, SessionValidator } from './session-utils';
+  SessionRecoveryService
+} from './session-integration.js';
+import { SessionManager, SessionState } from './session-manager.js';
+import { SwarmPersistencePooled } from './persistence-pooled.js';
+import { SessionStats, SessionValidator } from './session-utils.js';
 
 /**
  * Example 1: Basic Session Usage
@@ -332,15 +331,15 @@ async function advancedSessionExample() {
     await swarm.init();
 
     // Create session with event monitoring
-    swarm.on('session:created', (data) => {
+    swarm.on('session:created', (data: any) => {
       console.log(`Session created event: ${data.sessionId}`);
     });
 
-    swarm.on('session:checkpoint_created', (data) => {
+    swarm.on('session:checkpoint_created', (data: any) => {
       console.log(`Checkpoint created: ${data.checkpointId} - ${data.description}`);
     });
 
-    swarm.on('session:error', (data) => {
+    swarm.on('session:error', (data: any) => {
       console.error(`Session error: ${data.error} during ${data.operation}`);
     });
 
@@ -352,8 +351,8 @@ async function advancedSessionExample() {
       { id: 'data-cleaner', type: 'analyst', capabilities: ['data-validation', 'outlier-detection'] },
       { id: 'feature-engineer', type: 'architect', capabilities: ['feature-selection', 'dimensionality-reduction'] },
       { id: 'model-builder', type: 'coder', capabilities: ['deep-learning', 'ensemble-methods'] },
-      { id: 'model-validator', type: 'tester', capabilities: ['cross-validation', 'performance-metrics'] },
-      { id: 'deployment-manager', type: 'optimizer', capabilities: ['containerization', 'monitoring'] },
+      { id: 'model-validator', type: 'reviewer', capabilities: ['cross-validation', 'performance-metrics'] },
+      { id: 'deployment-manager', type: 'architect', capabilities: ['containerization', 'monitoring'] },
     ];
 
     const agentIds = agents.map(agent => swarm.addAgent(agent));
@@ -365,31 +364,37 @@ async function advancedSessionExample() {
         description: 'Collect training data from multiple sources',
         priority: 'critical' as const,
         assignedAgents: [agentIds[0]],
+        dependencies: [] as string[],
       },
       {
         description: 'Clean and validate collected data',
         priority: 'high' as const,
         assignedAgents: [agentIds[1]],
+        dependencies: [] as string[],
       },
       {
         description: 'Engineer features from cleaned data',
         priority: 'high' as const,
         assignedAgents: [agentIds[2]],
+        dependencies: [] as string[],
       },
       {
         description: 'Build and train multiple models',
         priority: 'high' as const,
         assignedAgents: [agentIds[3]],
+        dependencies: [] as string[],
       },
       {
         description: 'Validate model performance',
         priority: 'medium' as const,
         assignedAgents: [agentIds[4]],
+        dependencies: [] as string[],
       },
       {
         description: 'Deploy best performing model',
         priority: 'medium' as const,
         assignedAgents: [agentIds[5]],
+        dependencies: [] as string[],
       },
     ];
 
@@ -494,7 +499,7 @@ async function runAllExamples() {
 /**
  * Extension method for SessionEnabledSwarm to export session data
  */
-declare module './session-integration' {
+declare module './session-integration.js' {
   interface SessionEnabledSwarm {
     exportSession(): Promise<string>;
   }

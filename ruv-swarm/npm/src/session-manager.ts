@@ -14,8 +14,8 @@
 
 import { EventEmitter } from 'events';
 import { SwarmPersistencePooled } from './persistence-pooled.js';
-import { SwarmState, SwarmOptions, AgentConfig, Task, SwarmEvent } from './types';
-import { generateId } from './utils';
+import { SwarmState, SwarmOptions, AgentConfig, Task, SwarmEvent } from './types.js';
+import { generateId } from './utils.js';
 import crypto from 'crypto';
 
 export interface SessionState {
@@ -90,6 +90,23 @@ export class SessionManager extends EventEmitter {
   }
 
   /**
+   * Ensure persistence pool is initialized
+   */
+  private async ensureInitialized(): Promise<void> {
+    if (!this.persistence.pool) {
+      await this.persistence.initialize();
+    }
+  }
+
+  /**
+   * Get initialized pool with null safety
+   */
+  private async getPool() {
+    await this.ensureInitialized();
+    return this.persistence.pool!;
+  }
+
+  /**
    * Initialize the session manager
    */
   async initialize(): Promise<void> {
@@ -109,7 +126,7 @@ export class SessionManager extends EventEmitter {
       this.emit('manager:initialized');
       
     } catch (error) {
-      throw new Error(`Failed to initialize SessionManager: ${error.message}`);
+      throw new Error(`Failed to initialize SessionManager: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -155,7 +172,8 @@ export class SessionManager extends EventEmitter {
     };
 
     // Store in database
-    await this.persistence.pool.write(`
+    await this.ensureInitialized();
+    await this.persistence.pool!.write(`
       INSERT INTO sessions (id, name, status, swarm_options, swarm_state, metadata, created_at, last_accessed_at, version)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
@@ -197,7 +215,7 @@ export class SessionManager extends EventEmitter {
     }
 
     // Load from database
-    const sessions = await this.persistence.pool.read(
+    const sessions = await (await this.getPool()).read(
       'SELECT * FROM sessions WHERE id = ?',
       [sessionId]
     );
@@ -254,7 +272,7 @@ export class SessionManager extends EventEmitter {
     session.lastAccessedAt = new Date();
 
     // Update in database
-    await this.persistence.pool.write(`
+    await (await this.getPool()).write(`
       UPDATE sessions 
       SET swarm_state = ?, last_accessed_at = ?
       WHERE id = ?
@@ -298,7 +316,7 @@ export class SessionManager extends EventEmitter {
     };
 
     // Store checkpoint in database
-    await this.persistence.pool.write(`
+    await (await this.getPool()).write(`
       INSERT INTO session_checkpoints (id, session_id, timestamp, checksum, state_data, description, metadata)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `, [
@@ -322,7 +340,7 @@ export class SessionManager extends EventEmitter {
     }
 
     // Update session last checkpoint time
-    await this.persistence.pool.write(`
+    await (await this.getPool()).write(`
       UPDATE sessions SET last_checkpoint_at = ? WHERE id = ?
     `, [now.toISOString(), sessionId]);
 
@@ -346,7 +364,7 @@ export class SessionManager extends EventEmitter {
     }
 
     // Load checkpoint
-    const checkpoints = await this.persistence.pool.read(
+    const checkpoints = await (await this.getPool()).read(
       'SELECT * FROM session_checkpoints WHERE id = ? AND session_id = ?',
       [checkpointId, sessionId]
     );
@@ -401,7 +419,7 @@ export class SessionManager extends EventEmitter {
     this.stopAutoCheckpoint(sessionId);
 
     // Update in database
-    await this.persistence.pool.write(
+    await (await this.getPool()).write(
       'UPDATE sessions SET status = ?, last_accessed_at = ? WHERE id = ?',
       ['paused', session.lastAccessedAt.toISOString(), sessionId]
     );
@@ -429,7 +447,7 @@ export class SessionManager extends EventEmitter {
     }
 
     // Update in database
-    await this.persistence.pool.write(
+    await (await this.getPool()).write(
       'UPDATE sessions SET status = ?, last_accessed_at = ? WHERE id = ?',
       ['active', session.lastAccessedAt.toISOString(), sessionId]
     );
@@ -458,7 +476,7 @@ export class SessionManager extends EventEmitter {
     this.stopAutoCheckpoint(sessionId);
 
     // Update in database
-    await this.persistence.pool.write(
+    await (await this.getPool()).write(
       'UPDATE sessions SET status = ?, last_accessed_at = ? WHERE id = ?',
       ['hibernated', session.lastAccessedAt.toISOString(), sessionId]
     );
@@ -483,20 +501,20 @@ export class SessionManager extends EventEmitter {
     }
 
     // Update in database
-    await this.persistence.pool.write(
+    await (await this.getPool()).write(
       'UPDATE sessions SET status = ?, last_accessed_at = ? WHERE id = ?',
       ['terminated', new Date().toISOString(), sessionId]
     );
 
     if (cleanup) {
       // Delete all checkpoints
-      await this.persistence.pool.write(
+      await (await this.getPool()).write(
         'DELETE FROM session_checkpoints WHERE session_id = ?',
         [sessionId]
       );
 
       // Delete session record
-      await this.persistence.pool.write(
+      await (await this.getPool()).write(
         'DELETE FROM sessions WHERE id = ?',
         [sessionId]
       );
@@ -548,9 +566,9 @@ export class SessionManager extends EventEmitter {
 
     sql += ' ORDER BY last_accessed_at DESC';
 
-    const sessions = await this.persistence.pool.read(sql, params);
+    const sessions = await (await this.getPool()).read(sql, params);
 
-    return sessions.map(sessionData => ({
+    return sessions.map((sessionData: any) => ({
       id: sessionData.id,
       name: sessionData.name,
       createdAt: new Date(sessionData.created_at),
@@ -590,7 +608,7 @@ export class SessionManager extends EventEmitter {
       };
     } else {
       // Global stats
-      const stats = await this.persistence.pool.read(`
+      const stats = await (await this.getPool()).read(`
         SELECT 
           status,
           COUNT(*) as count,
@@ -599,14 +617,14 @@ export class SessionManager extends EventEmitter {
         GROUP BY status
       `);
 
-      const totalSessions = await this.persistence.pool.read('SELECT COUNT(*) as total FROM sessions');
-      const totalCheckpoints = await this.persistence.pool.read('SELECT COUNT(*) as total FROM session_checkpoints');
+      const totalSessions = await (await this.getPool()).read('SELECT COUNT(*) as total FROM sessions');
+      const totalCheckpoints = await (await this.getPool()).read('SELECT COUNT(*) as total FROM session_checkpoints');
 
       return {
         totalSessions: totalSessions[0].total,
         totalCheckpoints: totalCheckpoints[0].total,
         activeSessions: this.activeSessions.size,
-        statusBreakdown: stats.reduce((acc, stat) => {
+        statusBreakdown: stats.reduce((acc: any, stat: any) => {
           acc[stat.status] = {
             count: stat.count,
             avgDaysSinceAccess: stat.avg_days_since_access,
@@ -621,15 +639,10 @@ export class SessionManager extends EventEmitter {
    * Private helper methods
    */
 
-  private async ensureInitialized(): Promise<void> {
-    if (!this.initialized) {
-      await this.initialize();
-    }
-  }
 
   private async initializeSessionTables(): Promise<void> {
     // Create sessions table
-    await this.persistence.pool.write(`
+    await (await this.getPool()).write(`
       CREATE TABLE IF NOT EXISTS sessions (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -645,7 +658,7 @@ export class SessionManager extends EventEmitter {
     `);
 
     // Create checkpoints table
-    await this.persistence.pool.write(`
+    await (await this.getPool()).write(`
       CREATE TABLE IF NOT EXISTS session_checkpoints (
         id TEXT PRIMARY KEY,
         session_id TEXT NOT NULL,
@@ -659,14 +672,14 @@ export class SessionManager extends EventEmitter {
     `);
 
     // Create indexes
-    await this.persistence.pool.write('CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status)');
-    await this.persistence.pool.write('CREATE INDEX IF NOT EXISTS idx_sessions_last_accessed ON sessions(last_accessed_at)');
-    await this.persistence.pool.write('CREATE INDEX IF NOT EXISTS idx_checkpoints_session ON session_checkpoints(session_id)');
-    await this.persistence.pool.write('CREATE INDEX IF NOT EXISTS idx_checkpoints_timestamp ON session_checkpoints(timestamp)');
+    await (await this.getPool()).write('CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status)');
+    await (await this.getPool()).write('CREATE INDEX IF NOT EXISTS idx_sessions_last_accessed ON sessions(last_accessed_at)');
+    await (await this.getPool()).write('CREATE INDEX IF NOT EXISTS idx_checkpoints_session ON session_checkpoints(session_id)');
+    await (await this.getPool()).write('CREATE INDEX IF NOT EXISTS idx_checkpoints_timestamp ON session_checkpoints(timestamp)');
   }
 
   private async restoreActiveSessions(): Promise<void> {
-    const activeSessions = await this.persistence.pool.read(
+    const activeSessions = await (await this.getPool()).read(
       "SELECT * FROM sessions WHERE status IN ('active', 'paused')"
     );
 
@@ -695,12 +708,12 @@ export class SessionManager extends EventEmitter {
   }
 
   private async loadSessionCheckpoints(sessionId: string): Promise<SessionCheckpoint[]> {
-    const checkpoints = await this.persistence.pool.read(
+    const checkpoints = await (await this.getPool()).read(
       'SELECT * FROM session_checkpoints WHERE session_id = ? ORDER BY timestamp DESC LIMIT ?',
       [sessionId, this.config.maxCheckpoints]
     );
 
-    return checkpoints.map(cp => ({
+    return checkpoints.map((cp: any) => ({
       id: cp.id,
       sessionId: cp.session_id,
       timestamp: new Date(cp.timestamp),
@@ -712,14 +725,14 @@ export class SessionManager extends EventEmitter {
   }
 
   private async updateSessionAccess(sessionId: string): Promise<void> {
-    await this.persistence.pool.write(
+    await (await this.getPool()).write(
       'UPDATE sessions SET last_accessed_at = ? WHERE id = ?',
       [new Date().toISOString(), sessionId]
     );
   }
 
   private async deleteCheckpoint(checkpointId: string): Promise<void> {
-    await this.persistence.pool.write(
+    await (await this.getPool()).write(
       'DELETE FROM session_checkpoints WHERE id = ?',
       [checkpointId]
     );
@@ -734,7 +747,7 @@ export class SessionManager extends EventEmitter {
       try {
         await this.createCheckpoint(sessionId, 'Auto checkpoint');
       } catch (error) {
-        this.emit('checkpoint:error', { sessionId, error: error.message });
+        this.emit('checkpoint:error', { sessionId, error: error instanceof Error ? error.message : String(error) });
       }
     }, this.config.checkpointInterval);
 

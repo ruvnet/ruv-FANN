@@ -102,7 +102,7 @@ export async function initializeNeuralWasm() {
   
   try {
     // Dynamic import of WASM module
-    const { default: init, ...exports } = await import('../wasm/ruv_swarm_wasm');
+    const { default: init, ...exports } = await import('../wasm/ruv_swarm_wasm.js');
     await init();
     wasmModule = exports;
     return wasmModule;

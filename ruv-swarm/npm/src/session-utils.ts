@@ -5,8 +5,8 @@
  * including serialization, validation, migration, and recovery.
  */
 
-import { SwarmState, SwarmOptions, AgentConfig, Task } from './types';
-import { SessionState, SessionCheckpoint, SessionStatus } from './session-manager';
+import { SwarmState, SwarmOptions, AgentConfig, Task } from './types.js';
+import { SessionState, SessionCheckpoint, SessionStatus } from './session-manager.js';
 import crypto from 'crypto';
 
 /**
@@ -537,10 +537,4 @@ export class SessionStats {
 /**
  * Export all utilities
  */
-export {
-  SessionValidator,
-  SessionSerializer,
-  SessionMigrator,
-  SessionRecovery,
-  SessionStats,
-};
+// Classes are already exported inline above

@@ -2,7 +2,7 @@
  * Utility functions for RuvSwarm
  */
 
-import { CognitiveProfile, SwarmTopology, AgentType, TaskPriority } from './types';
+import { CognitiveProfile, SwarmTopology, AgentType, TaskPriority } from './types.js';
 
 /**
  * Generate a unique ID for agents, tasks, and messages

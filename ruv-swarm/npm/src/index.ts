@@ -16,7 +16,7 @@ import {
   SwarmMetrics,
   Connection,
   WasmModule,
-} from './types';
+} from './types.js';
 
 import {
   generateId,
@@ -24,27 +24,27 @@ import {
   formatMetrics,
   recommendTopology,
   priorityToNumber,
-} from './utils';
+} from './utils.js';
 
 import {
   BaseAgent,
   createAgent,
   AgentPool,
-} from './agent';
+} from './agent.js';
 
-export * from './types';
-export * from './utils';
-export * from './agent';
-export * from './neural-network';
-export * from './session-manager';
-export * from './session-utils';
-export * from './session-integration';
+export * from './types.js';
+export * from './utils.js';
+export * from './agent.js';
+export * from './neural-network.js';
+export * from './session-manager.js';
+export * from './session-utils.js';
+export * from './session-integration.js';
 
 /**
  * Main RuvSwarm class for orchestrating swarm operations
  */
 export class RuvSwarm implements SwarmEventEmitter {
-  private options: Required<SwarmOptions>;
+  protected options: Required<SwarmOptions>;
   private state: SwarmState;
   private agentPool: AgentPool;
   private eventHandlers: Map<SwarmEvent, Set<(data: any) => void>>;
@@ -95,7 +95,7 @@ export class RuvSwarm implements SwarmEventEmitter {
 
     try {
       // Load WASM module
-      if (typeof window !== 'undefined') {
+      if (typeof (globalThis as any).window !== 'undefined') {
         // Browser environment
         const wasmModule = await import(this.options.wasmPath);
         await wasmModule.default();

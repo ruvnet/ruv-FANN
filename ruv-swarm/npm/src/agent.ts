@@ -10,8 +10,8 @@ import {
   Task,
   Message,
   MessageType,
-} from './types';
-import { generateId, getDefaultCognitiveProfile } from './utils';
+} from './types.js';
+import { generateId, getDefaultCognitiveProfile } from './utils.js';
 
 export class BaseAgent implements Agent {
   id: string;
@@ -160,7 +160,7 @@ export class ResearcherAgent extends BaseAgent {
     super({ ...config, type: 'researcher' });
   }
 
-  protected async executeTaskByType(task: Task): Promise<any> {
+  protected override async executeTaskByType(task: Task): Promise<any> {
     console.log(`Researcher ${this.id} analyzing: ${task.description}`);
     
     // Simulate research activities
@@ -195,7 +195,7 @@ export class CoderAgent extends BaseAgent {
     super({ ...config, type: 'coder' });
   }
 
-  protected async executeTaskByType(task: Task): Promise<any> {
+  protected override async executeTaskByType(task: Task): Promise<any> {
     console.log(`Coder ${this.id} implementing: ${task.description}`);
     
     // Simulate coding activities
@@ -233,7 +233,7 @@ export class AnalystAgent extends BaseAgent {
     super({ ...config, type: 'analyst' });
   }
 
-  protected async executeTaskByType(task: Task): Promise<any> {
+  protected override async executeTaskByType(task: Task): Promise<any> {
     console.log(`Analyst ${this.id} analyzing: ${task.description}`);
     
     // Simulate analysis activities
