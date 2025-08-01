@@ -14,7 +14,7 @@ Every successful operation trains the neural networks:
 
 ### 2. Manual Training
 ```
-Tool: mcp__ruv-swarm__neural_train
+Tool: mcp__ruv-swarm-zen__neural_train
 Parameters: {"iterations": 20}
 ```
 
@@ -30,7 +30,7 @@ Parameters: {"iterations": 20}
 
 ### 4. Improvement Tracking
 ```
-Tool: mcp__ruv-swarm__neural_status
+Tool: mcp__ruv-swarm-zen__neural_status
 Result: {
   "patterns": {
     "convergent": 0.92,

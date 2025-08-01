@@ -138,7 +138,7 @@
    - **Status**: Does not affect functionality
 
 2. **Claude Code Integration**: MCP tools not accessible via Claude Code's native MCP client
-   - **Impact**: Cannot use `mcp__ruv-swarm__*` tools in Claude Code
+   - **Impact**: Cannot use `mcp__ruv-swarm-zen__*` tools in Claude Code
    - **Workaround**: Use direct stdio communication (as tested)
    - **Status**: Integration issue, not server issue
 

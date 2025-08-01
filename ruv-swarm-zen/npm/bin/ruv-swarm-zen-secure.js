@@ -354,7 +354,7 @@ async function handleInit(args) {
 
     console.log('\n✅ Initialization complete!');
     console.log('\n🔗 Next steps:');
-    console.log('   1. Test with MCP tools: mcp__ruv-swarm__agent_spawn');
+    console.log('   1. Test with MCP tools: mcp__ruv-swarm-zen__agent_spawn');
     console.log('   2. Use wrapper scripts for remote execution');
     console.log('   3. Check .claude/commands/ for detailed guides');
     console.log('   4. 🔥 ENJOY INFINITE RUNTIME - NO TIMEOUTS!');
@@ -911,16 +911,16 @@ async function stopMcpServer() {
 async function listMcpTools() {
   console.log('🛠️  Available MCP Tools (NO TIMEOUT VERSION):');
   console.log('\n📊 Core Swarm Tools:');
-  console.log('   mcp__ruv-swarm__swarm_init - Initialize a new swarm');
-  console.log('   mcp__ruv-swarm__agent_spawn - Spawn new agents');
-  console.log('   mcp__ruv-swarm__task_orchestrate - Orchestrate tasks');
-  console.log('   mcp__ruv-swarm__swarm_status - Get swarm status');
+  console.log('   mcp__ruv-swarm-zen__swarm_init - Initialize a new swarm');
+  console.log('   mcp__ruv-swarm-zen__agent_spawn - Spawn new agents');
+  console.log('   mcp__ruv-swarm-zen__task_orchestrate - Orchestrate tasks');
+  console.log('   mcp__ruv-swarm-zen__swarm_status - Get swarm status');
   console.log('   ... and 11 more core tools');
   console.log('\n🤖 DAA (Decentralized Autonomous Agents) Tools:');
-  console.log('   mcp__ruv-swarm__daa_init - Initialize DAA service');
-  console.log('   mcp__ruv-swarm__daa_agent_create - Create autonomous agents');
-  console.log('   mcp__ruv-swarm__daa_workflow_create - Create DAA workflows');
-  console.log('   mcp__ruv-swarm__daa_learning_status - Get learning progress');
+  console.log('   mcp__ruv-swarm-zen__daa_init - Initialize DAA service');
+  console.log('   mcp__ruv-swarm-zen__daa_agent_create - Create autonomous agents');
+  console.log('   mcp__ruv-swarm-zen__daa_workflow_create - Create DAA workflows');
+  console.log('   mcp__ruv-swarm-zen__daa_learning_status - Get learning progress');
   console.log('   ... and 6 more DAA tools');
   console.log('\n🔥 SPECIAL FEATURE: NO TIMEOUT MECHANISMS');
   console.log('   • Infinite runtime capability');
@@ -1010,18 +1010,18 @@ This version has ALL timeout and connection monitoring mechanisms completely rem
 
 1. **Initialize a swarm:**
    \`\`\`bash
-   mcp__ruv-swarm__swarm_init { topology: "mesh", maxAgents: 5 }
+   mcp__ruv-swarm-zen__swarm_init { topology: "mesh", maxAgents: 5 }
    \`\`\`
 
 2. **Spawn agents:**
    \`\`\`bash
-   mcp__ruv-swarm__agent_spawn { type: "researcher", name: "Doc Analyzer" }
-   mcp__ruv-swarm__agent_spawn { type: "coder", name: "Implementation Expert" }
+   mcp__ruv-swarm-zen__agent_spawn { type: "researcher", name: "Doc Analyzer" }
+   mcp__ruv-swarm-zen__agent_spawn { type: "coder", name: "Implementation Expert" }
    \`\`\`
 
 3. **Orchestrate tasks:**
    \`\`\`bash
-   mcp__ruv-swarm__task_orchestrate { task: "Build a REST API", strategy: "adaptive" }
+   mcp__ruv-swarm-zen__task_orchestrate { task: "Build a REST API", strategy: "adaptive" }
    \`\`\`
 
 ## Key Concepts

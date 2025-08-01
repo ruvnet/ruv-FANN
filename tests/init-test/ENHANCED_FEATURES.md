@@ -25,7 +25,7 @@ ruv-swarm now includes advanced swarm optimization features that significantly e
 - Breaks down tasks into parallel components
 - Assigns specialized agents for concurrent work
 - Achieves 2.8-4.4x speed improvements
-- Real-time monitoring with `mcp__ruv-swarm__swarm_monitor`
+- Real-time monitoring with `mcp__ruv-swarm-zen__swarm_monitor`
 
 ### 3. Performance Bottleneck Analysis
 **Location:** `.claude/commands/analysis/performance-bottlenecks.md`
@@ -138,14 +138,14 @@ ruv-swarm now includes advanced swarm optimization features that significantly e
 ### Simple Task (Auto-Optimized)
 ```bash
 # Just use the task - optimization happens automatically!
-Tool: mcp__ruv-swarm__task_orchestrate
+Tool: mcp__ruv-swarm-zen__task_orchestrate
 Parameters: {"task": "Fix bug in user authentication"}
 # Automatically selects star topology, single agent
 ```
 
 ### Complex Task (Parallel Execution)
 ```bash
-Tool: mcp__ruv-swarm__task_orchestrate
+Tool: mcp__ruv-swarm-zen__task_orchestrate
 Parameters: {
   "task": "Build complete e-commerce API with auth, products, cart, payments",
   "strategy": "parallel"
@@ -157,14 +157,14 @@ Parameters: {
 
 ### Performance Analysis
 ```bash
-Tool: mcp__ruv-swarm__task_results
+Tool: mcp__ruv-swarm-zen__task_results
 Parameters: {"taskId": "task-123", "format": "detailed"}
 # Shows bottlenecks, improvements, and recommendations
 ```
 
 ### Neural Training
 ```bash
-Tool: mcp__ruv-swarm__neural_train
+Tool: mcp__ruv-swarm-zen__neural_train
 Parameters: {"iterations": 20}
 # Improves coordination patterns based on recent operations
 ```

@@ -51,14 +51,14 @@ Based on analysis, it selects:
 
 **Simple Task:**
 \`\`\`
-Tool: mcp__ruv-swarm__task_orchestrate
+Tool: mcp__ruv-swarm-zen__task_orchestrate
 Parameters: {"task": "Fix typo in README.md"}
 Result: Automatically uses star topology with single agent
 \`\`\`
 
 **Complex Task:**
 \`\`\`
-Tool: mcp__ruv-swarm__task_orchestrate
+Tool: mcp__ruv-swarm-zen__task_orchestrate
 Parameters: {"task": "Refactor authentication system with JWT, add tests, update documentation"}
 Result: Automatically uses hierarchical topology with architect, coder, and tester agents
 \`\`\`
@@ -89,7 +89,7 @@ Execute independent subtasks in parallel for maximum efficiency.
 
 ### 1. Task Decomposition
 \`\`\`
-Tool: mcp__ruv-swarm__task_orchestrate
+Tool: mcp__ruv-swarm-zen__task_orchestrate
 Parameters: {
   "task": "Build complete REST API with auth, CRUD operations, and tests",
   "strategy": "parallel",
@@ -119,7 +119,7 @@ For the REST API task:
 
 ## Monitoring
 \`\`\`
-Tool: mcp__ruv-swarm__swarm_monitor
+Tool: mcp__ruv-swarm-zen__swarm_monitor
 Parameters: {"interval": 1, "duration": 10}
 \`\`\`
 
@@ -163,7 +163,7 @@ The post-task hook automatically analyzes:
 ### 3. Improvement Suggestions
 
 \`\`\`
-Tool: mcp__ruv-swarm__task_results
+Tool: mcp__ruv-swarm-zen__task_results
 Parameters: {"taskId": "task-123", "format": "detailed"}
 
 Result includes:
@@ -257,7 +257,7 @@ Every successful operation trains the neural networks:
 
 ### 2. Manual Training
 \`\`\`
-Tool: mcp__ruv-swarm__neural_train
+Tool: mcp__ruv-swarm-zen__neural_train
 Parameters: {"iterations": 20}
 \`\`\`
 
@@ -273,7 +273,7 @@ Parameters: {"iterations": 20}
 
 ### 4. Improvement Tracking
 \`\`\`
-Tool: mcp__ruv-swarm__neural_status
+Tool: mcp__ruv-swarm-zen__neural_status
 Result: {
   "patterns": {
     "convergent": 0.92,
@@ -310,7 +310,7 @@ Agents automatically specialize based on file extensions:
 
 ### 2. By Task Type
 \`\`\`
-Tool: mcp__ruv-swarm__agent_spawn
+Tool: mcp__ruv-swarm-zen__agent_spawn
 Parameters: {
   "type": "coder",
   "capabilities": ["react", "typescript", "testing"]
@@ -327,7 +327,7 @@ The system trains through:
 ### 4. Specialization Benefits
 \`\`\`
 # Check agent specializations
-Tool: mcp__ruv-swarm__agent_list
+Tool: mcp__ruv-swarm-zen__agent_list
 Parameters: {"filter": "active"}
 
 Result shows expertise levels:

@@ -189,7 +189,7 @@ class RuvSwarmHooks {
     if (!swarmStatus.initialized) {
       return {
         continue: false,
-        reason: 'Swarm not initialized - run mcp__ruv-swarm__swarm_init first',
+        reason: 'Swarm not initialized - run mcp__ruv-swarm-zen__swarm_init first',
         suggestion: 'Initialize swarm with appropriate topology',
       };
     }

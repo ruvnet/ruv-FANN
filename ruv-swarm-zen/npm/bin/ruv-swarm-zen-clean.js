@@ -259,7 +259,7 @@ async function handleInit(args) {
 
     console.log('\n✅ Initialization complete!');
     console.log('\n🔗 Next steps:');
-    console.log('   1. Test with MCP tools: mcp__ruv-swarm__agent_spawn');
+    console.log('   1. Test with MCP tools: mcp__ruv-swarm-zen__agent_spawn');
     console.log('   2. Use wrapper scripts for remote execution');
     console.log('   3. Check .claude/commands/ for detailed guides');
 
@@ -690,16 +690,16 @@ async function stopMcpServer() {
 async function listMcpTools() {
   console.log('🛠️  Available MCP Tools:');
   console.log('\n📊 Core Swarm Tools:');
-  console.log('   mcp__ruv-swarm__swarm_init - Initialize a new swarm');
-  console.log('   mcp__ruv-swarm__agent_spawn - Spawn new agents');
-  console.log('   mcp__ruv-swarm__task_orchestrate - Orchestrate tasks');
-  console.log('   mcp__ruv-swarm__swarm_status - Get swarm status');
+  console.log('   mcp__ruv-swarm-zen__swarm_init - Initialize a new swarm');
+  console.log('   mcp__ruv-swarm-zen__agent_spawn - Spawn new agents');
+  console.log('   mcp__ruv-swarm-zen__task_orchestrate - Orchestrate tasks');
+  console.log('   mcp__ruv-swarm-zen__swarm_status - Get swarm status');
   console.log('   ... and 11 more core tools');
   console.log('\n🤖 DAA (Decentralized Autonomous Agents) Tools:');
-  console.log('   mcp__ruv-swarm__daa_init - Initialize DAA service');
-  console.log('   mcp__ruv-swarm__daa_agent_create - Create autonomous agents');
-  console.log('   mcp__ruv-swarm__daa_workflow_create - Create DAA workflows');
-  console.log('   mcp__ruv-swarm__daa_learning_status - Get learning progress');
+  console.log('   mcp__ruv-swarm-zen__daa_init - Initialize DAA service');
+  console.log('   mcp__ruv-swarm-zen__daa_agent_create - Create autonomous agents');
+  console.log('   mcp__ruv-swarm-zen__daa_workflow_create - Create DAA workflows');
+  console.log('   mcp__ruv-swarm-zen__daa_learning_status - Get learning progress');
   console.log('   ... and 6 more DAA tools');
   console.log('\nFor full documentation, run: ruv-swarm init --claude');
 }
@@ -746,18 +746,18 @@ ruv-swarm is a powerful WASM-powered neural swarm orchestration system that enha
 
 1. **Initialize a swarm:**
    \`\`\`bash
-   mcp__ruv-swarm__swarm_init { topology: "mesh", maxAgents: 5 }
+   mcp__ruv-swarm-zen__swarm_init { topology: "mesh", maxAgents: 5 }
    \`\`\`
 
 2. **Spawn agents:**
    \`\`\`bash
-   mcp__ruv-swarm__agent_spawn { type: "researcher", name: "Doc Analyzer" }
-   mcp__ruv-swarm__agent_spawn { type: "coder", name: "Implementation Expert" }
+   mcp__ruv-swarm-zen__agent_spawn { type: "researcher", name: "Doc Analyzer" }
+   mcp__ruv-swarm-zen__agent_spawn { type: "coder", name: "Implementation Expert" }
    \`\`\`
 
 3. **Orchestrate tasks:**
    \`\`\`bash
-   mcp__ruv-swarm__task_orchestrate { task: "Build a REST API", strategy: "adaptive" }
+   mcp__ruv-swarm-zen__task_orchestrate { task: "Build a REST API", strategy: "adaptive" }
    \`\`\`
 
 ## Key Concepts
@@ -877,7 +877,7 @@ DAA extends ruv-swarm with autonomous learning and adaptation capabilities.
 
 ### Initialize DAA
 \`\`\`javascript
-mcp__ruv-swarm__daa_init {
+mcp__ruv-swarm-zen__daa_init {
   enableLearning: true,
   enableCoordination: true,
   persistenceMode: "auto"
@@ -886,7 +886,7 @@ mcp__ruv-swarm__daa_init {
 
 ### Create Autonomous Agent
 \`\`\`javascript
-mcp__ruv-swarm__daa_agent_create {
+mcp__ruv-swarm-zen__daa_agent_create {
   id: "auto-001",
   capabilities: ["learning", "optimization"],
   cognitivePattern: "adaptive",
@@ -896,7 +896,7 @@ mcp__ruv-swarm__daa_agent_create {
 
 ### Execute Workflow
 \`\`\`javascript
-mcp__ruv-swarm__daa_workflow_execute {
+mcp__ruv-swarm-zen__daa_workflow_execute {
   workflowId: "api-development",
   agentIds: ["auto-001", "auto-002"],
   parallelExecution: true
@@ -922,12 +922,12 @@ mcp__ruv-swarm__daa_workflow_execute {
 ### Step 1: Initialize Swarm
 \`\`\`javascript
 [BatchTool]:
-  mcp__ruv-swarm__swarm_init { topology: "hierarchical", maxAgents: 6 }
-  mcp__ruv-swarm__agent_spawn { type: "architect", name: "API Designer" }
-  mcp__ruv-swarm__agent_spawn { type: "coder", name: "Backend Dev" }
-  mcp__ruv-swarm__agent_spawn { type: "analyst", name: "DB Expert" }
-  mcp__ruv-swarm__agent_spawn { type: "tester", name: "QA Engineer" }
-  mcp__ruv-swarm__agent_spawn { type: "coordinator", name: "Project Lead" }
+  mcp__ruv-swarm-zen__swarm_init { topology: "hierarchical", maxAgents: 6 }
+  mcp__ruv-swarm-zen__agent_spawn { type: "architect", name: "API Designer" }
+  mcp__ruv-swarm-zen__agent_spawn { type: "coder", name: "Backend Dev" }
+  mcp__ruv-swarm-zen__agent_spawn { type: "analyst", name: "DB Expert" }
+  mcp__ruv-swarm-zen__agent_spawn { type: "tester", name: "QA Engineer" }
+  mcp__ruv-swarm-zen__agent_spawn { type: "coordinator", name: "Project Lead" }
 \`\`\`
 
 ### Step 2: Design Architecture
@@ -951,7 +951,7 @@ TodoWrite { todos: [
 
 ### Step 4: Testing
 \`\`\`javascript
-mcp__ruv-swarm__task_orchestrate {
+mcp__ruv-swarm-zen__task_orchestrate {
   task: "Run comprehensive tests",
   strategy: "parallel"
 }
@@ -972,12 +972,12 @@ See the full implementation in the ruv-swarm examples directory.`,
 
 ### Step 1: Initialize Neural Network
 \`\`\`javascript
-mcp__ruv-swarm__neural_status { agentId: "coder-001" }
+mcp__ruv-swarm-zen__neural_status { agentId: "coder-001" }
 \`\`\`
 
 ### Step 2: Prepare Training Data
 \`\`\`javascript
-mcp__ruv-swarm__neural_train {
+mcp__ruv-swarm-zen__neural_train {
   agentId: "coder-001",
   iterations: 50
 }
@@ -985,7 +985,7 @@ mcp__ruv-swarm__neural_train {
 
 ### Step 3: Monitor Training Progress
 \`\`\`javascript
-mcp__ruv-swarm__swarm_monitor {
+mcp__ruv-swarm-zen__swarm_monitor {
   duration: 30,
   interval: 1
 }
@@ -993,7 +993,7 @@ mcp__ruv-swarm__swarm_monitor {
 
 ### Step 4: Analyze Patterns
 \`\`\`javascript
-mcp__ruv-swarm__neural_patterns {
+mcp__ruv-swarm-zen__neural_patterns {
   pattern: "all"
 }
 \`\`\`

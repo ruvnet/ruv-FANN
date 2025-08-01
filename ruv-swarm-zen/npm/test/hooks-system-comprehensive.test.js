@@ -290,9 +290,9 @@ describe('Hooks System - Complete Coverage', () => {
 
           // Validate MCP tool
           const validTools = [
-            'mcp__ruv-swarm__swarm_init',
-            'mcp__ruv-swarm__agent_spawn',
-            'mcp__ruv-swarm__task_orchestrate',
+            'mcp__ruv-swarm-zen__swarm_init',
+            'mcp__ruv-swarm-zen__agent_spawn',
+            'mcp__ruv-swarm-zen__task_orchestrate',
           ];
 
           if (!validTools.includes(tool)) {
@@ -742,12 +742,12 @@ describe('Hooks System - Complete Coverage', () => {
 
         optimizeMcpParameters(tool, parameters) {
           const optimizations = {
-            'mcp__ruv-swarm__swarm_init': (params) => ({
+            'mcp__ruv-swarm-zen__swarm_init': (params) => ({
               ...params,
               strategy: params.strategy || 'adaptive',
               maxAgents: Math.min(params.maxAgents || 5, 10),
             }),
-            'mcp__ruv-swarm__agent_spawn': (params) => ({
+            'mcp__ruv-swarm-zen__agent_spawn': (params) => ({
               ...params,
               capabilities: params.capabilities || ['general'],
             }),
@@ -1018,7 +1018,7 @@ describe('Hooks System - Complete Coverage', () => {
 
       // Test valid tool
       const validResult = await hooks.handleHook('pre-mcp', {
-        tool: 'mcp__ruv-swarm__swarm_init',
+        tool: 'mcp__ruv-swarm-zen__swarm_init',
         parameters: { topology: 'mesh' },
       });
 

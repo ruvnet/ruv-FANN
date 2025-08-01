@@ -2,7 +2,7 @@
 
 ## MCP Tool Usage in Claude Code
 
-**Tool:** `mcp__ruv-swarm__agent_spawn`
+**Tool:** `mcp__ruv-swarm-zen__agent_spawn`
 
 ## Parameters
 ```json
@@ -26,14 +26,14 @@
 ## Examples
 
 **Spawn research agent:**
-- Tool: `mcp__ruv-swarm__agent_spawn`
+- Tool: `mcp__ruv-swarm-zen__agent_spawn`
 - Parameters: `{"type": "researcher", "name": "AI Research Specialist"}`
 
 **Spawn development team:**
-- Tool: `mcp__ruv-swarm__agent_spawn` (call multiple times)
+- Tool: `mcp__ruv-swarm-zen__agent_spawn` (call multiple times)
 - Frontend: `{"type": "coder", "name": "Frontend Developer", "capabilities": ["react", "typescript"]}`
 - Backend: `{"type": "coder", "name": "Backend Developer", "capabilities": ["python", "fastapi"]}`
 
 **Spawn analyst:**
-- Tool: `mcp__ruv-swarm__agent_spawn`
+- Tool: `mcp__ruv-swarm-zen__agent_spawn`
 - Parameters: `{"type": "analyst", "name": "Data Scientist", "capabilities": ["ml", "statistics"]}`

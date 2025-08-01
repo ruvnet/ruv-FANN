@@ -153,10 +153,10 @@ The DAA module is now fully functional and ready for use. Key capabilities:
 ### Usage Example:
 ```javascript
 // Initialize DAA service
-await mcp__ruv-swarm__daa_init({ enableLearning: true, enableCoordination: true })
+await mcp__ruv-swarm-zen__daa_init({ enableLearning: true, enableCoordination: true })
 
 // Create autonomous agent
-await mcp__ruv-swarm__daa_agent_create({
+await mcp__ruv-swarm-zen__daa_agent_create({
   id: 'researcher-001',
   capabilities: ['learning', 'research', 'analysis'],
   cognitivePattern: 'adaptive',
@@ -164,7 +164,7 @@ await mcp__ruv-swarm__daa_agent_create({
 })
 
 // Execute workflow
-await mcp__ruv-swarm__daa_workflow_execute({
+await mcp__ruv-swarm-zen__daa_workflow_execute({
   workflowId: 'research-task',
   agentIds: ['researcher-001'],
   parallelExecution: true

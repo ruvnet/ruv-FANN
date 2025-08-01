@@ -7,7 +7,7 @@ Execute independent subtasks in parallel for maximum efficiency.
 
 ### 1. Task Decomposition
 ```
-Tool: mcp__ruv-swarm__task_orchestrate
+Tool: mcp__ruv-swarm-zen__task_orchestrate
 Parameters: {
   "task": "Build complete REST API with auth, CRUD operations, and tests",
   "strategy": "parallel",
@@ -37,7 +37,7 @@ For the REST API task:
 
 ## Monitoring
 ```
-Tool: mcp__ruv-swarm__swarm_monitor
+Tool: mcp__ruv-swarm-zen__swarm_monitor
 Parameters: {"interval": 1, "duration": 10}
 ```
 

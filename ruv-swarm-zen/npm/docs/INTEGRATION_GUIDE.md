@@ -77,9 +77,9 @@ claude mcp list
 3. **Test MCP Tools**:
 
 Use these tools in Claude Code:
-- `mcp__ruv-swarm__swarm_init`
-- `mcp__ruv-swarm__agent_spawn`
-- `mcp__ruv-swarm__task_orchestrate`
+- `mcp__ruv-swarm-zen__swarm_init`
+- `mcp__ruv-swarm-zen__agent_spawn`
+- `mcp__ruv-swarm-zen__task_orchestrate`
 
 ### Available MCP Tools
 

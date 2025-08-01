@@ -5,7 +5,7 @@
 
 ## MCP Tool Usage in Claude Code
 
-**Tool:** `mcp__ruv-swarm__agent_spawn`
+**Tool:** `mcp__ruv-swarm-zen__agent_spawn`
 
 ## Parameters
 ```json
@@ -28,7 +28,7 @@ These patterns guide how Claude Code approaches different aspects of your task.
 ## Example Usage
 
 **In Claude Code:**
-1. Use the tool: `mcp__ruv-swarm__agent_spawn`
+1. Use the tool: `mcp__ruv-swarm-zen__agent_spawn`
 2. With parameters: `{"type": "researcher", "name": "Literature Analysis", "capabilities": ["deep-analysis"]}`
 3. Claude Code then executes the coordinated plan using its native tools
 

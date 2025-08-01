@@ -5,7 +5,7 @@
 
 ## MCP Tool Usage in Claude Code
 
-**Tool:** `mcp__ruv-swarm__neural_train`
+**Tool:** `mcp__ruv-swarm-zen__neural_train`
 
 ## Parameters
 ```json
@@ -25,7 +25,7 @@ Training improves:
 ## Example Usage
 
 **In Claude Code:**
-1. Use the tool: `mcp__ruv-swarm__neural_train`
+1. Use the tool: `mcp__ruv-swarm-zen__neural_train`
 2. With parameters: `{"iterations": 10}`
 3. Claude Code then executes the coordinated plan using its native tools
 

@@ -7,25 +7,25 @@ Coordinate Claude Code's research activities for comprehensive, systematic explo
 
 ### 1. Initialize Research Framework
 ```
-Tool: mcp__ruv-swarm__swarm_init
+Tool: mcp__ruv-swarm-zen__swarm_init
 Parameters: {"topology": "mesh", "maxAgents": 5, "strategy": "balanced"}
 ```
 Creates a mesh topology for comprehensive exploration from multiple angles.
 
 ### 2. Define Research Perspectives
 ```
-Tool: mcp__ruv-swarm__agent_spawn
+Tool: mcp__ruv-swarm-zen__agent_spawn
 Parameters: {"type": "researcher", "name": "Literature Review"}
 ```
 ```
-Tool: mcp__ruv-swarm__agent_spawn  
+Tool: mcp__ruv-swarm-zen__agent_spawn  
 Parameters: {"type": "analyst", "name": "Data Analysis"}
 ```
 Sets up different analytical approaches for Claude Code to use.
 
 ### 3. Execute Coordinated Research
 ```
-Tool: mcp__ruv-swarm__task_orchestrate
+Tool: mcp__ruv-swarm-zen__task_orchestrate
 Parameters: {"task": "Research modern web frameworks performance", "strategy": "adaptive"}
 ```
 

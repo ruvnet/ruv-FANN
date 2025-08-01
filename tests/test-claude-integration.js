@@ -22,38 +22,38 @@ claude mcp add ruv-swarm npx ruv-swarm mcp start
 Once configured, ruv-swarm MCP tools are available directly in Claude Code:
 
 **Initialize a swarm:**
-- Use the mcp__ruv-swarm__swarm_init tool with topology: mesh, hierarchical, ring, or star
+- Use the mcp__ruv-swarm-zen__swarm_init tool with topology: mesh, hierarchical, ring, or star
 - Set maxAgents (default: 5)
 - Enable cognitive diversity and neural agents
 
 **Spawn agents:**
-- Use mcp__ruv-swarm__agent_spawn tool
+- Use mcp__ruv-swarm-zen__agent_spawn tool
 - Agent types: researcher, coder, analyst, architect, reviewer, optimizer, coordinator
 - Automatically includes neural network capabilities
 
 **Orchestrate tasks:**
-- Use mcp__ruv-swarm__task_orchestrate tool
+- Use mcp__ruv-swarm-zen__task_orchestrate tool
 - Provide task description
 - Choose strategy: parallel, sequential, adaptive
 - Set priority: low, medium, high, critical
 
 ## Available MCP Tools
 
-- mcp__ruv-swarm__swarm_init - Initialize swarm topology (mesh/hierarchical/ring/star)
-- mcp__ruv-swarm__agent_spawn - Create specialized agents with neural capabilities
-- mcp__ruv-swarm__task_orchestrate - Coordinate distributed tasks across agents
-- mcp__ruv-swarm__swarm_status - Get real-time swarm status and metrics
-- mcp__ruv-swarm__agent_list - List active agents with filtering
-- mcp__ruv-swarm__agent_metrics - Get agent performance metrics
-- mcp__ruv-swarm__task_status - Check task progress and status
-- mcp__ruv-swarm__task_results - Retrieve completed task results
-- mcp__ruv-swarm__memory_usage - Monitor resource usage and optimization
-- mcp__ruv-swarm__neural_status - Check neural network performance
-- mcp__ruv-swarm__neural_train - Train neural agents
-- mcp__ruv-swarm__neural_patterns - Analyze cognitive patterns
-- mcp__ruv-swarm__benchmark_run - Execute performance benchmarks
-- mcp__ruv-swarm__features_detect - Detect runtime capabilities
-- mcp__ruv-swarm__swarm_monitor - Real-time monitoring
+- mcp__ruv-swarm-zen__swarm_init - Initialize swarm topology (mesh/hierarchical/ring/star)
+- mcp__ruv-swarm-zen__agent_spawn - Create specialized agents with neural capabilities
+- mcp__ruv-swarm-zen__task_orchestrate - Coordinate distributed tasks across agents
+- mcp__ruv-swarm-zen__swarm_status - Get real-time swarm status and metrics
+- mcp__ruv-swarm-zen__agent_list - List active agents with filtering
+- mcp__ruv-swarm-zen__agent_metrics - Get agent performance metrics
+- mcp__ruv-swarm-zen__task_status - Check task progress and status
+- mcp__ruv-swarm-zen__task_results - Retrieve completed task results
+- mcp__ruv-swarm-zen__memory_usage - Monitor resource usage and optimization
+- mcp__ruv-swarm-zen__neural_status - Check neural network performance
+- mcp__ruv-swarm-zen__neural_train - Train neural agents
+- mcp__ruv-swarm-zen__neural_patterns - Analyze cognitive patterns
+- mcp__ruv-swarm-zen__benchmark_run - Execute performance benchmarks
+- mcp__ruv-swarm-zen__features_detect - Detect runtime capabilities
+- mcp__ruv-swarm-zen__swarm_monitor - Real-time monitoring
 
 ## Performance
 
@@ -81,7 +81,7 @@ Once configured, ruv-swarm MCP tools are available directly in Claude Code:
 
 ## MCP Tool Usage in Claude Code
 
-**Tool:** mcp__ruv-swarm__swarm_init
+**Tool:** mcp__ruv-swarm-zen__swarm_init
 
 ## Parameters
 \`\`\`json
@@ -91,7 +91,7 @@ Once configured, ruv-swarm MCP tools are available directly in Claude Code:
 ## Examples
 
 **Basic mesh topology:**
-- Tool: mcp__ruv-swarm__swarm_init
+- Tool: mcp__ruv-swarm-zen__swarm_init
 - Parameters: {"topology": "mesh", "maxAgents": 5}
 
 ## Topology Types
@@ -105,7 +105,7 @@ Once configured, ruv-swarm MCP tools are available directly in Claude Code:
 
 ## MCP Tool Usage in Claude Code
 
-**Tool:** mcp__ruv-swarm__agent_spawn
+**Tool:** mcp__ruv-swarm-zen__agent_spawn
 
 ## Parameters
 \`\`\`json
@@ -121,7 +121,7 @@ Once configured, ruv-swarm MCP tools are available directly in Claude Code:
 ## Examples
 
 **Spawn research agent:**
-- Tool: mcp__ruv-swarm__agent_spawn
+- Tool: mcp__ruv-swarm-zen__agent_spawn
 - Parameters: {"type": "researcher", "name": "AI Research Specialist"}
 `;
 
@@ -129,7 +129,7 @@ Once configured, ruv-swarm MCP tools are available directly in Claude Code:
 
 ## MCP Tool Usage in Claude Code
 
-**Tool:** mcp__ruv-swarm__task_orchestrate
+**Tool:** mcp__ruv-swarm-zen__task_orchestrate
 
 ## Parameters
 \`\`\`json
@@ -139,11 +139,11 @@ Once configured, ruv-swarm MCP tools are available directly in Claude Code:
 ## Examples
 
 **Research task:**
-- Tool: mcp__ruv-swarm__task_orchestrate
+- Tool: mcp__ruv-swarm-zen__task_orchestrate
 - Parameters: {"task": "Research modern web frameworks", "strategy": "adaptive"}
 
 **Development with parallel strategy:**
-- Tool: mcp__ruv-swarm__task_orchestrate
+- Tool: mcp__ruv-swarm-zen__task_orchestrate
 - Parameters: {"task": "Build REST API", "strategy": "parallel", "priority": "high"}
 `;
 
@@ -194,7 +194,7 @@ fi
     console.log('\n🎉 Claude Code integration setup complete!');
     console.log('\n📋 Next steps:');
     console.log('1. In Claude Code: claude mcp add ruv-swarm npx ruv-swarm mcp start');
-    console.log('2. Test with MCP tools: mcp__ruv-swarm__agent_spawn');
+    console.log('2. Test with MCP tools: mcp__ruv-swarm-zen__agent_spawn');
     console.log('3. Check .claude/commands/ for detailed usage guides');
 
   } catch (error) {

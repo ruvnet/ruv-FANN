@@ -4,7 +4,7 @@
 
 ### Neural Status Monitoring
 
-**Tool:** `mcp__ruv-swarm__neural_status`
+**Tool:** `mcp__ruv-swarm-zen__neural_status`
 
 ## Parameters
 ```json
@@ -14,13 +14,13 @@
 ```
 
 **Examples:**
-- Tool: `mcp__ruv-swarm__neural_status`
+- Tool: `mcp__ruv-swarm-zen__neural_status`
 - Parameters: `{}` (check all neural agents)
 - Parameters: `{"agentId": "researcher-001"}` (specific agent)
 
 ### Neural Training
 
-**Tool:** `mcp__ruv-swarm__neural_train`
+**Tool:** `mcp__ruv-swarm-zen__neural_train`
 
 ## Parameters
 ```json
@@ -33,20 +33,20 @@
 **Examples:**
 
 **Train all neural agents:**
-- Tool: `mcp__ruv-swarm__neural_train`
+- Tool: `mcp__ruv-swarm-zen__neural_train`
 - Parameters: `{"iterations": 20}`
 
 **Train specific agent:**
-- Tool: `mcp__ruv-swarm__neural_train`
+- Tool: `mcp__ruv-swarm-zen__neural_train`
 - Parameters: `{"agentId": "coder-002", "iterations": 15}`
 
 **Intensive training session:**
-- Tool: `mcp__ruv-swarm__neural_train`
+- Tool: `mcp__ruv-swarm-zen__neural_train`
 - Parameters: `{"iterations": 50}`
 
 ### Cognitive Pattern Analysis
 
-**Tool:** `mcp__ruv-swarm__neural_patterns`
+**Tool:** `mcp__ruv-swarm-zen__neural_patterns`
 
 ## Parameters
 ```json
@@ -58,31 +58,31 @@
 **Examples:**
 
 **All cognitive patterns:**
-- Tool: `mcp__ruv-swarm__neural_patterns`
+- Tool: `mcp__ruv-swarm-zen__neural_patterns`
 - Parameters: `{"pattern": "all"}`
 
 **Convergent thinking patterns:**
-- Tool: `mcp__ruv-swarm__neural_patterns`
+- Tool: `mcp__ruv-swarm-zen__neural_patterns`
 - Parameters: `{"pattern": "convergent"}`
 
 **Divergent creativity patterns:**
-- Tool: `mcp__ruv-swarm__neural_patterns`
+- Tool: `mcp__ruv-swarm-zen__neural_patterns`
 - Parameters: `{"pattern": "divergent"}`
 
 **Lateral thinking analysis:**
-- Tool: `mcp__ruv-swarm__neural_patterns`
+- Tool: `mcp__ruv-swarm-zen__neural_patterns`
 - Parameters: `{"pattern": "lateral"}`
 
 **Systems thinking patterns:**
-- Tool: `mcp__ruv-swarm__neural_patterns`
+- Tool: `mcp__ruv-swarm-zen__neural_patterns`
 - Parameters: `{"pattern": "systems"}`
 
 **Critical analysis patterns:**
-- Tool: `mcp__ruv-swarm__neural_patterns`
+- Tool: `mcp__ruv-swarm-zen__neural_patterns`
 - Parameters: `{"pattern": "critical"}`
 
 **Abstract reasoning patterns:**
-- Tool: `mcp__ruv-swarm__neural_patterns`
+- Tool: `mcp__ruv-swarm-zen__neural_patterns`
 - Parameters: `{"pattern": "abstract"}`
 
 ## Cognitive Diversity Benefits

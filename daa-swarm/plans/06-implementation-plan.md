@@ -164,11 +164,11 @@ wasm-opt -O4 -o optimized.wasm pkg/ruv_swarm_bg.wasm
 ### **MCP Tool Enhancements**
 
 #### **New DAA-Specific Tools**
-1. `mcp__ruv-swarm__daa_agent_spawn` - Spawn autonomous agents
-2. `mcp__ruv-swarm__neural_coordinate` - Neural coordination
-3. `mcp__ruv-swarm__adaptive_topology` - Dynamic topology optimization
-4. `mcp__ruv-swarm__learning_orchestrate` - Learning coordination
-5. `mcp__ruv-swarm__performance_optimize` - Real-time optimization
+1. `mcp__ruv-swarm-zen__daa_agent_spawn` - Spawn autonomous agents
+2. `mcp__ruv-swarm-zen__neural_coordinate` - Neural coordination
+3. `mcp__ruv-swarm-zen__adaptive_topology` - Dynamic topology optimization
+4. `mcp__ruv-swarm-zen__learning_orchestrate` - Learning coordination
+5. `mcp__ruv-swarm-zen__performance_optimize` - Real-time optimization
 
 ## 🔄 **Testing Strategy**
 

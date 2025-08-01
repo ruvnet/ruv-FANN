@@ -2,7 +2,7 @@
 
 ## MCP Tool Usage in Claude Code
 
-**Tool:** `mcp__ruv-swarm__swarm_init`
+**Tool:** `mcp__ruv-swarm-zen__swarm_init`
 
 ## Parameters
 ```json
@@ -16,15 +16,15 @@
 ## Examples
 
 **Basic mesh topology:**
-- Tool: `mcp__ruv-swarm__swarm_init`
+- Tool: `mcp__ruv-swarm-zen__swarm_init`
 - Parameters: `{"topology": "mesh", "maxAgents": 5}`
 
 **Hierarchical for large projects:**
-- Tool: `mcp__ruv-swarm__swarm_init`
+- Tool: `mcp__ruv-swarm-zen__swarm_init`
 - Parameters: `{"topology": "hierarchical", "maxAgents": 10, "strategy": "specialized"}`
 
 **Research swarm:**
-- Tool: `mcp__ruv-swarm__swarm_init`
+- Tool: `mcp__ruv-swarm-zen__swarm_init`
 - Parameters: `{"topology": "mesh", "maxAgents": 8, "strategy": "balanced"}`
 
 ## Topology Types

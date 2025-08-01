@@ -23,14 +23,14 @@ Based on analysis, it selects:
 
 **Simple Task:**
 ```
-Tool: mcp__ruv-swarm__task_orchestrate
+Tool: mcp__ruv-swarm-zen__task_orchestrate
 Parameters: {"task": "Fix typo in README.md"}
 Result: Automatically uses star topology with single agent
 ```
 
 **Complex Task:**
 ```
-Tool: mcp__ruv-swarm__task_orchestrate
+Tool: mcp__ruv-swarm-zen__task_orchestrate
 Parameters: {"task": "Refactor authentication system with JWT, add tests, update documentation"}
 Result: Automatically uses hierarchical topology with architect, coder, and tester agents
 ```

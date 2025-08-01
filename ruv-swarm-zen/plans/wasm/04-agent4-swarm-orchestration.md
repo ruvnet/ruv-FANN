@@ -1486,7 +1486,7 @@ TodoWrite([
     "priority": "high",
     "assignedAgent": "swarm_coordinator",
     "estimatedTime": "30s",
-    "mcpTools": ["mcp__ruv-swarm__swarm_init", "mcp__ruv-swarm__agent_spawn"]
+    "mcpTools": ["mcp__ruv-swarm-zen__swarm_init", "mcp__ruv-swarm-zen__agent_spawn"]
   },
   {
     "id": "cognitive_diversity_setup",
@@ -1496,7 +1496,7 @@ TodoWrite([
     "dependencies": ["swarm_initialization"],
     "assignedAgent": "cognitive_coordinator",
     "estimatedTime": "45s",
-    "mcpTools": ["mcp__ruv-swarm__neural_patterns"]
+    "mcpTools": ["mcp__ruv-swarm-zen__neural_patterns"]
   },
   {
     "id": "task_orchestration",
@@ -1506,7 +1506,7 @@ TodoWrite([
     "dependencies": ["cognitive_diversity_setup"],
     "assignedAgent": "task_distributor",
     "estimatedTime": "60s",
-    "mcpTools": ["mcp__ruv-swarm__task_orchestrate"]
+    "mcpTools": ["mcp__ruv-swarm-zen__task_orchestrate"]
   },
   {
     "id": "performance_monitoring",
@@ -1516,7 +1516,7 @@ TodoWrite([
     "dependencies": ["task_orchestration"],
     "assignedAgent": "performance_monitor",
     "estimatedTime": "continuous",
-    "mcpTools": ["mcp__ruv-swarm__swarm_monitor", "mcp__ruv-swarm__neural_status"]
+    "mcpTools": ["mcp__ruv-swarm-zen__swarm_monitor", "mcp__ruv-swarm-zen__neural_status"]
   }
 ]);
 ```
@@ -1546,8 +1546,8 @@ claude "create a 5 agent swarm for neural network optimization using ruv-FANN ca
 
 **Expected Stream JSON Response:**
 ```json
-{"type":"system","subtype":"init","cwd":"/workspaces/ruv-FANN","session_id":"swarm_session_001","tools":["mcp__ruv-swarm__swarm_init","mcp__ruv-swarm__agent_spawn","mcp__ruv-swarm__neural_patterns"]}
-{"type":"assistant","message":{"content":[{"type":"tool_use","name":"mcp__ruv-swarm__swarm_init","input":{"topology":"mesh","maxAgents":5,"strategy":"specialized"}}]}}
+{"type":"system","subtype":"init","cwd":"/workspaces/ruv-FANN","session_id":"swarm_session_001","tools":["mcp__ruv-swarm-zen__swarm_init","mcp__ruv-swarm-zen__agent_spawn","mcp__ruv-swarm-zen__neural_patterns"]}
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"mcp__ruv-swarm-zen__swarm_init","input":{"topology":"mesh","maxAgents":5,"strategy":"specialized"}}]}}
 {"type":"user","message":{"content":[{"tool_use_id":"swarm_init_001","type":"tool_result","content":{"swarm_id":"neural_opt_swarm_001","topology":"mesh","status":"initialized"}}]}}
 ```
 
@@ -1586,7 +1586,7 @@ The ruv-swarm system processes Claude Code's stream JSON output for real-time sw
   "subtype": "init",
   "cwd": "/workspaces/ruv-FANN",
   "session_id": "swarm_session_uuid",
-  "tools": ["mcp__ruv-swarm__*"],
+  "tools": ["mcp__ruv-swarm-zen__*"],
   "mcp_servers": [{"name": "ruv-swarm", "status": "connected"}]
 }
 
@@ -1597,7 +1597,7 @@ The ruv-swarm system processes Claude Code's stream JSON output for real-time sw
     "content": [{
       "type": "tool_use",
       "id": "tool_use_uuid",
-      "name": "mcp__ruv-swarm__swarm_init",
+      "name": "mcp__ruv-swarm-zen__swarm_init",
       "input": {
         "topology": "mesh",
         "maxAgents": 5,
@@ -1640,7 +1640,7 @@ class RuvSwarmStreamHandler implements SwarmStreamProcessor {
     const { topology, maxAgents, strategy } = message.content;
     
     // Initialize swarm with specified parameters
-    const swarmResult = await this.mcpClient.call('mcp__ruv-swarm__swarm_init', {
+    const swarmResult = await this.mcpClient.call('mcp__ruv-swarm-zen__swarm_init', {
       topology,
       maxAgents,
       strategy
@@ -1656,7 +1656,7 @@ class RuvSwarmStreamHandler implements SwarmStreamProcessor {
     const { type, capabilities, cognitivePattern } = message.content;
     
     // Spawn agent with cognitive diversity
-    const agentResult = await this.mcpClient.call('mcp__ruv-swarm__agent_spawn', {
+    const agentResult = await this.mcpClient.call('mcp__ruv-swarm-zen__agent_spawn', {
       type,
       capabilities,
       cognitivePattern
@@ -1679,21 +1679,21 @@ The ruv-swarm system provides comprehensive MCP tools that integrate seamlessly 
 // Swarm lifecycle management
 interface SwarmMCPTools {
   // Initialize new swarm with topology
-  'mcp__ruv-swarm__swarm_init'(params: {
+  'mcp__ruv-swarm-zen__swarm_init'(params: {
     topology: 'mesh' | 'hierarchical' | 'ring' | 'star';
     maxAgents?: number;
     strategy?: 'balanced' | 'specialized' | 'adaptive';
   }): Promise<SwarmInitResult>;
   
   // Spawn specialized agents
-  'mcp__ruv-swarm__agent_spawn'(params: {
+  'mcp__ruv-swarm-zen__agent_spawn'(params: {
     type: 'researcher' | 'coder' | 'analyst' | 'optimizer' | 'coordinator';
     name?: string;
     capabilities?: string[];
   }): Promise<AgentSpawnResult>;
   
   // Orchestrate distributed tasks
-  'mcp__ruv-swarm__task_orchestrate'(params: {
+  'mcp__ruv-swarm-zen__task_orchestrate'(params: {
     task: string;
     priority?: 'low' | 'medium' | 'high' | 'critical';
     strategy?: 'parallel' | 'sequential' | 'adaptive';
@@ -1701,7 +1701,7 @@ interface SwarmMCPTools {
   }): Promise<TaskOrchestrationResult>;
   
   // Real-time monitoring
-  'mcp__ruv-swarm__swarm_monitor'(params: {
+  'mcp__ruv-swarm-zen__swarm_monitor'(params: {
     duration?: number;
     interval?: number;
   }): Promise<SwarmMonitoringData>;
@@ -1713,18 +1713,18 @@ interface SwarmMCPTools {
 // Neural network and cognitive pattern tools
 interface NeuralMCPTools {
   // Get neural agent status
-  'mcp__ruv-swarm__neural_status'(params: {
+  'mcp__ruv-swarm-zen__neural_status'(params: {
     agentId?: string;
   }): Promise<NeuralAgentStatus>;
   
   // Train neural agents
-  'mcp__ruv-swarm__neural_train'(params: {
+  'mcp__ruv-swarm-zen__neural_train'(params: {
     agentId?: string;
     iterations?: number;
   }): Promise<TrainingResults>;
   
   // Analyze cognitive patterns
-  'mcp__ruv-swarm__neural_patterns'(params: {
+  'mcp__ruv-swarm-zen__neural_patterns'(params: {
     pattern?: 'convergent' | 'divergent' | 'lateral' | 'systems' | 'critical' | 'abstract';
   }): Promise<CognitivePatternAnalysis>;
 }
@@ -1736,12 +1736,12 @@ interface NeuralMCPTools {
 claude "create development swarm to implement new FANN layer types with automated testing and benchmarking" -p --output-format stream-json --verbose
 
 # Expected MCP tool usage:
-# 1. mcp__ruv-swarm__swarm_init (topology: hierarchical, maxAgents: 6)
-# 2. mcp__ruv-swarm__agent_spawn (type: researcher, capabilities: ["rust_analysis", "fann_expertise"])
-# 3. mcp__ruv-swarm__agent_spawn (type: coder, capabilities: ["rust_implementation", "neural_networks"])
-# 4. mcp__ruv-swarm__agent_spawn (type: tester, capabilities: ["unit_testing", "integration_testing"])
-# 5. mcp__ruv-swarm__task_orchestrate (task: "implement_layer_types", strategy: "sequential")
-# 6. mcp__ruv-swarm__swarm_monitor (duration: 300, interval: 5)
+# 1. mcp__ruv-swarm-zen__swarm_init (topology: hierarchical, maxAgents: 6)
+# 2. mcp__ruv-swarm-zen__agent_spawn (type: researcher, capabilities: ["rust_analysis", "fann_expertise"])
+# 3. mcp__ruv-swarm-zen__agent_spawn (type: coder, capabilities: ["rust_implementation", "neural_networks"])
+# 4. mcp__ruv-swarm-zen__agent_spawn (type: tester, capabilities: ["unit_testing", "integration_testing"])
+# 5. mcp__ruv-swarm-zen__task_orchestrate (task: "implement_layer_types", strategy: "sequential")
+# 6. mcp__ruv-swarm-zen__swarm_monitor (duration: 300, interval: 5)
 
 # Performance optimization swarm
 claude "spawn optimization swarm to analyze and improve ruv-FANN memory usage and computation speed" -p --output-format stream-json --verbose

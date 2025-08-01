@@ -87,10 +87,10 @@ Add to your Claude Code configuration:
 claude-code --mcp-server ruv-swarm
 
 # The following tools will be available in Claude Code:
-# - mcp__ruv-swarm__swarm_init
-# - mcp__ruv-swarm__agent_spawn
-# - mcp__ruv-swarm__task_orchestrate
-# - mcp__ruv-swarm__swarm_monitor
+# - mcp__ruv-swarm-zen__swarm_init
+# - mcp__ruv-swarm-zen__agent_spawn
+# - mcp__ruv-swarm-zen__task_orchestrate
+# - mcp__ruv-swarm-zen__swarm_monitor
 # ... and 9 more tools
 ```
 

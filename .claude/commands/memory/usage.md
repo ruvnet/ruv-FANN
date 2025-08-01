@@ -5,7 +5,7 @@
 
 ## MCP Tool Usage in Claude Code
 
-**Tool:** `mcp__ruv-swarm__memory_usage`
+**Tool:** `mcp__ruv-swarm-zen__memory_usage`
 
 ## Parameters
 ```json
@@ -25,7 +25,7 @@ Memory helps Claude Code:
 ## Example Usage
 
 **In Claude Code:**
-1. Use the tool: `mcp__ruv-swarm__memory_usage`
+1. Use the tool: `mcp__ruv-swarm-zen__memory_usage`
 2. With parameters: `{"detail": "detailed"}`
 3. Claude Code then executes the coordinated plan using its native tools
 

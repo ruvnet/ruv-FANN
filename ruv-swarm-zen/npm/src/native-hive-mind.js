@@ -136,7 +136,7 @@ export class NativeHiveMind extends EventEmitter {
   // NATIVE COORDINATION METHODS (replacing MCP tools)
 
   /**
-   * NATIVE: Initialize swarm (replaces mcp__ruv-swarm__swarm_init)
+   * NATIVE: Initialize swarm (replaces mcp__ruv-swarm-zen__swarm_init)
    */
   async initializeSwarm(config = {}) {
     await this.ensureInitialized();
@@ -189,7 +189,7 @@ export class NativeHiveMind extends EventEmitter {
   }
 
   /**
-   * NATIVE: Spawn agent (replaces mcp__ruv-swarm__agent_spawn)
+   * NATIVE: Spawn agent (replaces mcp__ruv-swarm-zen__agent_spawn)
    */
   async spawnAgent(config = {}) {
     await this.ensureInitialized();
@@ -278,7 +278,7 @@ export class NativeHiveMind extends EventEmitter {
   }
 
   /**
-   * NATIVE: Orchestrate task (replaces mcp__ruv-swarm__task_orchestrate)
+   * NATIVE: Orchestrate task (replaces mcp__ruv-swarm-zen__task_orchestrate)
    */
   async orchestrateTask(config = {}) {
     await this.ensureInitialized();
@@ -362,7 +362,7 @@ export class NativeHiveMind extends EventEmitter {
   }
 
   /**
-   * NATIVE: Get swarm status (replaces mcp__ruv-swarm__swarm_status)
+   * NATIVE: Get swarm status (replaces mcp__ruv-swarm-zen__swarm_status)
    */
   async getSwarmStatus(swarmId = null) {
     await this.ensureInitialized();

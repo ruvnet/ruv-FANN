@@ -5,7 +5,7 @@
 
 ## MCP Tool Usage in Claude Code
 
-**Tool:** `mcp__ruv-swarm__agent_list`
+**Tool:** `mcp__ruv-swarm-zen__agent_list`
 
 ## Parameters
 ```json
@@ -25,7 +25,7 @@ Filters:
 ## Example Usage
 
 **In Claude Code:**
-1. Use the tool: `mcp__ruv-swarm__agent_list`
+1. Use the tool: `mcp__ruv-swarm-zen__agent_list`
 2. With parameters: `{"filter": "active"}`
 3. Claude Code then executes the coordinated plan using its native tools
 

@@ -14,7 +14,7 @@ Agents automatically specialize based on file extensions:
 
 ### 2. By Task Type
 ```
-Tool: mcp__ruv-swarm__agent_spawn
+Tool: mcp__ruv-swarm-zen__agent_spawn
 Parameters: {
   "type": "coder",
   "capabilities": ["react", "typescript", "testing"]
@@ -31,7 +31,7 @@ The system trains through:
 ### 4. Specialization Benefits
 ```
 # Check agent specializations
-Tool: mcp__ruv-swarm__agent_list
+Tool: mcp__ruv-swarm-zen__agent_list
 Parameters: {"filter": "active"}
 
 Result shows expertise levels:

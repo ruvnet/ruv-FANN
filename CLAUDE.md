@@ -40,12 +40,12 @@ If you need to do X operations, they should be in 1 message, not X messages
 **✅ CORRECT - Everything in ONE Message:**
 ```javascript
 [Single Message with BatchTool]:
-  mcp__ruv-swarm__swarm_init { topology: "mesh", maxAgents: 6 }
-  mcp__ruv-swarm__agent_spawn { type: "researcher" }
-  mcp__ruv-swarm__agent_spawn { type: "coder" }
-  mcp__ruv-swarm__agent_spawn { type: "analyst" }
-  mcp__ruv-swarm__agent_spawn { type: "tester" }
-  mcp__ruv-swarm__agent_spawn { type: "coordinator" }
+  mcp__ruv-swarm-zen__swarm_init { topology: "mesh", maxAgents: 6 }
+  mcp__ruv-swarm-zen__agent_spawn { type: "researcher" }
+  mcp__ruv-swarm-zen__agent_spawn { type: "coder" }
+  mcp__ruv-swarm-zen__agent_spawn { type: "analyst" }
+  mcp__ruv-swarm-zen__agent_spawn { type: "tester" }
+  mcp__ruv-swarm-zen__agent_spawn { type: "coordinator" }
   TodoWrite { todos: [todo1, todo2, todo3, todo4, todo5] }
   Bash "mkdir -p app/{src,tests,docs}"
   Write "app/package.json" 
@@ -55,9 +55,9 @@ If you need to do X operations, they should be in 1 message, not X messages
 
 **❌ WRONG - Multiple Messages (NEVER DO THIS):**
 ```javascript
-Message 1: mcp__ruv-swarm__swarm_init
-Message 2: mcp__ruv-swarm__agent_spawn 
-Message 3: mcp__ruv-swarm__agent_spawn
+Message 1: mcp__ruv-swarm-zen__swarm_init
+Message 2: mcp__ruv-swarm-zen__agent_spawn 
+Message 3: mcp__ruv-swarm-zen__agent_spawn
 Message 4: TodoWrite (one todo)
 Message 5: Bash "mkdir src"
 Message 6: Write "package.json"
@@ -100,44 +100,44 @@ claude mcp add ruv-swarm npx ruv-swarm@1.0.17 mcp start --stability
 Once configured, ruv-swarm MCP tools enhance Claude Code's coordination:
 
 **Initialize a swarm:**
-- Use the `mcp__ruv-swarm__swarm_init` tool to set up coordination topology
+- Use the `mcp__ruv-swarm-zen__swarm_init` tool to set up coordination topology
 - Choose: mesh, hierarchical, ring, or star
 - This creates a coordination framework for Claude Code's work
 
 **Spawn agents:**
-- Use `mcp__ruv-swarm__agent_spawn` tool to create specialized coordinators
+- Use `mcp__ruv-swarm-zen__agent_spawn` tool to create specialized coordinators
 - Agent types represent different thinking patterns, not actual coders
 - They help Claude Code approach problems from different angles
 
 **Orchestrate tasks:**
-- Use `mcp__ruv-swarm__task_orchestrate` tool to coordinate complex workflows
+- Use `mcp__ruv-swarm-zen__task_orchestrate` tool to coordinate complex workflows
 - This breaks down tasks for Claude Code to execute systematically
 - The agents don't write code - they coordinate Claude Code's actions
 
 ## Available MCP Tools for Coordination
 
 ### Coordination Tools:
-- `mcp__ruv-swarm__swarm_init` - Set up coordination topology for Claude Code
-- `mcp__ruv-swarm__agent_spawn` - Create cognitive patterns to guide Claude Code
-- `mcp__ruv-swarm__task_orchestrate` - Break down and coordinate complex tasks
+- `mcp__ruv-swarm-zen__swarm_init` - Set up coordination topology for Claude Code
+- `mcp__ruv-swarm-zen__agent_spawn` - Create cognitive patterns to guide Claude Code
+- `mcp__ruv-swarm-zen__task_orchestrate` - Break down and coordinate complex tasks
 
 ### Monitoring Tools:
-- `mcp__ruv-swarm__swarm_status` - Monitor coordination effectiveness
-- `mcp__ruv-swarm__agent_list` - View active cognitive patterns
-- `mcp__ruv-swarm__agent_metrics` - Track coordination performance
-- `mcp__ruv-swarm__task_status` - Check workflow progress
-- `mcp__ruv-swarm__task_results` - Review coordination outcomes
+- `mcp__ruv-swarm-zen__swarm_status` - Monitor coordination effectiveness
+- `mcp__ruv-swarm-zen__agent_list` - View active cognitive patterns
+- `mcp__ruv-swarm-zen__agent_metrics` - Track coordination performance
+- `mcp__ruv-swarm-zen__task_status` - Check workflow progress
+- `mcp__ruv-swarm-zen__task_results` - Review coordination outcomes
 
 ### Memory & Neural Tools:
-- `mcp__ruv-swarm__memory_usage` - Persistent memory across sessions
-- `mcp__ruv-swarm__neural_status` - Neural pattern effectiveness
-- `mcp__ruv-swarm__neural_train` - Improve coordination patterns
-- `mcp__ruv-swarm__neural_patterns` - Analyze thinking approaches
+- `mcp__ruv-swarm-zen__memory_usage` - Persistent memory across sessions
+- `mcp__ruv-swarm-zen__neural_status` - Neural pattern effectiveness
+- `mcp__ruv-swarm-zen__neural_train` - Improve coordination patterns
+- `mcp__ruv-swarm-zen__neural_patterns` - Analyze thinking approaches
 
 ### System Tools:
-- `mcp__ruv-swarm__benchmark_run` - Measure coordination efficiency
-- `mcp__ruv-swarm__features_detect` - Available capabilities
-- `mcp__ruv-swarm__swarm_monitor` - Real-time coordination tracking
+- `mcp__ruv-swarm-zen__benchmark_run` - Measure coordination efficiency
+- `mcp__ruv-swarm-zen__features_detect` - Available capabilities
+- `mcp__ruv-swarm-zen__swarm_monitor` - Real-time coordination tracking
 
 ## Workflow Examples (Coordination-Focused)
 
@@ -145,19 +145,19 @@ Once configured, ruv-swarm MCP tools enhance Claude Code's coordination:
 **Context:** Claude Code needs to research a complex topic systematically
 
 **Step 1:** Set up research coordination
-- Tool: `mcp__ruv-swarm__swarm_init`
+- Tool: `mcp__ruv-swarm-zen__swarm_init`
 - Parameters: `{"topology": "mesh", "maxAgents": 5, "strategy": "balanced"}`
 - Result: Creates a mesh topology for comprehensive exploration
 
 **Step 2:** Define research perspectives
-- Tool: `mcp__ruv-swarm__agent_spawn`
+- Tool: `mcp__ruv-swarm-zen__agent_spawn`
 - Parameters: `{"type": "researcher", "name": "Literature Review"}`
-- Tool: `mcp__ruv-swarm__agent_spawn`
+- Tool: `mcp__ruv-swarm-zen__agent_spawn`
 - Parameters: `{"type": "analyst", "name": "Data Analysis"}`
 - Result: Different cognitive patterns for Claude Code to use
 
 **Step 3:** Coordinate research execution
-- Tool: `mcp__ruv-swarm__task_orchestrate`
+- Tool: `mcp__ruv-swarm-zen__task_orchestrate`
 - Parameters: `{"task": "Research neural architecture search papers", "strategy": "adaptive"}`
 - Result: Claude Code systematically searches, reads, and analyzes papers
 
@@ -176,17 +176,17 @@ Once configured, ruv-swarm MCP tools enhance Claude Code's coordination:
 **Context:** Claude Code needs to build a complex system with multiple components
 
 **Step 1:** Set up development coordination
-- Tool: `mcp__ruv-swarm__swarm_init`
+- Tool: `mcp__ruv-swarm-zen__swarm_init`
 - Parameters: `{"topology": "hierarchical", "maxAgents": 8, "strategy": "specialized"}`
 - Result: Hierarchical structure for organized development
 
 **Step 2:** Define development perspectives
-- Tool: `mcp__ruv-swarm__agent_spawn`
+- Tool: `mcp__ruv-swarm-zen__agent_spawn`
 - Parameters: `{"type": "architect", "name": "System Design"}`
 - Result: Architectural thinking pattern for Claude Code
 
 **Step 3:** Coordinate implementation
-- Tool: `mcp__ruv-swarm__task_orchestrate`
+- Tool: `mcp__ruv-swarm-zen__task_orchestrate`
 - Parameters: `{"task": "Implement user authentication with JWT", "strategy": "parallel"}`
 - Result: Claude Code implements features using its native tools
 
@@ -374,12 +374,12 @@ Message 5: Create file 2
 **THIS IS CORRECT ✅ (Parallel - ALWAYS DO THIS):**
 ```
 Message 1: [BatchTool]
-  - mcp__ruv-swarm__swarm_init
-  - mcp__ruv-swarm__agent_spawn (researcher)
-  - mcp__ruv-swarm__agent_spawn (coder)
-  - mcp__ruv-swarm__agent_spawn (analyst)
-  - mcp__ruv-swarm__agent_spawn (tester)
-  - mcp__ruv-swarm__agent_spawn (coordinator)
+  - mcp__ruv-swarm-zen__swarm_init
+  - mcp__ruv-swarm-zen__agent_spawn (researcher)
+  - mcp__ruv-swarm-zen__agent_spawn (coder)
+  - mcp__ruv-swarm-zen__agent_spawn (analyst)
+  - mcp__ruv-swarm-zen__agent_spawn (tester)
+  - mcp__ruv-swarm-zen__agent_spawn (coordinator)
 
 Message 2: [BatchTool]  
   - Write file1.js
@@ -396,20 +396,20 @@ When given ANY complex task with swarms:
 ```
 STEP 1: IMMEDIATE PARALLEL SPAWN (Single Message!)
 [BatchTool]:
-  - mcp__ruv-swarm__swarm_init { topology: "hierarchical", maxAgents: 8, strategy: "parallel" }
-  - mcp__ruv-swarm__agent_spawn { type: "architect", name: "System Designer" }
-  - mcp__ruv-swarm__agent_spawn { type: "coder", name: "API Developer" }
-  - mcp__ruv-swarm__agent_spawn { type: "coder", name: "Frontend Dev" }
-  - mcp__ruv-swarm__agent_spawn { type: "analyst", name: "DB Designer" }
-  - mcp__ruv-swarm__agent_spawn { type: "tester", name: "QA Engineer" }
-  - mcp__ruv-swarm__agent_spawn { type: "researcher", name: "Tech Lead" }
-  - mcp__ruv-swarm__agent_spawn { type: "coordinator", name: "PM" }
+  - mcp__ruv-swarm-zen__swarm_init { topology: "hierarchical", maxAgents: 8, strategy: "parallel" }
+  - mcp__ruv-swarm-zen__agent_spawn { type: "architect", name: "System Designer" }
+  - mcp__ruv-swarm-zen__agent_spawn { type: "coder", name: "API Developer" }
+  - mcp__ruv-swarm-zen__agent_spawn { type: "coder", name: "Frontend Dev" }
+  - mcp__ruv-swarm-zen__agent_spawn { type: "analyst", name: "DB Designer" }
+  - mcp__ruv-swarm-zen__agent_spawn { type: "tester", name: "QA Engineer" }
+  - mcp__ruv-swarm-zen__agent_spawn { type: "researcher", name: "Tech Lead" }
+  - mcp__ruv-swarm-zen__agent_spawn { type: "coordinator", name: "PM" }
   - TodoWrite { todos: [multiple todos at once] }
 
 STEP 2: PARALLEL TASK EXECUTION (Single Message!)
 [BatchTool]:
-  - mcp__ruv-swarm__task_orchestrate { task: "main task", strategy: "parallel" }
-  - mcp__ruv-swarm__memory_usage { action: "store", key: "init", value: {...} }
+  - mcp__ruv-swarm-zen__task_orchestrate { task: "main task", strategy: "parallel" }
+  - mcp__ruv-swarm-zen__memory_usage { action: "store", key: "init", value: {...} }
   - Multiple Read operations
   - Multiple Write operations
   - Multiple Bash commands
@@ -454,13 +454,13 @@ Dependencies: ↳ X deps | Actionable: ▶
 // ✅ CORRECT: SINGLE MESSAGE with ALL operations
 [BatchTool - Message 1]:
   // Initialize and spawn ALL agents at once
-  mcp__ruv-swarm__swarm_init { topology: "hierarchical", maxAgents: 8, strategy: "parallel" }
-  mcp__ruv-swarm__agent_spawn { type: "architect", name: "System Designer" }
-  mcp__ruv-swarm__agent_spawn { type: "coder", name: "API Developer" }
-  mcp__ruv-swarm__agent_spawn { type: "coder", name: "Auth Expert" }
-  mcp__ruv-swarm__agent_spawn { type: "analyst", name: "DB Designer" }
-  mcp__ruv-swarm__agent_spawn { type: "tester", name: "Test Engineer" }
-  mcp__ruv-swarm__agent_spawn { type: "coordinator", name: "Lead" }
+  mcp__ruv-swarm-zen__swarm_init { topology: "hierarchical", maxAgents: 8, strategy: "parallel" }
+  mcp__ruv-swarm-zen__agent_spawn { type: "architect", name: "System Designer" }
+  mcp__ruv-swarm-zen__agent_spawn { type: "coder", name: "API Developer" }
+  mcp__ruv-swarm-zen__agent_spawn { type: "coder", name: "Auth Expert" }
+  mcp__ruv-swarm-zen__agent_spawn { type: "analyst", name: "DB Designer" }
+  mcp__ruv-swarm-zen__agent_spawn { type: "tester", name: "Test Engineer" }
+  mcp__ruv-swarm-zen__agent_spawn { type: "coordinator", name: "Lead" }
   
   // Update ALL todos at once
   TodoWrite { todos: [
@@ -472,10 +472,10 @@ Dependencies: ↳ X deps | Actionable: ▶
   ]}
   
   // Start orchestration
-  mcp__ruv-swarm__task_orchestrate { task: "Build REST API", strategy: "parallel" }
+  mcp__ruv-swarm-zen__task_orchestrate { task: "Build REST API", strategy: "parallel" }
   
   // Store initial memory
-  mcp__ruv-swarm__memory_usage { action: "store", key: "project/init", value: { started: Date.now() } }
+  mcp__ruv-swarm-zen__memory_usage { action: "store", key: "project/init", value: { started: Date.now() } }
 
 [BatchTool - Message 2]:
   // Create ALL directories at once
@@ -505,9 +505,9 @@ Dependencies: ↳ X deps | Actionable: ▶
 ### 🚫 NEVER DO THIS (Sequential = WRONG):
 ```javascript
 // ❌ WRONG: Multiple messages, one operation each
-Message 1: mcp__ruv-swarm__swarm_init
-Message 2: mcp__ruv-swarm__agent_spawn (just one agent)
-Message 3: mcp__ruv-swarm__agent_spawn (another agent)
+Message 1: mcp__ruv-swarm-zen__swarm_init
+Message 2: mcp__ruv-swarm-zen__agent_spawn (just one agent)
+Message 3: mcp__ruv-swarm-zen__agent_spawn (another agent)
 Message 4: TodoWrite (single todo)
 Message 5: Write (single file)
 // This is 5x slower and wastes swarm coordination!
@@ -519,7 +519,7 @@ Every agent coordination step MUST use memory:
 
 ```
 // After each major decision or implementation
-mcp__ruv-swarm__memory_usage
+mcp__ruv-swarm-zen__memory_usage
   action: "store"
   key: "swarm-{id}/agent-{name}/{step}"
   value: {
@@ -531,12 +531,12 @@ mcp__ruv-swarm__memory_usage
   }
 
 // To retrieve coordination data
-mcp__ruv-swarm__memory_usage
+mcp__ruv-swarm-zen__memory_usage
   action: "retrieve"
   key: "swarm-{id}/agent-{name}/{step}"
 
 // To check all swarm progress
-mcp__ruv-swarm__memory_usage
+mcp__ruv-swarm-zen__memory_usage
   action: "list"
   pattern: "swarm-{id}/*"
 ```
@@ -546,7 +546,7 @@ mcp__ruv-swarm__memory_usage
 1. **Batch Everything**: Never operate on single files when multiple are needed
 2. **Parallel First**: Always think "what can run simultaneously?"
 3. **Memory is Key**: Use memory for ALL cross-agent coordination
-4. **Monitor Progress**: Use mcp__ruv-swarm__swarm_monitor for real-time tracking
+4. **Monitor Progress**: Use mcp__ruv-swarm-zen__swarm_monitor for real-time tracking
 5. **Auto-Optimize**: Let hooks handle topology and agent selection
 
 ### 🎨 VISUAL SWARM STATUS
@@ -578,4 +578,4 @@ Agent Activity:
 
 ---
 
-Remember: **ruv-swarm coordinates, Claude Code creates!** Start with `mcp__ruv-swarm__swarm_init` to enhance your development workflow.
+Remember: **ruv-swarm coordinates, Claude Code creates!** Start with `mcp__ruv-swarm-zen__swarm_init` to enhance your development workflow.

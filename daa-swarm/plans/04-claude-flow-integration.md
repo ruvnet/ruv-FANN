@@ -80,7 +80,7 @@ Details:
 ```javascript
 // AUTO-ORCHESTRATED SWARM PATTERN
 [Single Message - Batch Execution]:
-  mcp__ruv-swarm__swarm_init { 
+  mcp__ruv-swarm-zen__swarm_init { 
     topology: "hierarchical", 
     maxAgents: 8, 
     strategy: "research_development",
@@ -88,14 +88,14 @@ Details:
   }
   
   // Parallel Agent Spawning
-  mcp__ruv-swarm__agent_spawn { type: "researcher", capabilities: ["literature_review", "trend_analysis"] }
-  mcp__ruv-swarm__agent_spawn { type: "architect", capabilities: ["system_design", "api_planning"] }
-  mcp__ruv-swarm__agent_spawn { type: "coder", capabilities: ["implementation", "optimization"] }
-  mcp__ruv-swarm__agent_spawn { type: "analyst", capabilities: ["performance_analysis", "security_audit"] }
-  mcp__ruv-swarm__agent_spawn { type: "tester", capabilities: ["test_generation", "quality_assurance"] }
+  mcp__ruv-swarm-zen__agent_spawn { type: "researcher", capabilities: ["literature_review", "trend_analysis"] }
+  mcp__ruv-swarm-zen__agent_spawn { type: "architect", capabilities: ["system_design", "api_planning"] }
+  mcp__ruv-swarm-zen__agent_spawn { type: "coder", capabilities: ["implementation", "optimization"] }
+  mcp__ruv-swarm-zen__agent_spawn { type: "analyst", capabilities: ["performance_analysis", "security_audit"] }
+  mcp__ruv-swarm-zen__agent_spawn { type: "tester", capabilities: ["test_generation", "quality_assurance"] }
   
   // Parallel Task Orchestration
-  mcp__ruv-swarm__task_orchestrate { 
+  mcp__ruv-swarm-zen__task_orchestrate { 
     task: "Build full-stack application with authentication",
     strategy: "parallel",
     enable_neural_coordination: true
@@ -106,19 +106,19 @@ Details:
 ```javascript
 // PERFORMANCE-FOCUSED SWARM
 [Single Message - Optimization Mode]:
-  mcp__ruv-swarm__swarm_init { 
+  mcp__ruv-swarm-zen__swarm_init { 
     topology: "mesh", 
     maxAgents: 6,
     strategy: "performance_optimization"
   }
   
   // Specialized Optimization Agents
-  mcp__ruv-swarm__agent_spawn { type: "optimizer", neural_preset: "code_optimization" }
-  mcp__ruv-swarm__agent_spawn { type: "analyst", neural_preset: "performance_analysis" }
-  mcp__ruv-swarm__agent_spawn { type: "coder", neural_preset: "refactoring_expert" }
+  mcp__ruv-swarm-zen__agent_spawn { type: "optimizer", neural_preset: "code_optimization" }
+  mcp__ruv-swarm-zen__agent_spawn { type: "analyst", neural_preset: "performance_analysis" }
+  mcp__ruv-swarm-zen__agent_spawn { type: "coder", neural_preset: "refactoring_expert" }
   
   // Real-Time Performance Monitoring
-  mcp__ruv-swarm__swarm_monitor { mode: "optimization", track_metrics: true }
+  mcp__ruv-swarm-zen__swarm_monitor { mode: "optimization", track_metrics: true }
 ```
 
 ### 3. Neural-Enhanced Coordination
@@ -126,14 +126,14 @@ Details:
 #### Intelligent Agent Selection
 ```javascript
 // NEURAL AGENT MATCHING
-mcp__ruv-swarm__neural_train {
+mcp__ruv-swarm-zen__neural_train {
   pattern: "agent_task_matching",
   data: "historical_performance",
   optimize_for: "accuracy_and_speed"
 }
 
 // Auto-spawn optimal agents based on task analysis
-mcp__ruv-swarm__agent_spawn { 
+mcp__ruv-swarm-zen__agent_spawn { 
   type: "auto", 
   task_analysis: true,
   neural_recommendation: true 
@@ -143,7 +143,7 @@ mcp__ruv-swarm__agent_spawn {
 #### Adaptive Workflow Learning
 ```javascript
 // WORKFLOW PATTERN LEARNING
-mcp__ruv-swarm__neural_patterns {
+mcp__ruv-swarm-zen__neural_patterns {
   pattern: "workflow_optimization",
   learn_from: "successful_executions",
   adapt_topology: true

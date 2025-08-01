@@ -19,21 +19,21 @@
 
 | Tool Name | Status | Parameters | Output | Errors | Notes |
 |-----------|--------|------------|--------|--------|-------|
-| `mcp__ruv-swarm__swarm_init` | ✅ PASS | All topologies | Silent success | None | Supports mesh, hierarchical, ring, star |
-| `mcp__ruv-swarm__swarm_status` | ✅ PASS | verbose: true | Silent success | None | Returns coordination status |
-| `mcp__ruv-swarm__agent_spawn` | ✅ PASS | All agent types | Silent success | None | All 5 types supported |
-| `mcp__ruv-swarm__agent_list` | ✅ PASS | filter: all | Silent success | None | Lists active agents |
-| `mcp__ruv-swarm__agent_metrics` | ❌ FAIL | metric: all | Error | Method not found | Tool not implemented |
-| `mcp__ruv-swarm__task_orchestrate` | ✅ PASS | Full params | Silent success | None | Task coordination works |
-| `mcp__ruv-swarm__task_status` | ✅ PASS | detailed: true | Silent success | None | Status tracking works |
-| `mcp__ruv-swarm__task_results` | ❌ FAIL | taskId | Error | Internal error | Needs task ID validation |
-| `mcp__ruv-swarm__memory_usage` | ✅ PASS | detail: summary | Silent success | None | Memory management works |
-| `mcp__ruv-swarm__neural_status` | ✅ PASS | No params | Silent success | None | Neural system status |
-| `mcp__ruv-swarm__neural_patterns` | ✅ PASS | pattern: all | Silent success | None | Pattern recognition works |
-| `mcp__ruv-swarm__neural_train` | ❌ FAIL | iterations: 5 | Error | Internal error | Training needs improvement |
-| `mcp__ruv-swarm__benchmark_run` | ✅ PASS | type: swarm | Silent success | None | Benchmarking works |
-| `mcp__ruv-swarm__features_detect` | ✅ PASS | category: all | Silent success | None | Feature detection works |
-| `mcp__ruv-swarm__swarm_monitor` | ❌ FAIL | duration: 5 | Error | Method not found | Monitoring not implemented |
+| `mcp__ruv-swarm-zen__swarm_init` | ✅ PASS | All topologies | Silent success | None | Supports mesh, hierarchical, ring, star |
+| `mcp__ruv-swarm-zen__swarm_status` | ✅ PASS | verbose: true | Silent success | None | Returns coordination status |
+| `mcp__ruv-swarm-zen__agent_spawn` | ✅ PASS | All agent types | Silent success | None | All 5 types supported |
+| `mcp__ruv-swarm-zen__agent_list` | ✅ PASS | filter: all | Silent success | None | Lists active agents |
+| `mcp__ruv-swarm-zen__agent_metrics` | ❌ FAIL | metric: all | Error | Method not found | Tool not implemented |
+| `mcp__ruv-swarm-zen__task_orchestrate` | ✅ PASS | Full params | Silent success | None | Task coordination works |
+| `mcp__ruv-swarm-zen__task_status` | ✅ PASS | detailed: true | Silent success | None | Status tracking works |
+| `mcp__ruv-swarm-zen__task_results` | ❌ FAIL | taskId | Error | Internal error | Needs task ID validation |
+| `mcp__ruv-swarm-zen__memory_usage` | ✅ PASS | detail: summary | Silent success | None | Memory management works |
+| `mcp__ruv-swarm-zen__neural_status` | ✅ PASS | No params | Silent success | None | Neural system status |
+| `mcp__ruv-swarm-zen__neural_patterns` | ✅ PASS | pattern: all | Silent success | None | Pattern recognition works |
+| `mcp__ruv-swarm-zen__neural_train` | ❌ FAIL | iterations: 5 | Error | Internal error | Training needs improvement |
+| `mcp__ruv-swarm-zen__benchmark_run` | ✅ PASS | type: swarm | Silent success | None | Benchmarking works |
+| `mcp__ruv-swarm-zen__features_detect` | ✅ PASS | category: all | Silent success | None | Feature detection works |
+| `mcp__ruv-swarm-zen__swarm_monitor` | ❌ FAIL | duration: 5 | Error | Method not found | Monitoring not implemented |
 
 ## 📊 Test Results Summary
 
@@ -148,7 +148,7 @@ npx ruv-swarm performance analyze --task-id recent
 ### Scenario 1: Batch Operations ✅
 ```javascript
 // Multiple MCP tools in single message
-mcp__ruv-swarm__swarm_init + agent_spawn + task_orchestrate
+mcp__ruv-swarm-zen__swarm_init + agent_spawn + task_orchestrate
 > ✅ All tools executed successfully
 > ✅ Coordination maintained across tools
 ```
@@ -173,8 +173,8 @@ store_coordination_data → retrieve_later
 
 ### Immediate Fixes (High Priority)
 1. **Fix missing MCP methods:**
-   - `mcp__ruv-swarm__agent_metrics`
-   - `mcp__ruv-swarm__swarm_monitor`
+   - `mcp__ruv-swarm-zen__agent_metrics`
+   - `mcp__ruv-swarm-zen__swarm_monitor`
 
 2. **Improve error handling:**
    - Add detailed error messages for internal errors

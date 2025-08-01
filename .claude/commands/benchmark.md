@@ -2,7 +2,7 @@
 
 ## MCP Tool Usage in Claude Code
 
-**Tool:** `mcp__ruv-swarm__benchmark_run`
+**Tool:** `mcp__ruv-swarm-zen__benchmark_run`
 
 ## Parameters
 ```json
@@ -15,23 +15,23 @@
 ## Examples
 
 **Full system benchmark:**
-- Tool: `mcp__ruv-swarm__benchmark_run`
+- Tool: `mcp__ruv-swarm-zen__benchmark_run`
 - Parameters: `{"type": "all", "iterations": 10}`
 
 **WASM performance test:**
-- Tool: `mcp__ruv-swarm__benchmark_run`
+- Tool: `mcp__ruv-swarm-zen__benchmark_run`
 - Parameters: `{"type": "wasm", "iterations": 20}`
 
 **Swarm coordination benchmark:**
-- Tool: `mcp__ruv-swarm__benchmark_run`
+- Tool: `mcp__ruv-swarm-zen__benchmark_run`
 - Parameters: `{"type": "swarm", "iterations": 15}`
 
 **Agent spawn performance:**
-- Tool: `mcp__ruv-swarm__benchmark_run`
+- Tool: `mcp__ruv-swarm-zen__benchmark_run`
 - Parameters: `{"type": "agent", "iterations": 25}`
 
 **Task execution benchmark:**
-- Tool: `mcp__ruv-swarm__benchmark_run`
+- Tool: `mcp__ruv-swarm-zen__benchmark_run`
 - Parameters: `{"type": "task", "iterations": 30}`
 
 ## Benchmark Types

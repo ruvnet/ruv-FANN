@@ -5,7 +5,7 @@
 
 ## MCP Tool Usage in Claude Code
 
-**Tool:** `mcp__ruv-swarm__swarm_init`
+**Tool:** `mcp__ruv-swarm-zen__swarm_init`
 
 ## Parameters
 ```json
@@ -27,7 +27,7 @@ Remember: This does NOT create actual coding agents. It creates a coordination p
 ## Example Usage
 
 **In Claude Code:**
-1. Use the tool: `mcp__ruv-swarm__swarm_init`
+1. Use the tool: `mcp__ruv-swarm-zen__swarm_init`
 2. With parameters: `{"topology": "mesh", "maxAgents": 5, "strategy": "balanced"}`
 3. Claude Code then executes the coordinated plan using its native tools
 

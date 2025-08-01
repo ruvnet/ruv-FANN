@@ -32,8 +32,8 @@ The DAA tools are now available through the MCP interface:
 npx ruv-swarm mcp start
 
 # In Claude Code, you can now use:
-mcp__ruv-swarm__daa_init
-mcp__ruv-swarm__daa_agent_create
+mcp__ruv-swarm-zen__daa_init
+mcp__ruv-swarm-zen__daa_agent_create
 # ... and all other DAA tools
 ```
 
@@ -41,13 +41,13 @@ mcp__ruv-swarm__daa_agent_create
 
 ```javascript
 // Initialize DAA
-await mcp__ruv-swarm__daa_init({
+await mcp__ruv-swarm-zen__daa_init({
   enableLearning: true,
   enableCoordination: true
 });
 
 // Create an autonomous agent
-await mcp__ruv-swarm__daa_agent_create({
+await mcp__ruv-swarm-zen__daa_agent_create({
   id: 'auto-agent-001',
   capabilities: ['learning', 'optimization'],
   cognitivePattern: 'adaptive',
@@ -56,7 +56,7 @@ await mcp__ruv-swarm__daa_agent_create({
 });
 
 // Create and execute a workflow
-await mcp__ruv-swarm__daa_workflow_create({
+await mcp__ruv-swarm-zen__daa_workflow_create({
   id: 'ml-pipeline',
   name: 'Machine Learning Pipeline',
   steps: [
@@ -67,7 +67,7 @@ await mcp__ruv-swarm__daa_workflow_create({
   strategy: 'adaptive'
 });
 
-await mcp__ruv-swarm__daa_workflow_execute({
+await mcp__ruv-swarm-zen__daa_workflow_execute({
   workflowId: 'ml-pipeline',
   parallelExecution: true
 });

@@ -7,25 +7,25 @@ Structure Claude Code's approach to complex development tasks for maximum effici
 
 ### 1. Initialize Development Framework
 ```
-Tool: mcp__ruv-swarm__swarm_init
+Tool: mcp__ruv-swarm-zen__swarm_init
 Parameters: {"topology": "hierarchical", "maxAgents": 8, "strategy": "specialized"}
 ```
 Creates hierarchical structure for organized, top-down development.
 
 ### 2. Define Development Perspectives
 ```
-Tool: mcp__ruv-swarm__agent_spawn
+Tool: mcp__ruv-swarm-zen__agent_spawn
 Parameters: {"type": "architect", "name": "System Design"}
 ```
 ```
-Tool: mcp__ruv-swarm__agent_spawn
+Tool: mcp__ruv-swarm-zen__agent_spawn
 Parameters: {"type": "coder", "name": "Implementation Focus"}
 ```
 Sets up architectural and implementation thinking patterns.
 
 ### 3. Coordinate Implementation
 ```
-Tool: mcp__ruv-swarm__task_orchestrate
+Tool: mcp__ruv-swarm-zen__task_orchestrate
 Parameters: {"task": "Build REST API with authentication", "strategy": "parallel", "priority": "high"}
 ```
 

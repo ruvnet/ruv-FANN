@@ -4,7 +4,7 @@
 
 ### Basic Status Monitoring
 
-**Tool:** `mcp__ruv-swarm__swarm_status`
+**Tool:** `mcp__ruv-swarm-zen__swarm_status`
 
 ## Parameters
 ```json
@@ -14,12 +14,12 @@
 ```
 
 **Example:**
-- Tool: `mcp__ruv-swarm__swarm_status`
+- Tool: `mcp__ruv-swarm-zen__swarm_status`
 - Parameters: `{"verbose": true}`
 
 ### Memory Usage Monitoring
 
-**Tool:** `mcp__ruv-swarm__memory_usage`
+**Tool:** `mcp__ruv-swarm-zen__memory_usage`
 
 ## Parameters
 ```json
@@ -29,12 +29,12 @@
 ```
 
 **Example:**
-- Tool: `mcp__ruv-swarm__memory_usage`
+- Tool: `mcp__ruv-swarm-zen__memory_usage`
 - Parameters: `{"detail": "detailed"}`
 
 ### Neural Network Status
 
-**Tool:** `mcp__ruv-swarm__neural_status`
+**Tool:** `mcp__ruv-swarm-zen__neural_status`
 
 ## Parameters
 ```json
@@ -44,12 +44,12 @@
 ```
 
 **Example:**
-- Tool: `mcp__ruv-swarm__neural_status`
+- Tool: `mcp__ruv-swarm-zen__neural_status`
 - Parameters: `{}` (for all agents)
 
 ### Real-time Monitoring
 
-**Tool:** `mcp__ruv-swarm__swarm_monitor`
+**Tool:** `mcp__ruv-swarm-zen__swarm_monitor`
 
 ## Parameters
 ```json
@@ -60,7 +60,7 @@
 ```
 
 **Example:**
-- Tool: `mcp__ruv-swarm__swarm_monitor`
+- Tool: `mcp__ruv-swarm-zen__swarm_monitor`
 - Parameters: `{"duration": 30, "interval": 2}`
 
 ## Status Information Provided

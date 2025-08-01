@@ -2,7 +2,7 @@
 
 ## MCP Tool Usage in Claude Code
 
-**Tool:** `mcp__ruv-swarm__task_orchestrate`
+**Tool:** `mcp__ruv-swarm-zen__task_orchestrate`
 
 ## Parameters
 ```json
@@ -17,19 +17,19 @@
 ## Examples
 
 **Research task:**
-- Tool: `mcp__ruv-swarm__task_orchestrate`
+- Tool: `mcp__ruv-swarm-zen__task_orchestrate`
 - Parameters: `{"task": "Research modern web frameworks", "strategy": "adaptive"}`
 
 **Development with parallel strategy:**
-- Tool: `mcp__ruv-swarm__task_orchestrate`
+- Tool: `mcp__ruv-swarm-zen__task_orchestrate`
 - Parameters: `{"task": "Build REST API", "strategy": "parallel", "priority": "high"}`
 
 **Analysis with agent limit:**
-- Tool: `mcp__ruv-swarm__task_orchestrate`
+- Tool: `mcp__ruv-swarm-zen__task_orchestrate`
 - Parameters: `{"task": "Analyze user behavior patterns", "maxAgents": 3, "strategy": "sequential"}`
 
 **Critical deployment task:**
-- Tool: `mcp__ruv-swarm__task_orchestrate`
+- Tool: `mcp__ruv-swarm-zen__task_orchestrate`
 - Parameters: `{"task": "Deploy authentication system", "priority": "critical", "strategy": "adaptive"}`
 
 ## Strategies

@@ -18,7 +18,7 @@ Initialize the DAA service with autonomous agent capabilities.
 
 **Example:**
 ```javascript
-mcp__ruv-swarm__daa_init({
+mcp__ruv-swarm-zen__daa_init({
   enableLearning: true,
   enableCoordination: true,
   persistenceMode: 'auto'
@@ -37,7 +37,7 @@ Create an autonomous agent with DAA capabilities.
 
 **Example:**
 ```javascript
-mcp__ruv-swarm__daa_agent_create({
+mcp__ruv-swarm-zen__daa_agent_create({
   id: 'analyzer-001',
   capabilities: ['data_analysis', 'pattern_recognition'],
   cognitivePattern: 'analytical',
@@ -59,7 +59,7 @@ Trigger agent adaptation based on performance feedback.
 
 **Example:**
 ```javascript
-mcp__ruv-swarm__daa_agent_adapt({
+mcp__ruv-swarm-zen__daa_agent_adapt({
   agentId: 'analyzer-001',
   feedback: 'Analysis was too slow for real-time requirements',
   performanceScore: 0.6,
@@ -96,7 +96,7 @@ Create autonomous workflows with DAA coordination.
 
 **Example:**
 ```javascript
-mcp__ruv-swarm__daa_workflow_create({
+mcp__ruv-swarm-zen__daa_workflow_create({
   id: 'ml-pipeline',
   name: 'Machine Learning Pipeline',
   steps: [
@@ -133,7 +133,7 @@ Enable knowledge sharing between autonomous agents.
 
 **Example:**
 ```javascript
-mcp__ruv-swarm__daa_knowledge_share({
+mcp__ruv-swarm-zen__daa_knowledge_share({
   sourceAgentId: 'expert-001',
   targetAgentIds: ['learner-001', 'learner-002'],
   knowledgeDomain: 'optimization_techniques',
@@ -175,7 +175,7 @@ Enable cross-domain knowledge transfer.
 
 **Example:**
 ```javascript
-mcp__ruv-swarm__daa_meta_learning({
+mcp__ruv-swarm-zen__daa_meta_learning({
   sourceDomain: 'image_processing',
   targetDomain: 'video_analysis',
   transferMode: 'adaptive',
@@ -204,21 +204,21 @@ Get comprehensive DAA performance metrics.
 
 ```javascript
 // 1. Initialize DAA service
-await mcp__ruv-swarm__daa_init({
+await mcp__ruv-swarm-zen__daa_init({
   enableLearning: true,
   enableCoordination: true,
   persistenceMode: 'auto'
 });
 
 // 2. Create autonomous agents
-const analyzer = await mcp__ruv-swarm__daa_agent_create({
+const analyzer = await mcp__ruv-swarm-zen__daa_agent_create({
   id: 'data-analyzer',
   capabilities: ['statistical_analysis', 'pattern_recognition'],
   cognitivePattern: 'analytical',
   learningRate: 0.001
 });
 
-const optimizer = await mcp__ruv-swarm__daa_agent_create({
+const optimizer = await mcp__ruv-swarm-zen__daa_agent_create({
   id: 'performance-optimizer',
   capabilities: ['optimization', 'resource_management'],
   cognitivePattern: 'systems',
@@ -226,7 +226,7 @@ const optimizer = await mcp__ruv-swarm__daa_agent_create({
 });
 
 // 3. Create workflow
-await mcp__ruv-swarm__daa_workflow_create({
+await mcp__ruv-swarm-zen__daa_workflow_create({
   id: 'optimization-pipeline',
   name: 'Performance Optimization Pipeline',
   steps: [
@@ -237,13 +237,13 @@ await mcp__ruv-swarm__daa_workflow_create({
 });
 
 // 4. Execute workflow
-const result = await mcp__ruv-swarm__daa_workflow_execute({
+const result = await mcp__ruv-swarm-zen__daa_workflow_execute({
   workflowId: 'optimization-pipeline',
   parallelExecution: false
 });
 
 // 5. Share knowledge between agents
-await mcp__ruv-swarm__daa_knowledge_share({
+await mcp__ruv-swarm-zen__daa_knowledge_share({
   sourceAgentId: 'data-analyzer',
   targetAgentIds: ['performance-optimizer'],
   knowledgeDomain: 'bottleneck_patterns',
@@ -251,7 +251,7 @@ await mcp__ruv-swarm__daa_knowledge_share({
 });
 
 // 6. Check learning progress
-const status = await mcp__ruv-swarm__daa_learning_status({
+const status = await mcp__ruv-swarm-zen__daa_learning_status({
   detailed: true
 });
 ```
@@ -260,14 +260,14 @@ const status = await mcp__ruv-swarm__daa_learning_status({
 
 ```javascript
 // Monitor agent performance and adapt
-const metrics = await mcp__ruv-swarm__daa_performance_metrics({
+const metrics = await mcp__ruv-swarm-zen__daa_performance_metrics({
   category: 'performance',
   timeRange: '1h'
 });
 
 if (metrics.performance_metrics.task_success_rate < 0.8) {
   // Trigger adaptation
-  await mcp__ruv-swarm__daa_agent_adapt({
+  await mcp__ruv-swarm-zen__daa_agent_adapt({
     agentId: 'data-analyzer',
     feedback: 'Success rate below threshold',
     performanceScore: metrics.performance_metrics.task_success_rate,
@@ -275,7 +275,7 @@ if (metrics.performance_metrics.task_success_rate < 0.8) {
   });
   
   // Change cognitive pattern if needed
-  await mcp__ruv-swarm__daa_cognitive_pattern({
+  await mcp__ruv-swarm-zen__daa_cognitive_pattern({
     agentId: 'data-analyzer',
     pattern: 'adaptive'
   });
@@ -304,18 +304,18 @@ DAA tools work seamlessly with core ruv-swarm tools:
 
 ```javascript
 // Combine core and DAA tools
-const swarm = await mcp__ruv-swarm__swarm_init({
+const swarm = await mcp__ruv-swarm-zen__swarm_init({
   topology: 'hierarchical',
   maxAgents: 10
 });
 
-const agent = await mcp__ruv-swarm__agent_spawn({
+const agent = await mcp__ruv-swarm-zen__agent_spawn({
   type: 'researcher',
   name: 'AI Researcher'
 });
 
 // Enhance with DAA capabilities
-await mcp__ruv-swarm__daa_agent_create({
+await mcp__ruv-swarm-zen__daa_agent_create({
   id: agent.agent.id,
   capabilities: ['research', 'learning'],
   cognitivePattern: 'divergent',
@@ -329,7 +329,7 @@ All DAA tools include comprehensive error handling:
 
 ```javascript
 try {
-  const result = await mcp__ruv-swarm__daa_agent_create({
+  const result = await mcp__ruv-swarm-zen__daa_agent_create({
     id: 'test-agent',
     capabilities: ['testing']
   });

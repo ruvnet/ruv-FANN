@@ -5,7 +5,7 @@
 
 ## MCP Tool Usage in Claude Code
 
-**Tool:** `mcp__ruv-swarm__swarm_status`
+**Tool:** `mcp__ruv-swarm-zen__swarm_status`
 
 ## Parameters
 ```json
@@ -26,7 +26,7 @@ Shows:
 ## Example Usage
 
 **In Claude Code:**
-1. Use the tool: `mcp__ruv-swarm__swarm_status`
+1. Use the tool: `mcp__ruv-swarm-zen__swarm_status`
 2. With parameters: `{"verbose": true}`
 3. Claude Code then executes the coordinated plan using its native tools
 
