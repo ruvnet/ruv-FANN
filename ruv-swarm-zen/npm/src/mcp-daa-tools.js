@@ -184,7 +184,7 @@ export class DAA_MCPTools {
 
       const id = agent_id || agentId;
       if (!id) {
-        throw new Error('Agent ID is required');
+        throw new Error('Agent ID is required. Provide either agent_id or agentId parameter.');
       }
 
       const adaptationResult = await daaService.adaptAgent(id, {
@@ -279,7 +279,7 @@ export class DAA_MCPTools {
 
       const id = workflow_id || workflowId;
       if (!id) {
-        throw new Error('Workflow ID is required');
+        throw new Error('Workflow ID is required. Provide either workflow_id or workflowId parameter.');
       }
 
       const executionResult = await daaService.executeWorkflow(id, {
@@ -331,8 +331,11 @@ export class DAA_MCPTools {
       const sourceId = source_agent || sourceAgentId;
       const targetIds = target_agents || targetAgentIds || [];
 
-      if (!sourceId || targetIds.length === 0) {
-        throw new Error('Source and target agent IDs are required');
+      if (!sourceId) {
+        throw new Error('Source agent ID is required. Provide either source_agent or sourceAgentId parameter.');
+      }
+      if (!targetIds || targetIds.length === 0) {
+        throw new Error('Target agent IDs are required. Provide either target_agents or targetAgentIds parameter with at least one agent ID.');
       }
 
       const sharingResults = await daaService.shareKnowledge(
@@ -630,7 +633,7 @@ export class DAA_MCPTools {
             performanceScore: { type: 'number', description: 'Performance score (0-1)' },
             suggestions: { type: 'array', items: { type: 'string' }, description: 'Improvement suggestions' },
           },
-          required: ['agentId'],
+          required: ['agent_id'],
         },
       },
       {
@@ -659,7 +662,7 @@ export class DAA_MCPTools {
             agentIds: { type: 'array', items: { type: 'string' }, description: 'Agent IDs to use' },
             parallelExecution: { type: 'boolean', description: 'Enable parallel execution' },
           },
-          required: ['workflowId'],
+          required: ['workflow_id'],
         },
       },
       {
@@ -675,7 +678,7 @@ export class DAA_MCPTools {
             knowledgeDomain: { type: 'string', description: 'Knowledge domain' },
             knowledgeContent: { type: 'object', description: 'Knowledge to share' },
           },
-          required: ['sourceAgentId', 'targetAgentIds'],
+          required: ['source_agent', 'target_agents'],
         },
       },
       {

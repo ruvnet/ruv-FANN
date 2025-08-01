@@ -1611,12 +1611,39 @@ class EnhancedMCPTools {
       } = params;
 
       if (!agentId || typeof agentId !== 'string') {
-        throw ErrorFactory.createError('validation', 'agentId is required and must be a string', { parameter: 'agentId' });
+        throw ErrorFactory.createError('validation', 'agentId is required and must be a string. The agentId parameter identifies which agent to train.', { parameter: 'agentId', providedValue: agentId, expectedType: 'string' });
       }
 
-      const iterations = Math.max(1, Math.min(100, parseInt(rawIterations || 10, 10)));
-      const validatedLearningRate = Math.max(0.0001, Math.min(1.0, parseFloat(learningRate)));
-      const validatedModelType = ['feedforward', 'lstm', 'transformer', 'cnn', 'attention'].includes(modelType) ? modelType : 'feedforward';
+      let iterations;
+      try {
+        iterations = rawIterations ? parseInt(rawIterations, 10) : 10;
+        if (isNaN(iterations) || iterations < 1) {
+          throw ErrorFactory.createError('validation', 'iterations must be a positive integer greater than 0', { parameter: 'iterations', providedValue: rawIterations, validRange: '1-100' });
+        }
+        if (iterations > 100) {
+          throw ErrorFactory.createError('validation', 'iterations must not exceed 100 to prevent excessive training time', { parameter: 'iterations', providedValue: iterations, validRange: '1-100' });
+        }
+      } catch (parseError) {
+        if (parseError.code === 'VALIDATION_ERROR') throw parseError;
+        throw ErrorFactory.createError('validation', 'iterations must be a valid integer', { parameter: 'iterations', providedValue: rawIterations, parseError: parseError.message });
+      }
+      let validatedLearningRate;
+      try {
+        validatedLearningRate = parseFloat(learningRate);
+        if (isNaN(validatedLearningRate) || validatedLearningRate <= 0 || validatedLearningRate > 1.0) {
+          throw ErrorFactory.createError('validation', 'learningRate must be a number between 0.0001 and 1.0', { parameter: 'learningRate', providedValue: learningRate, validRange: '0.0001-1.0' });
+        }
+        validatedLearningRate = Math.max(0.0001, Math.min(1.0, validatedLearningRate));
+      } catch (parseError) {
+        if (parseError.code === 'VALIDATION_ERROR') throw parseError;
+        throw ErrorFactory.createError('validation', 'learningRate must be a valid number', { parameter: 'learningRate', providedValue: learningRate, parseError: parseError.message });
+      }
+      const validModelTypes = ['feedforward', 'lstm', 'transformer', 'cnn', 'attention'];
+      let validatedModelType;
+      if (!validModelTypes.includes(modelType)) {
+        throw ErrorFactory.createError('validation', `modelType must be one of: ${validModelTypes.join(', ')}`, { parameter: 'modelType', providedValue: modelType, validOptions: validModelTypes });
+      }
+      validatedModelType = modelType;
 
       await this.initialize();
 

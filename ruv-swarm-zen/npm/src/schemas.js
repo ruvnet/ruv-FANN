@@ -412,7 +412,7 @@ const MCPSchemas = {
       type: 'number',
       integer: true,
       min: 1,
-      max: 1000,
+      max: 100,
       default: 10,
     },
     learningRate: {
@@ -423,7 +423,7 @@ const MCPSchemas = {
     },
     modelType: {
       type: 'string',
-      enum: ['feedforward', 'lstm', 'transformer', 'attention', 'cnn', 'rnn', 'gru'],
+      enum: ['feedforward', 'lstm', 'transformer', 'cnn', 'attention'],
       default: 'feedforward',
     },
     trainingData: {
@@ -490,9 +490,14 @@ const MCPSchemas = {
   },
 
   daa_agent_adapt: {
-    agentId: {
+    agent_id: {
       type: 'string',
       required: true,
+      minLength: 1,
+    },
+    agentId: {
+      type: 'string',
+      required: false,
       minLength: 1,
     },
     feedback: {
@@ -549,9 +554,14 @@ const MCPSchemas = {
   },
 
   daa_workflow_execute: {
-    workflowId: {
+    workflow_id: {
       type: 'string',
       required: true,
+      minLength: 1,
+    },
+    workflowId: {
+      type: 'string',
+      required: false,
       minLength: 1,
     },
     agentIds: {
@@ -569,10 +579,24 @@ const MCPSchemas = {
   },
 
   daa_knowledge_share: {
-    sourceAgentId: {
+    source_agent: {
       type: 'string',
       required: true,
       minLength: 1,
+    },
+    sourceAgentId: {
+      type: 'string',
+      required: false,
+      minLength: 1,
+    },
+    target_agents: {
+      type: 'array',
+      items: {
+        type: 'string',
+        minLength: 1,
+      },
+      required: true,
+      minItems: 1,
     },
     targetAgentIds: {
       type: 'array',
