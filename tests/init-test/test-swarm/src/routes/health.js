@@ -14,8 +14,8 @@ router.get('/', (req, res) => {
     memory: {
       used: process.memoryUsage(),
       free: os.freemem(),
-      total: os.totalmem()
-    }
+      total: os.totalmem(),
+    },
   };
 
   // Check database connection

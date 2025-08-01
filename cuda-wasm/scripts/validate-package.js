@@ -15,7 +15,7 @@ const colors = {
   red: '\x1b[31m',
   yellow: '\x1b[33m',
   blue: '\x1b[34m',
-  cyan: '\x1b[36m'
+  cyan: '\x1b[36m',
 };
 
 function log(message, color = 'reset') {
@@ -61,7 +61,7 @@ class PackageValidator {
 
   validatePackageJson() {
     log('\n📦 Validating package.json...', 'cyan');
-    
+
     const pkg = this.readJsonFile('package.json');
     if (!pkg) {
       this.addError('package.json not found or invalid');
@@ -126,7 +126,7 @@ class PackageValidator {
 
   validateFiles() {
     log('\n📁 Validating required files...', 'cyan');
-    
+
     const requiredFiles = [
       'LICENSE',
       'CHANGELOG.md',
@@ -134,7 +134,7 @@ class PackageValidator {
       'dist/index.d.ts',
       'dist/index.esm.js',
       'dist/index.browser.js',
-      'cli/index.js'
+      'cli/index.js',
     ];
 
     for (const file of requiredFiles) {
@@ -152,7 +152,7 @@ class PackageValidator {
       'src/',
       'target/',
       'tests/',
-      '.git/'
+      '.git/',
     ];
 
     for (const file of excludedFiles) {
@@ -164,7 +164,7 @@ class PackageValidator {
 
   validateTypeScriptDefinitions() {
     log('\n📝 Validating TypeScript definitions...', 'cyan');
-    
+
     if (!this.fileExists('dist/index.d.ts')) {
       this.addError('TypeScript definitions file missing');
       return;
@@ -172,7 +172,7 @@ class PackageValidator {
 
     try {
       const dtsContent = fs.readFileSync(path.join(this.basePath, 'dist/index.d.ts'), 'utf8');
-      
+
       const requiredExports = [
         'transpileCuda',
         'analyzeKernel',
@@ -180,7 +180,7 @@ class PackageValidator {
         'createWebGPUKernel',
         'TranspileOptions',
         'TranspileResult',
-        'KernelAnalysis'
+        'KernelAnalysis',
       ];
 
       for (const exportName of requiredExports) {
@@ -197,7 +197,7 @@ class PackageValidator {
 
   validateNpmIgnore() {
     log('\n🙈 Validating .npmignore...', 'cyan');
-    
+
     if (!this.fileExists('.npmignore')) {
       this.addWarning('.npmignore file missing - all files will be included');
       return;
@@ -205,7 +205,7 @@ class PackageValidator {
 
     try {
       const npmignoreContent = fs.readFileSync(path.join(this.basePath, '.npmignore'), 'utf8');
-      
+
       const shouldExclude = ['src/', 'target/', 'tests/', 'Cargo.toml', '.git/'];
       for (const pattern of shouldExclude) {
         if (npmignoreContent.includes(pattern)) {
@@ -221,7 +221,7 @@ class PackageValidator {
 
   validateDistDirectory() {
     log('\n📦 Validating dist/ directory...', 'cyan');
-    
+
     if (!this.fileExists('dist/')) {
       this.addError('dist/ directory missing - run npm run build');
       return;
@@ -229,16 +229,16 @@ class PackageValidator {
 
     const distFiles = [
       'index.js',
-      'index.d.ts', 
+      'index.d.ts',
       'index.esm.js',
-      'index.browser.js'
+      'index.browser.js',
     ];
 
     for (const file of distFiles) {
       const filePath = `dist/${file}`;
       if (this.fileExists(filePath)) {
         this.addSuccess(`Dist file exists: ${file}`);
-        
+
         // Check file size
         const stats = fs.statSync(path.join(this.basePath, filePath));
         if (stats.size === 0) {
@@ -254,7 +254,7 @@ class PackageValidator {
 
   validateCLI() {
     log('\n⌨️  Validating CLI...', 'cyan');
-    
+
     if (!this.fileExists('cli/index.js')) {
       this.addError('CLI entry point missing');
       return;
@@ -262,7 +262,7 @@ class PackageValidator {
 
     try {
       const cliContent = fs.readFileSync(path.join(this.basePath, 'cli/index.js'), 'utf8');
-      
+
       if (cliContent.startsWith('#!/usr/bin/env node')) {
         this.addSuccess('CLI has proper shebang');
       } else {
@@ -281,7 +281,7 @@ class PackageValidator {
 
   validateLicense() {
     log('\n📄 Validating license...', 'cyan');
-    
+
     if (!this.fileExists('LICENSE')) {
       this.addError('LICENSE file missing');
       return;
@@ -289,7 +289,7 @@ class PackageValidator {
 
     try {
       const licenseContent = fs.readFileSync(path.join(this.basePath, 'LICENSE'), 'utf8');
-      
+
       if (licenseContent.includes('MIT License')) {
         this.addSuccess('MIT License detected');
       } else {
@@ -308,7 +308,7 @@ class PackageValidator {
 
   validateChangelog() {
     log('\n📋 Validating changelog...', 'cyan');
-    
+
     if (!this.fileExists('CHANGELOG.md')) {
       this.addWarning('CHANGELOG.md missing - recommended for releases');
       return;
@@ -316,7 +316,7 @@ class PackageValidator {
 
     try {
       const changelogContent = fs.readFileSync(path.join(this.basePath, 'CHANGELOG.md'), 'utf8');
-      
+
       if (changelogContent.includes('[1.0.0]')) {
         this.addSuccess('Changelog includes version 1.0.0');
       } else {

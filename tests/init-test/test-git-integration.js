@@ -13,21 +13,21 @@ console.log('🐝 ruv-swarm Git Integration Demo\n');
 
 // Test if we're in a git repo
 try {
-    execSync('git rev-parse --git-dir', { stdio: 'ignore' });
-    console.log('✅ Git repository detected');
+  execSync('git rev-parse --git-dir', { stdio: 'ignore' });
+  console.log('✅ Git repository detected');
 } catch (error) {
-    console.log('❌ Not in a git repository. Initializing...');
-    execSync('git init');
-    console.log('✅ Git repository initialized');
+  console.log('❌ Not in a git repository. Initializing...');
+  execSync('git init');
+  console.log('✅ Git repository initialized');
 }
 
 // Configure git if needed
 try {
-    execSync('git config user.name', { stdio: 'ignore' });
+  execSync('git config user.name', { stdio: 'ignore' });
 } catch (error) {
-    console.log('📝 Setting git user config...');
-    execSync('git config user.name "ruv-swarm Demo"');
-    execSync('git config user.email "demo@ruv-swarm.ai"');
+  console.log('📝 Setting git user config...');
+  execSync('git config user.name "ruv-swarm Demo"');
+  execSync('git config user.email "demo@ruv-swarm.ai"');
 }
 
 // Create a test file to simulate agent work
@@ -60,33 +60,33 @@ console.log('Running:', agentCompleteCmd);
 console.log('---');
 
 try {
-    const result = execSync(agentCompleteCmd, { encoding: 'utf-8' });
-    const parsed = JSON.parse(result);
-    
-    console.log('\n✅ Agent Complete Hook Result:');
-    console.log('- Agent:', parsed.agent);
-    console.log('- Report Generated:', parsed.reportGenerated);
-    console.log('- Report Path:', parsed.reportPath || 'N/A');
-    console.log('- Committed:', parsed.committed);
-    console.log('- Duration:', parsed.duration);
-    
-    // Show the latest commit
-    if (parsed.committed) {
-        console.log('\n📝 Latest Git Commit:');
-        const latestCommit = execSync('git log -1 --pretty=format:"%h - %s%n%b"', { encoding: 'utf-8' });
-        console.log(latestCommit);
-    }
-    
-    // Show the generated report if it exists
-    if (parsed.reportPath) {
-        console.log('\n📊 Generated Report Preview:');
-        const reportContent = fs.readFileSync(parsed.reportPath, 'utf-8');
-        console.log(reportContent.split('\n').slice(0, 20).join('\n'));
-        console.log('... (truncated)');
-    }
-    
+  const result = execSync(agentCompleteCmd, { encoding: 'utf-8' });
+  const parsed = JSON.parse(result);
+
+  console.log('\n✅ Agent Complete Hook Result:');
+  console.log('- Agent:', parsed.agent);
+  console.log('- Report Generated:', parsed.reportGenerated);
+  console.log('- Report Path:', parsed.reportPath || 'N/A');
+  console.log('- Committed:', parsed.committed);
+  console.log('- Duration:', parsed.duration);
+
+  // Show the latest commit
+  if (parsed.committed) {
+    console.log('\n📝 Latest Git Commit:');
+    const latestCommit = execSync('git log -1 --pretty=format:"%h - %s%n%b"', { encoding: 'utf-8' });
+    console.log(latestCommit);
+  }
+
+  // Show the generated report if it exists
+  if (parsed.reportPath) {
+    console.log('\n📊 Generated Report Preview:');
+    const reportContent = fs.readFileSync(parsed.reportPath, 'utf-8');
+    console.log(reportContent.split('\n').slice(0, 20).join('\n'));
+    console.log('... (truncated)');
+  }
+
 } catch (error) {
-    console.error('❌ Error:', error.message);
+  console.error('❌ Error:', error.message);
 }
 
 console.log('\n🎉 Demo complete!');

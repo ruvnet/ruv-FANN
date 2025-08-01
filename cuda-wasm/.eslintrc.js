@@ -35,6 +35,6 @@ module.exports = {
     'pkg/',
     'node_modules/',
     '*.wasm',
-    '*.node'
-  ]
+    '*.node',
+  ],
 };

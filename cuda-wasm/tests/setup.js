@@ -7,7 +7,7 @@ jest.setTimeout(30000);
 
 // Mock WebGPU for Node.js environment
 global.navigator = {
-  gpu: undefined // WebGPU not available in Node.js
+  gpu: undefined, // WebGPU not available in Node.js
 };
 
 global.WebAssembly = global.WebAssembly || {
@@ -15,10 +15,10 @@ global.WebAssembly = global.WebAssembly || {
   instantiate: function() {
     return Promise.resolve({
       instance: {
-        exports: {}
-      }
+        exports: {},
+      },
     });
-  }
+  },
 };
 
 // Setup test utilities
@@ -31,7 +31,7 @@ __global__ void vectorAdd(float* a, float* b, float* c, int n) {
         c[tid] = a[tid] + b[tid];
     }
 }`,
-    
+
     matrixMul: `
 __global__ void matrixMul(float* A, float* B, float* C, int N) {
     int row = blockIdx.y * blockDim.y + threadIdx.y;
@@ -46,8 +46,8 @@ __global__ void matrixMul(float* A, float* B, float* C, int N) {
     }
 }`,
 
-    invalidCode: 'not valid cuda code'
-  }
+    invalidCode: 'not valid cuda code',
+  },
 };
 
 // Cleanup after tests

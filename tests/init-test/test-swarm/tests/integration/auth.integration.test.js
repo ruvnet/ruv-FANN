@@ -12,7 +12,7 @@ describe('Auth Integration Tests', () => {
       const userData = {
         username: 'testuser',
         email: 'test@example.com',
-        password: 'password123'
+        password: 'password123',
       };
 
       const response = await request(app)
@@ -30,7 +30,7 @@ describe('Auth Integration Tests', () => {
       const userData = {
         username: 'testuser2',
         email: 'invalid-email',
-        password: 'password123'
+        password: 'password123',
       };
 
       const response = await request(app)
@@ -46,7 +46,7 @@ describe('Auth Integration Tests', () => {
     it('should login with valid credentials', async () => {
       const loginData = {
         email: 'test@example.com',
-        password: 'password123'
+        password: 'password123',
       };
 
       const response = await request(app)
@@ -62,7 +62,7 @@ describe('Auth Integration Tests', () => {
     it('should reject login with invalid credentials', async () => {
       const loginData = {
         email: 'test@example.com',
-        password: 'wrongpassword'
+        password: 'wrongpassword',
       };
 
       const response = await request(app)

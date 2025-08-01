@@ -16,7 +16,7 @@ const colors = {
   red: '\x1b[31m',
   yellow: '\x1b[33m',
   blue: '\x1b[34m',
-  cyan: '\x1b[36m'
+  cyan: '\x1b[36m',
 };
 
 function log(message, color = 'reset') {
@@ -53,30 +53,30 @@ class IntegrationTester {
     log(`\n📊 Test Results:`, 'cyan');
     log(`   ✅ Passed: ${this.passed}`, 'green');
     log(`   ❌ Failed: ${this.failed}`, this.failed > 0 ? 'red' : 'green');
-    log(`   📈 Success Rate: ${((this.passed / this.tests.length) * 100).toFixed(1)}%`, 
-        this.failed === 0 ? 'green' : 'yellow');
+    log(`   📈 Success Rate: ${((this.passed / this.tests.length) * 100).toFixed(1)}%`,
+      this.failed === 0 ? 'green' : 'yellow');
 
     return this.failed === 0;
   }
 
   async runCommand(command, args = []) {
     return new Promise((resolve, reject) => {
-      const proc = spawn(command, args, { 
+      const proc = spawn(command, args, {
         stdio: ['pipe', 'pipe', 'pipe'],
-        shell: process.platform === 'win32'
+        shell: process.platform === 'win32',
       });
-      
+
       let stdout = '';
       let stderr = '';
-      
+
       proc.stdout.on('data', (data) => {
         stdout += data.toString();
       });
-      
+
       proc.stderr.on('data', (data) => {
         stderr += data.toString();
       });
-      
+
       proc.on('close', (code) => {
         if (code === 0) {
           resolve({ stdout, stderr });
@@ -133,7 +133,7 @@ __global__ void reduce(float* input, float* output, int n) {
     
     if (tid == 0) output[blockIdx.x] = sdata[0];
 }
-`
+`,
 };
 
 async function main() {
@@ -171,7 +171,7 @@ async function main() {
     try {
       const cudaWasm = require('../dist/index.js');
       const version = cudaWasm.getVersion();
-      
+
       if (!version.version || !version.features) {
         throw new Error('Version info incomplete');
       }
@@ -186,9 +186,9 @@ async function main() {
       const cudaWasm = require('../dist/index.js');
       const result = await cudaWasm.transpileCuda(testKernels.vectorAdd, {
         target: 'wasm',
-        optimize: false
+        optimize: false,
       });
-      
+
       if (!result.code || result.code.length === 0) {
         throw new Error('No transpiled code generated');
       }
@@ -202,11 +202,11 @@ async function main() {
     try {
       const cudaWasm = require('../dist/index.js');
       const analysis = await cudaWasm.analyzeKernel(testKernels.vectorAdd);
-      
+
       if (typeof analysis.threadUtilization !== 'number') {
         throw new Error('Analysis missing thread utilization');
       }
-      
+
       if (!Array.isArray(analysis.suggestions)) {
         throw new Error('Analysis missing suggestions array');
       }
@@ -219,12 +219,12 @@ async function main() {
   tester.addTest('CUDA code validation', async () => {
     try {
       const cudaWasm = require('../dist/index.js');
-      
+
       const validResult = cudaWasm.validateCudaCode(testKernels.vectorAdd);
       if (!validResult.isValid && validResult.errors.length > 0) {
         throw new Error('Valid CUDA code marked as invalid');
       }
-      
+
       const invalidResult = cudaWasm.validateCudaCode('invalid code');
       if (invalidResult.warnings.length === 0) {
         throw new Error('Invalid code should generate warnings');
@@ -239,11 +239,11 @@ async function main() {
     try {
       const cudaWasm = require('../dist/index.js');
       const kernels = cudaWasm.parseCudaKernels(testKernels.vectorAdd);
-      
+
       if (!Array.isArray(kernels) || kernels.length === 0) {
         throw new Error('No kernels parsed from valid CUDA code');
       }
-      
+
       if (kernels[0].name !== 'vectorAdd') {
         throw new Error('Incorrect kernel name parsed');
       }
@@ -258,13 +258,13 @@ async function main() {
       const cudaWasm = require('../dist/index.js');
       const benchmark = await cudaWasm.benchmark(testKernels.vectorAdd, {
         iterations: 5,
-        warmupIterations: 2
+        warmupIterations: 2,
       });
-      
+
       if (typeof benchmark.avgTime !== 'number' || benchmark.avgTime <= 0) {
         throw new Error('Invalid benchmark timing');
       }
-      
+
       if (typeof benchmark.throughput !== 'number') {
         throw new Error('Missing throughput measurement');
       }
@@ -278,7 +278,7 @@ async function main() {
     try {
       const cudaWasm = require('../dist/index.js');
       const available = cudaWasm.isWebGPUAvailable();
-      
+
       // In Node.js environment, this should return false
       if (available !== false) {
         log('   Note: WebGPU availability check behavior may vary by environment', 'yellow');
@@ -295,17 +295,17 @@ async function main() {
       const result = await cudaWasm.transpileCuda(testKernels.reduction, {
         target: 'wasm',
         optimize: true,
-        profile: true
+        profile: true,
       });
-      
+
       if (!result.code) {
         throw new Error('No code generated for complex kernel');
       }
-      
+
       if (!result.profile) {
         throw new Error('Profiling data not generated');
       }
-      
+
       if (typeof result.profile.totalTime !== 'number') {
         throw new Error('Invalid profiling data');
       }
@@ -320,18 +320,18 @@ async function main() {
       // Create a temporary CUDA file
       const tempFile = path.join(__dirname, 'temp_kernel.cu');
       fs.writeFileSync(tempFile, testKernels.vectorAdd);
-      
+
       try {
         // Test CLI transpilation with file input
         const result = await tester.runCommand('node', [
-          'cli/index.js', 
-          'transpile', 
-          tempFile, 
-          '--output', 
-          'temp_output.wasm'
+          'cli/index.js',
+          'transpile',
+          tempFile,
+          '--output',
+          'temp_output.wasm',
         ]);
-        
-        if (!result.stdout.includes('Transpilation complete') && 
+
+        if (!result.stdout.includes('Transpilation complete') &&
             !result.stdout.includes('Success')) {
           throw new Error('CLI transpilation did not complete successfully');
         }
@@ -354,14 +354,14 @@ async function main() {
   tester.addTest('TypeScript definitions available', async () => {
     try {
       const typesFile = path.join(__dirname, '../dist/index.d.ts');
-      
+
       if (!fs.existsSync(typesFile)) {
         throw new Error('TypeScript definitions file not found');
       }
-      
+
       const typesContent = fs.readFileSync(typesFile, 'utf8');
-      
-      if (!typesContent.includes('TranspileOptions') || 
+
+      if (!typesContent.includes('TranspileOptions') ||
           !typesContent.includes('transpileCuda')) {
         throw new Error('TypeScript definitions incomplete');
       }
@@ -372,7 +372,7 @@ async function main() {
 
   // Run all tests
   const success = await tester.runTests();
-  
+
   if (success) {
     log('\n🎉 All integration tests passed!', 'green');
     process.exit(0);

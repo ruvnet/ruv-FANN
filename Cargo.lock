@@ -1478,8 +1478,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "ruv-fann"
-version = "0.1.6"
+name = "ruv-fann-zen"
+version = "0.2.0-zen.1"
 dependencies = [
  "anyhow",
  "approx",

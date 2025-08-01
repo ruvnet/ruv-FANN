@@ -14,7 +14,7 @@ class WasmValidator {
     this.results = {
       checks: [],
       wasmFunctionality: {},
-      passed: true
+      passed: true,
     };
   }
 
@@ -25,7 +25,7 @@ class WasmValidator {
       this.results.checks.push({
         name,
         status: 'PASSED',
-        result
+        result,
       });
       console.log(`✅ ${name}: PASSED`);
       return true;
@@ -33,7 +33,7 @@ class WasmValidator {
       this.results.checks.push({
         name,
         status: 'FAILED',
-        error: error.message
+        error: error.message,
       });
       this.results.passed = false;
       console.log(`❌ ${name}: FAILED - ${error.message}`);
@@ -54,7 +54,7 @@ class WasmValidator {
 
       const files = fs.readdirSync(wasmPath);
       const requiredFiles = ['ruv_swarm_wasm_bg.wasm', 'ruv_swarm_wasm.js'];
-      
+
       for (const file of requiredFiles) {
         if (!files.includes(file)) {
           throw new Error(`Missing required file: ${file}`);
@@ -69,7 +69,7 @@ class WasmValidator {
     this.check('WASM Binary Format', () => {
       const wasmFile = path.join(process.cwd(), 'node_modules', 'ruv-swarm', 'wasm', 'ruv_swarm_wasm_bg.wasm');
       const buffer = fs.readFileSync(wasmFile);
-      
+
       // Check magic number
       const magic = buffer.slice(0, 4);
       if (magic.toString() !== '\0asm') {
@@ -98,10 +98,10 @@ class WasmValidator {
       try {
         const wasmFile = path.join(process.cwd(), 'node_modules', 'ruv-swarm', 'wasm', 'ruv_swarm_wasm_bg.wasm');
         const wasmBuffer = fs.readFileSync(wasmFile);
-        
+
         // Try to compile the WASM module
         const wasmModule = await WebAssembly.compile(wasmBuffer);
-        
+
         if (!wasmModule) {
           throw new Error('Failed to compile WASM module');
         }
@@ -109,7 +109,7 @@ class WasmValidator {
         // Check module exports
         const moduleExports = WebAssembly.Module.exports(wasmModule);
         this.results.wasmFunctionality.exportCount = moduleExports.length;
-        
+
         if (moduleExports.length === 0) {
           throw new Error('WASM module has no exports');
         }
@@ -150,7 +150,7 @@ class WasmValidator {
 
       const result = execSync(`node -e '${testScript}'`, { encoding: 'utf8' });
       const parsed = JSON.parse(result);
-      
+
       if (parsed.error) {
         throw new Error(parsed.error);
       }
@@ -164,7 +164,7 @@ class WasmValidator {
       const commands = [
         { cmd: 'npx ruv-swarm --version', check: 'version' },
         { cmd: 'npx ruv-swarm benchmark --help', check: 'help' },
-        { cmd: 'npx ruv-swarm swarm --help', check: 'help' }
+        { cmd: 'npx ruv-swarm swarm --help', check: 'help' },
       ];
 
       for (const { cmd, check } of commands) {
@@ -185,13 +185,13 @@ class WasmValidator {
     // Check 6: Performance characteristics
     this.check('WASM Performance Characteristics', () => {
       const startTime = Date.now();
-      
+
       // Run a benchmark that should use WASM
       try {
         execSync('npx ruv-swarm benchmark --quick --iterations 5', {
           encoding: 'utf8',
           stdio: 'pipe',
-          timeout: 30000
+          timeout: 30000,
         });
       } catch (error) {
         // Benchmark might fail but should at least try to run
@@ -202,7 +202,7 @@ class WasmValidator {
 
       const duration = Date.now() - startTime;
       this.results.wasmFunctionality.benchmarkDuration = duration;
-      
+
       // WASM should be reasonably fast
       if (duration > 30000) {
         throw new Error('Performance too slow, might be using fallback');
@@ -223,7 +223,7 @@ class WasmValidator {
       passedChecks: this.results.checks.filter(c => c.status === 'PASSED').length,
       failedChecks: this.results.checks.filter(c => c.status === 'FAILED').length,
       wasmDetails: this.results.wasmFunctionality,
-      checks: this.results.checks
+      checks: this.results.checks,
     };
 
     // Save report
@@ -235,15 +235,15 @@ class WasmValidator {
     console.log(`Total Checks: ${report.totalChecks}`);
     console.log(`✅ Passed: ${report.passedChecks}`);
     console.log(`❌ Failed: ${report.failedChecks}`);
-    
+
     if (report.wasmDetails.binarySize) {
       console.log(`\nWASM Binary Size: ${(report.wasmDetails.binarySize / 1024).toFixed(2)} KB`);
     }
-    
+
     if (report.wasmDetails.exportCount) {
       console.log(`WASM Exports: ${report.wasmDetails.exportCount}`);
     }
-    
+
     if (report.wasmDetails.memoryUsage) {
       console.log(`Memory Usage: ${(report.wasmDetails.memoryUsage / 1024).toFixed(2)} KB`);
     }

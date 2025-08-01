@@ -1,7 +1,6 @@
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import path, { dirname, join } from 'path';
 import fs from 'fs';
-import path from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -20,7 +19,7 @@ const candidates = [
   {
     description: 'NPM package installation (adjacent to src/)',
     wasmDir: path.join(baseDir, '..', '..', 'wasm'),
-  }
+  },
 ];
 
 for (const candidate of candidates) {

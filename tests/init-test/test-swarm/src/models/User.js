@@ -4,13 +4,13 @@ const { db } = require('./database');
 class User {
   static async create({ username, email, password }) {
     const hashedPassword = await bcrypt.hash(password, 10);
-    
+
     return new Promise((resolve, reject) => {
       const query = `
         INSERT INTO users (username, email, password)
         VALUES (?, ?, ?)
       `;
-      
+
       db.run(query, [username, email, hashedPassword], function(err) {
         if (err) {
           reject(err);
@@ -24,7 +24,7 @@ class User {
   static async findAll() {
     return new Promise((resolve, reject) => {
       const query = 'SELECT id, username, email, created_at FROM users ORDER BY created_at DESC';
-      
+
       db.all(query, [], (err, rows) => {
         if (err) {
           reject(err);
@@ -38,7 +38,7 @@ class User {
   static async findByEmail(email) {
     return new Promise((resolve, reject) => {
       const query = 'SELECT * FROM users WHERE email = ?';
-      
+
       db.get(query, [email], (err, row) => {
         if (err) {
           reject(err);
@@ -52,7 +52,7 @@ class User {
   static async findById(id) {
     return new Promise((resolve, reject) => {
       const query = 'SELECT id, username, email, created_at FROM users WHERE id = ?';
-      
+
       db.get(query, [id], (err, row) => {
         if (err) {
           reject(err);
@@ -66,7 +66,7 @@ class User {
   static async findByIdWithPassword(id) {
     return new Promise((resolve, reject) => {
       const query = 'SELECT * FROM users WHERE id = ?';
-      
+
       db.get(query, [id], (err, row) => {
         if (err) {
           reject(err);
@@ -81,20 +81,20 @@ class User {
     return new Promise((resolve, reject) => {
       const fields = [];
       const values = [];
-      
+
       Object.keys(updates).forEach(key => {
         fields.push(`${key} = ?`);
         values.push(updates[key]);
       });
-      
+
       values.push(id);
-      
+
       const query = `
         UPDATE users 
         SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `;
-      
+
       db.run(query, values, function(err) {
         if (err) {
           reject(err);
@@ -112,7 +112,7 @@ class User {
         SET password = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `;
-      
+
       db.run(query, [hashedPassword, id], function(err) {
         if (err) {
           reject(err);
@@ -126,7 +126,7 @@ class User {
   static async delete(id) {
     return new Promise((resolve, reject) => {
       const query = 'DELETE FROM users WHERE id = ?';
-      
+
       db.run(query, [id], function(err) {
         if (err) {
           reject(err);

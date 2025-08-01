@@ -22,7 +22,7 @@ router.get('/', authenticate, async (req, res) => {
 router.get('/profile', authenticate, async (req, res) => {
   try {
     res.json({
-      user: req.user
+      user: req.user,
     });
   } catch (error) {
     logger.error('Profile fetch error:', error);
@@ -47,7 +47,7 @@ router.get('/:id', authenticate, async (req, res) => {
 // Update user profile
 router.put('/profile', authenticate, [
   body('username').optional().isLength({ min: 3 }).trim(),
-  body('email').optional().isEmail().normalizeEmail()
+  body('email').optional().isEmail().normalizeEmail(),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -57,17 +57,17 @@ router.put('/profile', authenticate, [
 
     const { username, email } = req.body;
     const updates = {};
-    
+
     if (username) updates.username = username;
     if (email) updates.email = email;
 
     const updatedUser = await User.update(req.user.id, updates);
-    
+
     logger.info(`User profile updated: ${req.user.email}`);
-    
+
     res.json({
       user: updatedUser,
-      message: 'Profile updated successfully'
+      message: 'Profile updated successfully',
     });
   } catch (error) {
     logger.error('Profile update error:', error);
@@ -78,7 +78,7 @@ router.put('/profile', authenticate, [
 // Update user password
 router.put('/profile/password', authenticate, [
   body('currentPassword').notEmpty(),
-  body('newPassword').isLength({ min: 6 })
+  body('newPassword').isLength({ min: 6 }),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -87,10 +87,10 @@ router.put('/profile/password', authenticate, [
     }
 
     const { currentPassword, newPassword } = req.body;
-    
+
     // Get user with password
     const userWithPassword = await User.findByIdWithPassword(req.user.id);
-    
+
     // Verify current password
     const isValid = await User.verifyPassword(currentPassword, userWithPassword.password);
     if (!isValid) {
@@ -100,9 +100,9 @@ router.put('/profile/password', authenticate, [
     // Update password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await User.updatePassword(req.user.id, hashedPassword);
-    
+
     logger.info(`Password updated for user: ${req.user.email}`);
-    
+
     res.json({ message: 'Password updated successfully' });
   } catch (error) {
     logger.error('Password update error:', error);
@@ -114,9 +114,9 @@ router.put('/profile/password', authenticate, [
 router.delete('/profile', authenticate, async (req, res) => {
   try {
     await User.delete(req.user.id);
-    
+
     logger.info(`User account deleted: ${req.user.email}`);
-    
+
     res.json({ message: 'Account deleted successfully' });
   } catch (error) {
     logger.error('Account deletion error:', error);

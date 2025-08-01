@@ -7,7 +7,7 @@ const { execSync } = require('child_process');
 console.log('🚀 CUDA-Rust-WASM Post-install Setup');
 
 // Check if we're in development (npm link) or production
-const isDev = process.env.npm_lifecycle_event === 'install' && 
+const isDev = process.env.npm_lifecycle_event === 'install' &&
               process.cwd().includes('cuda-rust-wasm');
 
 if (isDev) {
@@ -28,7 +28,7 @@ try {
 const optionalDeps = [
   { name: 'node-gyp', install: 'npm install -g node-gyp' },
   { name: 'wasm-pack', install: 'cargo install wasm-pack' },
-  { name: 'wasm-opt', install: 'npm install -g wasm-opt' }
+  { name: 'wasm-opt', install: 'npm install -g wasm-opt' },
 ];
 
 console.log('📋 Checking optional dependencies...');
@@ -47,7 +47,7 @@ const exampleDir = path.join(process.cwd(), 'cuda-examples');
 if (!fs.existsSync(exampleDir)) {
   console.log('📁 Creating example directory...');
   fs.mkdirSync(exampleDir, { recursive: true });
-  
+
   // Create a simple example
   const exampleContent = `// Example: Vector Addition
 const { transpileCuda } = require('cuda-rust-wasm');
@@ -81,12 +81,12 @@ async function main() {
 
 main();
 `;
-  
+
   fs.writeFileSync(
     path.join(exampleDir, 'vector_add.js'),
-    exampleContent
+    exampleContent,
   );
-  
+
   console.log('✅ Example created at cuda-examples/vector_add.js');
 }
 

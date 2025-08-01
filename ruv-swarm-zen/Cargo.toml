@@ -1,0 +1,115 @@
+[workspace]
+members = [
+    "crates/ruv-swarm-core",
+    "crates/claude-parser",
+    "crates/ruv-swarm-transport",   # Fixed dependency conflicts
+    "crates/ruv-swarm-persistence", # Fixed dependency conflicts
+    "crates/ruv-swarm-agents",
+    "crates/ruv-swarm-ml",
+    "crates/ruv-swarm-mcp",
+    "crates/ruv-swarm-wasm",
+    "crates/ruv-swarm-wasm-unified", # Unified WASM module for all features
+    "crates/ruv-swarm-daa",          # DAA integration for autonomous agents
+    "crates/swe-bench-adapter",      # SWE-Bench adapter for evaluation
+    "crates/ruv-swarm-cli",
+    "crates/ruv-swarm-enhanced-coordinator", # Enhanced Queen Coordinator
+    "crates/ruv-swarm-github",               # GitHub integration
+    "ml-training",
+    "benchmarking",                   # Comprehensive benchmarking framework
+]
+
+resolver = "2"
+exclude = []  # No exclusions
+
+[workspace.package]
+version = "1.0.7"
+edition = "2021"
+authors = ["rUv Contributors <noreply@ruvnet.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/ruvnet/claude-zen"
+homepage = "https://github.com/ruvnet/claude-zen/tree/main/ruv-FANN-zen/ruv-swarm-zen"
+documentation = "https://docs.rs/ruv-swarm-zen"
+description = "High-performance neural network swarm orchestration framework with WebAssembly acceleration and MCP integration"
+readme = "README.md"
+keywords = ["neural-network", "wasm", "swarm", "ai", "mcp"]
+categories = ["algorithms", "science", "wasm", "web-programming"]
+rust-version = "1.85"
+
+[workspace.dependencies]
+# Async runtime (WASM-compatible subset)
+tokio = { version = "1.40", features = ["sync", "macros", "time", "rt", "rt-multi-thread"], default-features = false }
+async-trait = "0.1"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"], default-features = false }
+serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
+
+# Random number generation  
+getrandom = { version = "0.2", default-features = false }
+rand = { version = "0.8", features = ["small_rng"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+# Collections and utilities
+dashmap = "6.0"
+futures = { version = "0.3", default-features = false, features = ["executor"] }
+pin-project = "1.1"
+parking_lot = "0.12"
+
+# No-std support
+no-std-compat = { version = "0.4", features = ["alloc"] }
+heapless = "0.8"
+
+# Development dependencies
+criterion = "0.5"
+proptest = "1.0"
+
+# CLI dependencies
+clap = { version = "4.5", features = ["derive"] }
+atty = "0.2"
+
+# WASM dependencies
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = ["console", "Window"] }
+wee_alloc = "0.4"
+
+# MCP dependencies
+axum = "0.7"
+tower = "0.4"
+tokio-tungstenite = "0.23"
+schemars = "0.8"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+# Transport dependencies
+tungstenite = "0.23"
+shared_memory = "0.12"
+
+# Persistence dependencies
+rusqlite = { version = "0.29", features = ["bundled"] }
+r2d2 = "0.8"
+r2d2_sqlite = "0.22"
+
+[profile.dev]
+opt-level = 0
+debug = true
+
+[profile.release]
+opt-level = "z"  # Optimize for size
+lto = "fat"      # Full LTO for maximum optimization
+codegen-units = 1
+strip = true
+panic = "abort"  # Reduce binary size by removing panic handling
+overflow-checks = false  # Disable overflow checks in release mode
+
+[profile.bench]
+inherits = "release"
+debug = true
+
+

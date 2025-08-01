@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "better-sqlite3": "^11.6.0",
-    "ruv-swarm": "file:ruv-swarm/npm",
+    "ruv-swarm-zen": "file:ruv-swarm-zen/npm",
     "uuid": "^11.1.0"
   }
 }

@@ -12,14 +12,14 @@ __global__ void vectorAdd(float* a, float* b, float* c, int n) {
 
 async function main() {
   try {
-    const result = await transpileCuda(cudaCode, { 
+    const result = await transpileCuda(cudaCode, {
       target: 'wasm',
-      optimize: true 
+      optimize: true,
     });
-    
+
     console.log('✅ Transpilation successful!');
     console.log('Generated code length:', result.code.length);
-    
+
     if (result.wasmBinary) {
       console.log('WASM binary size:', result.wasmBinary.length, 'bytes');
     }

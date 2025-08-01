@@ -2,28 +2,28 @@ import { WasmModuleLoader } from '/home/codespace/nvm/current/lib/node_modules/r
 
 async function traceWasmIssue() {
   console.log('=== Tracing WASM Loading Issue ===\n');
-  
+
   const loader = new WasmModuleLoader();
   console.log('1. WasmModuleLoader created');
   console.log('   Base directory:', loader.baseDir);
-  
+
   try {
     console.log('\n2. Initializing loader with progressive strategy...');
     await loader.initialize('progressive');
-    
+
     console.log('\n3. Module status:');
     const status = loader.getModuleStatus();
     console.log(JSON.stringify(status, null, 2));
-    
+
     console.log('\n4. Checking loaded modules:');
     for (const [name, module] of loader.modules.entries()) {
       console.log(`   - ${name}:`, {
         isPlaceholder: module.isPlaceholder || false,
         hasMemory: !!module.memory,
-        exports: module.exports ? Object.keys(module.exports).slice(0, 5) : []
+        exports: module.exports ? Object.keys(module.exports).slice(0, 5) : [],
       });
     }
-    
+
   } catch (error) {
     console.error('\n❌ Error during initialization:', error.message);
     console.error('Stack:', error.stack);

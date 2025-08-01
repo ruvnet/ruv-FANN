@@ -14,7 +14,7 @@ console.log('🔧 Testing WASM Loading Fix for Issue #41\n');
 const tests = {
   passed: [],
   failed: [],
-  suggestions: []
+  suggestions: [],
 };
 
 // Test 1: Check current WASM loading behavior
@@ -33,10 +33,10 @@ try {
       }));
     })();
   `;
-  
+
   const result = execSync(`node -e '${testCode}'`, { encoding: 'utf8' });
   const parsed = JSON.parse(result);
-  
+
   if (parsed.isPlaceholder) {
     tests.failed.push('WASM loads as placeholder');
     tests.suggestions.push('Need to fix path resolution in wasm-loader.js');
@@ -53,19 +53,19 @@ try {
   const possiblePaths = [
     path.join(process.cwd(), 'node_modules/ruv-swarm/wasm/ruv_swarm_wasm_bg.wasm'),
     path.join(__dirname, '../node_modules/ruv-swarm/wasm/ruv_swarm_wasm_bg.wasm'),
-    path.join(require.resolve('ruv-swarm'), '../../wasm/ruv_swarm_wasm_bg.wasm')
+    path.join(require.resolve('ruv-swarm'), '../../wasm/ruv_swarm_wasm_bg.wasm'),
   ];
-  
+
   let found = false;
   for (const wasmPath of possiblePaths) {
     if (fs.existsSync(wasmPath)) {
       console.log(`  ✅ Found WASM at: ${wasmPath}`);
       found = true;
-      
+
       // Check if we can read it
       const stats = fs.statSync(wasmPath);
       console.log(`  📏 Size: ${stats.size} bytes`);
-      
+
       // Verify it's a valid WASM file
       const buffer = fs.readFileSync(wasmPath);
       const magic = buffer.slice(0, 4).toString();
@@ -77,7 +77,7 @@ try {
       break;
     }
   }
-  
+
   if (!found) {
     tests.failed.push('WASM file not found in expected locations');
     tests.suggestions.push('Check npm package structure');
@@ -119,10 +119,10 @@ try {
       }));
     }
   `;
-  
+
   const result = execSync(`node -e '${fixCode}'`, { encoding: 'utf8' });
   const parsed = JSON.parse(result);
-  
+
   if (parsed.success) {
     tests.passed.push('Fix approach works');
     tests.suggestions.push(`Use require.resolve() for reliable path resolution`);
@@ -151,10 +151,10 @@ try {
       }));
     }
   `;
-  
+
   const result = execSync(`node -e '${bindgenTest}'`, { encoding: 'utf8' });
   const parsed = JSON.parse(result);
-  
+
   if (parsed.success) {
     tests.passed.push('wasm-bindgen JS module loads');
   } else {
@@ -264,10 +264,10 @@ const report = {
   timestamp: new Date().toISOString(),
   tests: {
     passed: tests.passed,
-    failed: tests.failed
+    failed: tests.failed,
   },
   suggestions: tests.suggestions,
-  fixRequired: tests.failed.length > 0
+  fixRequired: tests.failed.length > 0,
 };
 
 fs.writeFileSync('wasm-fix-test-report.json', JSON.stringify(report, null, 2));

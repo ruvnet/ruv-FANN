@@ -4,11 +4,11 @@ const fs = require('fs').promises;
 const path = require('path');
 
 async function setupClaudeIntegration() {
-    console.log('Setting up Claude Code integration...');
-    
-    try {
-        // Create claude.md
-        const claudeMdContent = `# Claude Code Configuration for ruv-swarm
+  console.log('Setting up Claude Code integration...');
+
+  try {
+    // Create claude.md
+    const claudeMdContent = `# Claude Code Configuration for ruv-swarm
 
 ## Quick Setup (Stdio MCP - Recommended)
 
@@ -69,15 +69,15 @@ Once configured, ruv-swarm MCP tools are available directly in Claude Code:
 - Examples: https://github.com/ruvnet/ruv-FANN/tree/main/ruv-swarm/examples
 `;
 
-        await fs.writeFile('claude.md', claudeMdContent);
-        console.log('✅ Created claude.md');
-        
-        // Create .claude directory structure
-        await fs.mkdir('.claude', { recursive: true });
-        await fs.mkdir('.claude/commands', { recursive: true });
-        
-        // Create basic command files
-        const initContent = `# Initialize ruv-swarm
+    await fs.writeFile('claude.md', claudeMdContent);
+    console.log('✅ Created claude.md');
+
+    // Create .claude directory structure
+    await fs.mkdir('.claude', { recursive: true });
+    await fs.mkdir('.claude/commands', { recursive: true });
+
+    // Create basic command files
+    const initContent = `# Initialize ruv-swarm
 
 ## MCP Tool Usage in Claude Code
 
@@ -101,7 +101,7 @@ Once configured, ruv-swarm MCP tools are available directly in Claude Code:
 - **star**: Central coordination, best for controlled workflows
 `;
 
-        const spawnContent = `# Spawn Agents
+    const spawnContent = `# Spawn Agents
 
 ## MCP Tool Usage in Claude Code
 
@@ -125,7 +125,7 @@ Once configured, ruv-swarm MCP tools are available directly in Claude Code:
 - Parameters: {"type": "researcher", "name": "AI Research Specialist"}
 `;
 
-        const orchestrateContent = `# Orchestrate Tasks
+    const orchestrateContent = `# Orchestrate Tasks
 
 ## MCP Tool Usage in Claude Code
 
@@ -147,14 +147,14 @@ Once configured, ruv-swarm MCP tools are available directly in Claude Code:
 - Parameters: {"task": "Build REST API", "strategy": "parallel", "priority": "high"}
 `;
 
-        await fs.writeFile('.claude/commands/init.md', initContent);
-        await fs.writeFile('.claude/commands/spawn.md', spawnContent);
-        await fs.writeFile('.claude/commands/orchestrate.md', orchestrateContent);
-        
-        console.log('✅ Created .claude/commands/ directory with command files');
-        
-        // Create ruv-swarm wrapper script
-        const wrapperScript = `#!/usr/bin/env bash
+    await fs.writeFile('.claude/commands/init.md', initContent);
+    await fs.writeFile('.claude/commands/spawn.md', spawnContent);
+    await fs.writeFile('.claude/commands/orchestrate.md', orchestrateContent);
+
+    console.log('✅ Created .claude/commands/ directory with command files');
+
+    // Create ruv-swarm wrapper script
+    const wrapperScript = `#!/usr/bin/env bash
 # ruv-swarm local wrapper
 # This script ensures ruv-swarm runs from your project directory
 
@@ -188,23 +188,23 @@ else
 fi
 `;
 
-        await fs.writeFile('ruv-swarm', wrapperScript, { mode: 0o755 });
-        console.log('✅ Created ruv-swarm wrapper script');
-        
-        console.log('\n🎉 Claude Code integration setup complete!');
-        console.log('\n📋 Next steps:');
-        console.log('1. In Claude Code: claude mcp add ruv-swarm npx ruv-swarm mcp start');
-        console.log('2. Test with MCP tools: mcp__ruv-swarm__agent_spawn');
-        console.log('3. Check .claude/commands/ for detailed usage guides');
-        
-    } catch (error) {
-        console.error('❌ Failed to setup Claude integration:', error.message);
-        process.exit(1);
-    }
+    await fs.writeFile('ruv-swarm', wrapperScript, { mode: 0o755 });
+    console.log('✅ Created ruv-swarm wrapper script');
+
+    console.log('\n🎉 Claude Code integration setup complete!');
+    console.log('\n📋 Next steps:');
+    console.log('1. In Claude Code: claude mcp add ruv-swarm npx ruv-swarm mcp start');
+    console.log('2. Test with MCP tools: mcp__ruv-swarm__agent_spawn');
+    console.log('3. Check .claude/commands/ for detailed usage guides');
+
+  } catch (error) {
+    console.error('❌ Failed to setup Claude integration:', error.message);
+    process.exit(1);
+  }
 }
 
 if (require.main === module) {
-    setupClaudeIntegration();
+  setupClaudeIntegration();
 }
 
 module.exports = { setupClaudeIntegration };

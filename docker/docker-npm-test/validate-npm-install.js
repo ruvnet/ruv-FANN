@@ -14,7 +14,7 @@ console.log('🔍 Starting ruv-swarm npm package validation...\n');
 const validationResults = {
   passed: [],
   failed: [],
-  warnings: []
+  warnings: [],
 };
 
 // Helper function to run tests
@@ -54,8 +54,8 @@ runTest('Main Entry Point', () => {
 // Test 3: Check exported classes
 runTest('Exported Classes', () => {
   const { RuvSwarm, Agent, Neural } = require('ruv-swarm');
-  return typeof RuvSwarm === 'function' && 
-         typeof Agent === 'function' && 
+  return typeof RuvSwarm === 'function' &&
+         typeof Agent === 'function' &&
          typeof Neural === 'function';
 });
 
@@ -77,11 +77,11 @@ runTest('CLI Command', () => {
 runTest('WASM Files', () => {
   const nodeModulesPath = path.join(process.cwd(), 'node_modules', 'ruv-swarm');
   const wasmPath = path.join(nodeModulesPath, 'wasm');
-  
+
   if (!fs.existsSync(wasmPath)) {
     return 'warning'; // WASM might be loaded differently
   }
-  
+
   const wasmFiles = fs.readdirSync(wasmPath).filter(f => f.endsWith('.wasm'));
   return wasmFiles.length > 0;
 });
@@ -103,9 +103,9 @@ runTest('MCP Tools', () => {
 runTest('Package Metadata', () => {
   const packageJsonPath = path.join(process.cwd(), 'node_modules', 'ruv-swarm', 'package.json');
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-  
-  return packageJson.name === 'ruv-swarm' && 
-         packageJson.version && 
+
+  return packageJson.name === 'ruv-swarm' &&
+         packageJson.version &&
          packageJson.main;
 });
 
@@ -113,7 +113,7 @@ runTest('Package Metadata', () => {
 runTest('Executable Scripts', () => {
   const packageJsonPath = path.join(process.cwd(), 'node_modules', 'ruv-swarm', 'package.json');
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-  
+
   return packageJson.bin && Object.keys(packageJson.bin).length > 0;
 });
 
@@ -163,10 +163,10 @@ const report = {
     node: process.version,
     npm: execSync('npm --version', { encoding: 'utf8' }).trim(),
     platform: process.platform,
-    arch: process.arch
+    arch: process.arch,
   },
   results: validationResults,
-  success: validationResults.failed.length === 0
+  success: validationResults.failed.length === 0,
 };
 
 fs.writeFileSync('validation-report.json', JSON.stringify(report, null, 2));

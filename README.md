@@ -1,13 +1,15 @@
-# ruv-FANN: The Neural Intelligence Framework 🧠
+# ruv-FANN-zen: Neural Intelligence for Claude-Zen 🧠👑
 
-[![Crates.io](https://img.shields.io/crates/v/ruv-fann.svg)](https://crates.io/crates/ruv-fann)
-[![Documentation](https://docs.rs/ruv-fann/badge.svg)](https://docs.rs/ruv-fann)
-[![License](https://img.shields.io/crates/l/ruv-fann.svg)](https://github.com/ruvnet/ruv-fann/blob/main/LICENSE)
-[![CI](https://github.com/ruvnet/ruv-FANN/workflows/CI/badge.svg)](https://github.com/ruvnet/ruv-FANN/actions)
+[![Crates.io](https://img.shields.io/crates/v/ruv-fann-zen.svg)](https://crates.io/crates/ruv-fann-zen)
+[![Documentation](https://docs.rs/ruv-fann-zen/badge.svg)](https://docs.rs/ruv-fann-zen)
+[![License](https://img.shields.io/crates/l/ruv-fann-zen.svg)](https://github.com/ruvnet/claude-zen/blob/main/LICENSE)
+[![CI](https://github.com/ruvnet/claude-zen/workflows/CI/badge.svg)](https://github.com/ruvnet/claude-zen/actions)
 
 **What if intelligence could be ephemeral, composable, and surgically precise?**
 
-Welcome to ruv-FANN, a comprehensive neural intelligence framework that reimagines how we build, deploy, and orchestrate artificial intelligence. This repository contains three groundbreaking projects that work together to deliver unprecedented performance in neural computing, forecasting, and multi-agent orchestration.
+**The neural intelligence framework powering Claude-Zen's multi-Queen AI platform.**
+
+ruv-FANN-zen is an enhanced fork of ruv-FANN, extensively modified for Claude-Zen integration. It provides the neural backbone for the Queen system, Hive Mind coordination, and real-time adaptive intelligence.
 
 ## 🌟 The Vision
 
@@ -21,26 +23,26 @@ This isn't about calling a model API. This is about **instantiating intelligence
 
 ## 🎯 What's in This Repository?
 
-### 1. **ruv-FANN Core** - The Foundation
-A complete Rust rewrite of the legendary FANN (Fast Artificial Neural Network) library. Zero unsafe code, blazing performance, and full compatibility with decades of proven neural network algorithms.
+### 1. **ruv-FANN-zen Core** - Neural Foundation for Claude-Zen
+Enhanced FANN implementation optimized for multi-Queen AI operations. Features include Queen-specific neural architectures, Hive Mind coordination protocols, and real-time learning capabilities.
 
-### 2. **Neuro-Divergent** - Advanced Neural Forecasting  
-27+ state-of-the-art forecasting models (LSTM, N-BEATS, Transformers) with 100% Python NeuralForecast compatibility. 2-4x faster, 25-35% less memory.
+### 2. **Neuro-Divergent-Zen** - Queen Intelligence Forecasting  
+Specialized forecasting models adapted for Claude-Zen's Queen system. Predicts agent behavior, optimizes swarm coordination, and enables predictive task allocation.
 
-### 3. **ruv-swarm** - Ephemeral Swarm Intelligence
-The crown jewel. Achieves **84.8% SWE-Bench solve rate**, outperforming Claude 3.7 by 14.5 points. Spin up lightweight neural networks that exist just long enough to solve problems.
+### 3. **ruv-swarm-zen** - Multi-Queen Swarm Orchestration
+Neural-enhanced swarm coordination for Claude-Zen's Queen hierarchy. Manages ephemeral agent networks, coordinates Queen communication, and optimizes collective intelligence.
 
-## 🚀 Quick Install ruv-swarm
+## 🚀 Quick Install ruv-swarm-zen
 
 ```bash
 # NPX - No installation required!
-npx ruv-swarm@latest init --claude
+npx ruv-swarm-zen@latest init --claude
 
 # NPM - Global installation
-npm install -g ruv-swarm
+npm install -g ruv-swarm-zen
 
 # Cargo - For Rust developers
-cargo install ruv-swarm-cli
+cargo install ruv-swarm-zen-cli
 ```
 
 That's it. You're now running distributed neural intelligence.
@@ -95,7 +97,7 @@ That's it. You're now running distributed neural intelligence.
 
 ## 📊 Benchmarks
 
-| Metric | ruv-swarm | Claude 3.7 | GPT-4 | Improvement |
+| Metric | ruv-swarm-zen | Claude 3.7 | GPT-4 | Improvement |
 |--------|-----------|------------|-------|-------------|
 | **SWE-Bench Solve Rate** | **84.8%** | 70.3% | 65.2% | **+14.5pp** |
 | **Token Efficiency** | **32.3% less** | Baseline | +5% | **Best** |
@@ -105,36 +107,36 @@ That's it. You're now running distributed neural intelligence.
 ## 🌐 Ecosystem Projects
 
 ### Core Projects
-- **[ruv-FANN](./ruv-fann/)** - Neural network foundation library
+- **[ruv-FANN-zen](./src/)** - Neural network foundation library
 - **[Neuro-Divergent](./neuro-divergent/)** - Advanced forecasting models
-- **[ruv-swarm](./ruv-swarm/)** - Distributed swarm intelligence
+- **[ruv-swarm-zen](./ruv-swarm-zen/)** - Distributed swarm intelligence
 
 ### Tools & Extensions
-- **[MCP Server](./ruv-swarm/docs/MCP_USAGE.md)** - Claude Code integration
-- **[CLI Tools](./ruv-swarm/docs/CLI_REFERENCE.md)** - Command-line interface
-- **[Docker Support](./ruv-swarm/npm/docker/)** - Containerized deployment
+- **[MCP Server](./ruv-swarm-zen/docs/MCP_USAGE.md)** - Claude Code integration
+- **[CLI Tools](./ruv-swarm-zen/docs/CLI_REFERENCE.md)** - Command-line interface
+- **[Docker Support](./ruv-swarm-zen/npm/docker/)** - Containerized deployment
 
 ## 🤝 Contributing with GitHub Swarm
 
-We use an innovative swarm-based contribution system powered by ruv-swarm itself!
+We use an innovative swarm-based contribution system powered by ruv-swarm-zen itself!
 
 ### How to Contribute
 
 1. **Fork & Clone**
    ```bash
-   git clone https://github.com/your-username/ruv-FANN.git
-   cd ruv-FANN
+   git clone https://github.com/your-username/ruv-FANN-zen.git
+   cd ruv-FANN-zen
    ```
 
 2. **Initialize Swarm**
    ```bash
-   npx ruv-swarm init --github-swarm
+   npx ruv-swarm-zen init --github-swarm
    ```
 
 3. **Spawn Contribution Agents**
    ```bash
    # Auto-spawns specialized agents for your contribution type
-   npx ruv-swarm contribute --type "feature|bug|docs"
+   npx ruv-swarm-zen contribute --type "feature|bug|docs"
    ```
 
 4. **Let the Swarm Guide You**

@@ -1,13 +1,13 @@
 [package]
-name = "ruv-fann"
-version = "0.1.6"
+name = "ruv-fann-zen"
+version = "0.2.0-zen.1"
 edition = "2021"
 rust-version = "1.81"
 authors = ["rUv Contributors"]
-description = "A pure Rust implementation of the Fast Artificial Neural Network (FANN) library"
-repository = "https://github.com/ruvnet/ruv-FANN"
+description = "Neural Intelligence Framework for Claude-Zen - Enhanced multi-Queen AI platform"
+repository = "https://github.com/ruvnet/claude-zen"
 license = "MIT OR Apache-2.0"
-keywords = ["neural-network", "machine-learning", "fann", "ai", "deep-learning"]
+keywords = ["neural-network", "claude-zen", "hive-mind", "queen-ai", "multi-agent"]
 categories = ["science", "algorithms", "mathematics"]
 exclude = [
     "node_modules/**",
@@ -18,11 +18,11 @@ exclude = [
     "*.lock",
     "*.log",
     "tmp/**",
-    "claude-code-flow/**",
-    "ruv-swarm/npm/node_modules/**",
-    "ruv-swarm/npm/.nyc_output/**",
-    "ruv-swarm/npm/coverage/**",
-    "ruv-swarm/target/**",
+    "claude-zen/**",
+    "ruv-swarm-zen/npm/node_modules/**",
+    "ruv-swarm-zen/npm/.nyc_output/**",
+    "ruv-swarm-zen/npm/coverage/**",
+    "ruv-swarm-zen/target/**",
     "*.wasm",
     "*.onnx",
     "*.pt",
@@ -30,7 +30,7 @@ exclude = [
     "*.safetensors",
     "*.bin",
     ".claude.json",
-    "ruv-swarm/npm/**",
+    "ruv-swarm-zen/npm/**",
     "*.o",
     "*.a",
     "*.so",
@@ -43,7 +43,7 @@ exclude = [
     ".github/**",
     ".gitignore",
     ".gitmodules",
-    "ruv-swarm/**"
+    "ruv-swarm-zen/**"
 ]
 
 [workspace]

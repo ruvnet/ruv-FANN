@@ -10,7 +10,7 @@ const router = express.Router();
 router.post('/register', [
   body('username').isLength({ min: 3 }).trim(),
   body('email').isEmail().normalizeEmail(),
-  body('password').isLength({ min: 6 })
+  body('password').isLength({ min: 6 }),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -36,9 +36,9 @@ router.post('/register', [
       user: {
         id: user.id,
         username: user.username,
-        email: user.email
+        email: user.email,
       },
-      token
+      token,
     });
   } catch (error) {
     logger.error('Registration error:', error);
@@ -49,7 +49,7 @@ router.post('/register', [
 // Login endpoint
 router.post('/login', [
   body('email').isEmail().normalizeEmail(),
-  body('password').notEmpty()
+  body('password').notEmpty(),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -79,9 +79,9 @@ router.post('/login', [
       user: {
         id: user.id,
         username: user.username,
-        email: user.email
+        email: user.email,
       },
-      token
+      token,
     });
   } catch (error) {
     logger.error('Login error:', error);

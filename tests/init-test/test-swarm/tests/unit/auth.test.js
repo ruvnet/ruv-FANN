@@ -15,7 +15,7 @@ describe('Auth Middleware', () => {
     it('should generate a valid JWT token', () => {
       const userId = 123;
       const token = generateToken(userId);
-      
+
       expect(token).toBeDefined();
       expect(typeof token).toBe('string');
       expect(token.split('.')).toHaveLength(3);
@@ -27,7 +27,7 @@ describe('Auth Middleware', () => {
       const userId = 123;
       const token = generateToken(userId);
       const decoded = verifyToken(token);
-      
+
       expect(decoded).toBeDefined();
       expect(decoded.userId).toBe(userId);
     });
