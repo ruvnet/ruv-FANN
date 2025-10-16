@@ -35,10 +35,10 @@ async function runTests() {
   let testsPassed = 0;
   let testsTotal = 0;
 
-  function test(name, testFn) {
+  async function test(name, testFn) {
     testsTotal++;
     try {
-      testFn();
+      await testFn();
       console.log(`✅ ${name}`);
       testsPassed++;
     } catch (error) {
@@ -46,20 +46,8 @@ async function runTests() {
     }
   }
 
-  function asyncTest(name, testFn) {
-    testsTotal++;
-    return testFn()
-      .then(() => {
-        console.log(`✅ ${name}`);
-        testsPassed++;
-      })
-      .catch(error => {
-        console.error(`❌ ${name}: ${error.message}`);
-      });
-  }
-
   // Basic Container Tests
-  test('Container creation and registration', () => {
+  await test('Container creation and registration', () => {
     const container = new SingletonContainer();
     container.register('test', () => new TestService('basic'));
     
@@ -70,7 +58,7 @@ async function runTests() {
     container.destroy();
   });
 
-  test('Singleton instance creation', () => {
+  await test('Singleton instance creation', () => {
     const container = new SingletonContainer();
     container.register('test', () => new TestService('singleton'));
     
@@ -88,7 +76,7 @@ async function runTests() {
     container.destroy();
   });
 
-  test('Dependency injection', () => {
+  await test('Dependency injection', () => {
     const container = new SingletonContainer();
     
     container.register('testService', () => new TestService('dependency'));
@@ -105,7 +93,7 @@ async function runTests() {
     container.destroy();
   });
 
-  test('Error handling for missing factory', () => {
+  await test('Error handling for missing factory', () => {
     const container = new SingletonContainer();
     
     try {
@@ -120,7 +108,7 @@ async function runTests() {
     container.destroy();
   });
 
-  test('Instance cleanup and destruction', () => {
+  await test('Instance cleanup and destruction', () => {
     const container = new SingletonContainer();
     container.register('test', () => new TestService('cleanup'));
     
@@ -137,8 +125,8 @@ async function runTests() {
     }
   });
 
-  test('Global container management', () => {
-    resetContainer(); // Ensure clean state
+  await test('Global container management', async () => {
+    await resetContainer(); // Ensure clean state
     
     const container1 = getContainer();
     const container2 = getContainer();
@@ -147,10 +135,10 @@ async function runTests() {
       throw new Error('Global container should return same instance');
     }
     
-    resetContainer();
+    await resetContainer();
   });
 
-  test('Memory leak prevention', () => {
+  await test('Memory leak prevention', () => {
     const container = new SingletonContainer();
     
     // Create many instances
@@ -173,7 +161,7 @@ async function runTests() {
   });
 
   // Concurrent Access Tests
-  await asyncTest('Concurrent instance creation', async () => {
+  await test('Concurrent instance creation', async () => {
     const container = new SingletonContainer();
     container.register('concurrent', () => new TestService('concurrent'));
     
@@ -196,11 +184,11 @@ async function runTests() {
   });
 
   // Container State Tests
-  test('Container destruction prevention', () => {
+  await test('Container destruction prevention', async () => {
     const container = new SingletonContainer();
     container.register('test', () => new TestService('destruction'));
     
-    container.destroy();
+    await container.destroy();
     
     try {
       container.get('test');
@@ -212,7 +200,7 @@ async function runTests() {
     }
     
     // Test reset functionality
-    container.reset();
+    await container.reset();
     container.register('test2', () => new TestService('after-reset'));
     const instance = container.get('test2');
     
@@ -220,10 +208,10 @@ async function runTests() {
       throw new Error('Container should work after reset');
     }
     
-    container.destroy();
+    await container.destroy();
   });
 
-  test('Non-singleton instances', () => {
+  await test('Non-singleton instances', () => {
     const container = new SingletonContainer();
     container.register('nonSingleton', () => new TestService('non-singleton'), {
       singleton: false
@@ -239,7 +227,7 @@ async function runTests() {
     container.destroy();
   });
 
-  test('Factory error handling', () => {
+  await test('Factory error handling', () => {
     const container = new SingletonContainer();
     container.register('failing', () => {
       throw new Error('Factory failure');
@@ -258,7 +246,7 @@ async function runTests() {
   });
 
   // Performance Tests
-  await asyncTest('Performance under load', async () => {
+  await test('Performance under load', async () => {
     const container = new SingletonContainer();
     container.register('performance', () => new TestService('performance'));
     
@@ -280,8 +268,8 @@ async function runTests() {
   });
 
   // Global State Replacement Tests
-  test('Global state replacement validation', () => {
-    resetContainer();
+  await test('Global state replacement validation', async () => {
+    await resetContainer();
     
     const container = getContainer();
     container.register('RuvSwarm', () => ({ 
@@ -301,7 +289,7 @@ async function runTests() {
       throw new Error('RuvSwarm instance not properly configured');
     }
     
-    resetContainer();
+    await resetContainer();
   });
 
   // Final Results
