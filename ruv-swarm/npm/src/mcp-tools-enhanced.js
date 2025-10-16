@@ -2858,6 +2858,48 @@ class EnhancedMCPTools {
 
 export { EnhancedMCPTools };
 
-// Create and export the default enhanced MCP tools instance
-const enhancedMCPToolsInstance = new EnhancedMCPTools();
-export default enhancedMCPToolsInstance;
+let enhancedMCPToolsInstance = null;
+
+/**
+ * Lazily construct the shared EnhancedMCPTools instance.
+ * Defers expensive initialization (SQLite pools) until first real use.
+ */
+export function getEnhancedMCPToolsInstance() {
+  if (!enhancedMCPToolsInstance) {
+    enhancedMCPToolsInstance = new EnhancedMCPTools();
+  }
+  return enhancedMCPToolsInstance;
+}
+
+// Proxy default export so legacy consumers still behave as if
+// a singleton instance was exported, but defer construction until needed.
+const lazyMcpToolsProxy = new Proxy({}, {
+  get(_target, prop) {
+    const instance = getEnhancedMCPToolsInstance();
+    const value = instance[prop];
+    return typeof value === 'function' ? value.bind(instance) : value;
+  },
+  set(_target, prop, value) {
+    const instance = getEnhancedMCPToolsInstance();
+    instance[prop] = value;
+    return true;
+  },
+  has(_target, prop) {
+    const instance = getEnhancedMCPToolsInstance();
+    return prop in instance;
+  },
+  ownKeys() {
+    const instance = getEnhancedMCPToolsInstance();
+    return Reflect.ownKeys(instance);
+  },
+  getOwnPropertyDescriptor(_target, prop) {
+    const instance = getEnhancedMCPToolsInstance();
+    const descriptor = Object.getOwnPropertyDescriptor(instance, prop);
+    if (descriptor) {
+      descriptor.configurable = true;
+    }
+    return descriptor;
+  }
+});
+
+export default lazyMcpToolsProxy;

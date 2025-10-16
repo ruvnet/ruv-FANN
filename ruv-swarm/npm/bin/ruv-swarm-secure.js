@@ -10,7 +10,6 @@ import { setupClaudeIntegration, invokeClaudeWithSwarm as _invokeClaudeWithSwarm
 import { RuvSwarm } from '../src/index-enhanced.js';
 import { EnhancedMCPTools } from '../src/mcp-tools-enhanced.js';
 import { daaMcpTools } from '../src/mcp-daa-tools.js';
-import mcpToolsEnhanced from '../src/mcp-tools-enhanced.js';
 import { Logger } from '../src/logger.js';
 import { CommandSanitizer, SecurityError } from '../src/security.js';
 import { readFileSync } from 'fs';
@@ -1276,11 +1275,32 @@ async function handleMcpRequest(request, mcpTools, logger = null) {
                     requestId: request.id
                 });
                 
-                // Try regular MCP tools first (use mcpToolsEnhanced.tools)
-                if (mcpToolsEnhanced.tools && typeof mcpToolsEnhanced.tools[toolName] === 'function') {
+                // Try regular MCP tools first (using initialized instance)
+                const availableTools = mcpTools?.tools;
+                if (availableTools && typeof availableTools[toolName] === 'function') {
                     try {
                         logger.debug('Executing MCP tool (NO TIMEOUT VERSION)', { tool: toolName, args: toolArgs });
-                        result = await mcpToolsEnhanced.tools[toolName](toolArgs);
+                        result = await availableTools[toolName](toolArgs);
+                        toolFound = true;
+                        logger.endOperation(toolOpId, true, { resultType: typeof result });
+                    } catch (error) {
+                        logger.endOperation(toolOpId, false, { error });
+                        logger.error('MCP tool execution failed (NO TIMEOUT VERSION)', { 
+                            tool: toolName, 
+                            error,
+                            args: toolArgs 
+                        });
+                        response.error = {
+                            code: -32603,
+                            message: `MCP tool error: ${error.message}`,
+                            data: { tool: toolName, error: error.message }
+                        };
+                        break;
+                    }
+                } else if (mcpTools && typeof mcpTools[toolName] === 'function') {
+                    try {
+                        logger.debug('Executing MCP tool method (NO TIMEOUT VERSION)', { tool: toolName, args: toolArgs });
+                        result = await mcpTools[toolName].call(mcpTools, toolArgs);
                         toolFound = true;
                         logger.endOperation(toolOpId, true, { resultType: typeof result });
                     } catch (error) {
@@ -1581,6 +1601,7 @@ async function main() {
         oneShot = true;
         const version = await getVersion();
         console.log(version);
+        process.exit(0);
         return;
     }
     
@@ -1650,12 +1671,14 @@ async function main() {
                 console.log('\n✅ Security Status: All vulnerabilities from Issue #107 resolved');
                 console.log('🚀 Production Status: Ready for deployment');
                 console.log('🔥 TIMEOUT STATUS: ALL TIMEOUT MECHANISMS COMPLETELY REMOVED');
-                break;
+                process.exit(0);
+                return;
             case 'help':
             default:
                 oneShot = true;
                 await showHelp();
-                break;
+                process.exit(0);
+                return;
         }
     } catch (error) {
         console.error('❌ Error:', error.message);
