@@ -20,6 +20,7 @@ import {
 } from './errors.js';
 import { ValidationUtils } from './schemas.js';
 import { DAA_MCPTools } from './mcp-daa-tools.js';
+import { daaService } from './daa-service.js';
 import { Logger } from './logger.js';
 
 /**
@@ -42,12 +43,13 @@ class EnhancedMCPTools {
     };
     this.persistence = new SwarmPersistencePooled(undefined, poolOptions);
     this.persistenceReady = false;
-    
-    // Initialize persistence asynchronously
-    this.initializePersistence();
+    this.persistenceInitialization = this.initializePersistence();
     this.errorContext = new ErrorContext();
     this.errorLog = [];
     this.maxErrorLogSize = 1000;
+    this._isDestroyed = false;
+    this._cleanupHandlersRegistered = false;
+    this._handleBeforeExit = null;
 
     // Initialize logger
     this.logger = new Logger({
@@ -98,6 +100,8 @@ class EnhancedMCPTools {
       daa_meta_learning: this.daaTools.daa_meta_learning.bind(this.daaTools),
       daa_performance_metrics: this.daaTools.daa_performance_metrics.bind(this.daaTools),
     };
+
+    this.registerLifecycleHandlers();
   }
 
   /**
@@ -118,6 +122,13 @@ class EnhancedMCPTools {
    * Ensure persistence is ready before operations
    */
   async ensurePersistenceReady() {
+    if (!this.persistenceReady && this.persistenceInitialization) {
+      try {
+        await this.persistenceInitialization;
+      } catch (error) {
+        // initialization already logged; allow ensure to continue
+      }
+    }
     if (!this.persistenceReady && this.persistence) {
       // Wait up to 5 seconds for persistence to initialize
       const maxWait = 5000;
@@ -134,6 +145,28 @@ class EnhancedMCPTools {
       }
     }
     return this.persistenceReady;
+  }
+
+  registerLifecycleHandlers() {
+    if (typeof process === 'undefined' || typeof process.on !== 'function' || this._cleanupHandlersRegistered) {
+      return;
+    }
+
+    this._handleBeforeExit = () => {
+      if (this._isDestroyed) {
+        return;
+      }
+      this.destroy().catch(error => {
+        if (this.logger) {
+          this.logger.warn?.('EnhancedMCPTools cleanup during exit failed', { error: error?.message });
+        } else {
+          console.warn('EnhancedMCPTools cleanup during exit failed:', error?.message);
+        }
+      });
+    };
+
+    process.on('beforeExit', this._handleBeforeExit);
+    this._cleanupHandlersRegistered = true;
   }
 
   /**
@@ -2853,6 +2886,60 @@ class EnhancedMCPTools {
     const daaTools = this.daaTools.getToolDefinitions();
 
     return [...coreTools, ...daaTools];
+  }
+
+  async destroy() {
+    if (this._isDestroyed) {
+      return;
+    }
+    this._isDestroyed = true;
+
+    if (typeof process !== 'undefined' && typeof process.removeListener === 'function' && this._cleanupHandlersRegistered && this._handleBeforeExit) {
+      process.removeListener('beforeExit', this._handleBeforeExit);
+      this._cleanupHandlersRegistered = false;
+    }
+
+    if (this.persistenceInitialization) {
+      try {
+        await this.persistenceInitialization;
+      } catch (error) {
+        // Ignore initialization failure during destroy
+      }
+    }
+
+    try {
+      if (this.persistence && typeof this.persistence.close === 'function') {
+        await this.persistence.close();
+      }
+    } catch (error) {
+      this.logger?.warn?.('Failed to close persistence during destroy', { error: error.message });
+    }
+
+    if (this.daaTools?.mcpTools === this && typeof daaService?.cleanup === 'function') {
+      try {
+        await daaService.cleanup();
+      } catch (error) {
+        this.logger?.warn?.('Failed to cleanup DAA service during destroy', { error: error.message });
+      }
+    }
+
+    if (this.ruvSwarm && typeof this.ruvSwarm.destroy === 'function') {
+      try {
+        await this.ruvSwarm.destroy();
+      } catch (error) {
+        this.logger?.warn?.('Failed to destroy RuvSwarm during cleanup', { error: error.message });
+      }
+    }
+
+    this.activeSwarms.clear();
+    this.toolMetrics.clear();
+    this.persistenceReady = false;
+    this.persistence = null;
+    this.ruvSwarm = null;
+
+    if (typeof enhancedMCPToolsInstance !== 'undefined' && enhancedMCPToolsInstance === this) {
+      enhancedMCPToolsInstance = null;
+    }
   }
 }
 

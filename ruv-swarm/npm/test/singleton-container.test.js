@@ -47,7 +47,7 @@ async function runTests() {
   }
 
   // Basic Container Tests
-  await test('Container creation and registration', () => {
+  await test('Container creation and registration', async () => {
     const container = new SingletonContainer();
     container.register('test', () => new TestService('basic'));
     
@@ -55,10 +55,10 @@ async function runTests() {
       throw new Error('Service not registered');
     }
     
-    container.destroy();
+    await container.destroy();
   });
 
-  await test('Singleton instance creation', () => {
+  await test('Singleton instance creation', async () => {
     const container = new SingletonContainer();
     container.register('test', () => new TestService('singleton'));
     
@@ -73,10 +73,10 @@ async function runTests() {
       throw new Error('Instance not created correctly');
     }
     
-    container.destroy();
+    await container.destroy();
   });
 
-  await test('Dependency injection', () => {
+  await test('Dependency injection', async () => {
     const container = new SingletonContainer();
     
     container.register('testService', () => new TestService('dependency'));
@@ -90,10 +90,10 @@ async function runTests() {
       throw new Error('Dependency not injected correctly');
     }
     
-    container.destroy();
+    await container.destroy();
   });
 
-  await test('Error handling for missing factory', () => {
+  await test('Error handling for missing factory', async () => {
     const container = new SingletonContainer();
     
     try {
@@ -105,10 +105,10 @@ async function runTests() {
       }
     }
     
-    container.destroy();
+    await container.destroy();
   });
 
-  await test('Instance cleanup and destruction', () => {
+  await test('Instance cleanup and destruction', async () => {
     const container = new SingletonContainer();
     container.register('test', () => new TestService('cleanup'));
     
@@ -118,7 +118,7 @@ async function runTests() {
       throw new Error('Instance should not be destroyed yet');
     }
     
-    container.destroy();
+    await container.destroy();
     
     if (!instance.isDestroyed) {
       throw new Error('Instance should be destroyed after container destruction');
@@ -138,7 +138,7 @@ async function runTests() {
     await resetContainer();
   });
 
-  await test('Memory leak prevention', () => {
+  await test('Memory leak prevention', async () => {
     const container = new SingletonContainer();
     
     // Create many instances
@@ -152,7 +152,7 @@ async function runTests() {
       throw new Error(`Expected 100 services and instances, got ${stats.registeredServices}/${stats.activeInstances}`);
     }
     
-    container.destroy();
+    await container.destroy();
     
     const statsAfter = container.getStats();
     if (statsAfter.activeInstances !== 0) {
@@ -180,7 +180,7 @@ async function runTests() {
       }
     }
     
-    container.destroy();
+    await container.destroy();
   });
 
   // Container State Tests
@@ -211,7 +211,7 @@ async function runTests() {
     await container.destroy();
   });
 
-  await test('Non-singleton instances', () => {
+  await test('Non-singleton instances', async () => {
     const container = new SingletonContainer();
     container.register('nonSingleton', () => new TestService('non-singleton'), {
       singleton: false
@@ -224,10 +224,10 @@ async function runTests() {
       throw new Error('Non-singleton instances should be different');
     }
     
-    container.destroy();
+    await container.destroy();
   });
 
-  await test('Factory error handling', () => {
+  await test('Factory error handling', async () => {
     const container = new SingletonContainer();
     container.register('failing', () => {
       throw new Error('Factory failure');
@@ -242,7 +242,7 @@ async function runTests() {
       }
     }
     
-    container.destroy();
+    await container.destroy();
   });
 
   // Performance Tests
@@ -264,7 +264,7 @@ async function runTests() {
       throw new Error(`Performance test too slow: ${duration}ms`);
     }
     
-    container.destroy();
+    await container.destroy();
   });
 
   // Global State Replacement Tests
