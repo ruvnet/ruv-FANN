@@ -263,7 +263,7 @@ fn interpret_output(output: &[f32], pattern: &CognitivePattern) -> String {
             format!("Risk assessment: {}", if output[0] > 0.7 { "HIGH" } else if output[0] > 0.3 { "MEDIUM" } else { "LOW" })
         },
         CognitivePattern::Abstract => {
-            format!("Conceptual abstraction level: {:.1}", output.iter().max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap() * 10.0)
+            format!("Conceptual abstraction level: {:.1}", output.iter().max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)).unwrap() * 10.0)
         },
     }
 }

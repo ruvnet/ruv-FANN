@@ -391,7 +391,7 @@ impl<T: Float + Send + Sync> SpearmanCorrelation<T> {
             .map(|(i, &v)| (i, v))
             .collect();
         
-        indexed.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+        indexed.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
         
         let mut ranks = vec![T::zero(); values.len()];
         for (rank, (original_idx, _)) in indexed.iter().enumerate() {
@@ -428,7 +428,7 @@ impl<T: Float + Send + Sync> Metric<T> for MedianAbsoluteError<T> {
             .map(|(&t, &p)| (t - p).abs())
             .collect();
         
-        errors.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        errors.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
         
         let n = errors.len();
         Ok(if n % 2 == 0 {

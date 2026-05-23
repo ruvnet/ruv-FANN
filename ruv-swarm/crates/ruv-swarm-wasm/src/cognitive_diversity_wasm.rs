@@ -191,7 +191,7 @@ impl CognitiveDiversityEngine {
         // Find best pattern
         let best_pattern = pattern_scores
             .iter()
-            .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
+            .max_by(|a, b| a.1.partial_cmp(b.1).unwrap_or(std::cmp::Ordering::Equal))
             .map(|(name, score)| (name.clone(), *score));
         
         let recommendation = serde_json::json!({
@@ -568,7 +568,7 @@ impl CognitiveDiversityEngine {
             .map(|(name, score)| (name.clone(), *score))
             .collect();
         
-        sorted_patterns.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+        sorted_patterns.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
         sorted_patterns.into_iter().skip(1).take(count).collect()
     }
     

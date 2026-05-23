@@ -244,8 +244,8 @@ impl<T: Float> Scaler<T> for MinMaxScaler<T> {
             });
         }
         
-        self.data_min = Some(*data.iter().min_by(|a, b| a.partial_cmp(b).unwrap()).unwrap());
-        self.data_max = Some(*data.iter().max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap());
+        self.data_min = Some(*data.iter().min_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)).unwrap());
+        self.data_max = Some(*data.iter().max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)).unwrap());
         
         Ok(())
     }
@@ -374,7 +374,7 @@ impl<T: Float> Scaler<T> for RobustScaler<T> {
         }
         
         let mut sorted_data = data.to_vec();
-        sorted_data.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        sorted_data.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
         
         if self.with_centering {
             self.median = Some(Self::quantile(&sorted_data, 0.5));
@@ -530,7 +530,7 @@ impl<T: Float> Scaler<T> for QuantileTransformer<T> {
         };
         
         let mut sorted_data = sample_data;
-        sorted_data.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        sorted_data.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
         
         // Calculate quantiles
         let mut quantiles = Vec::with_capacity(self.n_quantiles);

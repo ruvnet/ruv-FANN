@@ -38,6 +38,28 @@ crate = "cfg-if"
 expression = "MIT OR Apache-2.0"
 license-files = []
 
+[advisories]
+# Acknowledge unmaintained crates that cannot be easily replaced without
+# breaking the public binary serialization format.
+#
+# RUSTSEC-2025-0141: bincode 1.x is unmaintained.
+#   Impact: low — no CVE, no memory-safety issue; only maintenance concern.
+#   Mitigation: tracked in GitHub issue for future migration to bincode 2.x
+#   or postcard; migration is a breaking format change requiring a new feature
+#   flag and deprecation period.
+#
+# RUSTSEC-2024-0436: paste 1.x is unmaintained (transitive via wgpu/metal).
+#   Impact: none — macro crate, no runtime code; wgpu upgrade will resolve.
+#
+# RUSTSEC-2026-0097: rand 0.9.x unsound with custom logger (dev-dep only).
+#   Impact: test/bench environments only (proptest dev-dep).
+#   Mitigation: proptest updated to >=1.11 which pulls rand >=0.10.
+ignore = [
+    "RUSTSEC-2025-0141",  # bincode unmaintained — migration tracked
+    "RUSTSEC-2024-0436",  # paste unmaintained (transitive wgpu dep)
+    "RUSTSEC-2026-0097",  # rand 0.9 unsound w/ custom logger (dev-dep only via proptest)
+]
+
 [sources]
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 allow-git = ["https://github.com"]

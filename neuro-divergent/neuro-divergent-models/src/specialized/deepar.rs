@@ -537,7 +537,7 @@ impl<T: Float> BaseModel<T> for DeepAR<T> {
             
             for i in 0..self.config.horizon {
                 let mut values: Vec<T> = all_samples.iter().map(|s| s[i]).collect();
-                values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
                 
                 let lower_idx = (lower_quantile * values.len() as f64) as usize;
                 let upper_idx = (upper_quantile * values.len() as f64) as usize;

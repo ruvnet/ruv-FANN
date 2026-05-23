@@ -113,7 +113,7 @@ async fn main() -> Result<()> {
         let output = result.network.run(&sample.input)?;
         let predicted_class = output.iter()
             .enumerate()
-            .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
+            .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
             .map(|(idx, _)| idx)
             .unwrap();
         

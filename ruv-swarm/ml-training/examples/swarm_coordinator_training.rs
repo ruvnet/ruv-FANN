@@ -1593,7 +1593,7 @@ impl SwarmTrainingDataGenerator {
 
         // Simple optimal assignment: lowest load agents get highest priority tasks
         let mut available_agents: Vec<_> = agent_pool.iter().filter(|a| a.availability).collect();
-        available_agents.sort_by(|a, b| a.current_load.partial_cmp(&b.current_load).unwrap());
+        available_agents.sort_by(|a, b| a.current_load.partial_cmp(&b.current_load).unwrap_or(std::cmp::Ordering::Equal));
 
         for (i, task) in task_graph.nodes.iter().enumerate() {
             if i < available_agents.len() {

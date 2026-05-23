@@ -806,7 +806,7 @@ impl<T: Float> DataValidator<T> {
     /// Detect outliers using IQR method
     fn detect_outliers_iqr(&self, values: &[T]) -> Vec<usize> {
         let mut sorted_values = values.to_vec();
-        sorted_values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        sorted_values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
         
         let n = sorted_values.len();
         let q1_idx = n / 4;
@@ -863,7 +863,7 @@ impl<T: Float> DataValidator<T> {
     fn detect_outliers_modified_zscore(&self, values: &[T]) -> Vec<usize> {
         // Calculate median
         let mut sorted_values = values.to_vec();
-        sorted_values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        sorted_values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
         let median = if sorted_values.len() % 2 == 0 {
             let mid = sorted_values.len() / 2;
             (sorted_values[mid - 1] + sorted_values[mid]) / T::from(2.0).unwrap()
@@ -875,7 +875,7 @@ impl<T: Float> DataValidator<T> {
         let mut deviations: Vec<T> = values.iter()
             .map(|&x| (x - median).abs())
             .collect();
-        deviations.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        deviations.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
         
         let mad = if deviations.len() % 2 == 0 {
             let mid = deviations.len() / 2;

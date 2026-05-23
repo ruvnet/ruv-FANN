@@ -631,7 +631,7 @@ fn calculate_data_statistics(
         let std = variance.sqrt();
         
         let mut sorted_values = values.clone();
-        sorted_values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        sorted_values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
         
         let min = sorted_values[0];
         let max = sorted_values[sorted_values.len() - 1];

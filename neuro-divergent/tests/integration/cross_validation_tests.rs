@@ -322,7 +322,7 @@ fn test_model_selection_cv() -> Result<(), Box<dyn std::error::Error>> {
     
     // Select best model
     let best_model = model_scores.iter()
-        .min_by(|a, b| a.1.partial_cmp(b.1).unwrap())
+        .min_by(|a, b| a.1.partial_cmp(b.1).unwrap_or(std::cmp::Ordering::Equal))
         .map(|(name, _)| name.clone())
         .unwrap();
     

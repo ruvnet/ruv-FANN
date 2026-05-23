@@ -229,7 +229,7 @@ async fn load_test_concurrent_tasks() {
     
     // Verify performance scales appropriately
     let base_throughput = results[0].3;
-    let max_throughput = results.iter().map(|r| r.3).max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap();
+    let max_throughput = results.iter().map(|r| r.3).max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)).unwrap();
     
     assert!(max_throughput > base_throughput * 2.0, "Throughput should scale with concurrency");
 }
