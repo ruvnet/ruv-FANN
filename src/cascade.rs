@@ -624,7 +624,7 @@ impl<T: Float> CascadeTrainer<T> {
         // Select best candidate
         let best_candidate = candidates
             .into_iter()
-            .max_by(|a, b| a.correlation.partial_cmp(&b.correlation).unwrap())
+            .max_by(|a, b| a.correlation.partial_cmp(&b.correlation).unwrap_or(std::cmp::Ordering::Equal))
             .ok_or_else(|| {
                 cascade_error!(
                     CascadeErrorCategory::CandidateSelection,

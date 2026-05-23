@@ -101,7 +101,7 @@ getrandom = { version = "0.2", features = ["js"] }
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
-proptest = "1.4"
+proptest = "1.11"
 approx = "0.5"
 pretty_assertions = "1.4"
 tokio = { version = "1.44", features = ["macros", "rt", "rt-multi-thread", "time", "process", "sync", "fs"] }

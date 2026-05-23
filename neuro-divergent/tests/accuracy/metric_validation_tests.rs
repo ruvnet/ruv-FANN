@@ -124,7 +124,7 @@ mod python_reference {
             .map(|(t, p)| (t - p).abs())
             .collect();
         
-        errors.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        errors.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
         
         let n = errors.len();
         if n % 2 == 0 {

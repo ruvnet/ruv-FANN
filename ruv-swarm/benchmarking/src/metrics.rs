@@ -224,7 +224,7 @@ impl MetricsCollector {
         }
 
         let mut values: Vec<f64> = samples.iter().map(&extractor).collect();
-        values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 
         let sum: f64 = values.iter().sum();
         let average = sum / values.len() as f64;

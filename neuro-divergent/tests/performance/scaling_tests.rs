@@ -396,7 +396,7 @@ fn test_batch_size_scaling() {
     let optimal_batch_idx = results.iter()
         .enumerate()
         .max_by(|(_, (_, a)), (_, (_, b))| {
-            a.throughput.partial_cmp(&b.throughput).unwrap()
+            a.throughput.partial_cmp(&b.throughput).unwrap_or(std::cmp::Ordering::Equal)
         })
         .map(|(idx, _)| idx)
         .unwrap();

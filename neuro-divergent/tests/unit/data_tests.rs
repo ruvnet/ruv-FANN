@@ -200,7 +200,7 @@ impl<T: Float> MockDataImputer<T> {
             },
             MockImputationStrategy::Median => {
                 let mut sorted = valid_data;
-                sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
                 let mid = sorted.len() / 2;
                 self.fill_value = Some(sorted[mid]);
             },
@@ -363,7 +363,7 @@ impl<T: Float> MockOutlierDetector<T> {
             },
             OutlierMethod::IQR => {
                 let mut sorted = data.to_vec();
-                sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
                 
                 let q1_idx = sorted.len() / 4;
                 let q3_idx = 3 * sorted.len() / 4;
@@ -381,14 +381,14 @@ impl<T: Float> MockOutlierDetector<T> {
             OutlierMethod::ModifiedZScore => {
                 // Using median absolute deviation
                 let mut sorted = data.to_vec();
-                sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
                 let median = sorted[sorted.len() / 2];
                 
                 let mad = {
                     let mut deviations: Vec<T> = data.iter()
                         .map(|&x| (x - median).abs())
                         .collect();
-                    deviations.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                    deviations.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
                     deviations[deviations.len() / 2]
                 };
                 

@@ -656,7 +656,7 @@ impl SWEBenchEvaluator {
             })
             .collect();
 
-        rankings.sort_by(|a, b| b.overall_score.partial_cmp(&a.overall_score).unwrap());
+        rankings.sort_by(|a, b| b.overall_score.partial_cmp(&a.overall_score).unwrap_or(std::cmp::Ordering::Equal));
 
         for (i, ranking) in rankings.iter_mut().enumerate() {
             ranking.rank = i + 1;
@@ -681,7 +681,7 @@ impl SWEBenchEvaluator {
                         .get(&difficulty)
                         .map(|stats| (report.model_name.clone(), stats.solve_rate))
                 })
-                .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
+                .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
                 .map(|(name, _)| name);
 
             if let Some(model_name) = best_model {

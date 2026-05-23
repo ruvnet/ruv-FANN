@@ -222,7 +222,7 @@ impl PredictionIntervals {
             quantiles.push(alpha / 2.0);      // Lower quantile
             quantiles.push(1.0 - alpha / 2.0); // Upper quantile
         }
-        quantiles.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        quantiles.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
         quantiles
     }
 }

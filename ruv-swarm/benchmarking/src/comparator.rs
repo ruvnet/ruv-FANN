@@ -189,7 +189,7 @@ impl StatisticalAnalyzer {
 
     fn calculate_stats(&self, values: &[f64]) -> SummaryStatistics {
         let mut sorted_values = values.to_vec();
-        sorted_values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        sorted_values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 
         SummaryStatistics {
             mean: values.mean(),
@@ -219,7 +219,7 @@ impl StatisticalAnalyzer {
 
     fn calculate_median_improvement(&self, baseline: &[f64], optimized: &[f64]) -> f64 {
         let mut baseline_sorted = baseline.to_vec();
-        baseline_sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        baseline_sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
         let baseline_median = if baseline_sorted.is_empty() {
             0.0
         } else {
@@ -227,7 +227,7 @@ impl StatisticalAnalyzer {
         };
 
         let mut optimized_sorted = optimized.to_vec();
-        optimized_sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        optimized_sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
         let optimized_median = if optimized_sorted.is_empty() {
             0.0
         } else {
@@ -323,7 +323,7 @@ impl StatisticalAnalyzer {
 
     fn percentile(&self, values: &[f64], p: f64) -> f64 {
         let mut sorted = values.to_vec();
-        sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        sorted.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 
         let index = (p * (sorted.len() - 1) as f64) as usize;
         sorted[index]

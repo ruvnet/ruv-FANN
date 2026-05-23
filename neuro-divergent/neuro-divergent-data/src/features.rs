@@ -803,14 +803,14 @@ impl<T: Float> FeatureEngine<T> {
                 Ok(variance)
             }
             RollingStatistic::Min => {
-                Ok(*window_data.iter().min_by(|a, b| a.partial_cmp(b).unwrap()).unwrap())
+                Ok(*window_data.iter().min_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)).unwrap())
             }
             RollingStatistic::Max => {
-                Ok(*window_data.iter().max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap())
+                Ok(*window_data.iter().max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)).unwrap())
             }
             RollingStatistic::Median => {
                 let mut sorted_data = window_data.to_vec();
-                sorted_data.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                sorted_data.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
                 let mid = sorted_data.len() / 2;
                 if sorted_data.len() % 2 == 0 {
                     Ok((sorted_data[mid - 1] + sorted_data[mid]) / T::from(2.0).unwrap())
@@ -820,13 +820,13 @@ impl<T: Float> FeatureEngine<T> {
             }
             RollingStatistic::Quantile25 => {
                 let mut sorted_data = window_data.to_vec();
-                sorted_data.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                sorted_data.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
                 let index = (sorted_data.len() as f64 * 0.25) as usize;
                 Ok(sorted_data[index.min(sorted_data.len() - 1)])
             }
             RollingStatistic::Quantile75 => {
                 let mut sorted_data = window_data.to_vec();
-                sorted_data.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                sorted_data.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
                 let index = (sorted_data.len() as f64 * 0.75) as usize;
                 Ok(sorted_data[index.min(sorted_data.len() - 1)])
             }

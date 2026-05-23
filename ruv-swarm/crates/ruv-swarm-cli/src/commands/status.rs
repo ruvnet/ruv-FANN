@@ -441,7 +441,7 @@ fn display_performance_metrics(agents: &[Agent], tasks: &[Task], output: &Output
         .iter()
         .map(|a| (a, calculate_agent_score(&a.metrics)))
         .collect();
-    agent_scores.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+    agent_scores.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
     if !agent_scores.is_empty() {
         output.info("\nTop Performing Agents:");

@@ -397,7 +397,7 @@ fn create_weighted_ensemble(
     // For demonstration, we'll use the best performing model
     // In practice, this would combine predictions using weights
     let best_model_name = weights.iter()
-        .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
+        .max_by(|a, b| a.1.partial_cmp(b.1).unwrap_or(std::cmp::Ordering::Equal))
         .map(|(name, _)| name.clone())
         .unwrap();
     
@@ -548,7 +548,7 @@ fn print_validation_performance(performance: &HashMap<String, ModelPerformance>)
     
     // Sort by MAE
     let mut sorted_models: Vec<_> = performance.iter().collect();
-    sorted_models.sort_by(|a, b| a.1.mae.partial_cmp(&b.1.mae).unwrap());
+    sorted_models.sort_by(|a, b| a.1.mae.partial_cmp(&b.1.mae).unwrap_or(std::cmp::Ordering::Equal));
     
     for (name, perf) in sorted_models {
         println!("      {} - MAE: {:.2}, RMSE: {:.2}, MAPE: {:.2}%",
@@ -559,7 +559,7 @@ fn print_validation_performance(performance: &HashMap<String, ModelPerformance>)
 /// Print ensemble weights
 fn print_ensemble_weights(weights: &HashMap<String, f32>) {
     let mut sorted_weights: Vec<_> = weights.iter().collect();
-    sorted_weights.sort_by(|a, b| b.1.partial_cmp(a.1).unwrap());
+    sorted_weights.sort_by(|a, b| b.1.partial_cmp(a.1).unwrap_or(std::cmp::Ordering::Equal));
     
     for (name, weight) in sorted_weights {
         println!("      {} - Weight: {:.3}", name, weight);
@@ -572,7 +572,7 @@ fn compare_ensemble_vs_individual(
     ensemble: &AccuracyMetrics,
 ) {
     let best_individual = individual.values()
-        .min_by(|a, b| a.mae.partial_cmp(&b.mae).unwrap())
+        .min_by(|a, b| a.mae.partial_cmp(&b.mae).unwrap_or(std::cmp::Ordering::Equal))
         .unwrap();
     
     let improvement = (best_individual.mae - ensemble.mae()) / best_individual.mae * 100.0;
