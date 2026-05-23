@@ -5,7 +5,7 @@
 
 use num_traits::Float;
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 
 /// Memory manager for neural network operations
 pub struct MemoryManager<T: Float> {
@@ -182,19 +182,20 @@ impl<T: Float> MemoryPool<T> {
     }
 }
 
-lazy_static::lazy_static! {
-    /// Global memory manager instance
-    static ref GLOBAL_MEMORY_MANAGER: Arc<Mutex<MemoryManager<f32>>> = Arc::new(Mutex::new(MemoryManager::new()));
+static GLOBAL_MEMORY_MANAGER: OnceLock<Arc<Mutex<MemoryManager<f32>>>> = OnceLock::new();
+
+fn global_memory_manager() -> &'static Arc<Mutex<MemoryManager<f32>>> {
+    GLOBAL_MEMORY_MANAGER.get_or_init(|| Arc::new(Mutex::new(MemoryManager::new())))
 }
 
 /// Get the global memory manager
 pub fn get_global_memory_manager() -> Arc<Mutex<MemoryManager<f32>>> {
-    GLOBAL_MEMORY_MANAGER.clone()
+    global_memory_manager().clone()
 }
 
 /// Initialize default memory pools
 pub fn init_default_pools() {
-    let mut manager = GLOBAL_MEMORY_MANAGER.lock().unwrap();
+    let mut manager = global_memory_manager().lock().unwrap();
     manager.create_pool("weights", 1024);
     manager.create_pool("activations", 512);
     manager.create_pool("gradients", 512);

@@ -73,8 +73,19 @@ impl FannReader {
                         })?;
                     }
                     "layer_sizes" => {
-                        layer_sizes = value
-                            .split_whitespace()
+                        // Guard: parse at most MAX_NUM_LAYERS tokens to prevent memory exhaustion
+                        // from crafted FANN files before num_layers has been validated.
+                        const MAX_NUM_LAYERS: usize = 10_000;
+                        let tokens: Vec<&str> = value.split_whitespace().collect();
+                        if tokens.len() > MAX_NUM_LAYERS {
+                            return Err(IoError::InvalidNetwork(format!(
+                                "layer_sizes contains {} entries, exceeding maximum ({})",
+                                tokens.len(),
+                                MAX_NUM_LAYERS
+                            )));
+                        }
+                        layer_sizes = tokens
+                            .iter()
                             .map(|s| s.parse())
                             .collect::<Result<Vec<_>, _>>()
                             .map_err(|e| {
@@ -82,6 +93,16 @@ impl FannReader {
                             })?;
                     }
                     "weights" => {
+                        // Guard: reject unreasonably large weight arrays (>100M entries) to
+                        // prevent memory exhaustion via crafted files.
+                        const MAX_WEIGHTS: usize = 100_000_000;
+                        let token_count = value.split_whitespace().count();
+                        if token_count > MAX_WEIGHTS {
+                            return Err(IoError::InvalidNetwork(format!(
+                                "weights section contains {} values, exceeding maximum ({})",
+                                token_count, MAX_WEIGHTS
+                            )));
+                        }
                         weights = value
                             .split_whitespace()
                             .map(|s| s.parse())

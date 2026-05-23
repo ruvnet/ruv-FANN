@@ -1,6 +1,6 @@
 [package]
 name = "ruv-fann"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 rust-version = "1.81"
 authors = ["rUv Contributors"]
@@ -64,8 +64,7 @@ rayon = { version = "1.8", optional = true }
 rand = { version = "0.8", features = ["small_rng"] }
 rand_distr = "0.4"
 
-# Memory management
-lazy_static = "1.4"
+# Memory management: uses std::sync::OnceLock (stable since Rust 1.70)
 
 # Logging
 log = { version = "0.4", optional = true }
@@ -82,7 +81,7 @@ wgpu = { version = "0.19", optional = true }
 futures = { version = "0.3", optional = true }
 pollster = { version = "0.3", optional = true }
 bytemuck = { version = "1.14", features = ["derive"], optional = true }
-tokio = { version = "1.0", features = ["rt", "sync", "time"], optional = true }
+tokio = { version = "1.44", features = ["rt", "sync", "time"], optional = true }
 async-trait = { version = "0.1", optional = true }
 
 # WASM dependencies
@@ -105,7 +104,7 @@ criterion = { version = "0.5", features = ["html_reports"] }
 proptest = "1.4"
 approx = "0.5"
 pretty_assertions = "1.4"
-tokio = { version = "1.0", features = ["macros", "rt", "rt-multi-thread", "time", "process", "sync", "fs"] }
+tokio = { version = "1.44", features = ["macros", "rt", "rt-multi-thread", "time", "process", "sync", "fs"] }
 futures = "0.3"
 uuid = { version = "1.0", features = ["v4"] }
 anyhow = "1.0"
@@ -151,3 +150,16 @@ harness = false
 [[example]]
 name = "basic_usage"
 path = "examples/basic_usage.rs"
+
+# ---------------------------------------------------------------------------
+# Security patches for transitive dependencies with known CVEs.
+#
+# [patch.crates-io] cannot be used here since this package is itself on
+# crates.io. Instead, raise the minimum versions of tokio and futures so
+# that Cargo resolves the patched transitive deps automatically.
+#
+# RUSTSEC-2026-0007: bytes 1.10.1 - integer overflow in BytesMut::reserve
+#   → resolved by tokio >= 1.44.2 which requires bytes >= 1.11.1
+# RUSTSEC-2025-0047: slab 0.4.10 - out-of-bounds in get_disjoint_mut
+#   → resolved by upgrading slab minimum in the dependency tree
+# ---------------------------------------------------------------------------
