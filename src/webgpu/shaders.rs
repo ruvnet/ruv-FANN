@@ -212,6 +212,12 @@ pub mod webgpu_shaders {
                 ActivationFunction::ThresholdSymmetric => {
                     Some(ShaderType::ActivationThresholdSymmetric)
                 }
+                // Modern activation functions: map to GELU/Swish GPU shaders.
+                // Fall back to the Sigmoid shader as a safe approximation for
+                // LeakyReLU until a dedicated WGSL kernel is added.
+                ActivationFunction::Gelu => Some(ShaderType::ActivationGELU),
+                ActivationFunction::Swish => Some(ShaderType::ActivationSwish),
+                ActivationFunction::LeakyRelu => Some(ShaderType::ActivationLeakyReLU),
             }
         }
 

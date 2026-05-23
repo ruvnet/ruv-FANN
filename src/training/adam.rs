@@ -175,11 +175,24 @@ impl<T: Float + Send + Default> Adam<T> {
             bias_updates.push(layer_updates);
         }
 
-        // Apply weight decay if specified (Adam approach - apply to gradients)
+        // Apply L2 weight decay for Adam (coupled formulation: adds λ·w to gradient).
+        // This differs from AdamW where decay is decoupled. The update here correctly
+        // scales the penalty by the actual weight value so that heavier weights are
+        // penalised more, matching the standard L2 regularisation derivation.
         if self.weight_decay > T::zero() {
-            for layer_updates in &mut weight_updates {
-                for update in layer_updates {
-                    *update = *update - self.learning_rate * self.weight_decay;
+            for (layer_idx, layer) in network.layers.iter().skip(1).enumerate() {
+                if layer_idx >= weight_updates.len() {
+                    break;
+                }
+                let mut update_idx = 0;
+                for neuron in &layer.neurons {
+                    for conn in &neuron.connections {
+                        if update_idx < weight_updates[layer_idx].len() {
+                            weight_updates[layer_idx][update_idx] = weight_updates[layer_idx][update_idx]
+                                - self.learning_rate * self.weight_decay * conn.weight;
+                            update_idx += 1;
+                        }
+                    }
                 }
             }
         }
