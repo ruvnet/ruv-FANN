@@ -121,7 +121,7 @@ class NeuralCLI {
 
     } catch (error) {
       console.error('❌ Error getting neural status:', error.message);
-      process.exit(1);
+      throw error;
     }
   }
 
@@ -182,7 +182,7 @@ class NeuralCLI {
 
     } catch (error) {
       console.error('\n❌ Training failed:', error.message);
-      process.exit(1);
+      throw error;
     }
   }
 
@@ -329,7 +329,7 @@ class NeuralCLI {
 
     } catch (error) {
       console.error('❌ Error analyzing patterns:', error.message);
-      process.exit(1);
+      throw error;
     }
   }
 
@@ -387,7 +387,7 @@ class NeuralCLI {
 
     } catch (error) {
       console.error('❌ Export failed:', error.message);
-      process.exit(1);
+      throw error;
     }
   }
 
@@ -566,6 +566,18 @@ class NeuralCLI {
   getArg(args, flag) {
     const index = args.indexOf(flag);
     return index !== -1 && index + 1 < args.length ? args[index + 1] : null;
+  }
+
+  async cleanup() {
+    if (this.ruvSwarm && typeof this.ruvSwarm.destroy === 'function') {
+      try {
+        await this.ruvSwarm.destroy();
+      } catch (error) {
+        console.warn('⚠️ Neural CLI cleanup issue:', error.message);
+      } finally {
+        this.ruvSwarm = null;
+      }
+    }
   }
 }
 

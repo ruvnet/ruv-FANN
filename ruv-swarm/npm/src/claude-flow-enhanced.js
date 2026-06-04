@@ -141,6 +141,10 @@ class ClaudeFlowEnhanced {
       speedupFactor: 1.0,
       tokenEfficiency: 0,
     };
+    this._isDestroyed = false;
+    this._cleanupRegistered = false;
+    this._handleBeforeExit = null;
+    this.registerLifecycleHandlers();
   }
 
   /**
@@ -787,6 +791,62 @@ class ClaudeFlowEnhanced {
       combined: parallelSpeedup * simdSpeedup * batchingSpeedup,
     };
   }
+
+  async destroy() {
+    if (this._isDestroyed) {
+      return;
+    }
+    this._isDestroyed = true;
+
+    if (typeof process !== 'undefined' && typeof process.removeListener === 'function' &&
+        this._cleanupRegistered && this._handleBeforeExit) {
+      process.removeListener('beforeExit', this._handleBeforeExit);
+      this._cleanupRegistered = false;
+    }
+
+    if (this.mcpTools && typeof this.mcpTools.destroy === 'function') {
+      try {
+        await this.mcpTools.destroy();
+      } catch (error) {
+        console.warn('Failed to destroy MCP tools during ClaudeFlow cleanup:', error?.message);
+      }
+    }
+
+    if (this.ruvSwarm && typeof this.ruvSwarm.destroy === 'function') {
+      try {
+        await this.ruvSwarm.destroy();
+      } catch (error) {
+        console.warn('Failed to destroy RuvSwarm during ClaudeFlow cleanup:', error?.message);
+      }
+    }
+
+    this.ruvSwarm = null;
+    this.mcpTools = null;
+    this.activeCoordinations.clear();
+    this.workflows.clear();
+
+    if (claudeFlowInstance === this) {
+      claudeFlowInstance = null;
+    }
+  }
+
+  registerLifecycleHandlers() {
+    if (typeof process === 'undefined' || typeof process.on !== 'function' || this._cleanupRegistered) {
+      return;
+    }
+
+    this._handleBeforeExit = () => {
+      if (this._isDestroyed) {
+        return;
+      }
+      this.destroy().catch(error => {
+        console.warn('ClaudeFlow cleanup during exit failed:', error?.message);
+      });
+    };
+
+    process.on('beforeExit', this._handleBeforeExit);
+    this._cleanupRegistered = true;
+  }
 }
 
 // Global instance management
@@ -833,6 +893,13 @@ export async function getPerformanceReport() {
 export async function validateWorkflow(workflow) {
   const claudeFlow = await getClaudeFlow();
   return claudeFlow.validateWorkflowOptimization(workflow);
+}
+
+export async function shutdownClaudeFlow() {
+  if (claudeFlowInstance && typeof claudeFlowInstance.destroy === 'function') {
+    await claudeFlowInstance.destroy();
+  }
+  claudeFlowInstance = null;
 }
 
 export { ClaudeFlowEnhanced, BatchToolEnforcer, ClaudeFlowError };

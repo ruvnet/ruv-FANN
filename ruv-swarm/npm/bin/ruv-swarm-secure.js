@@ -10,12 +10,34 @@ import { setupClaudeIntegration, invokeClaudeWithSwarm as _invokeClaudeWithSwarm
 import { RuvSwarm } from '../src/index-enhanced.js';
 import { EnhancedMCPTools } from '../src/mcp-tools-enhanced.js';
 import { daaMcpTools } from '../src/mcp-daa-tools.js';
-import mcpToolsEnhanced from '../src/mcp-tools-enhanced.js';
 import { Logger } from '../src/logger.js';
 import { CommandSanitizer, SecurityError } from '../src/security.js';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+
+const cleanupRegistry = new Map();
+let cleanupNeeded = false;
+
+function registerCleanup(key, handler) {
+    if (!handler || cleanupRegistry.has(key)) {
+        return;
+    }
+    cleanupRegistry.set(key, handler);
+    cleanupNeeded = true;
+}
+
+async function cleanupResources() {
+    for (const [key, handler] of cleanupRegistry.entries()) {
+        try {
+            await handler();
+        } catch (error) {
+            console.warn(`⚠️ Cleanup handler '${key}' failed:`, error?.message || error);
+        }
+    }
+    cleanupRegistry.clear();
+    cleanupNeeded = false;
+}
 
 // Get version from package.json
 const __filename = fileURLToPath(import.meta.url);
@@ -1276,11 +1298,32 @@ async function handleMcpRequest(request, mcpTools, logger = null) {
                     requestId: request.id
                 });
                 
-                // Try regular MCP tools first (use mcpToolsEnhanced.tools)
-                if (mcpToolsEnhanced.tools && typeof mcpToolsEnhanced.tools[toolName] === 'function') {
+                // Try regular MCP tools first (using initialized instance)
+                const availableTools = mcpTools?.tools;
+                if (availableTools && typeof availableTools[toolName] === 'function') {
                     try {
                         logger.debug('Executing MCP tool (NO TIMEOUT VERSION)', { tool: toolName, args: toolArgs });
-                        result = await mcpToolsEnhanced.tools[toolName](toolArgs);
+                        result = await availableTools[toolName](toolArgs);
+                        toolFound = true;
+                        logger.endOperation(toolOpId, true, { resultType: typeof result });
+                    } catch (error) {
+                        logger.endOperation(toolOpId, false, { error });
+                        logger.error('MCP tool execution failed (NO TIMEOUT VERSION)', { 
+                            tool: toolName, 
+                            error,
+                            args: toolArgs 
+                        });
+                        response.error = {
+                            code: -32603,
+                            message: `MCP tool error: ${error.message}`,
+                            data: { tool: toolName, error: error.message }
+                        };
+                        break;
+                    }
+                } else if (mcpTools && typeof mcpTools[toolName] === 'function') {
+                    try {
+                        logger.debug('Executing MCP tool method (NO TIMEOUT VERSION)', { tool: toolName, args: toolArgs });
+                        result = await mcpTools[toolName].call(mcpTools, toolArgs);
                         toolFound = true;
                         logger.endOperation(toolOpId, true, { resultType: typeof result });
                     } catch (error) {
@@ -1392,8 +1435,13 @@ async function handleHook(args) {
 
 async function handleNeural(args) {
     const { neuralCLI } = await import('../src/neural.js');
+    registerCleanup('neural', async () => {
+        if (typeof neuralCLI.cleanup === 'function') {
+            await neuralCLI.cleanup();
+        }
+    });
     const subcommand = args[0] || 'help';
-    
+
     try {
         switch (subcommand) {
             case 'status':
@@ -1423,7 +1471,7 @@ Examples:
         }
     } catch (error) {
         console.error('❌ Neural command error:', error.message);
-        process.exit(1);
+        throw error;
     }
 }
 
@@ -1570,14 +1618,15 @@ For detailed documentation, check .claude/commands/ after running init --claude
 
 async function main() {
     const args = process.argv.slice(2);
-    
+    let exitCode = 0;
+
     // Handle --version flag
     if (args.includes('--version') || args.includes('-v')) {
         const version = await getVersion();
         console.log(version);
         return;
     }
-    
+
     const command = args[0] || 'help';
 
     try {
@@ -1650,11 +1699,19 @@ async function main() {
                 break;
         }
     } catch (error) {
+        exitCode = 1;
         console.error('❌ Error:', error.message);
         if (process.argv.includes('--debug')) {
             console.error(error.stack);
         }
-        process.exit(1);
+    } finally {
+        if (cleanupNeeded) {
+            await cleanupResources();
+        }
+    }
+
+    if (exitCode !== 0) {
+        process.exit(exitCode);
     }
 }
 

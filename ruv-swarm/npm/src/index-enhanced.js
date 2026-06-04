@@ -36,13 +36,13 @@ class RuvSwarm {
   /**
    * Cleanup method for proper resource disposal
    */
-  destroy() {
+  async destroy() {
     console.log('🧹 Cleaning up RuvSwarm instance...');
 
     // Terminate all active swarms
     for (const swarm of this.activeSwarms.values()) {
       if (typeof swarm.terminate === 'function') {
-        swarm.terminate();
+        await Promise.resolve(swarm.terminate());
       }
     }
 
@@ -51,12 +51,12 @@ class RuvSwarm {
 
     // Cleanup persistence
     if (this.persistence && typeof this.persistence.close === 'function') {
-      this.persistence.close();
+      await this.persistence.close();
     }
 
     // Cleanup WASM loader
     if (this.wasmLoader && typeof this.wasmLoader.cleanup === 'function') {
-      this.wasmLoader.cleanup();
+      await Promise.resolve(this.wasmLoader.cleanup());
     }
 
     this.isInitialized = false;

@@ -81,10 +81,17 @@ class SingletonContainer {
    * Clear specific instance (force recreation)
    * @param {string} key - Service identifier
    */
-  clear(key) {
+  async clear(key) {
     const instance = this.instances.get(key);
     if (instance && typeof instance.destroy === 'function') {
-      instance.destroy();
+      try {
+        const result = instance.destroy();
+        if (result && typeof result.then === 'function') {
+          await result;
+        }
+      } catch (error) {
+        console.warn(`Error destroying instance '${key}':`, error.message);
+      }
     }
     this.instances.delete(key);
   }
@@ -92,7 +99,7 @@ class SingletonContainer {
   /**
    * Destroy all instances and clear container
    */
-  destroy() {
+  async destroy() {
     this.isDestroying = true;
 
     // Destroy instances in reverse order of creation
@@ -101,7 +108,10 @@ class SingletonContainer {
     for (const [key, instance] of instances) {
       try {
         if (instance && typeof instance.destroy === 'function') {
-          instance.destroy();
+          const result = instance.destroy();
+          if (result && typeof result.then === 'function') {
+            await result;
+          }
         }
       } catch (error) {
         console.warn(`Error destroying instance '${key}':`, error.message);
@@ -118,8 +128,8 @@ class SingletonContainer {
   /**
    * Reset container state (for testing)
    */
-  reset() {
-    this.destroy();
+  async reset() {
+    await this.destroy();
     this.isDestroying = false;
   }
 
@@ -152,14 +162,14 @@ export function getContainer() {
     if (typeof process !== 'undefined') {
       process.on('exit', () => {
         if (globalContainer) {
-          globalContainer.destroy();
+          globalContainer.destroy().catch(() => {});
           globalContainer = null;
         }
       });
 
       process.on('SIGINT', () => {
         if (globalContainer) {
-          globalContainer.destroy();
+          globalContainer.destroy().catch(() => {});
           globalContainer = null;
         }
         process.exit(0);
@@ -173,9 +183,9 @@ export function getContainer() {
 /**
  * Reset global container (for testing)
  */
-export function resetContainer() {
+export async function resetContainer() {
   if (globalContainer) {
-    globalContainer.destroy();
+    await globalContainer.destroy();
   }
   globalContainer = null;
 }
