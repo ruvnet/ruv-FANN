@@ -4,6 +4,7 @@
  */
 
 import crypto from 'crypto';
+import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -11,7 +12,7 @@ import path from 'path';
  * WASM module integrity verification
  */
 export class WasmIntegrityVerifier {
-  constructor(hashesPath = path.join(new URL('.', import.meta.url).pathname, '..', 'wasm', 'checksums.json')) {
+  constructor(hashesPath = path.join(fileURLToPath(new URL('.', import.meta.url)), '..', 'wasm', 'checksums.json')) {
     this.hashesPath = hashesPath;
     this.knownHashes = new Map();
     this.initialized = false;
@@ -153,7 +154,7 @@ export class DependencyVerifier {
   static async verifyNpmPackage(packageName, expectedVersion) {
     try {
       const packageJsonPath = path.join(
-        new URL('.', import.meta.url).pathname,
+        fileURLToPath(new URL('.', import.meta.url)),
         '..',
         'node_modules',
         packageName,

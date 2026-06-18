@@ -5,6 +5,7 @@
  */
 
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { promises as fs } from 'fs';
 
 class WasmModuleLoader {
@@ -56,7 +57,7 @@ class WasmModuleLoader {
         optional: true,
       },
     };
-    this.baseDir = path.join(new URL('.', import.meta.url).pathname, '..');
+    this.baseDir = path.join(fileURLToPath(new URL('.', import.meta.url)), '..');
   }
 
   async initialize(strategy = 'progressive') {

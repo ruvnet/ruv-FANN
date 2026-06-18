@@ -8,6 +8,7 @@ export * from './index-enhanced.js';
 
 /* Legacy exports for backward compatibility */
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { promises as fs } from 'fs';
 
 // Lazy-loaded WASM module
@@ -20,7 +21,7 @@ let wasmInstance = null;
 class WASMLoader {
   constructor(options = {}) {
     this.useSIMD = options.useSIMD && this.detectSIMDSupport();
-    this.wasmPath = options.wasmPath || path.join(new URL('.', import.meta.url).pathname, '..', 'wasm');
+    this.wasmPath = options.wasmPath || path.join(fileURLToPath(new URL('.', import.meta.url)), '..', 'wasm');
     this.debug = options.debug || false;
   }
 

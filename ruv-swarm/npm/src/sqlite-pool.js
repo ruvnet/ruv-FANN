@@ -16,6 +16,7 @@
  */
 
 import Database from 'better-sqlite3';
+import { fileURLToPath } from 'url';
 import { Worker } from 'worker_threads';
 import { EventEmitter } from 'events';
 import path from 'path';
@@ -160,7 +161,7 @@ class SQLiteConnectionPool extends EventEmitter {
   }
   
   async initializeWorkerThreads() {
-    const workerScript = path.join(path.dirname(new URL(import.meta.url).pathname), 'sqlite-worker.js');
+    const workerScript = path.join(path.dirname(fileURLToPath(import.meta.url)), 'sqlite-worker.js');
     
     for (let i = 0; i < this.options.maxWorkers; i++) {
       try {
@@ -486,7 +487,7 @@ class SQLiteConnectionPool extends EventEmitter {
   
   async createReplacementWorker() {
     try {
-      const workerScript = path.join(path.dirname(new URL(import.meta.url).pathname), 'sqlite-worker.js');
+      const workerScript = path.join(path.dirname(fileURLToPath(import.meta.url)), 'sqlite-worker.js');
       const worker = new Worker(workerScript, {
         workerData: { 
           dbPath: this.dbPath,

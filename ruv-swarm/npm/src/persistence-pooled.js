@@ -13,11 +13,12 @@
  */
 
 import { SQLiteConnectionPool } from './sqlite-pool.js';
+import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs';
 
 class SwarmPersistencePooled {
-  constructor(dbPath = path.join(new URL('.', import.meta.url).pathname, '..', 'data', 'ruv-swarm.db'), options = {}) {
+  constructor(dbPath = path.join(fileURLToPath(new URL('.', import.meta.url)), '..', 'data', 'ruv-swarm.db'), options = {}) {
     this.dbPath = dbPath;
     this.options = {
       // Pool configuration

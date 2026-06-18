@@ -3,11 +3,12 @@
  */
 
 import Database from 'better-sqlite3';
+import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs';
 
 class SwarmPersistence {
-  constructor(dbPath = path.join(new URL('.', import.meta.url).pathname, '..', 'data', 'ruv-swarm.db')) {
+  constructor(dbPath = path.join(fileURLToPath(new URL('.', import.meta.url)), '..', 'data', 'ruv-swarm.db')) {
     // Ensure data directory exists
     const dataDir = path.dirname(dbPath);
     if (!fs.existsSync(dataDir)) {
