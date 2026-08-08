@@ -46,7 +46,7 @@
     "generations": 5,
     "taskBatch": 4,
     "costWeight": 0.3,
-    "minImprovement": 0.0
+    "minImprovement": 0.005
   },
   "tasks": [
     {
