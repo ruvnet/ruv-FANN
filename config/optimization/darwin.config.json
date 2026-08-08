@@ -1,0 +1,132 @@
+{
+  "version": 1,
+  "tiers": {
+    "cheap": {
+      "model": "qwen/qwen3-8b",
+      "fallbacks": ["z-ai/glm-4.5-air", "meta-llama/llama-3.1-8b-instruct"],
+      "promptCostPerMTok": 0.05,
+      "completionCostPerMTok": 0.15
+    },
+    "mid": {
+      "model": "qwen/qwen3-coder",
+      "fallbacks": ["z-ai/glm-4.6", "meta-llama/llama-3.3-70b-instruct"],
+      "promptCostPerMTok": 0.4,
+      "completionCostPerMTok": 1.6
+    },
+    "frontier": {
+      "model": "anthropic/claude-sonnet-4.5",
+      "fallbacks": ["openai/gpt-5", "google/gemini-2.5-pro"],
+      "promptCostPerMTok": 3.0,
+      "completionCostPerMTok": 15.0
+    }
+  },
+  "tierOrder": ["cheap", "mid", "frontier"],
+  "genome": {
+    "routing": { "midThreshold": 0.35, "frontierThreshold": 0.7 },
+    "tierParams": {
+      "cheap": { "temperature": 0.2, "maxTokens": 512 },
+      "mid": { "temperature": 0.3, "maxTokens": 768 },
+      "frontier": { "temperature": 0.4, "maxTokens": 1024 }
+    },
+    "retry": { "maxRetries": 3, "backoffBaseMs": 500 },
+    "escalation": { "enabled": true, "scoreThreshold": 0.55, "maxEscalations": 1 },
+    "judge": { "enabled": false, "model": "tier:mid", "weight": 0.3 }
+  },
+  "mutationBounds": {
+    "temperature": [0.0, 1.2],
+    "maxTokens": [128, 2048],
+    "midThreshold": [0.05, 0.6],
+    "frontierThreshold": [0.4, 0.95],
+    "maxRetries": [0, 4],
+    "backoffBaseMs": [250, 2000],
+    "escalationScoreThreshold": [0.3, 0.9],
+    "judgeWeight": [0.0, 0.5]
+  },
+  "evolution": {
+    "generations": 5,
+    "taskBatch": 4,
+    "costWeight": 0.3,
+    "minImprovement": 0.0
+  },
+  "tasks": [
+    {
+      "id": "transform-var-const",
+      "type": "code-transform",
+      "complexity": 0.1,
+      "prompt": "Rewrite this JavaScript using const/let instead of var, preserving behavior. Reply with only the code.\n\nvar total = 0;\nvar items = [1, 2, 3];\nfor (var i = 0; i < items.length; i++) {\n  total += items[i];\n}",
+      "heuristic": {
+        "required": ["const"],
+        "anyOf": ["let"],
+        "forbiddenRegex": "\\bvar\\b",
+        "minLength": 40
+      }
+    },
+    {
+      "id": "transform-callback-async",
+      "type": "code-transform",
+      "complexity": 0.25,
+      "prompt": "Convert this callback-style Node.js function to async/await with try/catch. Reply with only the code.\n\nfunction readConfig(path, cb) {\n  fs.readFile(path, 'utf8', function (err, data) {\n    if (err) return cb(err);\n    cb(null, JSON.parse(data));\n  });\n}",
+      "heuristic": {
+        "required": ["async", "await"],
+        "anyOf": ["try", "catch"],
+        "forbiddenRegex": "cb\\(null",
+        "minLength": 60
+      }
+    },
+    {
+      "id": "bugfix-off-by-one",
+      "type": "bug-fix",
+      "complexity": 0.5,
+      "prompt": "This loop crashes intermittently:\n\nfor (let i = 0; i <= items.length; i++) {\n  sum += items[i].value;\n}\n\nExplain the bug in one sentence, then show the corrected loop header.",
+      "heuristic": {
+        "required": ["i < items.length"],
+        "anyOf": ["off-by-one", "undefined", "past the end", "out of bounds"],
+        "minLength": 60
+      }
+    },
+    {
+      "id": "bugfix-float-compare",
+      "type": "bug-fix",
+      "complexity": 0.45,
+      "prompt": "Why does `if (0.1 + 0.2 === 0.3)` evaluate to false in JavaScript, and what is the standard robust way to compare floating-point numbers? Show a one-line example.",
+      "heuristic": {
+        "required": ["floating"],
+        "anyOf": ["epsilon", "tolerance", "Number.EPSILON", "Math.abs"],
+        "minLength": 80
+      }
+    },
+    {
+      "id": "fann-activation",
+      "type": "domain-qa",
+      "complexity": 0.3,
+      "prompt": "Name three activation functions supported by the FANN (Fast Artificial Neural Network) library and state in one sentence when you would pick a sigmoid over a linear activation for the output layer.",
+      "heuristic": {
+        "required": ["sigmoid"],
+        "anyOf": ["linear", "gaussian", "elliot", "threshold", "symmetric"],
+        "minLength": 80
+      }
+    },
+    {
+      "id": "fann-cascade",
+      "type": "domain-qa",
+      "complexity": 0.6,
+      "prompt": "Explain cascade-correlation training as implemented in FANN: how does it grow the network, and when would you prefer it over training a fixed-topology network with backpropagation?",
+      "heuristic": {
+        "required": ["cascade"],
+        "anyOf": ["candidate", "hidden neuron", "topology", "adds neurons", "one at a time"],
+        "minLength": 120
+      }
+    },
+    {
+      "id": "forecast-lookback",
+      "type": "domain-qa",
+      "complexity": 0.4,
+      "prompt": "In neural time-series forecasting, what is the lookback (input) window, and how does making it longer or shorter trade off between capturing seasonality and overfitting? Answer in under 120 words.",
+      "heuristic": {
+        "required": ["window"],
+        "anyOf": ["seasonality", "overfit", "lag", "history", "noise"],
+        "minLength": 80
+      }
+    }
+  ]
+}
