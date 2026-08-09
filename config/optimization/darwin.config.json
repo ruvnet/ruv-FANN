@@ -1,0 +1,179 @@
+{
+  "version": 1,
+  "tiers": {
+    "cheap": {
+      "model": "qwen/qwen3-8b",
+      "fallbacks": ["z-ai/glm-4.5-air", "meta-llama/llama-3.1-8b-instruct"],
+      "promptCostPerMTok": 0.05,
+      "completionCostPerMTok": 0.15
+    },
+    "mid": {
+      "model": "qwen/qwen3-coder",
+      "fallbacks": ["z-ai/glm-4.6", "meta-llama/llama-3.3-70b-instruct"],
+      "promptCostPerMTok": 0.4,
+      "completionCostPerMTok": 1.6
+    },
+    "frontier": {
+      "model": "anthropic/claude-sonnet-4.5",
+      "fallbacks": ["openai/gpt-5", "google/gemini-2.5-pro"],
+      "promptCostPerMTok": 3.0,
+      "completionCostPerMTok": 15.0
+    }
+  },
+  "tierOrder": ["cheap", "mid", "frontier"],
+  "genome": {
+    "routing": { "midThreshold": 0.35, "frontierThreshold": 0.7 },
+    "tierParams": {
+      "cheap": { "temperature": 0.2, "maxTokens": 512 },
+      "mid": { "temperature": 0.3, "maxTokens": 768 },
+      "frontier": { "temperature": 0.4, "maxTokens": 1024 }
+    },
+    "retry": { "maxRetries": 3, "backoffBaseMs": 500 },
+    "escalation": { "enabled": true, "scoreThreshold": 0.55, "maxEscalations": 1 },
+    "judge": { "enabled": false, "model": "tier:mid", "weight": 0.3 }
+  },
+  "mutationBounds": {
+    "temperature": [0.0, 1.2],
+    "maxTokens": [128, 2048],
+    "midThreshold": [0.05, 0.6],
+    "frontierThreshold": [0.4, 0.95],
+    "maxRetries": [0, 4],
+    "backoffBaseMs": [250, 2000],
+    "escalationScoreThreshold": [0.3, 0.9],
+    "judgeWeight": [0.0, 0.5]
+  },
+  "evolution": {
+    "generations": 5,
+    "taskBatch": 4,
+    "costWeight": 0.3,
+    "minImprovement": 0.005
+  },
+  "tasks": [
+    {
+      "id": "transform-var-const",
+      "type": "code-transform",
+      "complexity": 0.1,
+      "prompt": "Rewrite this JavaScript using const/let instead of var, preserving behavior. Reply with only the code.\n\nvar total = 0;\nvar items = [1, 2, 3];\nfor (var i = 0; i < items.length; i++) {\n  total += items[i];\n}",
+      "heuristic": {
+        "required": ["const"],
+        "anyOf": ["let", "reduce"],
+        "forbiddenRegex": "\\bvar\\b",
+        "minLength": 50
+      }
+    },
+    {
+      "id": "fann-backprop-derivative",
+      "type": "domain-qa",
+      "complexity": 0.65,
+      "prompt": "FANN's FANN_SIGMOID_SYMMETRIC activation is g(x) = 2/(1 + e^(-2*s*x)) - 1 with steepness s. During backpropagation FANN computes the activation derivative from the neuron's OUTPUT value y, not from the input x. (a) Give that derivative formula in terms of s and y only. (b) Evaluate it numerically for s = 0.5 and y = 0.6. Do not discuss the ordinary (asymmetric) sigmoid or its derivative. Answer in under 80 words.",
+      "heuristic": {
+        "required": ["0.32"],
+        "anyOf": ["1 - y^2", "1-y^2", "1 - y²", "1-y²", "y^{2}", "y**2", "0.64", "1 - 0.36", "y*y", "y * y"],
+        "forbiddenRegex": "y\\s*\\*?\\s*\\(\\s*1\\s*-\\s*y\\s*\\)|0\\.24",
+        "minLength": 60
+      }
+    },
+    {
+      "id": "bugfix-concurrent-withdraw",
+      "type": "bug-fix",
+      "complexity": 0.55,
+      "prompt": "This Node.js code is meant to prevent overdrafts, yet with two concurrent calls the account can still go negative:\n\nasync function withdraw(accountId, amount) {\n  const balance = await db.getBalance(accountId);\n  if (balance >= amount) {\n    await db.setBalance(accountId, balance - amount);\n    return true;\n  }\n  return false;\n}\n\nJavaScript is single-threaded, so how is this possible? Name the exact class of bug, describe the specific interleaving that breaks it, and give one concrete fix. Answer in under 120 words.",
+      "heuristic": {
+        "required": ["race", "await", "balance"],
+        "anyOf": ["interleav", "lost update", "check-then-act", "toctou", "time-of-check", "mutex", "lock", "transaction", "atomic", "queue", "serializ"],
+        "minLength": 100
+      }
+    },
+    {
+      "id": "forecast-mase-ranking",
+      "type": "domain-qa",
+      "complexity": 0.8,
+      "prompt": "You forecast a daily demand series with strong weekly seasonality. The in-sample MAE of the seasonal-naive forecaster is 4.0. On the held-out test set: model A has MAE 3.0, model B has MAE 5.0, model C has MAE 3.6. (a) Compute the MASE of A, B and C. (b) State which model(s) actually beat the seasonal-naive benchmark and which single model you would deploy. Keep it under 100 words.",
+      "heuristic": {
+        "required": ["0.75", "1.25", "0.9"],
+        "anyOf": ["a and c", "a, c", "a & c", "deploy a", "model a"],
+        "minLength": 80
+      }
+    },
+    {
+      "id": "refactor-dedupe-set",
+      "type": "code-transform",
+      "complexity": 0.6,
+      "prompt": "Refactor this to be a pure function (no global state), run in O(n) using a Set, preserve first-occurrence order, and deduplicate NaN correctly (the original keeps every NaN). Include a one-line comment stating why indexOf misses NaN. Reply with only the code plus that comment.\n\nvar seen = [];\nfunction dedupe(items) {\n  for (var i = 0; i < items.length; i++) {\n    if (seen.indexOf(items[i]) === -1) {\n      seen.push(items[i]);\n    }\n  }\n  return seen;\n}",
+      "heuristic": {
+        "required": ["new set", "nan", "return"],
+        "anyOf": ["!==", "===", "not equal to itself", "samevaluezero", "strict equality"],
+        "forbiddenRegex": "\\bvar\\b",
+        "minLength": 100
+      }
+    },
+    {
+      "id": "transform-callback-async",
+      "type": "code-transform",
+      "complexity": 0.25,
+      "prompt": "Convert this callback-style Node.js function to async/await with try/catch. Reply with only the code.\n\nfunction readConfig(path, cb) {\n  fs.readFile(path, 'utf8', function (err, data) {\n    if (err) return cb(err);\n    cb(null, JSON.parse(data));\n  });\n}",
+      "heuristic": {
+        "required": ["async", "await", "try", "catch"],
+        "anyOf": ["json.parse", "readfile"],
+        "forbiddenRegex": "cb\\(|callback",
+        "minLength": 80
+      }
+    },
+    {
+      "id": "bugfix-off-by-one",
+      "type": "bug-fix",
+      "complexity": 0.5,
+      "prompt": "This loop crashes intermittently:\n\nfor (let i = 0; i <= items.length; i++) {\n  sum += items[i].value;\n}\n\nExplain the bug in one sentence, then show the corrected loop header.",
+      "heuristic": {
+        "required": ["i < items.length", "undefined"],
+        "anyOf": ["off-by-one", "past the end", "out of bounds", "one too many", "final iteration"],
+        "minLength": 80
+      }
+    },
+    {
+      "id": "bugfix-float-compare",
+      "type": "bug-fix",
+      "complexity": 0.45,
+      "prompt": "Why does `if (0.1 + 0.2 === 0.3)` evaluate to false in JavaScript, and what is the standard robust way to compare floating-point numbers? Show a one-line example.",
+      "heuristic": {
+        "required": ["floating", "math.abs", "epsilon"],
+        "anyOf": ["number.epsilon", "tolerance", "binary", "0.30000000000000004", "base 2", "cannot be represented", "ieee"],
+        "minLength": 100
+      }
+    },
+    {
+      "id": "fann-activation",
+      "type": "domain-qa",
+      "complexity": 0.3,
+      "prompt": "Name three activation functions supported by the FANN (Fast Artificial Neural Network) library and state in one sentence when you would pick a sigmoid over a linear activation for the output layer.",
+      "heuristic": {
+        "required": ["sigmoid"],
+        "anyOf": ["bounded", "probability", "[0, 1]", "between 0 and 1", "saturat", "classification"],
+        "forbiddenRegex": "softmax|gelu|swish|mish",
+        "minLength": 100
+      }
+    },
+    {
+      "id": "fann-cascade",
+      "type": "domain-qa",
+      "complexity": 0.6,
+      "prompt": "Explain cascade-correlation training as implemented in FANN: how does it grow the network, and when would you prefer it over training a fixed-topology network with backpropagation?",
+      "heuristic": {
+        "required": ["cascade", "candidate", "correlation"],
+        "anyOf": ["one at a time", "freez", "residual", "adds neurons", "hidden neuron", "shortcut"],
+        "minLength": 150
+      }
+    },
+    {
+      "id": "forecast-lookback",
+      "type": "domain-qa",
+      "complexity": 0.4,
+      "prompt": "In neural time-series forecasting, what is the lookback (input) window, and how does making it longer or shorter trade off between capturing seasonality and overfitting? Answer in under 120 words.",
+      "heuristic": {
+        "required": ["window", "seasonal"],
+        "anyOf": ["overfit", "noise", "parameters", "longer", "shorter"],
+        "minLength": 100
+      }
+    }
+  ]
+}

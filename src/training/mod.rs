@@ -453,6 +453,8 @@ pub mod helpers {
         weight_updates: &[Vec<T>],
         bias_updates: &[Vec<T>],
     ) {
+        // Weight writes below stale the SoA forward cache.
+        network.gemv_cache.mark_dirty();
         for layer_idx in 1..network.layers.len() {
             let current_layer = &mut network.layers[layer_idx];
             let weight_layer_idx = layer_idx - 1;

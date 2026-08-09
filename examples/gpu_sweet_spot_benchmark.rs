@@ -63,12 +63,12 @@ impl TestConfig {
     }
 }
 
-fn generate_training_data<T: Float + rand_distr::uniform::SampleUniform>(
+fn generate_training_data<T: Float + rand::distr::uniform::SampleUniform>(
     input_size: usize,
     output_size: usize,
     samples: usize,
 ) -> TrainingData<T> {
-    let mut rng = thread_rng();
+    let mut rng = rand::rng();
     let normal = StandardNormal;
 
     let inputs: Vec<Vec<T>> = (0..samples)
@@ -82,7 +82,7 @@ fn generate_training_data<T: Float + rand_distr::uniform::SampleUniform>(
     let outputs: Vec<Vec<T>> = (0..samples)
         .map(|_| {
             (0..output_size)
-                .map(|_| T::from(rng.gen_range(0.0..1.0)).unwrap())
+                .map(|_| T::from(rng.random_range(0.0..1.0)).unwrap())
                 .collect()
         })
         .collect();

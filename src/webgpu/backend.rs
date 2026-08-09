@@ -471,8 +471,8 @@ impl<T: Float + std::fmt::Debug + Send + Sync + 'static> MemoryManager<T> for Si
         // CPU memory management is handled by Vec<T> allocations
         // Return a placeholder handle since we don't need explicit buffer management
         use rand::Rng;
-        let mut rng = rand::thread_rng();
-        Ok(super::memory::BufferHandle::new(rng.gen()))
+        let mut rng = rand::rng();
+        Ok(super::memory::BufferHandle::new(rng.random()))
     }
 
     fn upload_data(
@@ -703,8 +703,8 @@ impl<T: Float + std::fmt::Debug + Send + Sync + 'static> VectorOps<T> for CpuBac
 impl<T: Float + std::fmt::Debug + Send + Sync + 'static> MemoryManager<T> for CpuBackend<T> {
     fn allocate_buffer(&self, _size: usize) -> Result<super::memory::BufferHandle, ComputeError> {
         use rand::Rng;
-        let mut rng = rand::thread_rng();
-        Ok(super::memory::BufferHandle::new(rng.gen()))
+        let mut rng = rand::rng();
+        Ok(super::memory::BufferHandle::new(rng.random()))
     }
 
     fn upload_data(

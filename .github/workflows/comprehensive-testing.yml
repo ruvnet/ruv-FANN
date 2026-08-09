@@ -3,6 +3,8 @@ name: Comprehensive Testing Pipeline
 on:
   push:
     branches: [ main, develop, 'ruv-swarm-*' ]
+  pull_request:
+    branches: [ main, develop ]
   workflow_dispatch: {}
 
 # Add permissions needed for GitHub API operations

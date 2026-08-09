@@ -127,7 +127,10 @@ impl<T: Float + Send + Sync + Default + bytemuck::Pod + FromPrimitive> Network<T
     fn update_weights_cpu(&mut self, errors: &[T], inputs: &[T], learning_rate: T) {
         // This is a simplified weight update - full backpropagation needed
         // Just to make the training loop functional for now
-        
+
+        // Weight writes below stale the SoA forward cache.
+        self.gemv_cache.mark_dirty();
+
         // Set inputs
         if self.layers[0].set_inputs(inputs).is_err() {
             return;

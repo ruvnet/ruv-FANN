@@ -45,6 +45,7 @@ pub mod layer;
 pub mod memory_manager;
 pub mod network;
 pub mod neuron;
+pub(crate) mod soa;
 pub mod training;
 
 // Optional I/O module

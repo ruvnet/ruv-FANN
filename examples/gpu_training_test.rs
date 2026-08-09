@@ -81,7 +81,7 @@ fn main() {
 }
 
 fn generate_test_data(input_size: usize, output_size: usize, samples: usize) -> TrainingData<f32> {
-    let mut rng = SmallRng::from_entropy();
+    let mut rng = SmallRng::from_os_rng();
     let mut inputs = Vec::with_capacity(samples);
     let mut outputs = Vec::with_capacity(samples);
     

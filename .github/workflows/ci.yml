@@ -3,6 +3,8 @@ name: CI
 on:
   push:
     branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
   workflow_dispatch: {}
 
 env:
@@ -10,6 +12,67 @@ env:
   RUST_BACKTRACE: 1
 
 jobs:
+  # Fast, blocking PR gate for the root crate: cargo check + cargo test on
+  # ubuntu/stable. The full cross-OS matrix below still runs, but this job
+  # gives a quick required signal for pull requests.
+  pr-gate:
+    name: PR Gate (root crate check + test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-pr-gate-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+
+    - name: cargo check
+      run: cargo check --all-features
+
+    - name: cargo test
+      run: cargo test --all-features
+      env:
+        RUV_FANN_CI_TESTING: "1"
+
+  # Build-only visibility for the neuro-divergent workspace, which currently
+  # has no CI at all. Non-blocking (continue-on-error) because the workspace
+  # does not compile today: its `wasm` feature declares `dep:ruv-fann/wasm`,
+  # which cargo rejects at manifest-parse time. Remove continue-on-error once
+  # the manifest is fixed.
+  neuro-divergent-build:
+    name: neuro-divergent build (non-blocking)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          neuro-divergent/target
+        key: ${{ runner.os }}-neuro-divergent-${{ hashFiles('neuro-divergent/Cargo.toml') }}
+
+    - name: cargo check (neuro-divergent workspace)
+      working-directory: neuro-divergent
+      run: cargo check
+
   test:
     name: Test Suite
     runs-on: ${{ matrix.os }}

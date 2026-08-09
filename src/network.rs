@@ -1,6 +1,6 @@
 use crate::{ActivationFunction, Layer, TrainingAlgorithm};
 use num_traits::Float;
-use rand::distributions::Uniform;
+use rand::distr::Uniform;
 use rand::Rng;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -37,6 +37,11 @@ pub struct Network<T: Float> {
 
     /// Connection rate (1.0 = fully connected, 0.0 = no connections)
     pub connection_rate: T,
+
+    /// Derived SoA fast-path cache for dense layers (see `src/soa.rs`).
+    /// Not serialized; rebuilt lazily on `run` whenever marked dirty.
+    #[cfg_attr(feature = "serde", serde(skip))]
+    pub(crate) gemv_cache: crate::soa::GemvCache<T>,
 }
 
 impl<T: Float> Network<T> {
@@ -125,10 +130,30 @@ impl<T: Float> Network<T> {
             });
         }
 
-        // Forward propagate through each layer
+        // Refresh the SoA fast-path cache if any weight/topology/activation
+        // mutation occurred since the last forward pass (lazy rebuild).
+        if self.gemv_cache.is_dirty() {
+            self.gemv_cache.rebuild(&self.layers);
+        }
+
+        // Forward propagate through each layer, reusing one scratch buffer
+        // for previous-layer outputs instead of allocating a Vec per layer.
+        let max_neurons = self.layers.iter().map(|l| l.neurons.len()).max().unwrap_or(0);
+        let mut prev_outputs: Vec<T> = Vec::with_capacity(max_neurons);
         for i in 1..self.layers.len() {
-            let prev_outputs = self.layers[i - 1].get_outputs();
-            self.layers[i].calculate(&prev_outputs);
+            prev_outputs.clear();
+            prev_outputs.extend(self.layers[i - 1].neurons.iter().map(|n| n.value));
+            // Dense layers take the SoA GEMV kernel; anything irregular
+            // (sparse, cascade, shortcut) keeps the per-neuron path.
+            match self.gemv_cache.plan(i) {
+                Some(plan)
+                    if plan.in_dim == prev_outputs.len()
+                        && plan.out_dim == self.layers[i].num_regular_neurons() =>
+                {
+                    crate::soa::run_layer(plan, &prev_outputs, &mut self.layers[i].neurons);
+                }
+                _ => self.layers[i].calculate(&prev_outputs),
+            }
         }
 
         // Return output layer values (excluding bias if present)
@@ -196,8 +221,19 @@ impl<T: Float> Network<T> {
                 }
             }
         }
+        self.gemv_cache.mark_dirty();
 
         Ok(())
+    }
+
+    /// Invalidates the internal forward-pass cache.
+    ///
+    /// Call this after mutating `layers` (weights, connections, or activation
+    /// settings) directly through the public fields; all built-in mutation
+    /// APIs (`set_weights`, `randomize_weights`, training, ...) do it
+    /// automatically.
+    pub fn invalidate_forward_cache(&mut self) {
+        self.gemv_cache.mark_dirty();
     }
 
     /// Resets all neurons in the network
@@ -216,6 +252,7 @@ impl<T: Float> Network<T> {
                 self.layers[i].set_activation_function(activation_function);
             }
         }
+        self.gemv_cache.mark_dirty();
     }
 
     /// Sets the activation function for the output layer
@@ -223,6 +260,7 @@ impl<T: Float> Network<T> {
         if let Some(output_layer) = self.layers.last_mut() {
             output_layer.set_activation_function(activation_function);
         }
+        self.gemv_cache.mark_dirty();
     }
 
     /// Sets the activation steepness for all hidden layers
@@ -233,6 +271,7 @@ impl<T: Float> Network<T> {
                 self.layers[i].set_activation_steepness(steepness);
             }
         }
+        self.gemv_cache.mark_dirty();
     }
 
     /// Sets the activation steepness for the output layer
@@ -240,6 +279,7 @@ impl<T: Float> Network<T> {
         if let Some(output_layer) = self.layers.last_mut() {
             output_layer.set_activation_steepness(steepness);
         }
+        self.gemv_cache.mark_dirty();
     }
 
     /// Sets the activation function for all neurons in a specific layer
@@ -250,16 +290,17 @@ impl<T: Float> Network<T> {
     ) {
         if layer < self.layers.len() {
             self.layers[layer].set_activation_function(activation_function);
+            self.gemv_cache.mark_dirty();
         }
     }
 
     /// Randomizes all weights in the network within the given range
     pub fn randomize_weights(&mut self, min: T, max: T)
     where
-        T: rand::distributions::uniform::SampleUniform,
+        T: rand::distr::uniform::SampleUniform,
     {
-        let mut rng = rand::thread_rng();
-        let range = Uniform::new(min, max);
+        let mut rng = rand::rng();
+        let range = Uniform::new(min, max).expect("randomize_weights: invalid weight range");
 
         for layer in &mut self.layers {
             for neuron in &mut layer.neurons {
@@ -268,6 +309,7 @@ impl<T: Float> Network<T> {
                 }
             }
         }
+        self.gemv_cache.mark_dirty();
     }
 
     /// Sets the training algorithm (placeholder for API compatibility)
@@ -334,6 +376,8 @@ impl<T: Float> Network<T> {
         if self.layers.is_empty() {
             return;
         }
+        // Weight updates below stale the SoA forward cache.
+        self.gemv_cache.mark_dirty();
 
         let num_layers = self.layers.len();
         let mut layer_errors = vec![Vec::new(); num_layers];
@@ -640,6 +684,7 @@ impl<T: Float> NetworkBuilder<T> {
         Network {
             layers: network_layers,
             connection_rate: self.connection_rate,
+            gemv_cache: Default::default(),
         }
     }
 }

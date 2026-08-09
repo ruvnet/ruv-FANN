@@ -1,3 +1,4 @@
+use crate::neuron::apply_activation;
 use crate::{ActivationFunction, Neuron};
 use num_traits::Float;
 use rand::Rng;
@@ -132,7 +133,7 @@ impl<T: Float> Layer<T> {
     pub fn connect_to(&self, next_layer: &mut Layer<T>, connection_rate: T) {
         let one = T::one();
         let should_connect = connection_rate >= one;
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         // For each neuron in the next layer (except bias)
         let next_layer_size = next_layer.num_regular_neurons();
@@ -141,10 +142,10 @@ impl<T: Float> Layer<T> {
 
             // Connect from each neuron in this layer
             for (j, _) in self.neurons.iter().enumerate() {
-                let random_val = T::from(rng.gen::<f64>()).unwrap();
+                let random_val = T::from(rng.random::<f64>()).unwrap();
                 if should_connect || random_val < connection_rate {
                     // Random weight between -0.1 and 0.1
-                    let weight_val: f64 = rng.gen::<f64>() * 0.2 - 0.1;
+                    let weight_val: f64 = rng.random::<f64>() * 0.2 - 0.1;
                     let weight = T::from(weight_val).unwrap();
                     next_neuron.add_connection(j, weight);
                 }
@@ -173,10 +174,53 @@ impl<T: Float> Layer<T> {
 
     /// Calculates outputs for all neurons in the layer based on previous layer outputs
     pub fn calculate(&mut self, prev_outputs: &[T]) {
-        for neuron in &mut self.neurons {
-            if !neuron.is_bias {
-                neuron.calculate(prev_outputs);
+        // Resolve the activation function once per layer when all non-bias
+        // neurons share it (always true for builder-made layers) so each
+        // specialized loop below folds the per-neuron dispatch away.
+        let mut funcs = self
+            .neurons
+            .iter()
+            .filter(|n| !n.is_bias)
+            .map(|n| n.activation_function);
+        let first = funcs.next();
+        match first.filter(|&f| funcs.all(|g| g == f)) {
+            Some(func) => calculate_uniform(&mut self.neurons, prev_outputs, func),
+            None => {
+                for neuron in &mut self.neurons {
+                    if !neuron.is_bias {
+                        neuron.calculate(prev_outputs);
+                    }
+                }
             }
+        }
+    }
+}
+
+/// Forward pass for a layer whose non-bias neurons share one activation
+/// function: dispatch on the variant once, then run a loop monomorphized for
+/// that variant's closure.
+fn calculate_uniform<T: Float>(neurons: &mut [Neuron<T>], prev: &[T], func: ActivationFunction) {
+    use ActivationFunction as AF;
+    match func {
+        AF::Linear => calc_loop(neurons, prev, |k, x| apply_activation(AF::Linear, k, x)),
+        AF::Sigmoid => calc_loop(neurons, prev, |k, x| apply_activation(AF::Sigmoid, k, x)),
+        AF::ReLU => calc_loop(neurons, prev, |k, x| apply_activation(AF::ReLU, k, x)),
+        AF::ReLULeaky => calc_loop(neurons, prev, |k, x| apply_activation(AF::ReLULeaky, k, x)),
+        AF::Tanh | AF::SigmoidSymmetric => {
+            calc_loop(neurons, prev, |k, x| apply_activation(AF::Tanh, k, x))
+        }
+        AF::Gaussian => calc_loop(neurons, prev, |k, x| apply_activation(AF::Gaussian, k, x)),
+        other => calc_loop(neurons, prev, move |k, x| apply_activation(other, k, x)),
+    }
+}
+
+#[inline]
+fn calc_loop<T: Float>(neurons: &mut [Neuron<T>], prev: &[T], f: impl Fn(T, T) -> T) {
+    for neuron in neurons.iter_mut() {
+        if !neuron.is_bias {
+            let sum = neuron.weighted_sum(prev);
+            neuron.sum = sum;
+            neuron.value = f(neuron.activation_steepness, sum);
         }
     }
 }

@@ -1,0 +1,56 @@
+name: Security
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Weekly, Monday 06:00 UTC
+    - cron: '0 6 * * 1'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  cargo-deny-advisories:
+    name: Rust advisories (cargo-deny, root workspace)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      # Uses the repo's deny.toml (ignore list documents accepted risks).
+      # Blocking: the root workspace passes `check advisories` as of the
+      # lockfile in this tree (crossbeam-epoch >=0.9.20, anyhow >=1.0.103).
+      - name: cargo-deny check advisories
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check advisories
+
+  npm-audit:
+    name: npm audit (ruv-swarm/npm)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Non-blocking for now: the lockfile has known findings (see
+    # docs/research/06-security-audit.md). Flip to blocking once
+    # `npm audit fix` has been applied — production-only high findings
+    # (ws, tar-fs) all have non-breaking fixes available.
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: ruv-swarm/npm
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Audit production dependencies (high and above)
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Audit all dependencies (informational)
+        if: always()
+        run: npm audit || true
