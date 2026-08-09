@@ -348,6 +348,8 @@ impl<T: Float + Send + Sync + Default + std::fmt::Debug + 'static> GpuAdam<T> {
         weight_gradients: &[Vec<T>],
         bias_gradients: &[Vec<T>],
     ) -> Result<(), ComputeError> {
+        // Weight writes below stale the SoA forward cache.
+        network.gemv_cache.mark_dirty();
         // Initialize moment estimates if not already done
         if self.m_weights_gpu.is_none() {
             self.initialize_moment_estimates(network)?;

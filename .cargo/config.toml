@@ -16,5 +16,7 @@ rustflags = [
 
 # getrandom 0.3+ (pulled in by rand 0.9) requires an explicit backend choice
 # on wasm32-unknown-unknown; pairs with the `wasm_js` feature in Cargo.toml.
+# +simd128 lets the SoA GEMV kernel (src/soa.rs) autovectorize to f32x4 on
+# wasm (see docs/research/09-candle-wasm-plan.md).
 [target.wasm32-unknown-unknown]
-rustflags = ['--cfg', 'getrandom_backend="wasm_js"']
+rustflags = ['--cfg', 'getrandom_backend="wasm_js"', '-C', 'target-feature=+simd128']

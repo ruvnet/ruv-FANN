@@ -504,6 +504,7 @@ impl<T: Float + Send + Default> AdamW<T> {
 
     /// Apply decoupled weight decay directly to weights (AdamW approach)
     fn apply_decoupled_weight_decay(&self, network: &mut Network<T>) {
+        network.gemv_cache.mark_dirty();
         let decay_factor = T::one() - self.learning_rate * self.weight_decay;
 
         for layer_idx in 1..network.layers.len() {
