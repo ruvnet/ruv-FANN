@@ -13,3 +13,8 @@ rustflags = [
     "-A", "clippy::needless_range_loop",
     "-A", "clippy::approx_constant",
 ]
+
+# getrandom 0.3+ (pulled in by rand 0.9) requires an explicit backend choice
+# on wasm32-unknown-unknown; pairs with the `wasm_js` feature in Cargo.toml.
+[target.wasm32-unknown-unknown]
+rustflags = ['--cfg', 'getrandom_backend="wasm_js"']

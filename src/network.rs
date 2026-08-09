@@ -1,6 +1,6 @@
 use crate::{ActivationFunction, Layer, TrainingAlgorithm};
 use num_traits::Float;
-use rand::distributions::Uniform;
+use rand::distr::Uniform;
 use rand::Rng;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -125,9 +125,13 @@ impl<T: Float> Network<T> {
             });
         }
 
-        // Forward propagate through each layer
+        // Forward propagate through each layer, reusing one scratch buffer
+        // for previous-layer outputs instead of allocating a Vec per layer.
+        let max_neurons = self.layers.iter().map(|l| l.neurons.len()).max().unwrap_or(0);
+        let mut prev_outputs: Vec<T> = Vec::with_capacity(max_neurons);
         for i in 1..self.layers.len() {
-            let prev_outputs = self.layers[i - 1].get_outputs();
+            prev_outputs.clear();
+            prev_outputs.extend(self.layers[i - 1].neurons.iter().map(|n| n.value));
             self.layers[i].calculate(&prev_outputs);
         }
 
@@ -256,10 +260,10 @@ impl<T: Float> Network<T> {
     /// Randomizes all weights in the network within the given range
     pub fn randomize_weights(&mut self, min: T, max: T)
     where
-        T: rand::distributions::uniform::SampleUniform,
+        T: rand::distr::uniform::SampleUniform,
     {
-        let mut rng = rand::thread_rng();
-        let range = Uniform::new(min, max);
+        let mut rng = rand::rng();
+        let range = Uniform::new(min, max).expect("randomize_weights: invalid weight range");
 
         for layer in &mut self.layers {
             for neuron in &mut layer.neurons {

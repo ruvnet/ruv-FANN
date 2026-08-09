@@ -22,13 +22,13 @@ This isn't about calling a model API. This is about **instantiating intelligence
 ## 🎯 What's in This Repository?
 
 ### 1. **ruv-FANN Core** - The Foundation
-A complete Rust rewrite of the legendary FANN (Fast Artificial Neural Network) library. Zero unsafe code, blazing performance, and full compatibility with decades of proven neural network algorithms.
+A complete Rust rewrite of the legendary FANN (Fast Artificial Neural Network) library. No unsafe code in the core API (10 audited `unsafe` sites, all x86-64 AVX2 intrinsics in the SIMD acceleration path in `src/simd`, gated by runtime CPU feature detection), blazing performance, and full compatibility with decades of proven neural network algorithms.
 
 ### 2. **Neuro-Divergent** - Advanced Neural Forecasting  
-27+ state-of-the-art forecasting models (LSTM, N-BEATS, Transformers) with 100% Python NeuralForecast compatibility. 2-4x faster, 25-35% less memory.
+17 state-of-the-art forecasting models (LSTM, N-BEATS, Transformers) with 100% Python NeuralForecast compatibility. 2-4x faster, 25-35% less memory.
 
 ### 3. **ruv-swarm** - Ephemeral Swarm Intelligence
-The crown jewel. Achieves **84.8% SWE-Bench solve rate**, outperforming Claude 3.7 by 14.5 points. Spin up lightweight neural networks that exist just long enough to solve problems.
+The crown jewel. Achieves **84.8% SWE-Bench solve rate**\* (internal 2025 benchmark run; see the note under [Benchmarks](#-benchmarks)), outperforming Claude 3.7 by 14.5 points. Spin up lightweight neural networks that exist just long enough to solve problems.
 
 ## 🚀 Quick Install ruv-swarm
 
@@ -77,7 +77,7 @@ That's it. You're now running distributed neural intelligence.
 
 ### 🏃 Performance
 - **<100ms decisions** - Complex reasoning in milliseconds
-- **84.8% SWE-Bench** - Best-in-class problem solving
+- **84.8% SWE-Bench**\* - Best-in-class problem solving
 - **2.8-4.4x faster** - Than traditional frameworks
 - **32.3% less tokens** - Cost-efficient intelligence
 
@@ -88,7 +88,7 @@ That's it. You're now running distributed neural intelligence.
 - **MCP Integration** - Native Claude Code support
 
 ### 🧬 Intelligence Models
-- **27+ Neural Architectures** - From MLP to Transformers
+- **17 Neural Architectures** - From MLP to Transformers
 - **5 Swarm Topologies** - Mesh, ring, hierarchical, star, custom
 - **7 Cognitive Patterns** - Convergent, divergent, lateral, systems thinking
 - **Adaptive Learning** - Real-time evolution and optimization
@@ -97,10 +97,12 @@ That's it. You're now running distributed neural intelligence.
 
 | Metric | ruv-swarm | Claude 3.7 | GPT-4 | Improvement |
 |--------|-----------|------------|-------|-------------|
-| **SWE-Bench Solve Rate** | **84.8%** | 70.3% | 65.2% | **+14.5pp** |
+| **SWE-Bench Solve Rate** | **84.8%**\* | 70.3% | 65.2% | **+14.5pp** |
 | **Token Efficiency** | **32.3% less** | Baseline | +5% | **Best** |
 | **Speed (tasks/sec)** | **3,800** | N/A | N/A | **4.4x** |
 | **Memory Usage** | **29% less** | Baseline | N/A | **Optimal** |
+
+\* SWE-Bench and comparison figures are from an internal 2025 benchmark run using the in-repo harness (`ruv-swarm/crates/swe-bench-adapter`); stored results live in `ruv-swarm/models/claude-code-optimizer/swe_bench_optimization_results.json`. They have not been independently reproduced — treat them as historical results until a full reproduction script and logs are published.
 
 ## 🌐 Ecosystem Projects
 

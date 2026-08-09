@@ -241,7 +241,7 @@ impl<T: Float> CandidateNeuron<T> {
         let mut rng = if let Some(seed) = random_seed {
             StdRng::seed_from_u64(seed)
         } else {
-            StdRng::from_entropy()
+            StdRng::from_os_rng()
         };
 
         use rand::Rng;
@@ -250,13 +250,13 @@ impl<T: Float> CandidateNeuron<T> {
         let weights: Vec<T> = (0..num_inputs)
             .map(|_| {
                 let w: f64 =
-                    rng.gen_range(min_weight.to_f64().unwrap()..=max_weight.to_f64().unwrap());
+                    rng.random_range(min_weight.to_f64().unwrap()..=max_weight.to_f64().unwrap());
                 T::from(w).unwrap()
             })
             .collect();
 
         let bias_val: f64 =
-            rng.gen_range(min_weight.to_f64().unwrap()..=max_weight.to_f64().unwrap());
+            rng.random_range(min_weight.to_f64().unwrap()..=max_weight.to_f64().unwrap());
         let bias = T::from(bias_val).unwrap();
 
         Self {
@@ -433,7 +433,7 @@ impl<T: Float> CascadeTrainer<T> {
         let rng = if let Some(seed) = config.random_seed {
             StdRng::seed_from_u64(seed)
         } else {
-            StdRng::from_entropy()
+            StdRng::from_os_rng()
         };
 
         Ok(Self {
@@ -652,7 +652,7 @@ impl<T: Float> CascadeTrainer<T> {
             // Randomly select activation function
             let activation_idx = self
                 .rng
-                .gen_range(0..self.config.candidate_activations.len());
+                .random_range(0..self.config.candidate_activations.len());
             let activation = self.config.candidate_activations[activation_idx];
 
             let candidate = CandidateNeuron::new(

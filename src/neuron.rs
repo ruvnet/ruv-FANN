@@ -102,49 +102,30 @@ impl<T: Float> Neuron<T> {
             return;
         }
 
-        // Calculate weighted sum
-        self.sum = T::zero();
-        for connection in &self.connections {
-            if connection.from_neuron < inputs.len() {
-                self.sum = self.sum + inputs[connection.from_neuron] * connection.weight;
-            }
-        }
+        let sum = self.weighted_sum(inputs);
+        self.sum = sum;
 
         // Apply activation function
-        self.value = self.apply_activation_function(self.sum);
+        self.value = self.apply_activation_function(sum);
+    }
+
+    /// Computes the weighted input sum without applying the activation.
+    #[inline]
+    pub(crate) fn weighted_sum(&self, inputs: &[T]) -> T {
+        // Accumulate locally so the compiler can keep the sum in a register
+        // instead of writing through `self` on every step.
+        let mut sum = T::zero();
+        for connection in &self.connections {
+            if let Some(&input) = inputs.get(connection.from_neuron) {
+                sum = sum + input * connection.weight;
+            }
+        }
+        sum
     }
 
     /// Apply the activation function to the given input
     fn apply_activation_function(&self, x: T) -> T {
-        match self.activation_function {
-            ActivationFunction::Linear => x * self.activation_steepness,
-            ActivationFunction::Sigmoid => {
-                let exp_val = (-self.activation_steepness * x).exp();
-                T::one() / (T::one() + exp_val)
-            }
-            ActivationFunction::ReLU => {
-                if x > T::zero() {
-                    x
-                } else {
-                    T::zero()
-                }
-            }
-            ActivationFunction::ReLULeaky => {
-                let alpha = T::from(0.01).unwrap_or(T::zero());
-                if x > T::zero() {
-                    x
-                } else {
-                    alpha * x
-                }
-            }
-            ActivationFunction::Tanh => (self.activation_steepness * x).tanh(),
-            ActivationFunction::SigmoidSymmetric => (self.activation_steepness * x).tanh(),
-            ActivationFunction::Gaussian => {
-                let x_scaled = x * self.activation_steepness;
-                (-x_scaled * x_scaled).exp()
-            }
-            _ => x, // Fallback for other functions
-        }
+        apply_activation(self.activation_function, self.activation_steepness, x)
     }
 
     /// Calculate the derivative of the activation function at the current value
@@ -205,6 +186,43 @@ impl<T: Float> Neuron<T> {
         } else {
             Err("Connection index out of bounds")
         }
+    }
+}
+
+/// Applies `function` with `steepness` to the raw input `x`.
+///
+/// Free function so `Layer::calculate` can resolve the activation once per
+/// layer; inlined into a loop specialized for one variant, the match folds
+/// away entirely.
+#[inline]
+pub(crate) fn apply_activation<T: Float>(function: ActivationFunction, steepness: T, x: T) -> T {
+    match function {
+        ActivationFunction::Linear => x * steepness,
+        ActivationFunction::Sigmoid => {
+            let exp_val = (-steepness * x).exp();
+            T::one() / (T::one() + exp_val)
+        }
+        ActivationFunction::ReLU => {
+            if x > T::zero() {
+                x
+            } else {
+                T::zero()
+            }
+        }
+        ActivationFunction::ReLULeaky => {
+            let alpha = T::from(0.01).unwrap_or(T::zero());
+            if x > T::zero() {
+                x
+            } else {
+                alpha * x
+            }
+        }
+        ActivationFunction::Tanh | ActivationFunction::SigmoidSymmetric => (steepness * x).tanh(),
+        ActivationFunction::Gaussian => {
+            let x_scaled = x * steepness;
+            (-x_scaled * x_scaled).exp()
+        }
+        _ => x, // Fallback for other functions
     }
 }
 
