@@ -75,10 +75,11 @@ Verified locally. The deep review's count of **10 unsafe AVX2 sites is confirmed
 Pattern-based scan over all 2,314 `git ls-files` entries (AWS keys, GitHub/GitLab tokens, OpenAI/Slack/Google keys, private-key blocks, credentialed DB URLs). Verified locally. **Result: NOT clean — one true-positive file.**
 
 - **`.claude.json` (tracked, ~1.7 MB)** contains captured session logs with **live third-party credentials** (values redacted here):
-  - Supabase Postgres pooler connection string embedding a `sbp_…` access token as password (`postgresql://postgres.efdn…:sbp_c391…@aws-0-us-west-1.pooler.supabase.com:6543/postgres`)
-  - a plaintext `SUPABASE_PASSWORD` (`oQzI…`)
-  - an ElevenLabs API key (`sk_49b5…`)
-  - a Google Gemini API key (`AIzaSyD7…`)
+  - a Supabase Postgres pooler connection string embedding a Supabase access token (`sbp_`-prefixed) as its password
+  - a plaintext `SUPABASE_PASSWORD` value
+  - an ElevenLabs API key (`sk_`-prefixed)
+  - a Google Gemini API key (`AIza`-prefixed)
+  (All values fully redacted from this report; identifying fragments intentionally omitted.)
   - Supabase anon JWTs (designed to be public, but bundled alongside the above)
   These belong to an unrelated project ("dental" schema app) and are exposed to anyone with repo read access — and to the public if this repo/history is public. **Rotation is required regardless of removal**, since the values are in git history.
 - `ruv-swarm/crates/ruv-swarm-mcp/src/error.rs:168` matches the DB-URL pattern but is a dummy string in a test (`postgres://user:pass@localhost/db`) — false positive.

@@ -28,3 +28,4 @@ merge_script.sh
 
 # Darwin/flywheel optimization logs (local eval data, never committed)
 .claude-flow/optimization/
+.claude.json
