@@ -6,6 +6,7 @@
 use crate::*;
 use std::sync::Arc;
 use ruv_swarm_core::SwarmConfig;
+use uuid::Uuid;
 
 #[test]
 fn test_version_info() {
@@ -14,8 +15,9 @@ fn test_version_info() {
 
 #[tokio::test]
 async fn test_basic_mcp_server_creation() {
-    let config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(config));
+    // Use unique database for this test
+    std::env::set_var("RUV_SWARM_DB_PATH", format!("test_basic_server_{}.db", Uuid::new_v4()));
+    let orchestrator = Arc::new(SwarmOrchestrator::new(SwarmConfig::default()).await);
     let mcp_config = McpConfig::default();
 
     let server = McpServer::new(orchestrator, mcp_config);
