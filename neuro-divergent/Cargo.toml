@@ -108,7 +108,11 @@ python-compat = []  # Enable Python-specific compatibility features
 # plotting = ["plotly"]  # Enable plotting support for examples (dev-dependency only)
 
 # WASM support
-wasm = ["dep:ruv-fann/wasm"]
+# Marker only: nothing in this crate is gated on it. It cannot forward to
+# `ruv-fann/wasm` because the locked ruv-fann 0.1.2 (the last 0.1.x that the
+# published neuro-divergent-core/-models 0.1.0 build against) has no such
+# feature, and `dep:ruv-fann/wasm` was not a valid feature spec at all.
+wasm = []
 no_std = []
 
 
@@ -119,22 +123,6 @@ path = "tests/performance/memory_tests.rs"
 [[test]]
 name = "scaling_tests"
 path = "tests/performance/scaling_tests.rs"
-
-[[example]]
-name = "basic_usage"
-path = "examples/basic_usage.rs"
-
-[[example]]
-name = "lstm_forecasting"
-path = "examples/lstm_forecasting.rs"
-
-[[example]]
-name = "multiple_models"
-path = "examples/multiple_models.rs"
-
-[[example]]
-name = "cross_validation"
-path = "examples/cross_validation.rs"
 
 [[example]]
 name = "complete_workflow"

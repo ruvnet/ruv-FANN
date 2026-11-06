@@ -5,7 +5,7 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-rust-version.workspace = true
+rust-version = "1.88"  # rmcp >= 1.4 (RUSTSEC-2026-0189 fix) needs darling 0.23
 description = "Model Context Protocol (MCP) integration for RUV Swarm"
 
 [[bin]]
@@ -30,7 +30,7 @@ dashmap = { workspace = true }
 futures = { workspace = true }
 
 # MCP SDK for stdio transport
-rmcp = { version = "0.2.1", features = ["server", "transport-io"] }
+rmcp = { version = "1.4", default-features = false, features = ["server", "macros", "transport-io"] }
 
 # MCP specific dependencies (WebSocket)
 axum = { version = "0.7", features = ["ws", "json"] }

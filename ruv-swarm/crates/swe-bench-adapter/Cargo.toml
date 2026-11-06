@@ -56,7 +56,7 @@ subprocess = "0.2"
 regex = "1.10"
 
 # Git operations
-git2 = "0.18"
+git2 = "0.21"
 
 # WASM support
 wasm-bindgen = { version = "0.2", optional = true }

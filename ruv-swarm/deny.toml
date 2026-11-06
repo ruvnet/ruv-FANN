@@ -1,0 +1,98 @@
+# This is a configuration file for cargo-deny
+# See https://embarkstudios.github.io/cargo-deny/
+
+[licenses]
+# We want really high confidence when inferring licenses from text
+confidence-threshold = 0.93
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "BSD-3-Clause",
+    "BSD-2-Clause",
+    "CC0-1.0",
+    "ISC",
+    "Zlib",
+    "0BSD",
+    "BSL-1.0",
+    "Unicode-DFS-2016",
+    "Unicode-3.0",
+]
+
+[[licenses.clarify]]
+crate = "adler2"
+expression = "MIT OR Apache-2.0 OR 0BSD"
+license-files = []
+
+[[licenses.clarify]]
+crate = "autocfg"
+expression = "MIT OR Apache-2.0"
+license-files = []
+
+[[licenses.clarify]]
+crate = "bincode"
+expression = "MIT"
+license-files = []
+
+[[licenses.clarify]]
+crate = "cfg-if"
+expression = "MIT OR Apache-2.0"
+license-files = []
+
+[advisories]
+# ruv-swarm workspace (this file shadows the repo-root deny.toml when
+# cargo-deny runs from ruv-swarm/). Every entry below has no patched release
+# reachable without replacing the dependency, and none is on a code path that
+# ruv-swarm compiles by default. Re-check when the listed blocker moves.
+#
+# Lockfile-only advisories. Cargo.lock records optional dependencies whether or
+# not their feature is enabled; cargo-audit reads the lockfile, so it reports
+# these, while cargo-deny (which walks the enabled graph) does not see them.
+#
+# RUSTSEC-2023-0071: rsa 0.9 Marvin timing side channel, no fixed release.
+#   Path: sqlx -> sqlx-mysql -> rsa. ruv-swarm-benchmarking enables sqlx with
+#   `sqlite` only; the `mysql` feature is never enabled, so `cargo tree -i rsa
+#   --target all -e all` prints nothing and rsa is not compiled into any
+#   artifact. ruv-swarm has no RSA code of its own (no `rsa::` / RsaPrivateKey
+#   in the tree), so there is no private-key operation an attacker can time.
+#
+# RUSTSEC-2026-0367/0368/0369/0429: zip 0.6 (no fix below zip 9.0).
+# RUSTSEC-2026-0403 (+ unsound 0395/0397/0399/0400/0401/0402/0404/0406):
+#   zstd-safe 5.0, pulled in by that zip.
+#   Path: tch 0.13 / candle-core 0.3 -> zip 0.6, behind ruv-swarm-daa's opt-in
+#   `neural-networks` feature (needs a local libtorch; not built by default or
+#   by CI). Fixing it means migrating tch/candle across several majors, and no
+#   tch or candle release depends on zip >= 9 yet.
+#
+# Unmaintained, no advisory-listed replacement version:
+# RUSTSEC-2025-0012 backoff / RUSTSEC-2024-0384 instant: ruv-swarm-transport
+#   websocket reconnect; no vulnerability, only maintenance status.
+# RUSTSEC-2024-0449 unsafe-libyaml: via serde_yaml (ruv-swarm-cli,
+#   swe-bench-adapter config files); no vulnerability, only maintenance status.
+# RUSTSEC-2025-0141 bincode 1.x / RUSTSEC-2024-0436 paste /
+# RUSTSEC-2022-0054 wee_alloc: same rationale as the repo-root deny.toml.
+ignore = [
+    "RUSTSEC-2023-0071",  # rsa: lockfile-only via unused sqlx `mysql`; no RSA ops in ruv-swarm
+    "RUSTSEC-2026-0367",  # zip 0.6: opt-in ruv-swarm-daa `neural-networks` (tch/candle)
+    "RUSTSEC-2026-0368",  # zip 0.6: same
+    "RUSTSEC-2026-0369",  # zip 0.6: same
+    "RUSTSEC-2026-0429",  # zip 0.6: same
+    "RUSTSEC-2026-0403",  # zstd-safe 5.0 via zip 0.6: same
+    "RUSTSEC-2026-0395",  # zstd-safe 5.0 unsound: same
+    "RUSTSEC-2026-0397",  # zstd-safe 5.0 unsound: same
+    "RUSTSEC-2026-0399",  # zstd-safe 5.0 unsound: same
+    "RUSTSEC-2026-0400",  # zstd-safe 5.0 unsound: same
+    "RUSTSEC-2026-0401",  # zstd-safe 5.0 unsound: same
+    "RUSTSEC-2026-0402",  # zstd-safe 5.0 unsound: same
+    "RUSTSEC-2026-0404",  # zstd-safe 5.0 unsound: same
+    "RUSTSEC-2026-0406",  # zstd-safe 5.0 unsound: same
+    "RUSTSEC-2025-0012",  # backoff unmaintained
+    "RUSTSEC-2024-0384",  # instant unmaintained (via backoff)
+    "RUSTSEC-2024-0449",  # unsafe-libyaml unmaintained (via serde_yaml)
+    "RUSTSEC-2025-0141",  # bincode 1.x unmaintained
+    "RUSTSEC-2024-0436",  # paste unmaintained
+    "RUSTSEC-2022-0054",  # wee_alloc unmaintained
+]
+
+[sources]
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = ["https://github.com"]

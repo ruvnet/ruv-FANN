@@ -6,7 +6,7 @@ use comfy_table::{presets::UTF8_FULL, Attribute, Cell, Color, ContentArrangement
 use indicatif::{ProgressBar, ProgressStyle};
 use serde::Serialize;
 use std::fmt::Display;
-use std::io::{self, Write};
+use std::io::{self, IsTerminal, Write};
 use std::time::Duration;
 
 /// Output format options
@@ -32,7 +32,7 @@ pub struct OutputHandler {
 
 impl OutputHandler {
     pub fn new(format: OutputFormat) -> Self {
-        let is_terminal = atty::is(atty::Stream::Stdout);
+        let is_terminal = io::stdout().is_terminal();
 
         Self {
             format: match format {

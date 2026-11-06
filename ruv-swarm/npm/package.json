@@ -1,6 +1,6 @@
 {
   "name": "ruv-swarm",
-  "version": "1.0.22",
+  "version": "1.0.23",
   "description": "High-performance neural network swarm orchestration in WebAssembly",
   "main": "src/index.js",
   "module": "src/index.js",
