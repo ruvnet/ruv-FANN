@@ -3,20 +3,20 @@
 //! This connects the actual swarm orchestration to MCP using the rmcp SDK pattern
 
 use rmcp::{
-    Error as McpError, 
+    ErrorData as McpError,
     model::*, 
     tool, 
     tool_handler, 
     tool_router,
     handler::server::router::tool::ToolRouter,
-    handler::server::tool::Parameters,
+    handler::server::wrapper::Parameters,
     ServerHandler
 };
 use std::{sync::Arc, future::Future};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uuid::Uuid;
-use schemars::JsonSchema;
+use rmcp::schemars::JsonSchema;
 
 use crate::orchestrator::SwarmOrchestrator;
 
@@ -29,6 +29,7 @@ pub struct RealSwarmService {
 
 // Parameter structs for tools
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
+#[schemars(crate = "rmcp::schemars")]
 struct SpawnParams {
     agent_type: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -36,6 +37,7 @@ struct SpawnParams {
 }
 
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
+#[schemars(crate = "rmcp::schemars")]
 struct OrchestrateParams {
     objective: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -43,29 +45,34 @@ struct OrchestrateParams {
 }
 
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
+#[schemars(crate = "rmcp::schemars")]
 struct OptimizeParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     target_metric: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
+#[schemars(crate = "rmcp::schemars")]
 struct MemoryStoreParams {
     key: String,
     value: Value,
 }
 
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
+#[schemars(crate = "rmcp::schemars")]
 struct MemoryGetParams {
     key: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
+#[schemars(crate = "rmcp::schemars")]
 struct TaskCreateParams {
     task_type: String,
     description: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, JsonSchema)]
+#[schemars(crate = "rmcp::schemars")]
 struct AgentMetricsParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     agent_id: Option<String>,
@@ -245,12 +252,7 @@ impl RealSwarmService {
 #[tool_handler]
 impl ServerHandler for RealSwarmService {
     fn get_info(&self) -> ServerInfo {
-        ServerInfo {
-            instructions: Some("RUV Swarm orchestration for massive GPU agent coordination. Use 'spawn' to create agents, 'orchestrate' to run tasks, 'query' to check status.".into()),
-            capabilities: ServerCapabilities::builder()
-                .enable_tools()
-                .build(),
-            ..Default::default()
-        }
+        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
+            .with_instructions("RUV Swarm orchestration for massive GPU agent coordination. Use 'spawn' to create agents, 'orchestrate' to run tasks, 'query' to check status.")
     }
 }

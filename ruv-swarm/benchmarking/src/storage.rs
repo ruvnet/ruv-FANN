@@ -3,7 +3,10 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::{sqlite::SqlitePoolOptions, Pool, Sqlite};
+use sqlx::{
+    sqlite::{SqliteConnectOptions, SqlitePoolOptions},
+    Pool, Sqlite,
+};
 use std::path::Path;
 use tracing::info;
 
@@ -24,11 +27,15 @@ impl BenchmarkStorage {
             std::fs::create_dir_all(parent)?;
         }
 
-        let db_url = format!("sqlite:{}", db_path.display());
+        // Build options from the path directly: a `sqlite:` URL opens read-write
+        // without create, so a fresh database file failed with SQLITE_CANTOPEN.
+        let options = SqliteConnectOptions::new()
+            .filename(db_path)
+            .create_if_missing(true);
 
         let pool = SqlitePoolOptions::new()
             .max_connections(5)
-            .connect(&db_url)
+            .connect_with(options)
             .await?;
 
         let storage = Self { pool };
