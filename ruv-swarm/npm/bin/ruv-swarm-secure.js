@@ -1568,11 +1568,17 @@ For detailed documentation, check .claude/commands/ after running init --claude
 `);
 }
 
+// Set by the print-and-return paths (--version, version, help). Imports at the
+// top of this file open handles (e.g. the pooled SQLite persistence layer), so
+// returning from main() is not enough for Node to exit.
+let oneShot = false;
+
 async function main() {
     const args = process.argv.slice(2);
     
     // Handle --version flag
     if (args.includes('--version') || args.includes('-v')) {
+        oneShot = true;
         const version = await getVersion();
         console.log(version);
         return;
@@ -1620,6 +1626,7 @@ async function main() {
                 await handleDiagnose(args.slice(1));
                 break;
             case 'version':
+                oneShot = true;
                 const version = await getVersion();
                 console.log('ruv-swarm v' + version + ' - NO TIMEOUT VERSION');
                 console.log('Production-ready WASM-powered neural swarm orchestration');
@@ -1646,6 +1653,7 @@ async function main() {
                 break;
             case 'help':
             default:
+                oneShot = true;
                 await showHelp();
                 break;
         }
@@ -1684,6 +1692,11 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // In ES modules, this file is always the main module when run directly
-main();
+main().then(() => {
+    if (oneShot) {
+        // Flush first: stdout to a pipe is asynchronous on macOS.
+        process.stdout.write('', () => process.exit(0));
+    }
+});
 
 export { main, initializeSystem };

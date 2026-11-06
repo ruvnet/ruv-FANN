@@ -21,6 +21,7 @@ jobs:
   test:
     name: Test NPM Package
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -49,6 +50,9 @@ jobs:
       run: npm test
     
     - name: Test NPX commands
+      # `ruv-swarm --version` used to print and then never exit (open SQLite
+      # handles), holding macOS runners for hours. Bound it.
+      timeout-minutes: 5
       working-directory: ./ruv-swarm/npm
       run: |
         npm link

@@ -3,6 +3,9 @@
 **What if every task, every file, every function could truly think?** Just for a moment. No LLM required. That's what ruv-swarm makes real.
 
 [![npm version](https://badge.fury.io/js/ruv-swarm.svg)](https://www.npmjs.com/package/ruv-swarm)
+[![npm downloads](https://img.shields.io/npm/dt/ruv-swarm.svg)](https://www.npmjs.com/package/ruv-swarm)
+[![npm downloads per month](https://img.shields.io/npm/dm/ruv-swarm.svg)](https://www.npmjs.com/package/ruv-swarm)
+[![MCP Registry](https://img.shields.io/badge/MCP%20Registry-io.github.ruvnet%2Fruv--swarm-blue)](https://registry.modelcontextprotocol.io/servers/io.github.ruvnet/ruv-swarm)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/License-MIT%20OR%20Apache--2.0-blue.svg)](https://opensource.org/licenses/MIT)
 [![WebAssembly](https://img.shields.io/badge/WebAssembly-654FF0?logo=webassembly&logoColor=white)](https://webassembly.org/)
 [![Rust](https://img.shields.io/badge/Built%20with-Rust-000000?logo=rust&logoColor=white)](https://www.rust-lang.org/)
@@ -117,6 +120,37 @@ npm install -g ruv-swarm
 # Development installation
 npm install ruv-swarm --save-dev
 ```
+
+### 🤖 MCP (Model Context Protocol) Installation
+
+ruv-swarm is available in the **official MCP Registry**! Add it to your AI clients:
+
+#### Claude Desktop Configuration:
+```json
+{
+  "mcpServers": {
+    "ruv-swarm": {
+      "command": "npx",
+      "args": ["ruv-swarm@1.0.19", "mcp", "start"],
+      "env": {
+        "RUV_SWARM_LOG_LEVEL": "info",
+        "RUV_SWARM_ENABLE_SIMD": "true"
+      }
+    }
+  }
+}
+```
+
+#### Direct MCP Usage:
+```bash
+# Start MCP server
+npx ruv-swarm@1.0.19 mcp start
+
+# View available MCP tools
+npx ruv-swarm@1.0.19 mcp tools
+```
+
+🔗 **Registry**: [io.github.ruvnet/ruv-swarm](https://registry.modelcontextprotocol.io/servers/io.github.ruvnet/ruv-swarm)
 
 ### ⚠️ WASM Requirements
 
