@@ -181,5 +181,10 @@
     "require": [
       "ts-node/register"
     ]
+  },
+  "overrides": {
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^9.0.7"
+    }
   }
 }

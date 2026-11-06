@@ -46,6 +46,7 @@ jobs:
       run: npm ci
     
     - name: Run tests
+      timeout-minutes: 15
       working-directory: ./ruv-swarm/npm
       run: npm test
     
@@ -62,20 +63,22 @@ jobs:
   validate-wasm:
     name: Validate WASM Loading
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 15
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-    
+
     - name: Install dependencies
       working-directory: ./ruv-swarm/npm
       run: npm ci
-    
+
     - name: Test WASM loading
+      timeout-minutes: 5
       working-directory: ./ruv-swarm/npm
       run: |
         node test-wasm-loading.js
@@ -84,23 +87,48 @@ jobs:
   publish:
     name: Publish to NPM
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [test, validate-wasm]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    
+    env:
+      # Secrets cannot be referenced in step `if:` directly; expose via env.
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
         registry-url: 'https://registry.npmjs.org'
-    
+
+    - name: Decide whether to publish
+      id: gate
+      timeout-minutes: 2
+      working-directory: ./ruv-swarm/npm
+      run: |
+        VERSION=$(node -p "require('./package.json').version")
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+        if [ -z "$NPM_TOKEN" ]; then
+          echo "::notice::NPM_TOKEN secret is not configured; skipping publish of ruv-swarm@$VERSION (publish manually)."
+          echo "publish=false" >> "$GITHUB_OUTPUT"
+        elif [ -n "$(timeout 60 npm view "ruv-swarm@$VERSION" version 2>/dev/null)" ]; then
+          echo "::notice::ruv-swarm@$VERSION is already on the registry; nothing to publish."
+          echo "publish=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "publish=true" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Install dependencies
+      if: steps.gate.outputs.publish == 'true'
+      timeout-minutes: 10
       working-directory: ./ruv-swarm/npm
       run: npm ci
-    
+
     - name: Publish to NPM
+      if: steps.gate.outputs.publish == 'true'
+      timeout-minutes: 5
       working-directory: ./ruv-swarm/npm
       run: |
         npm publish --access public
