@@ -7,6 +7,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use ruv_swarm_core::SwarmConfig;
+use uuid::Uuid;
 use crate::{
     orchestrator::SwarmOrchestrator, McpConfig, McpRequest, McpResponse, McpServer,
 };
@@ -16,8 +17,9 @@ use tokio::time::timeout;
 /// Test server creation
 #[tokio::test]
 async fn test_server_creation() {
-    let swarm_config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config));
+    // Use unique database for this test
+    std::env::set_var("RUV_SWARM_DB_PATH", format!("test_server_creation_{}.db", Uuid::new_v4()));
+    let orchestrator = Arc::new(SwarmOrchestrator::new(SwarmConfig::default()).await);
     let mcp_config = McpConfig::default();
 
     let server = McpServer::new(orchestrator, mcp_config);
@@ -85,13 +87,15 @@ fn test_tool_registry() {
 async fn test_orchestrator_spawn_agent() {
     use crate::types::{AgentCapabilities, AgentType};
 
+    // Use unique database for this test
+    std::env::set_var("RUV_SWARM_DB_PATH", format!("test_spawn_agent_{}.db", Uuid::new_v4()));
     let swarm_config = SwarmConfig::default();
-    let orchestrator = SwarmOrchestrator::new(swarm_config);
+    let orchestrator = SwarmOrchestrator::new(swarm_config).await;
 
     let agent_id = orchestrator
         .spawn_agent(
             AgentType::Researcher,
-            Some("Test Agent".to_string()),
+            "Test Agent".to_string(),
             AgentCapabilities::default(),
         )
         .await
@@ -100,7 +104,7 @@ async fn test_orchestrator_spawn_agent() {
     assert!(!agent_id.is_nil());
 
     // List agents
-    let agents = orchestrator.list_agents(false).await.unwrap();
+    let agents = orchestrator.list_agents().await.unwrap();
     assert_eq!(agents.len(), 1);
     assert_eq!(agents[0].id, agent_id);
 }
@@ -108,17 +112,17 @@ async fn test_orchestrator_spawn_agent() {
 /// Test orchestrator task creation
 #[tokio::test]
 async fn test_orchestrator_task_creation() {
-    use crate::types::TaskPriority;
-
+    // Use unique database for this test
+    std::env::set_var("RUV_SWARM_DB_PATH", format!("test_task_creation_{}.db", Uuid::new_v4()));
     let swarm_config = SwarmConfig::default();
-    let orchestrator = SwarmOrchestrator::new(swarm_config);
+    let orchestrator = SwarmOrchestrator::new(swarm_config).await;
 
     let task_id = orchestrator
         .create_task(
             "research".to_string(),
             "Test research task".to_string(),
-            TaskPriority::High,
-            None,
+            vec![],
+            "high_priority".to_string(),
         )
         .await
         .unwrap();
@@ -131,15 +135,17 @@ async fn test_orchestrator_task_creation() {
 async fn test_swarm_state_query() {
     use crate::types::{AgentCapabilities, AgentType};
 
+    // Use unique database for this test
+    std::env::set_var("RUV_SWARM_DB_PATH", format!("test_swarm_state_{}.db", Uuid::new_v4()));
     let swarm_config = SwarmConfig::default();
-    let orchestrator = SwarmOrchestrator::new(swarm_config);
+    let orchestrator = SwarmOrchestrator::new(swarm_config).await;
 
     // Spawn some agents
     for i in 0..3 {
         orchestrator
             .spawn_agent(
                 AgentType::Coder,
-                Some(format!("Agent {i}")),
+                format!("Agent {i}"),
                 AgentCapabilities::default(),
             )
             .await
@@ -154,25 +160,29 @@ async fn test_swarm_state_query() {
 /// Test metrics retrieval
 #[tokio::test]
 async fn test_metrics() {
+    // Use unique database for this test
+    std::env::set_var("RUV_SWARM_DB_PATH", format!("test_metrics_{}.db", Uuid::new_v4()));
     let swarm_config = SwarmConfig::default();
-    let orchestrator = SwarmOrchestrator::new(swarm_config);
+    let orchestrator = SwarmOrchestrator::new(swarm_config).await;
 
-    let metrics = orchestrator.get_metrics().await.unwrap();
+    let metrics = orchestrator.get_performance_metrics().await.unwrap();
     assert_eq!(metrics.success_rate, 1.0);
-    assert_eq!(metrics.total_tasks_processed, 0);
+    assert_eq!(metrics.total_tasks, 0);
 }
 
 /// Test optimization recommendations
 #[tokio::test]
 async fn test_optimization_recommendations() {
+    // Use unique database for this test
+    std::env::set_var("RUV_SWARM_DB_PATH", format!("test_optimization_{}.db", Uuid::new_v4()));
     let swarm_config = SwarmConfig::default();
-    let orchestrator = SwarmOrchestrator::new(swarm_config);
+    let orchestrator = SwarmOrchestrator::new(swarm_config).await;
 
-    let recommendations = orchestrator.analyze_performance().await.unwrap();
+    let recommendations = orchestrator.optimize_performance("throughput".to_string(), 0.8).await.unwrap();
 
     // Should have at least one recommendation for low utilization
     assert!(!recommendations.is_empty());
     assert!(recommendations
         .iter()
-        .any(|r| r.recommendation_type == "scale_down"));
+        .any(|r| r.recommendation_type == "scaling"));
 }

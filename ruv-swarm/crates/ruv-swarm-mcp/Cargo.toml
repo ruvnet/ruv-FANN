@@ -39,24 +39,24 @@ tower = { version = "0.5", features = ["full"] }
 tower-http = { version = "0.6", features = ["cors", "trace"] }
 
 # WebSocket support
-tokio-tungstenite = "0.26"
-tungstenite = "0.26"
+tokio-tungstenite = "0.27.0"
+tungstenite = "0.27.0"
 
 # JSON Schema
 schemars = { version = "0.8", features = ["derive"] }
-jsonschema = "0.26"
+jsonschema = "0.30.0"
 
 # Security utilities
 rand = "0.8"
 
 # UUID for session management
-uuid = { version = "1.11", features = ["v4", "serde"] }
+uuid = { version = "1.11.2", features = ["v4", "serde"] }
 
 # Time handling
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { version = "0.4.39", features = ["serde"] }
 
 # Error handling and logging for stdio binary
-color-eyre = "0.6"
+color-eyre = "0.6.3"
 
 # Internal dependencies
 ruv-swarm-core = { path = "../ruv-swarm-core", version = "1.0.6" }

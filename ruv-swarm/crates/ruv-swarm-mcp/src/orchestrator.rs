@@ -6,7 +6,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
-use tokio::sync::RwLock;
+use tokio::sync::{RwLock, broadcast};
 use serde_json::Value;
 use uuid::Uuid;
 use chrono::Utc;
@@ -33,6 +33,16 @@ pub struct SwarmOrchestrator {
     storage: Arc<SqliteStorage>,
     session_data: Arc<RwLock<HashMap<String, Value>>>,
     metrics: Arc<RwLock<OrchestratorMetrics>>,
+    event_tx: broadcast::Sender<SwarmEvent>,
+}
+
+/// Events that can be emitted by the swarm
+#[derive(Debug, Clone, serde::Serialize)]
+pub enum SwarmEvent {
+    AgentSpawned { agent_id: String, agent_type: String },
+    TaskCreated { task_id: String, task_type: String },
+    TaskCompleted { task_id: String },
+    StateChanged { old_state: String, new_state: String },
 }
 
 /// Real-time metrics tracking
@@ -52,8 +62,7 @@ struct TaskMetrics {
 
 impl SwarmOrchestrator {
     /// Create a new SwarmOrchestrator with persistence
-    pub async fn new() -> Self {
-        let config = SwarmConfig::default();
+    pub async fn new(config: SwarmConfig) -> Self {
         let swarm = Swarm::new(config);
         
         // Initialize SQLite storage with persistent file
@@ -63,6 +72,9 @@ impl SwarmOrchestrator {
             .expect("Failed to create storage");
         
         tracing::info!("Using SQLite database at: {}", db_path);
+        
+        // Create event channel
+        let (event_tx, _) = broadcast::channel(1000);
         
         Self {
             swarm: Arc::new(RwLock::new(swarm)),
@@ -75,6 +87,7 @@ impl SwarmOrchestrator {
                 average_task_duration_ms: 0.0,
                 last_task_metrics: HashMap::new(),
             })),
+            event_tx,
         }
     }
 
@@ -86,8 +99,19 @@ impl SwarmOrchestrator {
         capabilities: AgentCapabilities,
     ) -> Result<Uuid, SwarmError> {
         let start_time = Instant::now();
-        let agent_id = Uuid::new_v4();
-        let agent_id_str = format!("{}-{}", name, agent_id);
+        
+        // Create agent model first to get consistent ID
+        let agent_model = AgentModel::new(
+            name.clone(),
+            agent_type.to_string(),
+            capabilities.tools.clone()
+        );
+        
+        // Parse the agent ID from the model
+        let agent_uuid = Uuid::parse_str(&agent_model.id)
+            .map_err(|e| SwarmError::custom(format!("Invalid agent ID format: {}", e)))?;
+        
+        let agent_id_str = format!("{}-{}", name, agent_uuid);
         
         // Create DynamicAgent
         let dynamic_agent = DynamicAgent::new(agent_id_str.clone(), capabilities.tools.clone());
@@ -97,12 +121,6 @@ impl SwarmOrchestrator {
         swarm.register_agent(dynamic_agent)?;
         
         // Persist agent to database
-        let agent_model = AgentModel::new(
-            name.clone(),
-            agent_type.to_string(),
-            capabilities.tools.clone()
-        );
-        
         self.storage.store_agent(&agent_model).await
             .map_err(|e| SwarmError::custom(e.to_string()))?;
         
@@ -128,7 +146,13 @@ impl SwarmOrchestrator {
         self.storage.store_metric(&metric).await
             .map_err(|e| SwarmError::custom(e.to_string()))?;
         
-        Ok(agent_id)
+        // Emit event
+        let _ = self.event_tx.send(SwarmEvent::AgentSpawned {
+            agent_id: agent_model.id.clone(),
+            agent_type: agent_type.to_string(),
+        });
+
+        Ok(agent_uuid)
     }
 
     /// Create a new task with persistence
@@ -186,6 +210,12 @@ impl SwarmOrchestrator {
         );
         self.storage.store_metric(&metric).await
             .map_err(|e| SwarmError::custom(e.to_string()))?;
+        
+        // Emit event
+        let _ = self.event_tx.send(SwarmEvent::TaskCreated {
+            task_id: task_id_str.clone(),
+            task_type: task_type.clone(),
+        });
         
         Ok(task_id)
     }
@@ -404,6 +434,14 @@ impl SwarmOrchestrator {
     pub async fn get_agent_metrics(&self, agent_id: Uuid) -> Result<AgentMetrics, SwarmError> {
         let agent_id_str = agent_id.to_string();
         
+        // Check if agent exists first
+        let agents = self.storage.list_agents().await
+            .map_err(|e| SwarmError::custom(e.to_string()))?;
+        
+        if !agents.iter().any(|a| a.id == agent_id_str) {
+            return Err(SwarmError::custom(format!("Agent {} not found", agent_id)));
+        }
+        
         // Get real metrics from database
         let response_metrics = self.storage.get_metrics_by_agent(
             &agent_id_str,
@@ -554,6 +592,11 @@ impl SwarmOrchestrator {
         }
         
         Ok(())
+    }
+
+    /// Subscribe to swarm events
+    pub async fn subscribe_events(&self) -> Result<broadcast::Receiver<SwarmEvent>, SwarmError> {
+        Ok(self.event_tx.subscribe())
     }
 }
 
