@@ -414,6 +414,10 @@ class SQLiteConnectionPool extends EventEmitter {
     this.healthCheckTimer = setInterval(() => {
       this.performHealthCheck();
     }, this.options.healthCheckInterval);
+    // Background upkeep must not keep the process alive on its own: one-shot
+    // commands (`status`, `init`, ...) otherwise never exit. Long-running
+    // modes (`mcp start`) stay alive through their stdio handles.
+    this.healthCheckTimer.unref?.();
   }
   
   async performHealthCheck() {
