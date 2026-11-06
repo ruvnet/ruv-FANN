@@ -141,9 +141,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.98"
+version = "1.0.104"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e16d2d3311acee920a9eb8d33b8cbc1787ce4a264e85f964c2404b969bdcd487"
+checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 
 [[package]]
 name = "approx"
@@ -4595,7 +4595,7 @@ dependencies = [
 
 [[package]]
 name = "ruv-fann"
-version = "0.1.6"
+version = "0.2.1"
 dependencies = [
  "async-trait",
  "bincode",
@@ -4603,7 +4603,6 @@ dependencies = [
  "flate2",
  "futures",
  "getrandom 0.2.16",
- "lazy_static",
  "log",
  "num-traits",
  "num_cpus",

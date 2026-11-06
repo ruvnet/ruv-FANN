@@ -1,6 +1,6 @@
 {
   "name": "ruv-swarm",
-  "version": "1.0.21",
+  "version": "1.0.22",
   "description": "High-performance neural network swarm orchestration in WebAssembly",
   "main": "src/index.js",
   "module": "src/index.js",
@@ -125,7 +125,7 @@
   "dependencies": {
     "better-sqlite3": "^11.6.0",
     "uuid": "^9.0.1",
-    "ws": "^8.14.0"
+    "ws": "^8.21.0"
   },
   "devDependencies": {
     "@babel/core": "^7.28.0",
@@ -168,7 +168,7 @@
     "jest-html-reporters": "^3.1.7",
     "nodemon": "^3.0.0",
     "nyc": "^17.1.0",
-    "rollup": "^3.29.0",
+    "rollup": "^3.30.0",
     "sqlite3": "^6.0.1",
     "typescript": "^5.2.0",
     "vitest": "^4.1.12",
