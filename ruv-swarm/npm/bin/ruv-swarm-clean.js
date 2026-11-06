@@ -1756,11 +1756,17 @@ For detailed documentation, check .claude/commands/ after running init --claude
 `);
 }
 
+// Set by the print-and-return paths (--version, version, help). Imports at the
+// top of this file open handles (e.g. the pooled SQLite persistence layer), so
+// returning from main() is not enough for Node to exit.
+let oneShot = false;
+
 async function main() {
     const args = process.argv.slice(2);
     
     // Handle --version flag
     if (args.includes('--version') || args.includes('-v')) {
+        oneShot = true;
         try {
             const fs = await import('fs');
             const path = await import('path');
@@ -1818,6 +1824,7 @@ async function main() {
                 await handleDiagnose(args.slice(1));
                 break;
             case 'version':
+                oneShot = true;
                 try {
                     // Try to read version from package.json
                     const fs = await import('fs');
@@ -1837,6 +1844,7 @@ async function main() {
                 break;
             case 'help':
             default:
+                oneShot = true;
                 showHelp();
                 break;
         }
@@ -1867,6 +1875,11 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // In ES modules, this file is always the main module when run directly
-main();
+main().then(() => {
+    if (oneShot) {
+        // Flush first: stdout to a pipe is asynchronous on macOS.
+        process.stdout.write('', () => process.exit(0));
+    }
+});
 
 export { main, initializeSystem };
