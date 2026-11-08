@@ -26,6 +26,9 @@ jobs:
   wasm-targets:
     uses: ./.github/workflows/wasm-build.yml
 
+  rune:
+    uses: ./.github/workflows/rune.yml
+
   inventory-and-docs:
     runs-on: ubuntu-latest
     timeout-minutes: 10

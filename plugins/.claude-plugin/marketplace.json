@@ -8,7 +8,7 @@
     {
       "name": "ruv-fann",
       "source": "./ruv-fann",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "description": "Repository skills and bounded verification for ruv-FANN."
     }
   ]

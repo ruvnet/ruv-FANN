@@ -45,6 +45,13 @@ Define workload/model shape, dtype, input/weight data, batch size, threads, targ
 
 Run Criterion against a named baseline only on comparable machines/configurations. A benchmark smoke case only establishes execution. `run_into`'s zero repeated allocations are a testable allocation property; they are not a universal latency multiplier.
 
+For frozen build provenance, use the
+[Rune procedure](../release-verification/references/rune.md). Check the exact
+upstream commit and dependency lock, local tool binary hash, source closure,
+compiler identity, plan, selected executable and stored object. Reproduction and
+a passing correctness probe do not establish a latency improvement. Require
+independent performance evidence before retaining an optimization.
+
 ## Evaluate new research honestly
 
 Read `docs/research-modernization.md` and primary sources. A paper's architecture name, registry latest version or model card score does not implement or validate that capability here. Define the needed algorithm/checkpoint/license, runtime mapping, memory budget, test oracle and held-out dataset before adding a dependency or claim. New WGPU majors, packed/quantized inference and pretrained forecasting models require separate compatibility and runtime evaluation.

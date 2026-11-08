@@ -1,6 +1,6 @@
 ---
 name: release-verification
-description: "Prepare and verify ruv-FANN Cargo/npm release candidates with frozen source, real artifact provenance, clean consumers, dependency order, and immutable receipts. Use for release readiness, archive contents, version migrations, or candidate validation; it does not authorize publication."
+description: "Prepare and verify ruv-FANN Cargo/npm release candidates, pinned Rune builds, frozen source, real artifact provenance, clean consumers, dependency order, and immutable receipts. Use for Rune integration, build reproduction, CI/CD, release readiness, archive contents, version migrations, or candidate validation; it does not authorize publication."
 ---
 
 # Verify reviewable release candidates
@@ -21,6 +21,18 @@ This workflow creates and checks local artifacts. Registry publication, remote d
 3. Complete relevant tests, browser/native execution and audits before freezing source. Record commands and their actual outputs. Historical receipts do not cover new source changes.
 4. Stop concurrent source writers and Cargo jobs before reusing their target caches. Check available disk; do not delete shared caches without their owner's agreement.
 5. Choose a new empty task-owned output directory. Existing immutable receipts and archives must not be overwritten.
+
+## Rune build verification
+
+Use [the Rune procedure](references/rune.md) to build the exact pinned
+`rune-toolchain`, then freeze, replay and independently reproduce the actual core
+probe. The helper checks the selected executable and Rune's stored object,
+executes the product, and runs release-source correctness tests. Negative checks
+must reject stale source, a modified plan and object corruption.
+
+This proves the scoped native product and tested source. It is separate from
+the archive, browser/WASM, dependency audit and publication gates below. Rune
+verification makes no model call and never promotes a candidate automatically.
 
 ## Cargo archive verification
 

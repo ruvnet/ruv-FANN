@@ -59,11 +59,19 @@ Regular transient neuron sums/values are ignored. Nonfinite parameters/inputs,
 invalid indices, inadequate workspace, numeric overflow, and exceeded budgets
 return `PreparedError` instead of unchecked inference.
 
-Dense canonical rows use contiguous scalar weights; sparse, shuffled, and
-duplicate connections preserve source accumulation order. This is a scalar
-packing optimization, with f32/f64 equivalence coverage. It does not implement
-an explicit SIMD kernel, XNNPACK backend, or batch API. Measure preparation cost,
-reuse count, allocations, and warm inference separately before claiming a gain.
+Dense canonical rows use contiguous weights; sparse, shuffled and duplicate
+connections preserve source accumulation order. Native f32/f64 callers can use
+`batch_workspace(capacity, byte_budget)` and `run_batch_into` with row-major
+input/output slices. Numeric buffers are reused; errors preserve caller output.
+The byte budget here covers the workspace, not the shared immutable snapshot.
+
+The generated WASM API uses Float64Arrays, `prepared.create_batch(capacity)`
+and `batch.run_into(inputs, outputs, rows)`. The SIMD build processes independent
+samples with f64x2 multiply/add and scalar tails. It validates primitive row
+counts, typed-array buffers, combined storage and conservative work limits.
+Inspect `ruv-swarm/npm/README.md` for the exact limits and handle lifetime.
+Small batches can be slower. Measure setup, reuse, public boundary copies and
+warm inference separately; packing alone does not prove SIMD throughput.
 
 ## Implementation procedure
 
@@ -81,6 +89,7 @@ reuse count, allocations, and warm inference separately before claiming a gain.
 | --- | --- |
 | CPU `run`/`run_into` | Generic scalar types and canonical activation behavior; benchmark the invoked path |
 | `PreparedNetwork::run_into` | Immutable owned scalar parameters and separate reusable workspace; checked finite inputs and canonical unit bias |
+| `PreparedNetwork::run_batch_into` | f32/f64 row-major batches with fixed-capacity scratch and atomic caller outputs; independent sample SIMD on wasm32+simd128 |
 | `simd`/`parallel` utilities | Optional optimization utilities; feature selection alone does not route every operation through them |
 | Native `gpu` | Real WGPU f32 matrix/batch/activation and managed buffers; f64 computation keeps CPU precision |
 | Browser `webgpu`/`wasm-gpu` | Async `WasmGpuBridge` for bounded f32 matrix multiplication and activations; separate from native `gpu` |
@@ -95,6 +104,7 @@ Run from the checkout root with dependencies already available:
 cargo test --locked --lib
 cargo test --locked --test inference_allocations
 cargo test --locked --test prepared_inference --test prepared_allocations
+cargo test --locked --test prepared_batch_equivalence --test prepared_batch_work
 cargo test --locked --lib --no-default-features --features simd
 cargo test --locked --release --lib tests::core_regressions
 cargo test --locked --doc

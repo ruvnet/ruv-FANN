@@ -3,7 +3,7 @@
 The [`ruv-fann` plugin](../plugins/ruv-fann/README.md) packages maintained
 repository workflows for Claude Code. It contains eight package-specific
 skills, three explicitly invoked commands, a read-only reviewer agent, and a
-Python standard-library helper. Its current version is `0.1.1`; installing it
+Python standard-library helper. Its current version is `0.1.2`; installing it
 does not change any Rust/npm package version.
 
 ## Start a local session
@@ -70,13 +70,14 @@ and what successful evidence must contain. Supporting references are loaded
 only when needed. These files are scoped to this repository's implemented APIs;
 they do not copy the older generic skills already present under `.claude/`.
 
-## Version 0.1.1 API guidance
+## Current API guidance
 
 The core skill now covers `PreparedNetwork<T>`, `InferenceWorkspace<T>`, and
 `PreparationLimits`: owned immutable model parameters, separate caller scratch,
-checked canonical unit biases, and scalar packed kernels. Preparation/workspace
-allocation and warm inference are distinct measurement phases; no SIMD or
-XNNPACK backend claim follows from packing.
+checked canonical unit biases, and fixed-capacity f32/f64 batch workspaces.
+The generated WASM API exposes bounded Float64 batches with independent sample
+SIMD lanes. Preparation/workspace allocation and warm inference are distinct
+measurement phases; packing alone does not establish faster execution.
 
 The forecasting skill now covers explicit `ConformalCalibrator` fitting and
 application. It documents corrected residual ranks, independent series/model/
@@ -84,6 +85,58 @@ horizon groups, `as_of`/forecast-origin leakage guards, sample and memory limits
 and the statistical assumptions behind empirical coverage. This separate
 calibration API does not enable automatic prediction-interval builders,
 bootstrap/quantile methods, or probabilistic sampling.
+
+## Rune build verification
+
+The release and security/performance skills now include a
+[detailed Rune procedure](../plugins/ruv-fann/skills/release-verification/references/rune.md).
+It uses `rune-toolchain` 0.2.0 from a fixed `ruvnet/rune` commit, rather than an
+arbitrary `rune` binary on PATH. This separate development tool needs Rust 1.88+,
+Python 3.11+ and POSIX; the core library's MSRV remains unchanged.
+
+First inspect the intended checkout:
+
+```sh
+python3 scripts/rune.py plan --repo .
+python3 scripts/rune.py prepare --repo . --output /tmp/ruv-rune-prefetch
+```
+
+`prepare` copies the unmodified core into an isolated tree and adds a private
+probe executable that calls the real inference and calibration APIs. Both are
+inside Rune's source digest boundary. It excludes private agent state. Source
+symlinks, escaping dependencies and unsupported configuration fail validation.
+
+In an external task directory, fetch the exact source pin from `config/rune.json`:
+
+```sh
+git init /tmp/ruv-rune-source
+git -C /tmp/ruv-rune-source remote add origin https://github.com/ruvnet/rune.git
+git -C /tmp/ruv-rune-source fetch --depth 1 origin 92425512f0f742e21b747f58f7555104446fc9de
+git -C /tmp/ruv-rune-source checkout --detach FETCH_HEAD
+cargo fetch --locked --manifest-path /tmp/ruv-rune-source/Cargo.toml
+cargo fetch --locked --manifest-path Cargo.toml
+cargo fetch --locked --manifest-path /tmp/ruv-rune-prefetch/workspace/Cargo.toml
+python3 scripts/rune.py setup --source /tmp/ruv-rune-source --prefix /tmp/ruv-rune-tool --timeout 1200
+python3 scripts/rune.py verify --repo . --tool-receipt /tmp/ruv-rune-tool/tool-receipt.json --output /tmp/ruv-rune-evidence --timeout 1200
+```
+
+Use new directories for each attempt. Dependency fetching is an explicit setup
+step; `setup` and verification use Cargo offline. The local tool receipt binds
+the pinned source, compiler and binary hash. Verification freezes and replays a
+plan, rebuilds in a clean target directory, checks the executable and stored
+object, executes the digest-bound probe, and runs separate release-source tests.
+It must also reject stale source, a modified plan and object corruption.
+
+Read the resulting `receipt.json` and bounded command logs. Reproducibility and
+correctness are distinct from performance measurements, all-package archive
+verification, browser execution and registry publication. The helper makes no
+model calls or automatic edits/promotions. Cargo offline controls dependency
+resolution; trusted build scripts still run on the host.
+
+The [Rune CI workflow](../.github/workflows/rune.yml) runs relevant push/PR checks
+and is reused by the complete release acceptance workflow. It pins setup inputs,
+propagates failures, uploads evidence and leaves the checkout unchanged. Existing
+workflow enablement and publication settings remain under their existing policy.
 
 ## Bounded verification
 
@@ -171,7 +224,7 @@ and any claimed state-of-the-art capability.
 The historical **0.1.0** [end-to-end report](claude-plugin-e2e.md) and
 [machine-readable receipt](claude-plugin-e2e.json) record the actual host version,
 tested file hashes, executed workflows, command results, and remaining limits.
-They do not certify the changed **0.1.1** plugin payload. Use those records for the tested state; the procedure above is not itself proof
+They do not certify the changed **0.1.2** plugin payload. Use those records for the tested state; the procedure above is not itself proof
 that a future installation or changed package passes.
 
 ## Format references

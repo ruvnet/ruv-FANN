@@ -217,6 +217,28 @@ intervals, native calibration results, and reproduction commands. See the
 [research review](docs/research-sota-2026-11-08.md) for adoption choices and
 the [earlier modernization report](docs/modernization.md) for package verification.
 
+## Verify frozen builds with Rune
+
+[Rune](https://github.com/ruvnet/rune) now checks a runnable product built from
+this repository's actual core. The integration pins Rune's source revision and
+lockfile, builds it locally, then freezes a plan, replays it and rebuilds in a
+fresh target directory. The digest-bound executable exercises f32/f64 batches
+and historical calibration; separate release tests cover the core library.
+
+```sh
+python3 scripts/rune.py plan --repo .
+python3 scripts/rune.py --help
+```
+
+Setup and dependency fetching are explicit steps. Verification uses Cargo
+offline, records zero model calls, and rejects stale source, a changed plan or
+a corrupted stored artifact. It copies source into an isolated directory and
+leaves project files and existing locks intact. This is build provenance and
+correctness evidence; it does not measure a performance gain or provide an OS
+sandbox. The [setup guide](docs/claude-plugin.md#rune-build-verification) explains
+the commands and scope. The [Rune workflow](.github/workflows/rune.yml) runs on
+relevant pushes/PRs and is also part of the full release acceptance gate.
+
 ## Contribute
 
 Choose a package, reproduce the issue, and add a regression test for a behavior change. Run that package's checks and the relevant integration checks before opening a pull request. Include the commands and results so another contributor can reproduce them.

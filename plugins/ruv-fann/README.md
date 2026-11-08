@@ -64,12 +64,12 @@ The skill bodies load when needed; supporting references add package-specific
 commands and acceptance criteria. The plugin keeps these instructions separate
 from this repository's older generic Claude templates.
 
-Version `0.1.1` adds instructions for immutable `PreparedNetwork` snapshots with
-separate caller workspaces and explicit `ConformalCalibrator` residual intervals.
-Prepared kernels are scalar; calibrated interval coverage depends on residual
+Version `0.1.2` adds pinned Rune build/replay/reproduction guidance and updates
+prepared inference instructions for native f32/f64 batches and checked Float64
+WASM SIMD batches. Calibrated interval coverage still depends on residual
 assumptions and held-out evaluation. Automatic interval builders remain unsupported.
 The repository's dated `docs/claude-plugin-e2e.*` receipts establish the historical
-`0.1.0` host run; they do not certify the changed `0.1.1` payload.
+`0.1.0` host run; they do not certify the changed `0.1.2` payload.
 
 ## Commands and reviewer
 
