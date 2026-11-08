@@ -116,10 +116,17 @@ Hosted checks also exposed two portability defects: macOS reports a canonical
 `/private/var` path for a `/var` temporary directory, and Windows mixes native
 and POSIX separators before source hashing. Resolver checks now compare real
 file identities; source paths are normalized before deduplication and sorting.
-Both failures were reproduced before the fixes. The updated 57 security/API
-tests and four tooling tests pass, including an actual directory-alias case.
-Integrity checks remain enforced, and a fresh source-matching WASM receipt and
-archive were generated after changing the verifier.
+Both failures were reproduced before the fixes. A follow-up Windows checkout
+also converted 34 extensionless license files to CRLF. Explicit LF rules now
+preserve every one of the 386 hashed source inputs, including with Git's
+`core.autocrlf=true` and `core.eol=crlf`. A genuine packing attempt fails before
+the rules and passes afterward. Manual LF-to-CRLF source edits still invalidate
+the receipt; the verifier does not normalize content or bypass integrity checks.
+
+The updated 59 security/API tests and four tooling tests pass, including real
+directory-alias and Git checkout cases. A fresh source-matching WASM receipt and
+archive were generated after changing the verifier. The later LF policy and
+test additions leave that source hash, binary bytes and npm archive unchanged.
 
 Cargo's ordinary package verification also passed for the core and all six
 forecasting crates: seven archives and 13 successful commands. The validation

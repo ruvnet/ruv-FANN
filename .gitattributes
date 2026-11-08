@@ -13,6 +13,10 @@
 *.yaml text eol=lf
 *.md text eol=lf
 *.svg text eol=lf
+# These extensionless files are also hashed build-receipt inputs.
+LICENSE* text eol=lf
+rust-toolchain text eol=lf
+**/.cargo/config text eol=lf
 *.wasm binary
 *.db binary
 *.png binary

@@ -77,14 +77,14 @@
     },
     "independent_review": {
       "status": "passed after remediation",
-      "defect_fixed": "Lossy64-bitinteger conversion could turn residual1 into0; exactness guards and two regression tests added."
+      "defect_fixed": "Lossy 64-bit integer conversion could turn residual 1 into 0; exactness guards and two regression tests added."
     }
   },
   "measurements": {
     "cpu_benchmark": "benchmarks/prepared-inference-2026-11-08.json",
     "forecast_evaluation": "benchmarks/airpassengers-conformal-2026-11-08.json",
     "amortization": "Calculated from setup/destruction mean divided by difference of steady-state means; not a direct end-to-end amortization experiment.",
-    "forecast_warning": "Only4held-out outcomes permodel/horizon. Seasonal12h1 at90% covered2/4; no new model-accuracy or nominal-coverage claim."
+    "forecast_warning": "Only four held-out outcomes per model/horizon. Seasonal-12 h1 at 90% covered 2/4; no new model-accuracy or nominal-coverage claim."
   },
   "artifacts": {
     "plugin": {
@@ -120,7 +120,7 @@
       ],
       "binary_and_binding_bytes_reproduced": true,
       "new_tests": {
-        "security_runtime": 57,
+        "security_runtime": 59,
         "tooling": 4,
         "consumer_node_versions": [
           "22.13.0",
@@ -139,9 +139,27 @@
       "portability": {
         "source_paths": "Normalize native separators before deduplication, ordering, reading and hashing; preserve literal POSIX backslashes.",
         "tooling": "Compare real file identities for Rollup watch dependencies; exercise directory aliases.",
-        "regressions": "Both failures reproduced before fixes;57security/API+4tooling tests and both clean Node consumers pass afterward.",
+        "regressions": "Separator ordering, directory aliases and Windows-style Git checkout failures reproduced before fixes; 59 security/API and four tooling tests pass afterward. The two clean Node consumers retain the identical package bytes.",
         "initial_hosted_failure_run": "https://github.com/ruvnet/ruv-FANN/actions/runs/42512422934",
-        "hosted_status_scope": "Final hosted status is reported by GitHub Actions, not asserted by this local validation manifest."
+        "hosted_status_scope": "Final hosted status is reported by GitHub Actions, not asserted by this local validation manifest.",
+        "followup_hosted_failure_run": "https://github.com/ruvnet/ruv-FANN/actions/runs/42513935238",
+        "checkout_bytes": {
+          "policy": "Explicit LF for LICENSE*, rust-toolchain and **/.cargo/config; existing source-extension rules preserved.",
+          "core_autocrlf": true,
+          "core_eol": "crlf",
+          "source_inputs_compared": 386,
+          "before_differences": 34,
+          "before_source_sha256": "c043f723deadb5f2939ac24cbb7ccb2996db856ef408d52cde0ad8fdea7aadae",
+          "before_pack_passed": false,
+          "after_differences": 0,
+          "after_source_sha256": "24f9811d0b3e69d6c159f6abec86a01b9b382b742948fc434775540093fed140",
+          "after_pack_passed": true,
+          "raw_lf_to_crlf_tampering_rejected": true,
+          "npm_archive_unchanged": true,
+          "proof_sha256": "7dea3cd1e497648c2d398faefd2f305ff7b5c662fbe8a0a2664316ef50884f2f",
+          "all_hashed_inputs_declare_lf": true,
+          "policy_sha256": "655b7322becb144f4adcf6f10ce7cda895258830c3d687066fd8284d19fc78c9"
+        }
       }
     },
     "cargo": {
@@ -257,6 +275,7 @@
     "Current XNNPACK/KleidiAI packing practices informed an independent scalar implementation, not linked native backends.",
     "AcMCP/ACI/PID-Expert, pretrained models, quantization and serving schedulers remain unimplemented research alternatives.",
     "No registry publication, workflow enablement, provider configuration or model-weight download performed.",
-    "Plugin0.1.1officialhost validation/install passed without modelcalls; earlier0.1.0live-model traces remain historical."
-  ]
+    "Plugin 0.1.1 official host validation/install passed without model calls; earlier 0.1.0 live-model traces remain historical."
+  ],
+  "updated_utc": "2026-11-08T19:27:00.843147+00:00"
 }
