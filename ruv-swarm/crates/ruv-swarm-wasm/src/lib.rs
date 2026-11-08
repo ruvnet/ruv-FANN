@@ -1,9 +1,11 @@
 use wasm_bindgen::prelude::*;
 
+mod conformal;
 mod forecasting;
 mod memory_pool;
 mod network;
 mod orchestration;
+mod prepared;
 mod simd_ops;
 mod simd_tests;
 mod utils;
@@ -27,10 +29,12 @@ pub fn init() {
 }
 
 pub use network::{ActivationFunction, WasmNeuralNetwork};
+pub use prepared::WasmPreparedNetwork;
 
 pub use orchestration::{WasmAgent, WasmSwarmOrchestrator, WasmTaskResult};
 
 pub use forecasting::WasmForecastingModel;
+pub use conformal::WasmConformalCalibrator;
 
 // Export functions for use from JavaScript
 #[wasm_bindgen]
@@ -61,7 +65,9 @@ pub fn get_features() -> String {
     let simd_support = detect_simd_support();
     serde_json::json!({
         "neural_networks": true,
+        "prepared_inference": true,
         "forecasting": true,
+        "conformal_intervals": true,
         "swarm_orchestration": true,
         "cognitive_diversity": false,
         "forecast_baselines": ["linear", "mean", "naive"],

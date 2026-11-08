@@ -16,6 +16,124 @@ function detectSIMDSupport() {
   ]));
 }
 
+const conformalInputBytes = 4 * 1024 * 1024;
+const conformalOutputBytes = 8 * 1024 * 1024;
+
+function conformalObject(value, keys, label) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new TypeError(`${label} must be an object`);
+  }
+  for (const key of Object.keys(value)) {
+    if (!keys.includes(key)) {
+      throw new TypeError(`Unsupported ${label} field: ${key}`);
+    }
+  }
+  for (const key of keys) {
+    if (!Object.hasOwn(value, key)) {
+      throw new TypeError(`Missing ${label} field: ${key}`);
+    }
+  }
+  return value;
+}
+
+function conformalTime(value, label) {
+  if (!Number.isSafeInteger(value)) {
+    throw new TypeError(`${label} must be safe-integer Unix milliseconds`);
+  }
+  return value;
+}
+
+function conformalNumber(value, label) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new TypeError(`${label} must be a finite number`);
+  }
+  return value;
+}
+
+function conformalName(value, label) {
+  if (typeof value !== 'string' || !value.length || value.length > 256 || !value.isWellFormed() || Buffer.byteLength(value, 'utf8') > 256) {
+    throw new TypeError(`${label} must contain 1..256 UTF-8 bytes of well-formed text`);
+  }
+  return value;
+}
+
+function conformalRecordsJson(records, prefix, asOf, calibration, levels) {
+  const count = Array.isArray(records) ? records.length : 0;
+  if (!Number.isSafeInteger(count) || count < 1 || count > 10000) {
+    throw new RangeError('Conformal records must contain 1..10000 rows');
+  }
+  if (!calibration && count * levels > 100000) {
+    throw new RangeError('Conformal interval row limit exceeded');
+  }
+  const keys = calibration ? ['series', 'model', 'cutoff', 'timestamp', 'actual', 'prediction'] :
+    ['series', 'model', 'origin', 'timestamp', 'prediction'];
+  const parts = [];
+  let bytes = Buffer.byteLength(prefix, 'utf8') + 2;
+  for (let index = 0; index < count; index++) {
+    const row = records[index];
+    conformalObject(row, keys, 'record');
+    const record = { series: conformalName(row.series, 'series'), model: conformalName(row.model, 'model') };
+    const boundary = calibration ? 'cutoff' : 'origin';
+    record[boundary] = conformalTime(row[boundary], boundary);
+    record.timestamp = conformalTime(row.timestamp, 'timestamp');
+    if (calibration) {
+      record.actual = conformalNumber(row.actual, 'actual');
+    }
+    record.prediction = conformalNumber(row.prediction, 'prediction');
+    if (record[boundary] >= record.timestamp || (calibration ? record.timestamp > asOf : record.origin < asOf)) {
+      throw new RangeError('Conformal chronology requires cutoff < timestamp <= as_of or as_of <= origin < timestamp');
+    }
+    // Serialize validated primitive fields only: user toJSON hooks cannot bypass
+    // validation. Count escaped JSON bytes incrementally before joining rows.
+    const json = JSON.stringify(record);
+    bytes += Buffer.byteLength(json, 'utf8') + (parts.length ? 1 : 0);
+    if (bytes > conformalInputBytes) {
+      throw new RangeError('Conformal JSON exceeds the 4 MiB input limit');
+    }
+    parts.push(json);
+  }
+  return `${prefix}${parts.join(',')}]}`;
+}
+
+function conformalConfig(config) {
+  conformalObject(config, ['as_of', 'horizon', 'coverages', 'records'], 'calibration config');
+  const asOf = conformalTime(config.as_of, 'as_of');
+  const { horizon, coverages: requestedCoverages, records } = config;
+  if (!Number.isSafeInteger(horizon) || horizon < 1 || horizon > 1000) {
+    throw new RangeError('horizon must be an integer in 1..1000');
+  }
+  const levelCount = Array.isArray(requestedCoverages) ? requestedCoverages.length : 0;
+  if (!Number.isSafeInteger(levelCount) || levelCount < 1 || levelCount > 16) {
+    throw new RangeError('coverages must contain 1..16 distinct fractions');
+  }
+  const coverages = [];
+  for (let index = 0; index < levelCount; index++) {
+    coverages.push(conformalNumber(requestedCoverages[index], 'coverage'));
+  }
+  if (coverages.some(value => value <= 0 || value >= 1) || new Set(coverages).size !== coverages.length) {
+    throw new RangeError('coverages must be distinct fractions strictly between 0 and 1');
+  }
+  const header = JSON.stringify({ as_of: asOf, horizon, coverages });
+  return { asOf, levels: coverages.length,
+    json: conformalRecordsJson(records, `${header.slice(0, -1)},"records":[`, asOf, true, coverages.length) };
+}
+
+function conformalResult(read) {
+  try {
+    const json = read();
+    if (typeof json !== 'string' || json.length > conformalOutputBytes || Buffer.byteLength(json, 'utf8') > conformalOutputBytes) {
+      throw new RangeError('Invalid or oversized conformal WASM response');
+    }
+    const result = JSON.parse(json);
+    if (!Array.isArray(result)) {
+      throw new TypeError('Conformal WASM response must be an array');
+    }
+    return result;
+  } catch (error) {
+    throw error instanceof Error ? error : new Error(String(error));
+  }
+}
+
 class RuvSwarm {
   constructor(bindings, options = {}) {
     if (typeof bindings?.WasmSwarmOrchestrator !== 'function') {
@@ -103,6 +221,65 @@ class RuvSwarm {
 
   createForecastingModel(modelType) {
     return new this._bindings.WasmForecastingModel(modelType);
+  }
+
+  createPreparedNetwork(networkJson) {
+    if (typeof networkJson !== 'string') {
+      throw new TypeError('networkJson must be a well-formed JSON string');
+    }
+    if (networkJson.length > conformalInputBytes) {
+      throw new RangeError('Prepared network JSON exceeds the 4 MiB input limit');
+    }
+    if (!networkJson.isWellFormed()) {
+      throw new TypeError('networkJson must be a well-formed JSON string');
+    }
+    if (Buffer.byteLength(networkJson, 'utf8') > conformalInputBytes) {
+      throw new RangeError('Prepared network JSON exceeds the 4 MiB input limit');
+    }
+    try {
+      return this._bindings.WasmPreparedNetwork.from_network_json(networkJson);
+    } catch (error) {
+      throw error instanceof Error ? error : new Error(String(error));
+    }
+  }
+
+  createConformalCalibrator(config) {
+    const checked = conformalConfig(config);
+    let binding;
+    try {
+      binding = new this._bindings.WasmConformalCalibrator(checked.json);
+    } catch (error) {
+      throw error instanceof Error ? error : new Error(String(error));
+    }
+    return new ConformalCalibrator(binding, checked.asOf, checked.levels);
+  }
+}
+
+class ConformalCalibrator {
+  #binding;
+  #asOf;
+  #levels;
+  constructor(binding, asOf, levels) {
+    this.#binding = binding; this.#asOf = asOf; this.#levels = levels;
+  }
+  groups() {
+    if (!this.#binding) {
+      throw new Error('Conformal calibrator has been freed');
+    }
+    return conformalResult(() => this.#binding.groups());
+  }
+  apply(request) {
+    if (!this.#binding) {
+      throw new Error('Conformal calibrator has been freed');
+    }
+    conformalObject(request, ['records'], 'forecast request');
+    const json = conformalRecordsJson(request.records, '{"records":[', this.#asOf, false, this.#levels);
+    return conformalResult(() => this.#binding.apply(json));
+  }
+  free() {
+    const binding = this.#binding;
+    this.#binding = null;
+    binding?.free();
   }
 }
 
@@ -205,4 +382,4 @@ const formatJsError = error => String(error);
 // Reserved autonomous service APIs fail explicitly until implemented.
 import { DAAService, daaService } from './daa-service.js';
 export { RuvSwarm, SwarmWrapper as WasmSwarm, AgentWrapper as JsAgent,
-  consoleLog, consoleError, consoleWarn, formatJsError, DAAService, daaService };
+  ConformalCalibrator, consoleLog, consoleError, consoleWarn, formatJsError, DAAService, daaService };

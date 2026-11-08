@@ -16,7 +16,7 @@ Rust libraries for neural networks, time-series forecasting, agent coordination,
 | --- | --- | --- |
 | Repository root | `ruv-fann`: train feedforward networks, prepare immutable CPU inference snapshots, and use optional WebGPU operations | `0.2.2` · [Core example](examples/basic_usage.rs) · [API](https://docs.rs/ruv-fann) |
 | `ruv-swarm/` | Fourteen Rust packages for scheduling, persistence, transport, MCP, CLI, and WASM | `1.0.6`–`1.0.8`; unified WASM `2.0.0` · [Rust guide](ruv-swarm/README.md) |
-| `ruv-swarm/npm/` | Node CLI/MCP, SQLite state, dense WASM inference, statistical forecasts, and capability assignment | `ruv-swarm 2.0.0` · [npm guide](ruv-swarm/npm/README.md) |
+| `ruv-swarm/npm/` | Node CLI/MCP, SQLite state, prepared WASM inference, historical forecast intervals, and capability assignment | `ruv-swarm 2.0.0` · [npm guide](ruv-swarm/npm/README.md) |
 | `neuro-divergent/` | Six Rust packages: RNN training, baselines, chronological evaluation, residual-calibrated intervals, and checkpoints | `0.2.0` · [Forecasting guide](neuro-divergent/README.md) |
 | `cuda-wasm/` | Translate a CUDA subset to Rust or WGSL source; Node wrapper requires the external `cuda2rust` compiler | Rust `0.2.0`; npm `2.0.0` · [Translator guide](cuda-wasm/README.md) |
 | `opencv-rust/` | Portable Rust matrices, browser image operations, a small SDK, and native OpenCV C++ bindings | Portable/SDK `4.9.0`; native `opencv-sys 0.2.0` · [Image-processing guide](opencv-rust/README.md) |
@@ -90,6 +90,37 @@ retain their order. This path adds no external inference engine or quantization.
 Run the [complete example](examples/prepared_inference.rs) with
 `cargo run --locked --example prepared_inference`. The [current research review](docs/research-sota-2026-11-08.md)
 explains adoption choices and separate benchmark/evaluation requirements.
+
+## Run the same engines in WebAssembly
+
+The `ruv-swarm` JavaScript package includes prepared inference and historical
+forecast intervals in its ordinary and SIMD WASM binaries. In Node.js 22.13+:
+
+```js
+import { RuvSwarm } from 'ruv-swarm';
+const runtime = await RuvSwarm.initialize();
+const network = runtime.createNeuralNetwork([2, 1], 'Linear');
+network.set_weights(Float64Array.of(2, -1));
+const prepared = network.prepare();
+network.free();
+const output = new Float64Array(1);
+prepared.run_into(Float64Array.of(3, 4), output); // [2]
+prepared.free();
+```
+
+`runtime.createPreparedNetwork(networkJson)` also imports native Rust
+`Network<f64>` JSON, retaining sparse connection order and all native activations.
+`runtime.createConformalCalibrator(config)` fits the shared residual engine with
+explicit past observations. Its timestamps are safe-integer Unix milliseconds.
+See the [JavaScript guide](ruv-swarm/npm/README.md) for formats and limits, or
+serve the [browser example](ruv-swarm/npm/examples/wasm-prepared-conformal.html)
+over HTTP. The browser imports the generated WASM bindings directly.
+
+`run_into` reuses Rust numeric buffers and the output array; JavaScript boundary
+checks and copies still have a cost. The native f32 benchmark below does not
+measure browser or Node.js latency. Historical intervals retain their documented
+time-series coverage limitations. The [WASM results](docs/sota-results-2026-11-08.md#webassembly-extension)
+show measured timings and the tradeoff for very small networks.
 
 ## Pick the features you need
 

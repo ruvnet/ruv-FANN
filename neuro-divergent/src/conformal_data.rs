@@ -177,12 +177,3 @@ pub(super) fn read(
         timestamp_type: timestamp.dtype().clone(),
     })
 }
-pub(super) fn sort_window(rows: &mut [(DateTime<Utc>, usize)], horizon: usize) -> Result<()> {
-    rows.sort_unstable();
-    if rows.len() != horizon || rows.windows(2).any(|pair| pair[0].0 == pair[1].0) {
-        return Err(Error::data(
-            "Conformal windows require exactly H distinct target timestamps",
-        ));
-    }
-    Ok(())
-}

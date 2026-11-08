@@ -142,3 +142,76 @@ No pretrained checkpoint, Python/PyTorch runtime, ISA-specific engine, external
 provider configuration or registry publication is part of this change. Current
 foundation-model candidates and their license/runtime requirements are listed
 in the research review for a separately reproducible comparison.
+
+## WebAssembly extension
+
+A follow-up exposes both engines through the generated `ruv-swarm` bindings in
+ordinary and SIMD binaries. `WasmNeuralNetwork.prepare()` creates an immutable
+snapshot; `WasmPreparedNetwork.from_network_json()` imports actual native
+`Network<f64>` exports, including sparse/reordered connections and all 21 native
+activation variants. JavaScript uses Float64 arrays. `run_into()` reuses numeric
+storage, checks intrinsic array metadata, and leaves caller output unchanged on
+failure. Trusted intrinsic getters are captured at preparation time; each call
+still reads the real array slots and current WASM memory buffer. Shared,
+detached, forged and module-owned arrays remain rejected.
+
+The interval algorithm now lives in `ruv_fann::calibration`, which depends only
+on the Rust standard library. Both the native DataFrame adapter and
+`WasmConformalCalibrator` delegate to it. Native schema and timestamp precision
+remain intact; the WASM wire format uses safe-integer Unix milliseconds.
+WASM input is limited to 4 MiB, with 10,000 records, 1,000 groups and a
+conservative 8 MiB output budget. The statistical limits described above still
+apply. The [JavaScript guide](../ruv-swarm/npm/README.md) documents both interfaces.
+
+Independent review found and resolved three defects: changing JavaScript array
+lengths could bypass preprocessing limits; raw string exports copied data before
+the size check; and the default JSON float parser changed an exact `2^98`
+integer token by one ULP. A failing numeric regression was recorded before
+enabling `serde_json/float_roundtrip`. That existing feature adds no packages.
+
+### Measured WASM calls
+
+The first working binding repeatedly looked up JavaScript intrinsic functions.
+A quiet timing run identified that overhead; caching the same trusted getters
+reduced the smallest fixture's prepared-call mean latency by about 90% relative
+to that first binding. Validation remains in place.
+
+The final Node 24.22.1 run used one AMD EPYC 9V74 container with a four-core quota,
+synthetic fixed weights and inputs, 20 interleaved samples per API, and a warm-up
+batch before sampling. Times include JavaScript boundary checks, copies and
+result allocations. The ordinary and `+simd128` binaries expose the same scalar
+prepared inference kernel; this is not a newly vectorized Float64 backend.
+
+| Binary | Layers | Legacy `run` | Prepared `run` | Prepared `run_into` |
+| --- | --- | ---: | ---: | ---: |
+| core | 5 → 7 → 3 | 0.458 µs | 1.551 µs | 2.251 µs |
+| core | 100 → 50 → 25 → 10 | 8.545 µs | 6.564 µs | 6.805 µs |
+| core | 784 → 128 → 64 → 10 | 142.900 µs | 94.889 µs | 93.953 µs |
+| simd | 5 → 7 → 3 | 0.420 µs | 1.500 µs | 2.179 µs |
+| simd | 100 → 50 → 25 → 10 | 8.977 µs | 6.988 µs | 7.207 µs |
+| simd | 784 → 128 → 64 → 10 | 148.402 µs | 103.647 µs | 103.969 µs |
+
+For the medium and large shapes, prepared `run_into` measured about 20–34% lower
+mean latency than legacy `run`. The smallest shape takes roughly five times as
+long: its stronger boundary checks cost more than the tiny arithmetic task.
+Choose using a workload measurement. Every compared output matched exactly on
+these six fixtures. Short single-host timings do not establish general speed or
+forecast accuracy. Preparation has one observed setup sample per fixture, not a
+setup-cost distribution or an end-to-end amortization experiment.
+
+Reproduce after building both artifacts:
+
+```sh
+node ruv-swarm/npm/examples/benchmark-prepared.mjs > wasm-timings.json
+CHROMIUM_BIN=/usr/bin/chromium node scripts/verify-sota-wasm-browser.cjs
+```
+
+The [raw timing record](benchmarks/prepared-wasm-2026-11-08.json) includes every
+sample, artifact hashes, build flags and the first-binding comparison.
+[WASM validation](wasm-validation-2026-11-08.json) records final test and package
+scope. Chromium executes both actual binaries, the documented browser example,
+real native-model imports, chronology/precision/resource failures and repeated
+buffer reuse. Fresh Node 22/24 consumers exercise the installed package and strict
+ESM/CJS declarations. The earlier seven Cargo archives remain historical native
+candidates; this extension produces a separate Node/WASM candidate. Registry
+publication is outside this validation.

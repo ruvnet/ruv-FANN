@@ -1,0 +1,292 @@
+{
+  "description": "native sparse shuffled+duplicate Swish",
+  "input": [
+    0.2,
+    -0.7,
+    0.9
+  ],
+  "network": {
+    "connection_rate": 1.0,
+    "layers": [
+      {
+        "neurons": [
+          {
+            "activation_function": "Linear",
+            "activation_steepness": 1.0,
+            "connections": [],
+            "is_bias": false,
+            "sum": 0.2,
+            "value": 0.2
+          },
+          {
+            "activation_function": "Linear",
+            "activation_steepness": 1.0,
+            "connections": [],
+            "is_bias": false,
+            "sum": -0.7,
+            "value": -0.7
+          },
+          {
+            "activation_function": "Linear",
+            "activation_steepness": 1.0,
+            "connections": [],
+            "is_bias": false,
+            "sum": 0.9,
+            "value": 0.9
+          },
+          {
+            "activation_function": "Linear",
+            "activation_steepness": 1.0,
+            "connections": [],
+            "is_bias": true,
+            "sum": 1.0,
+            "value": 1.0
+          }
+        ]
+      },
+      {
+        "neurons": [
+          {
+            "activation_function": "Swish",
+            "activation_steepness": 1.0,
+            "connections": [
+              {
+                "from_neuron": 3,
+                "to_neuron": 3,
+                "weight": -0.30434782608695654
+              },
+              {
+                "from_neuron": 1,
+                "to_neuron": 1,
+                "weight": -0.08695652173913043
+              },
+              {
+                "from_neuron": 0,
+                "to_neuron": 0,
+                "weight": -0.391304347826087
+              },
+              {
+                "from_neuron": 3,
+                "to_neuron": 3,
+                "weight": -0.30434782608695654
+              }
+            ],
+            "is_bias": false,
+            "sum": -0.6260869565217392,
+            "value": -0.2181276545639878
+          },
+          {
+            "activation_function": "Swish",
+            "activation_steepness": 1.0,
+            "connections": [
+              {
+                "from_neuron": 3,
+                "to_neuron": 3,
+                "weight": 0.08695652173913043
+              },
+              {
+                "from_neuron": 1,
+                "to_neuron": 1,
+                "weight": 0.30434782608695654
+              },
+              {
+                "from_neuron": 0,
+                "to_neuron": 0,
+                "weight": 0.0
+              },
+              {
+                "from_neuron": 3,
+                "to_neuron": 3,
+                "weight": 0.08695652173913043
+              }
+            ],
+            "is_bias": false,
+            "sum": -0.03913043478260869,
+            "value": -0.01918246849695855
+          },
+          {
+            "activation_function": "Swish",
+            "activation_steepness": 1.0,
+            "connections": [
+              {
+                "from_neuron": 3,
+                "to_neuron": 3,
+                "weight": -0.34782608695652173
+              },
+              {
+                "from_neuron": 1,
+                "to_neuron": 1,
+                "weight": -0.13043478260869565
+              },
+              {
+                "from_neuron": 0,
+                "to_neuron": 0,
+                "weight": 0.391304347826087
+              },
+              {
+                "from_neuron": 3,
+                "to_neuron": 3,
+                "weight": -0.34782608695652173
+              }
+            ],
+            "is_bias": false,
+            "sum": -0.5260869565217392,
+            "value": -0.19540448077863476
+          },
+          {
+            "activation_function": "Swish",
+            "activation_steepness": 1.0,
+            "connections": [
+              {
+                "from_neuron": 3,
+                "to_neuron": 3,
+                "weight": 0.043478260869565216
+              },
+              {
+                "from_neuron": 1,
+                "to_neuron": 1,
+                "weight": 0.2608695652173913
+              },
+              {
+                "from_neuron": 0,
+                "to_neuron": 0,
+                "weight": -0.043478260869565216
+              },
+              {
+                "from_neuron": 3,
+                "to_neuron": 3,
+                "weight": 0.043478260869565216
+              }
+            ],
+            "is_bias": false,
+            "sum": -0.1043478260869565,
+            "value": -0.04945426312876724
+          },
+          {
+            "activation_function": "Swish",
+            "activation_steepness": 1.0,
+            "connections": [
+              {
+                "from_neuron": 3,
+                "to_neuron": 3,
+                "weight": -0.391304347826087
+              },
+              {
+                "from_neuron": 1,
+                "to_neuron": 1,
+                "weight": -0.17391304347826086
+              },
+              {
+                "from_neuron": 0,
+                "to_neuron": 0,
+                "weight": 0.34782608695652173
+              },
+              {
+                "from_neuron": 3,
+                "to_neuron": 3,
+                "weight": -0.391304347826087
+              }
+            ],
+            "is_bias": false,
+            "sum": -0.591304347826087,
+            "value": -0.21070280868991506
+          },
+          {
+            "activation_function": "Linear",
+            "activation_steepness": 1.0,
+            "connections": [],
+            "is_bias": true,
+            "sum": 1.0,
+            "value": 1.0
+          }
+        ]
+      },
+      {
+        "neurons": [
+          {
+            "activation_function": "Swish",
+            "activation_steepness": 1.0,
+            "connections": [
+              {
+                "from_neuron": 5,
+                "to_neuron": 5,
+                "weight": -0.21739130434782608
+              },
+              {
+                "from_neuron": 3,
+                "to_neuron": 3,
+                "weight": 0.0
+              },
+              {
+                "from_neuron": 2,
+                "to_neuron": 2,
+                "weight": -0.30434782608695654
+              },
+              {
+                "from_neuron": 1,
+                "to_neuron": 1,
+                "weight": 0.21739130434782608
+              },
+              {
+                "from_neuron": 0,
+                "to_neuron": 0,
+                "weight": -0.08695652173913043
+              },
+              {
+                "from_neuron": 5,
+                "to_neuron": 5,
+                "weight": -0.21739130434782608
+              }
+            ],
+            "is_bias": false,
+            "sum": -0.3605141594741902,
+            "value": -0.14811187369066225
+          },
+          {
+            "activation_function": "Swish",
+            "activation_steepness": 1.0,
+            "connections": [
+              {
+                "from_neuron": 5,
+                "to_neuron": 5,
+                "weight": -0.043478260869565216
+              },
+              {
+                "from_neuron": 3,
+                "to_neuron": 3,
+                "weight": 0.17391304347826086
+              },
+              {
+                "from_neuron": 2,
+                "to_neuron": 2,
+                "weight": -0.13043478260869565
+              },
+              {
+                "from_neuron": 1,
+                "to_neuron": 1,
+                "weight": 0.391304347826087
+              },
+              {
+                "from_neuron": 0,
+                "to_neuron": 0,
+                "weight": 0.08695652173913043
+              },
+              {
+                "from_neuron": 5,
+                "to_neuron": 5,
+                "weight": -0.043478260869565216
+              }
+            ],
+            "is_bias": false,
+            "sum": -0.09654352764259858,
+            "value": -0.04594340884035579
+          }
+        ]
+      }
+    ]
+  },
+  "output": [
+    -0.14811187369066225,
+    -0.04594340884035579
+  ]
+}

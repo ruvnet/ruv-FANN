@@ -213,6 +213,33 @@ export class WasmAgent {
 }
 
 /**
+ * Historical per-series/model/ordinal-horizon intervals, without Polars.
+ * All timestamps are safe-integer Unix milliseconds. Input JSON is at most
+ * 4 MiB, output at most 8 MiB, records at most 10,000, groups at most 1,000.
+ * Caller must recalibrate after changing its model/error distribution.
+ */
+export class WasmConformalCalibrator {
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * Apply `{records:[{series,model,origin,timestamp,prediction}]}` to complete
+     * forecasts with origin >= as_of and target > origin. Returns a JSON array
+     * sorted by series/timestamp/model/coverage. No input or fitted state changes.
+     */
+    apply(json: string): string;
+    /**
+     * Sorted JSON array of group metadata and radii aligned to sorted coverages.
+     */
+    groups(): string;
+    /**
+     * Fit `{as_of,horizon,coverages,records:[{series,model,cutoff,timestamp,actual,prediction}]}`.
+     * Every complete window shares the same model set and aligned targets;
+     * `cutoff < timestamp <= as_of`. No insufficient-sample clamping is used.
+     */
+    constructor(json: string);
+}
+
+/**
  * One-step statistical baselines; these models do not train neural networks.
  */
 export class WasmForecastingModel {
@@ -231,9 +258,46 @@ export class WasmNeuralNetwork {
     [Symbol.dispose](): void;
     get_weights(): Float64Array;
     constructor(layers: Uint32Array | number[], activation: ActivationFunction);
+    /**
+     * Own a packed snapshot independent of later weight edits or source free().
+     */
+    prepare(): WasmPreparedNetwork;
     randomize_weights(min: number, max: number): void;
     run(inputs: Float64Array | number[]): Float64Array;
     set_weights(weights: Float64Array | number[]): void;
+}
+
+/**
+ * Owned parameters and reusable scratch. No raw WASM memory views are exposed.
+ */
+export class WasmPreparedNetwork {
+    private constructor();
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * Import a native serde Network<f64> export (at most 4 MiB UTF-8 JSON).
+     * All native activations and sparse connection ordering are retained.
+     */
+    static from_network_json(json: string): WasmPreparedNetwork;
+    /**
+     * Convenience result owns its buffer. Inputs must be JS-owned, non-shared
+     * Float64Arrays, validated before any Rust element allocation/copy.
+     */
+    run(inputs: Float64Array): Float64Array;
+    /**
+     * Reuses all Rust buffers. Input/output may alias one another. Both must be
+     * JS-owned, non-shared Float64Arrays of the exact expected dimensions.
+     * Errors leave caller output unchanged; no Rust allocation occurs on this
+     * path, including errors. Temporary typed-array views are JS allocations.
+     */
+    run_into(inputs: Float64Array, outputs: Float64Array): void;
+    /**
+     * Packed storage, native workspace and staging buffers; excludes the source
+     * model, temporary conversion graph and allocator bookkeeping/capacity.
+     */
+    readonly estimated_bytes: number;
+    readonly input_size: number;
+    readonly output_size: number;
 }
 
 export class WasmSwarmOrchestrator {
@@ -329,8 +393,10 @@ export interface InitOutput {
     readonly __wbg_simdmatrixops_free: (a: number, b: number) => void;
     readonly __wbg_simdvectorops_free: (a: number, b: number) => void;
     readonly __wbg_wasmagent_free: (a: number, b: number) => void;
+    readonly __wbg_wasmconformalcalibrator_free: (a: number, b: number) => void;
     readonly __wbg_wasmforecastingmodel_free: (a: number, b: number) => void;
     readonly __wbg_wasmneuralnetwork_free: (a: number, b: number) => void;
+    readonly __wbg_wasmpreparednetwork_free: (a: number, b: number) => void;
     readonly __wbg_wasmswarmorchestrator_free: (a: number, b: number) => void;
     readonly __wbg_wasmtaskresult_free: (a: number, b: number) => void;
     readonly agentmemorypool_allocate_for_agent: (a: number, b: number, c: number, d: number) => void;
@@ -401,14 +467,24 @@ export interface InitOutput {
     readonly wasmagent_new: (a: number, b: number, c: number, d: number, e: number) => void;
     readonly wasmagent_set_status: (a: number, b: number, c: number, d: number) => void;
     readonly wasmagent_status: (a: number, b: number) => void;
+    readonly wasmconformalcalibrator_apply: (a: number, b: number, c: any) => void;
+    readonly wasmconformalcalibrator_groups: (a: number, b: number) => void;
+    readonly wasmconformalcalibrator_new: (a: number, b: any) => void;
     readonly wasmforecastingmodel_get_model_type: (a: number, b: number) => void;
     readonly wasmforecastingmodel_new: (a: number, b: number, c: number) => void;
     readonly wasmforecastingmodel_predict: (a: number, b: number, c: number, d: number) => void;
     readonly wasmneuralnetwork_get_weights: (a: number, b: number) => void;
     readonly wasmneuralnetwork_new: (a: number, b: number, c: number, d: number) => void;
+    readonly wasmneuralnetwork_prepare: (a: number, b: number) => void;
     readonly wasmneuralnetwork_randomize_weights: (a: number, b: number, c: number, d: number) => void;
     readonly wasmneuralnetwork_run: (a: number, b: number, c: number, d: number) => void;
     readonly wasmneuralnetwork_set_weights: (a: number, b: number, c: number, d: number) => void;
+    readonly wasmpreparednetwork_estimated_bytes: (a: number) => number;
+    readonly wasmpreparednetwork_from_network_json: (a: number, b: any) => void;
+    readonly wasmpreparednetwork_input_size: (a: number) => number;
+    readonly wasmpreparednetwork_output_size: (a: number) => number;
+    readonly wasmpreparednetwork_run: (a: number, b: number, c: any) => void;
+    readonly wasmpreparednetwork_run_into: (a: number, b: number, c: any, d: any) => void;
     readonly wasmswarmorchestrator_add_agent: (a: number, b: number, c: number, d: number) => void;
     readonly wasmswarmorchestrator_get_agent_count: (a: number) => number;
     readonly wasmswarmorchestrator_get_status: (a: number, b: number, c: number) => void;
@@ -425,10 +501,12 @@ export interface InitOutput {
     readonly __wbindgen_export: (a: number, b: number) => number;
     readonly __wbindgen_export2: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_export3: (a: number, b: number, c: number) => void;
+    readonly __wbindgen_export4: (a: number) => void;
+    readonly __wbindgen_export5: () => number;
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
-    readonly __wbindgen_export4: (a: number) => void;
-    readonly __wbindgen_export5: (a: number, b: number) => void;
+    readonly __wbindgen_export6: (a: number) => void;
+    readonly __wbindgen_export7: (a: number, b: number) => void;
     readonly __wbindgen_start: () => void;
 }
 

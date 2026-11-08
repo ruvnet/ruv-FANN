@@ -1014,6 +1014,108 @@ export class WasmAgent {
 if (Symbol.dispose) WasmAgent.prototype[Symbol.dispose] = WasmAgent.prototype.free;
 
 /**
+ * Historical per-series/model/ordinal-horizon intervals, without Polars.
+ * All timestamps are safe-integer Unix milliseconds. Input JSON is at most
+ * 4 MiB, output at most 8 MiB, records at most 10,000, groups at most 1,000.
+ * Caller must recalibrate after changing its model/error distribution.
+ */
+export class WasmConformalCalibrator {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        WasmConformalCalibratorFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_wasmconformalcalibrator_free(ptr, 0);
+    }
+    /**
+     * Apply `{records:[{series,model,origin,timestamp,prediction}]}` to complete
+     * forecasts with origin >= as_of and target > origin. Returns a JSON array
+     * sorted by series/timestamp/model/coverage. No input or fitted state changes.
+     * @param {string} json
+     * @returns {string}
+     */
+    apply(json) {
+        let deferred2_0;
+        let deferred2_1;
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
+            wasm.wasmconformalcalibrator_apply(retptr, this.__wbg_ptr, json);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+            var r3 = getDataViewMemory0().getInt32(retptr + 4 * 3, true);
+            var ptr1 = r0;
+            var len1 = r1;
+            if (r3) {
+                ptr1 = 0; len1 = 0;
+                throw takeFromExternrefTable0(r2);
+            }
+            deferred2_0 = ptr1;
+            deferred2_1 = len1;
+            return getStringFromWasm0(ptr1, len1);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+            wasm.__wbindgen_export3(deferred2_0, deferred2_1, 1);
+        }
+    }
+    /**
+     * Sorted JSON array of group metadata and radii aligned to sorted coverages.
+     * @returns {string}
+     */
+    groups() {
+        let deferred2_0;
+        let deferred2_1;
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
+            wasm.wasmconformalcalibrator_groups(retptr, this.__wbg_ptr);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+            var r3 = getDataViewMemory0().getInt32(retptr + 4 * 3, true);
+            var ptr1 = r0;
+            var len1 = r1;
+            if (r3) {
+                ptr1 = 0; len1 = 0;
+                throw takeFromExternrefTable0(r2);
+            }
+            deferred2_0 = ptr1;
+            deferred2_1 = len1;
+            return getStringFromWasm0(ptr1, len1);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+            wasm.__wbindgen_export3(deferred2_0, deferred2_1, 1);
+        }
+    }
+    /**
+     * Fit `{as_of,horizon,coverages,records:[{series,model,cutoff,timestamp,actual,prediction}]}`.
+     * Every complete window shares the same model set and aligned targets;
+     * `cutoff < timestamp <= as_of`. No insufficient-sample clamping is used.
+     * @param {string} json
+     */
+    constructor(json) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
+            wasm.wasmconformalcalibrator_new(retptr, json);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+            if (r2) {
+                throw takeFromExternrefTable0(r1);
+            }
+            this.__wbg_ptr = r0;
+            WasmConformalCalibratorFinalization.register(this, this.__wbg_ptr, this);
+            return this;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+}
+if (Symbol.dispose) WasmConformalCalibrator.prototype[Symbol.dispose] = WasmConformalCalibrator.prototype.free;
+
+/**
  * One-step statistical baselines; these models do not train neural networks.
  */
 export class WasmForecastingModel {
@@ -1162,6 +1264,25 @@ export class WasmNeuralNetwork {
         }
     }
     /**
+     * Own a packed snapshot independent of later weight edits or source free().
+     * @returns {WasmPreparedNetwork}
+     */
+    prepare() {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
+            wasm.wasmneuralnetwork_prepare(retptr, this.__wbg_ptr);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+            if (r2) {
+                throw takeFromExternrefTable0(r1);
+            }
+            return WasmPreparedNetwork.__wrap(r0);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
      * @param {number} min
      * @param {number} max
      */
@@ -1222,6 +1343,118 @@ export class WasmNeuralNetwork {
     }
 }
 if (Symbol.dispose) WasmNeuralNetwork.prototype[Symbol.dispose] = WasmNeuralNetwork.prototype.free;
+
+/**
+ * Owned parameters and reusable scratch. No raw WASM memory views are exposed.
+ */
+export class WasmPreparedNetwork {
+    static __wrap(ptr) {
+        const obj = Object.create(WasmPreparedNetwork.prototype);
+        obj.__wbg_ptr = ptr;
+        WasmPreparedNetworkFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        WasmPreparedNetworkFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_wasmpreparednetwork_free(ptr, 0);
+    }
+    /**
+     * Packed storage, native workspace and staging buffers; excludes the source
+     * model, temporary conversion graph and allocator bookkeeping/capacity.
+     * @returns {number}
+     */
+    get estimated_bytes() {
+        const ret = wasm.wasmpreparednetwork_estimated_bytes(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Import a native serde Network<f64> export (at most 4 MiB UTF-8 JSON).
+     * All native activations and sparse connection ordering are retained.
+     * @param {string} json
+     * @returns {WasmPreparedNetwork}
+     */
+    static from_network_json(json) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
+            wasm.wasmpreparednetwork_from_network_json(retptr, json);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+            if (r2) {
+                throw takeFromExternrefTable0(r1);
+            }
+            return WasmPreparedNetwork.__wrap(r0);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+     * @returns {number}
+     */
+    get input_size() {
+        const ret = wasm.wasmpreparednetwork_input_size(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    get output_size() {
+        const ret = wasm.wasmpreparednetwork_output_size(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Convenience result owns its buffer. Inputs must be JS-owned, non-shared
+     * Float64Arrays, validated before any Rust element allocation/copy.
+     * @param {Float64Array} inputs
+     * @returns {Float64Array}
+     */
+    run(inputs) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
+            wasm.wasmpreparednetwork_run(retptr, this.__wbg_ptr, inputs);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+            var r3 = getDataViewMemory0().getInt32(retptr + 4 * 3, true);
+            if (r3) {
+                throw takeFromExternrefTable0(r2);
+            }
+            var v1 = getArrayF64FromWasm0(r0, r1).slice();
+            wasm.__wbindgen_export3(r0, r1 * 8, 8);
+            return v1;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+     * Reuses all Rust buffers. Input/output may alias one another. Both must be
+     * JS-owned, non-shared Float64Arrays of the exact expected dimensions.
+     * Errors leave caller output unchanged; no Rust allocation occurs on this
+     * path, including errors. Temporary typed-array views are JS allocations.
+     * @param {Float64Array} inputs
+     * @param {Float64Array} outputs
+     */
+    run_into(inputs, outputs) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
+            wasm.wasmpreparednetwork_run_into(retptr, this.__wbg_ptr, inputs, outputs);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            if (r1) {
+                throw takeFromExternrefTable0(r0);
+            }
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+}
+if (Symbol.dispose) WasmPreparedNetwork.prototype[Symbol.dispose] = WasmPreparedNetwork.prototype.free;
 
 export class WasmSwarmOrchestrator {
     static __wrap(ptr) {
@@ -1804,6 +2037,26 @@ function __wbg_get_imports() {
             getDataViewMemory0().setInt32((arg0 >>> 0) + 4 * 1, len1, true);
             getDataViewMemory0().setInt32((arg0 >>> 0) + 4 * 0, ptr1, true);
         },
+        __wbg___wbindgen_is_function_741ff2bb612836f5: function(arg0) {
+            const ret = typeof(arg0) === 'function';
+            return ret;
+        },
+        __wbg___wbindgen_is_string_fc456fee5d3317de: function(arg0) {
+            const ret = typeof(arg0) === 'string';
+            return ret;
+        },
+        __wbg___wbindgen_is_undefined_be5b34249ff1fc15: function(arg0) {
+            const ret = arg0 === undefined;
+            return ret;
+        },
+        __wbg___wbindgen_jsval_eq_38d7bfbe4cc84039: function(arg0, arg1) {
+            const ret = arg0 === arg1;
+            return ret;
+        },
+        __wbg___wbindgen_memory_17a1178bc3328ea3: function() {
+            const ret = wasm.memory;
+            return ret;
+        },
         __wbg___wbindgen_number_get_934b640d0889af78: function(arg0, arg1) {
             const obj = arg1;
             const ret = typeof(obj) === 'number' ? obj : undefined;
@@ -1821,6 +2074,14 @@ function __wbg_get_imports() {
         __wbg___wbindgen_throw_4c88d8bf264fd984: function(arg0, arg1) {
             throw new Error(getStringFromWasm0(arg0, arg1));
         },
+        __wbg_call_40b008ba32f73991: function() { return handleError(function (arg0, arg1) {
+            const ret = arg0.call(arg1);
+            return ret;
+        }, arguments); },
+        __wbg_construct_8670bb4c2b062969: function() { return handleError(function (arg0, arg1) {
+            const ret = Reflect.construct(arg0, arg1);
+            return ret;
+        }, arguments); },
         __wbg_error_757e9472f8410341: function(arg0, arg1) {
             let deferred0_0;
             let deferred0_1;
@@ -1839,6 +2100,18 @@ function __wbg_get_imports() {
             const ret = Array.from(arg0);
             return ret;
         },
+        __wbg_getOwnPropertyDescriptor_91249f9236d5b666: function(arg0, arg1) {
+            const ret = Object.getOwnPropertyDescriptor(arg0, arg1);
+            return ret;
+        },
+        __wbg_getPrototypeOf_684ea783c7170e41: function(arg0) {
+            const ret = Object.getPrototypeOf(arg0);
+            return ret;
+        },
+        __wbg_get_2080c49015e35254: function() { return handleError(function (arg0, arg1) {
+            const ret = Reflect.get(arg0, arg1);
+            return ret;
+        }, arguments); },
         __wbg_get_d7176cfb76d71114: function(arg0, arg1) {
             const ret = arg0[arg1 >>> 0];
             return ret;
@@ -1853,7 +2126,35 @@ function __wbg_get_imports() {
             const ret = result;
             return ret;
         },
+        __wbg_instanceof_Float64Array_4acace5b49aaf791: function(arg0) {
+            let result;
+            try {
+                result = arg0 instanceof Float64Array;
+            } catch (_) {
+                result = false;
+            }
+            const ret = result;
+            return ret;
+        },
+        __wbg_instanceof_Object_97e16a01fd368661: function(arg0) {
+            let result;
+            try {
+                result = arg0 instanceof Object;
+            } catch (_) {
+                result = false;
+            }
+            const ret = result;
+            return ret;
+        },
+        __wbg_length_5a8bb8abe1e54e15: function(arg0) {
+            const ret = arg0.length;
+            return ret;
+        },
         __wbg_length_b03a0fabb109b1e9: function(arg0) {
+            const ret = arg0.length;
+            return ret;
+        },
+        __wbg_length_e83e819f48c774e4: function(arg0) {
             const ret = arg0.length;
             return ret;
         },
@@ -1876,9 +2177,19 @@ function __wbg_get_imports() {
             const ret = Date.now();
             return ret;
         },
+        __wbg_of_4cc373bef1f715a4: function(arg0, arg1, arg2) {
+            const ret = Array.of(arg0, arg1, arg2);
+            return ret;
+        },
+        __wbg_prototypesetcall_a366c038a3918afa: function(arg0, arg1, arg2) {
+            Float64Array.prototype.set.call(getArrayF64FromWasm0(arg0, arg1), arg2);
+        },
         __wbg_random_df36b90cd78a7d54: function() {
             const ret = Math.random();
             return ret;
+        },
+        __wbg_set_59dc36dce85e2698: function(arg0, arg1, arg2) {
+            arg0.set(getArrayF64FromWasm0(arg1, arg2));
         },
         __wbg_stack_575c4e0918581b9c: function(arg0, arg1) {
             const ret = arg1.stack;
@@ -1887,10 +2198,35 @@ function __wbg_get_imports() {
             getDataViewMemory0().setInt32((arg0 >>> 0) + 4 * 1, len1, true);
             getDataViewMemory0().setInt32((arg0 >>> 0) + 4 * 0, ptr1, true);
         },
+        __wbg_static_accessor_GLOBAL_THIS_003ee833af9699fc: function() {
+            const ret = typeof globalThis === 'undefined' ? undefined : globalThis;
+            return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
+        },
+        __wbg_static_accessor_GLOBAL_e4293fb22cbe77da: function() {
+            const ret = typeof global === 'undefined' ? undefined : global;
+            return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
+        },
+        __wbg_static_accessor_SELF_53bb20457401453d: function() {
+            const ret = typeof self === 'undefined' ? undefined : self;
+            return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
+        },
+        __wbg_static_accessor_WINDOW_b5e0810bfecb7feb: function() {
+            const ret = typeof window === 'undefined' ? undefined : window;
+            return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
+        },
+        __wbg_toStringTag_1bdd39ac5d866229: function() {
+            const ret = Symbol.toStringTag;
+            return ret;
+        },
         __wbg_warn_228ff2257384d295: function(arg0) {
             console.warn(arg0);
         },
-        __wbindgen_generic_0000000000000001: function(arg0, arg1) {
+        __wbindgen_generic_0000000000000001: function(arg0) {
+            // Cast intrinsic for `F64 -> Externref`.
+            const ret = arg0;
+            return ret;
+        },
+        __wbindgen_generic_0000000000000002: function(arg0, arg1) {
             // Cast intrinsic for `Ref(String) -> Externref`.
             const ret = getStringFromWasm0(arg0, arg1);
             return ret;
@@ -1946,18 +2282,30 @@ const SimdVectorOpsFinalization = (typeof FinalizationRegistry === 'undefined')
 const WasmAgentFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_wasmagent_free(ptr, 1));
+const WasmConformalCalibratorFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_wasmconformalcalibrator_free(ptr, 1));
 const WasmForecastingModelFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_wasmforecastingmodel_free(ptr, 1));
 const WasmNeuralNetworkFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_wasmneuralnetwork_free(ptr, 1));
+const WasmPreparedNetworkFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_wasmpreparednetwork_free(ptr, 1));
 const WasmSwarmOrchestratorFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_wasmswarmorchestrator_free(ptr, 1));
 const WasmTaskResultFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_wasmtaskresult_free(ptr, 1));
+
+function addToExternrefTable0(obj) {
+    const idx = wasm.__wbindgen_export5();
+    wasm.__wbindgen_externrefs.set(idx, obj);
+    return idx;
+}
 
 function debugString(val) {
     switch (typeof val) {
@@ -2034,7 +2382,7 @@ function getArrayJsValueFromWasm0(ptr, len) {
     for (let i = ptr; i < ptr + 4 * len; i += 4) {
         result.push(wasm.__wbindgen_externrefs.get(mem.getUint32(i, true)));
     }
-    wasm.__wbindgen_export5(ptr, len);
+    wasm.__wbindgen_export7(ptr, len);
     return result;
 }
 
@@ -2086,6 +2434,15 @@ function getUint8ArrayMemory0() {
         cachedUint8ArrayMemory0 = new Uint8Array(wasm.memory.buffer);
     }
     return cachedUint8ArrayMemory0;
+}
+
+function handleError(f, args) {
+    try {
+        return f.apply(this, args);
+    } catch (e) {
+        const idx = addToExternrefTable0(e);
+        wasm.__wbindgen_export4(idx);
+    }
 }
 
 function isLikeNone(x) {
@@ -2159,7 +2516,7 @@ function passStringToWasm0(arg, malloc, realloc) {
 
 function takeFromExternrefTable0(idx) {
     const value = wasm.__wbindgen_externrefs.get(idx);
-    wasm.__wbindgen_export4(idx);
+    wasm.__wbindgen_export6(idx);
     return value;
 }
 

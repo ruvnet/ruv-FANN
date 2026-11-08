@@ -1,7 +1,7 @@
 use wasm_bindgen::prelude::*;
 
-const MAX_PARAMETERS: usize = 1_000_000;
-const MAX_LAYERS: usize = 64;
+pub(crate) const MAX_PARAMETERS: usize = 1_000_000;
+pub(crate) const MAX_LAYERS: usize = 64;
 
 #[wasm_bindgen]
 #[derive(Debug, Clone, Copy)]
@@ -64,6 +64,17 @@ impl WasmNeuralNetwork {
     pub fn run(&self, inputs: &[f64]) -> Result<Vec<f64>, JsValue> {
         self.run_checked(inputs)
             .map_err(|error| JsValue::from_str(&error))
+    }
+
+    /// Own a packed snapshot independent of later weight edits or source free().
+    pub fn prepare(&self) -> Result<crate::prepared::WasmPreparedNetwork, JsValue> {
+        crate::prepared::WasmPreparedNetwork::from_dense(
+            &self.layers,
+            &self.weights,
+            &self.biases,
+            self.activation,
+        )
+        .map_err(JsValue::from_str)
     }
 }
 

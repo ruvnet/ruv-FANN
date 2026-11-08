@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prepared inference and historical forecast intervals</title>
+<style>body{font:1rem/1.6 system-ui;max-width:55rem;margin:3rem auto;padding:0 1rem}pre{white-space:pre-wrap;background:#f1f5f9;padding:1rem}</style>
+<h1>Reuse a neural network and calibrate forecast intervals</h1>
+<p>This example runs the compiled Rust WebAssembly module in your browser.
+The interval uses past absolute errors; its requested coverage is not a guarantee for dependent time series.</p>
+<pre id="result" role="status">Loading WebAssembly…</pre>
+<script type="module">
+import init, {ActivationFunction, WasmNeuralNetwork, WasmConformalCalibrator} from '../wasm/ruv_swarm_wasm.js';
+const result = document.getElementById('result');
+let network, prepared, calibrator;
+try {
+  await init();
+  network = new WasmNeuralNetwork(new Uint32Array([2, 1]), ActivationFunction.Linear);
+  network.set_weights(new Float64Array([2, -1]));
+  prepared = network.prepare();
+  network.free();
+  network = undefined;
+  const output = new Float64Array(1);
+  prepared.run_into(new Float64Array([3, 4]), output);
+  const records = Array.from({length: 9}, (_, i) => ({
+    series: 'example', model: 'baseline', cutoff: i * 10,
+    timestamp: i * 10 + 1, actual: i + 1, prediction: 0,
+  }));
+  calibrator = new WasmConformalCalibrator(JSON.stringify({
+    as_of: 100, horizon: 1, coverages: [0.9], records,
+  }));
+  const intervals = JSON.parse(calibrator.apply(JSON.stringify({records: [{
+    series: 'example', model: 'baseline', origin: 100, timestamp: 101, prediction: 20,
+  }]})));
+  result.textContent = JSON.stringify({neural_output: Array.from(output), intervals}, null, 2);
+} catch (error) {
+  result.textContent = `Could not run the example: ${String(error)}`;
+} finally {
+  if (network) network.free();
+  if (prepared) prepared.free();
+  if (calibrator) calibrator.free();
+}
+</script>
+</html>

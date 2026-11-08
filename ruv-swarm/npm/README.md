@@ -105,6 +105,126 @@ ruv-swarm benchmark run --iterations 1000
 
 Neural network dimensions and inputs must have the exact expected shape and finite numbers. Forecast names such as LSTM and Transformer are unsupported. See [`src/index.d.ts`](https://github.com/ruvnet/ruv-FANN/blob/main/ruv-swarm/npm/src/index.d.ts) for the facade's types. Historical prototype files are outside the public export map; applications should use this facade.
 
+## Reuse prepared inference
+
+After setting weights, prepare an independent snapshot. It keeps working after
+the source network is edited or freed:
+
+```js
+const network = runtime.createNeuralNetwork([2, 1], 'Linear');
+network.set_weights(Float64Array.of(2, -1));
+const prepared = network.prepare();
+network.free();
+try {
+  const input = Float64Array.of(3, 4);
+  const output = new Float64Array(1);
+  prepared.run_into(input, output);
+  console.log(output); // Float64Array [2]
+  console.log(prepared.input_size, prepared.output_size, prepared.estimated_bytes);
+} finally {
+  prepared.free();
+}
+```
+
+`run_into(input, output)` reuses Rust numeric storage and writes to the supplied
+output array. `run(input)` returns a new output array. Both require real
+`Float64Array` inputs with the exact dimensions and finite values. Shared buffers
+and views into this module's WASM memory are rejected. Invalid inputs or numeric
+overflow leave the caller's output unchanged. The binding still copies values
+and creates temporary JavaScript views; buffer reuse does not eliminate the cost
+of crossing into WASM.
+
+To run a trained Rust model, export `Network<f64>` with
+`serde_json::to_string(&network)` and pass that string to
+`runtime.createPreparedNetwork(networkJson)`. Native sparse and reordered
+connections and all 21 native activation variants are supported. Browser callers
+use `WasmPreparedNetwork.from_network_json(networkJson)` on the generated class.
+Inference evaluates in Float64. Import JSON is limited to 4 MiB of UTF-8.
+Preparation permits an estimated 64 MiB for packed parameters, workspace and
+input/output staging. This estimate excludes the original model, temporary
+conversion graph and allocator bookkeeping; it is not a peak-memory guarantee.
+
+## Calibrate historical forecast intervals
+
+Supply genuine past predictions and observed outcomes. This small artificial
+example has nine past errors, one model, and one forecast step. All timestamps
+are safe-integer Unix milliseconds:
+
+```js
+const calibration = runtime.createConformalCalibrator({
+  as_of: 100,
+  horizon: 1,
+  coverages: [0.9],
+  records: Array.from({length: 9}, (_, i) => ({
+    series: 'example', model: 'baseline',
+    cutoff: i * 10, timestamp: i * 10 + 1,
+    actual: i + 1, prediction: 0,
+  })),
+});
+try {
+  const intervals = calibration.apply({records: [{
+    series: 'example', model: 'baseline',
+    origin: 100, timestamp: 101, prediction: 20,
+  }]});
+  console.log(intervals[0].lower, intervals[0].upper); // 11, 29
+  console.log(calibration.groups()); // Sample counts and fitted half-widths
+} finally {
+  calibration.free();
+}
+```
+
+Errors are calibrated separately for each series, model and ordinal horizon.
+Every series/cutoff window must contain the same model set and exactly `horizon`
+distinct target timestamps per model, with aligned observations. Calibration
+requires `cutoff < timestamp <= as_of`; application requires
+`as_of <= origin < timestamp` and one origin per series. Missing groups,
+insufficient calibration samples, duplicate targets, non-finite values, lossy
+integer literals and inconsistent windows are errors. The native DataFrame API
+and this WASM API use the same Rust calibration engine.
+
+The corrected rank is `ceil((n + 1) * coverage)`. Coverage uses fractions between
+zero and one. Requested coverage does not guarantee coverage for dependent time
+series or after a distribution shift; it is not simultaneous trajectory
+coverage. Refit calibration when the model, preprocessing or error regime changes.
+
+| WASM limit | Maximum |
+| --- | ---: |
+| Input JSON per fit/application | 4 MiB UTF-8 |
+| Output JSON | 8 MiB, with a conservative size check before interval allocation |
+| Input records per call | 10,000 |
+| Series/model/horizon groups | 1,000 |
+| Models / coverage levels | 128 / 16 |
+| Series or model name | 256 UTF-8 bytes |
+| Interval output rows | 100,000 |
+
+The conservative output check can reject a request whose final JSON would be
+smaller than 8 MiB. Dates and BigInts are not accepted as timestamps; convert
+dates with `date.getTime()`. Numeric predictions use finite IEEE-754 Float64.
+
+## Use the generated bindings in a browser
+
+Serve the package over HTTP and import `wasm/ruv_swarm_wasm.js` as an ES module.
+Its default initializer fetches the ordinary WASM binary. The generated classes
+include `WasmNeuralNetwork`, `WasmPreparedNetwork` and `WasmConformalCalibrator`:
+
+```js
+import init, {WasmConformalCalibrator} from './wasm/ruv_swarm_wasm.js';
+await init();
+// const calibration = new WasmConformalCalibrator(JSON.stringify(config));
+// const intervals = JSON.parse(calibration.apply(JSON.stringify({records})));
+// calibration.free();
+```
+
+The [complete browser example](https://github.com/ruvnet/ruv-FANN/blob/main/ruv-swarm/npm/examples/wasm-prepared-conformal.html)
+runs inference and intervals without a Node.js server API or a Rust installation.
+From a repository checkout, run `python3 -m http.server --directory ruv-swarm/npm 8000`
+and open `http://localhost:8000/examples/wasm-prepared-conformal.html`.
+
+The Node facade can select the SIMD binary with
+`RuvSwarm.initialize({useSIMD: true})`. Both variants expose the same API.
+The existing native CPU benchmark measures a different execution path; measure
+your WASM workload with its JavaScript checks, copies and allocation costs.
+
 ## Develop and validate
 
 From `ruv-swarm/npm`:
@@ -119,6 +239,12 @@ npm pack --dry-run  # Requires fresh WASM build evidence
 npm run validate:package  # Also works in the installed package
 npm run test:installation  # Packs, locks, clean-installs and tests the current candidate
 ```
+
+The repository's `scripts/verify-sota-wasm-browser.cjs` additionally loads both
+shipped binaries in real Chromium, checks native dense/sparse model imports,
+repeated buffer reuse, rejection behavior and calibrated interval results.
+It requires Playwright and Chromium; set `CHROMIUM_BIN` when using a system
+Chromium executable. The browser CI gate runs this script.
 
 The default test command runs real process, SQL, integrity, framing, inference, forecasting, and assignment regression tests, then the older mock-based API examples. The mock examples demonstrate API shape; they do not verify inference or forecasting accuracy.
 

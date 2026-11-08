@@ -19,7 +19,11 @@ use crate::{
 use chrono::{DateTime, Utc};
 use num_traits::Float;
 use polars::prelude::*;
-use std::collections::{BTreeMap, BTreeSet};
+use ruv_fann::calibration::{
+    CalibrationConfig as PortableConfig, CalibrationLimits as PortableLimits, CalibrationRecord,
+    ResidualCalibrator,
+};
+use std::collections::BTreeSet;
 
 #[path = "conformal_apply.rs"]
 mod apply;
@@ -142,24 +146,8 @@ impl ConformalConfig {
     }
 }
 
-/// Read-only summary of one independently calibrated error distribution.
-#[derive(Debug, Clone)]
-pub struct CalibrationGroup {
-    /// Series identifier; no residuals are pooled across series.
-    pub series: String,
-    /// Exact point-model column name.
-    pub model: String,
-    /// One-based ordinal position within a sorted complete forecast window.
-    pub horizon: usize,
-    /// Number of absolute errors entering each corrected empirical quantile.
-    pub samples: usize,
-    /// Earliest calibration target timestamp in this group.
-    pub first_outcome: DateTime<Utc>,
-    /// Latest calibration target timestamp in this group.
-    pub last_outcome: DateTime<Utc>,
-    /// Symmetric half-widths in the same order as the config's coverage levels.
-    pub radii: Vec<f64>,
-}
+/// Read-only summary from the shared portable calibration engine.
+pub type CalibrationGroup = ruv_fann::calibration::CalibrationGroup<DateTime<Utc>>;
 
 /// Checked long-form intervals. The original point forecast is never mutated.
 #[derive(Debug, Clone)]
@@ -180,7 +168,7 @@ pub struct ConformalCalibrator {
     schema: TimeSeriesSchema,
     timestamp_type: DataType,
     models: Vec<String>,
-    groups: BTreeMap<(String, String, usize), CalibrationGroup>,
+    engine: ResidualCalibrator<DateTime<Utc>>,
 }
 impl ConformalCalibrator {
     /// Fit independent (series, model, ordinal horizon) absolute-error quantiles.
@@ -204,69 +192,41 @@ impl ConformalCalibrator {
                 "Conformal cutoff metadata must match distinct row cutoffs",
             ));
         }
-        let mut windows: BTreeMap<_, Vec<_>> = BTreeMap::new();
+        let mut records = Vec::with_capacity(frame.ids.len() * frame.models.len());
         for row in 0..frame.ids.len() {
-            if cutoffs[row] >= frame.times[row] || frame.times[row] > config.as_of {
-                return Err(Error::data(
-                    "Conformal outcomes must satisfy cutoff < timestamp <= as_of",
-                ));
-            }
-            windows
-                .entry((frame.ids[row].clone(), cutoffs[row]))
-                .or_default()
-                .push((frame.times[row], row));
-        }
-        let mut scores: BTreeMap<(String, String, usize), Vec<f64>> = BTreeMap::new();
-        let mut groups: BTreeMap<_, CalibrationGroup> = BTreeMap::new();
-        for ((id, _), mut rows) in windows {
-            data::sort_window(&mut rows, config.horizon)?;
-            for (step, (time, row)) in rows.into_iter().enumerate() {
-                for (model, predictions) in frame.models.iter().zip(&frame.predictions) {
-                    let error = (actual[row] - predictions[row]).abs();
-                    if !error.is_finite() {
-                        return Err(Error::math("Conformal absolute error overflow"));
-                    }
-                    let key = (id.clone(), model.clone(), step + 1);
-                    if !groups.contains_key(&key) && groups.len() >= config.limits.max_groups {
-                        return Err(Error::config("Conformal group budget exceeded"));
-                    }
-                    let group = groups
-                        .entry(key.clone())
-                        .or_insert_with(|| CalibrationGroup {
-                            series: id.clone(),
-                            model: model.clone(),
-                            horizon: step + 1,
-                            samples: 0,
-                            first_outcome: time,
-                            last_outcome: time,
-                            radii: Vec::new(),
-                        });
-                    group.first_outcome = group.first_outcome.min(time);
-                    group.last_outcome = group.last_outcome.max(time);
-                    group.samples += 1;
-                    scores.entry(key).or_default().push(error);
-                }
+            for (model, predictions) in frame.models.iter().zip(&frame.predictions) {
+                records.push(CalibrationRecord {
+                    series: frame.ids[row].clone(),
+                    model: model.clone(),
+                    cutoff: cutoffs[row],
+                    timestamp: frame.times[row],
+                    actual: actual[row],
+                    prediction: predictions[row],
+                });
             }
         }
-        for (key, mut errors) in scores {
-            errors.sort_by(f64::total_cmp);
-            let group = groups
-                .get_mut(&key)
-                .expect("scores and metadata inserted together");
-            for coverage in &config.coverages {
-                let rank = ((errors.len() + 1) as f64 * coverage).ceil() as usize;
-                if rank == 0 || rank > errors.len() {
-                    return Err(Error::data(format!("Insufficient conformal samples for series {:?}, model {:?}, horizon {}: n={}, coverage={coverage}, required rank={rank}", group.series, group.model, group.horizon, errors.len())));
-                }
-                group.radii.push(errors[rank - 1]);
-            }
-        }
+        let engine = ResidualCalibrator::fit(
+            PortableConfig {
+                as_of: config.as_of,
+                horizon: config.horizon,
+                coverages: config.coverages.clone(),
+                limits: PortableLimits {
+                    max_records: config.limits.max_records,
+                    max_groups: config.limits.max_groups,
+                    max_levels: config.limits.max_levels,
+                    max_output_rows: config.limits.max_output_rows,
+                    ..Default::default()
+                },
+            },
+            &records,
+        )
+        .map_err(|e| Error::data(e.to_string()))?;
         Ok(Self {
             config,
             schema: cv.schema.clone(),
             timestamp_type: frame.timestamp_type,
             models: frame.models,
-            groups,
+            engine,
         })
     }
     /// Configuration used for the immutable fit.
@@ -275,6 +235,6 @@ impl ConformalCalibrator {
     }
     /// Deterministic summaries, without exposing mutable fitted calibration state.
     pub fn groups(&self) -> impl Iterator<Item = &CalibrationGroup> {
-        self.groups.values()
+        self.engine.groups()
     }
 }

@@ -27,7 +27,8 @@ wasm-bindgen-futures = "0.4"
 js-sys = "0.3"
 web-sys = { version = "0.3", features = ["Window", "console", "Performance", "PerformanceTiming"] }
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+# Preserve Float64 values when importing native models and calibration JSON.
+serde_json = { version = "1.0", features = ["float_roundtrip"] }
 serde-wasm-bindgen = "0.6"
 console_error_panic_hook = { version = "0.1", optional = true }
 wee_alloc = { version = "0.4", optional = true }

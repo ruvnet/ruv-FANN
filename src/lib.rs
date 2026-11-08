@@ -37,6 +37,7 @@ pub use errors::{ErrorCategory, RuvFannError, ValidationError};
 
 // Modules
 pub mod activation;
+pub mod calibration;
 pub mod cascade;
 pub mod connection;
 pub mod errors;

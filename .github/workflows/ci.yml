@@ -238,6 +238,10 @@ jobs:
         run: |
           node scripts/verify-webgpu.cjs
           node scripts/verify-demo-dom.cjs
+      - name: Execute prepared inference and historical intervals from the shipped WASM
+        env:
+          NODE_PATH: ${{ runner.temp }}/browser-tools/node_modules
+        run: node scripts/verify-sota-wasm-browser.cjs
       - name: Build and exercise the real OpenCV browser bindings
         env:
           NODE_PATH: ${{ runner.temp }}/browser-tools/node_modules
