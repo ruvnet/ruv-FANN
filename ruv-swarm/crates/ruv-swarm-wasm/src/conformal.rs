@@ -4,8 +4,9 @@ use ruv_fann::calibration::{
     CalibrationConfig, CalibrationLimits, CalibrationRecord, ForecastRecord, ResidualCalibrator,
 };
 use serde::Deserialize;
-use serde_json::json;
 use wasm_bindgen::prelude::*;
+#[path = "conformal_output.rs"]
+mod output;
 #[path = "conformal_json.rs"]
 mod wire;
 use wire::{bounded, name, number, time, INPUT_BYTES, OUTPUT_BYTES};
@@ -149,16 +150,7 @@ impl WasmConformalCalibrator {
         })
     }
     fn groups_json(&self) -> Result<String, String> {
-        let groups: Vec<_> = self
-            .engine
-            .groups()
-            .map(|g| {
-                json!({"series":g.series,"model":g.model,
-            "horizon":g.horizon,"samples":g.samples,"first_outcome":g.first_outcome,
-            "last_outcome":g.last_outcome,"radii":g.radii})
-            })
-            .collect();
-        wire::serialize(&groups)
+        wire::serialize(&output::Groups(&self.engine))
     }
     fn apply_json(&self, json: &str) -> Result<String, String> {
         let input: ApplyInput = wire::parse(json)?;
@@ -194,16 +186,7 @@ impl WasmConformalCalibrator {
             })
             .collect();
         let intervals = self.engine.apply(&records).map_err(|e| e.to_string())?;
-        let output: Vec<_> = intervals
-            .into_iter()
-            .map(|r| {
-                json!({"series":r.series,"model":r.model,
-            "timestamp":r.timestamp,"horizon":r.horizon,"coverage":r.coverage,"point":r.point,
-            "lower":r.lower,"upper":r.upper,"calibration_samples":r.calibration_samples,
-            "forecast_origin":r.forecast_origin,"calibration_as_of":r.calibration_as_of})
-            })
-            .collect();
-        wire::serialize(&output)
+        wire::serialize(&output::Intervals(&intervals))
     }
 }
 #[cfg(test)]

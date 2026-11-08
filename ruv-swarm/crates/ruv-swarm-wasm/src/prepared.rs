@@ -6,24 +6,28 @@ use ruv_fann::{
     PreparationLimits, PreparedError, PreparedNetwork,
 };
 use std::mem::size_of;
+use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 
 const MAX_BYTES: usize = 64 * 1024 * 1024;
 type BuildResult<T> = Result<T, &'static str>;
 #[path = "prepared_array.rs"]
 mod array_boundary;
+#[path = "prepared_batch.rs"]
+mod batch;
 #[path = "prepared_json.rs"]
 mod json_import;
 use array_boundary::ArrayBoundary;
+pub use batch::WasmPreparedBatch;
 
 /// Owned parameters and reusable scratch. No raw WASM memory views are exposed.
 #[wasm_bindgen]
 pub struct WasmPreparedNetwork {
-    network: PreparedNetwork<f64>,
+    network: Rc<PreparedNetwork<f64>>,
     workspace: InferenceWorkspace<f64>,
     inputs: Vec<f64>,
     outputs: Vec<f64>,
-    arrays: ArrayBoundary,
+    arrays: Rc<ArrayBoundary>,
     estimated: usize,
 }
 
@@ -62,6 +66,17 @@ impl WasmPreparedNetwork {
     #[wasm_bindgen(getter)]
     pub fn estimated_bytes(&self) -> usize {
         self.estimated
+    }
+
+    /// Share this immutable snapshot with a bounded, reusable row batch.
+    pub fn create_batch(
+        &self,
+        #[wasm_bindgen(unchecked_param_type = "number")] max_rows: JsValue,
+    ) -> Result<WasmPreparedBatch, JsValue> {
+        let max_rows = batch::checked_rows(max_rows.as_f64(), 1, batch::MAX_ROWS)
+            .map_err(JsValue::from_str)?;
+        WasmPreparedBatch::new(Rc::clone(&self.network), Rc::clone(&self.arrays), max_rows)
+            .map_err(JsValue::from_str)
     }
 
     /// Convenience result owns its buffer. Inputs must be JS-owned, non-shared
@@ -212,8 +227,12 @@ impl WasmPreparedNetwork {
                 .ok_or("Staging size overflow")?,
             size_of::<f64>(),
         )?
-        .checked_add(2 * size_of::<Vec<f64>>())
+        // Native estimated_bytes already includes the ordinary workspace. Count
+        // the remaining wrapper fields (including estimated), shared cache and
+        // both Rc control blocks rather than hand-listing descriptor fields.
+        .checked_add(size_of::<Self>() - size_of::<InferenceWorkspace<f64>>())
         .and_then(|n| n.checked_add(size_of::<ArrayBoundary>()))
+        .and_then(|n| n.checked_add(4 * size_of::<usize>()))
         .ok_or("Staging size overflow")?;
         let native_limit = MAX_BYTES
             .checked_sub(staging)
@@ -236,11 +255,11 @@ impl WasmPreparedNetwork {
         outputs.resize(network.num_outputs(), 0.0);
         let arrays = ArrayBoundary::new().map_err(|_| "Cannot capture typed-array intrinsics")?;
         Ok(Self {
-            network,
+            network: Rc::new(network),
             workspace,
             inputs,
             outputs,
-            arrays,
+            arrays: Rc::new(arrays),
             estimated,
         })
     }

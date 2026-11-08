@@ -78,3 +78,59 @@ fn failed_budget_preflight_allocates_nothing() {
     assert!(result.is_err());
     assert_eq!(ALLOCATIONS.with(Cell::get), 0);
 }
+
+fn repeated_batch<T: ruv_fann::prepared::BatchFloat>() {
+    let mut network = Network::<T>::new(&[5, 9, 7, 3]);
+    network
+        .set_weights(&vec![T::from(0.01).unwrap(); network.total_connections()])
+        .unwrap();
+    let prepared = network.prepare().unwrap();
+    let bytes = prepared.batch_workspace_bytes(17).unwrap();
+    let mut workspace = prepared.batch_workspace(17, bytes).unwrap();
+    let input = [T::from(0.25).unwrap(); 85];
+    let mut output = [T::zero(); 51];
+    ALLOCATIONS.with(|count| count.set(0));
+    TRACK.with(|track| track.set(true));
+    for rows in [17, 1, 3, 7, 16, 5].into_iter().cycle().take(128) {
+        assert!(prepared.inference_work_per_row().unwrap() > 0);
+        prepared
+            .run_batch_into(
+                &input[..rows * 5],
+                &mut output[..rows * 3],
+                rows,
+                &mut workspace,
+            )
+            .unwrap();
+    }
+    assert!(prepared
+        .run_batch_into(&[], &mut output, 17, &mut workspace)
+        .is_err());
+    prepared
+        .run_batch_into(&[], &mut [], 0, &mut workspace)
+        .unwrap();
+    TRACK.with(|track| track.set(false));
+    assert_eq!(ALLOCATIONS.with(Cell::get), 0);
+    assert!(output.iter().all(|value| value.is_finite()));
+}
+
+#[test]
+fn zero_batch_steady_state_allocations_f32() {
+    repeated_batch::<f32>();
+}
+#[test]
+fn zero_batch_steady_state_allocations_f64() {
+    repeated_batch::<f64>();
+}
+
+#[test]
+fn failed_batch_budget_preflight_allocates_nothing() {
+    let prepared = Network::<f64>::new(&[5, 9, 3]).prepare().unwrap();
+    ALLOCATIONS.with(|count| count.set(0));
+    TRACK.with(|track| track.set(true));
+    let result = prepared.batch_workspace(17, 0);
+    let overflow = prepared.batch_workspace_bytes(usize::MAX);
+    TRACK.with(|track| track.set(false));
+    assert!(result.is_err());
+    assert!(overflow.is_err());
+    assert_eq!(ALLOCATIONS.with(Cell::get), 0);
+}

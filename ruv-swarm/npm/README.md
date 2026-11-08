@@ -144,6 +144,60 @@ Preparation permits an estimated 64 MiB for packed parameters, workspace and
 input/output staging. This estimate excludes the original model, temporary
 conversion graph and allocator bookkeeping; it is not a peak-memory guarantee.
 
+## Process multiple rows per call
+
+A fixed-capacity batch reduces repeated JavaScript/WASM calls and reuses its
+numeric buffers. Rows are laid out consecutively in each Float64Array:
+
+```js
+const network = runtime.createNeuralNetwork([2, 1], 'Linear');
+network.set_weights(Float64Array.of(2, -1));
+const prepared = network.prepare();
+const batch = prepared.create_batch(32);
+prepared.free();
+network.free();
+try {
+  const inputs = Float64Array.of(3, 4, 5, 6, 7, 8); // three input rows
+  const outputs = new Float64Array(3);
+  batch.run_into(inputs, outputs, 3);
+  console.log(outputs); // Float64Array [2, 4, 6]
+  console.log(batch.max_rows, batch.estimated_bytes);
+} finally {
+  batch.free();
+}
+```
+
+The batch shares immutable weights with its parent and owns its workspace.
+It stays valid after its parent is freed. Recreate it after changing trained
+weights. Capacity must be an integer from 1 to 4,096; each call may use fewer
+rows. Zero rows with empty, valid Float64Arrays is a no-op. Invalid dimensions,
+non-finite numbers, numeric overflow or an invalid later row leave the whole
+caller output unchanged. The same hostile-buffer checks as single inference
+remain active. No raw WASM memory views are exposed.
+
+Each batch has a 64 MiB estimated working-storage ceiling, including its shared
+snapshot, workspace, numeric staging, cached checks and Rust handle overhead.
+This is not a process-memory limit. Large models may allow fewer rows.
+Construction and calls also enforce a 100-million work-unit ceiling. Per-row
+units count twice the connections, three times the evaluated neurons, twice
+the input/output widths, plus bias nodes and layers. Disconnected neurons
+therefore still count toward the work limit.
+
+The SIMD binary uses independent Float64 sample lanes with separate multiply
+and add instructions. Each sample retains the original connection order,
+including sparse, shuffled and duplicate connections. The ordinary binary
+uses a scalar fallback. Small batches can remain slower than single inference;
+measure your network and row count rather than assuming every batch is faster.
+
+Release builds use Rust optimization level 3, with overflow checks enabled.
+On the measured Linux host, a 128-row Float64 SIMD batch on a
+784 → 128 → 64 → 10 Linear network took 29.0 µs per row in Chromium,
+3.35× faster than repeated prepared single calls in the same binary.
+One-row batches can be slower. These are warmed API timings, including
+JavaScript validation and copies, with setup measured separately.
+The [results and reproduction commands](https://github.com/ruvnet/ruv-FANN/blob/main/docs/ultra-results-2026-11-08.md)
+include every case, raw samples, uncertainty, and the binary-size tradeoff.
+
 ## Calibrate historical forecast intervals
 
 Supply genuine past predictions and observed outcomes. This small artificial

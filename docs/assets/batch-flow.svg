@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 300" role="img" aria-labelledby="title desc">
+  <title id="title">Process many input rows with one WebAssembly call</title>
+  <desc id="desc">Input rows enter one checked transfer. Reusable buffers hold the batch. In the SIMD build, two Float64 lanes compute independent samples using shared weights and the original weight order. All output rows are committed after validation succeeds. The ordinary build uses the scalar fallback.</desc>
+  <style>
+    .background{fill:#0b1220}.card{fill:#152238;stroke:#334862;stroke-width:1.5}
+    .heading{font:600 24px system-ui,sans-serif;fill:#f0f6fc}.label{font:600 16px system-ui,sans-serif;fill:#f0f6fc}
+    .body{font:13px system-ui,sans-serif;fill:#b9cce0}.code{font:13px ui-monospace,monospace;fill:#72e5c0}
+    .line{fill:none;stroke:#72e5c0;stroke-width:3;stroke-dasharray:7 7;animation:flow 2.4s linear infinite}
+    .lane{fill:#203a52;stroke:#57bbff;stroke-width:1}.dot{fill:#72e5c0;animation:pulse 2.4s ease-in-out infinite}
+    @keyframes flow{to{stroke-dashoffset:-56}}@keyframes pulse{50%{opacity:.4}}
+    @media(prefers-reduced-motion:reduce){.line,.dot{animation:none}}
+  </style>
+  <rect class="background" width="1040" height="300" rx="16"/>
+  <text class="heading" x="28" y="40">Many rows. One checked WASM call.</text>
+  <text class="body" x="28" y="65">Reuse numeric buffers and share an immutable weight snapshot.</text>
+  <rect class="card" x="28" y="92" width="215" height="136" rx="10"/>
+  <text class="label" x="44" y="119">Input rows</text>
+  <text class="code" x="44" y="148">row 0: [x₀₀, x₀₁, …]</text>
+  <text class="code" x="44" y="173">row 1: [x₁₀, x₁₁, …]</text>
+  <text class="body" x="44" y="207">One row-major Float64Array</text>
+  <path class="line" d="M246 160H282"/>
+  <rect class="card" x="286" y="92" width="215" height="136" rx="10"/>
+  <text class="label" x="302" y="119">Check and copy</text>
+  <text class="body" x="302" y="148">Shapes · finite numbers</text>
+  <text class="body" x="302" y="173">Memory · work limits</text>
+  <text class="body" x="302" y="207">Reuse preallocated storage</text>
+  <path class="line" d="M504 160H540"/>
+  <rect class="card" x="544" y="92" width="215" height="136" rx="10"/>
+  <text class="label" x="560" y="119">Independent sample lanes</text>
+  <rect class="lane" x="560" y="135" width="181" height="27" rx="4"/>
+  <rect class="lane" x="560" y="168" width="181" height="27" rx="4"/>
+  <text class="code" x="573" y="154">lane 0 → sample 0</text>
+  <text class="code" x="573" y="187">lane 1 → sample 1</text>
+  <text class="body" x="560" y="216">Each sample keeps weight order</text>
+  <path class="line" d="M762 160H798"/>
+  <rect class="card" x="802" y="92" width="210" height="136" rx="10"/>
+  <text class="label" x="818" y="119">Output rows</text>
+  <text class="code" x="818" y="151">[y₀₀, …, y₁₀, …]</text>
+  <text class="body" x="818" y="181">Commit after full success</text>
+  <text class="body" x="818" y="207">Failures preserve caller output</text>
+  <circle class="dot" cx="34" cy="263" r="4"/>
+  <text class="body" x="47" y="268">SIMD build: two Float64 samples per vector. Ordinary build: scalar fallback. Batch size affects the tradeoff.</text>
+</svg>

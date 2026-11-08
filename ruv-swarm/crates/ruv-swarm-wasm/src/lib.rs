@@ -29,7 +29,7 @@ pub fn init() {
 }
 
 pub use network::{ActivationFunction, WasmNeuralNetwork};
-pub use prepared::WasmPreparedNetwork;
+pub use prepared::{WasmPreparedBatch, WasmPreparedNetwork};
 
 pub use orchestration::{WasmAgent, WasmSwarmOrchestrator, WasmTaskResult};
 
@@ -66,6 +66,8 @@ pub fn get_features() -> String {
     serde_json::json!({
         "neural_networks": true,
         "prepared_inference": true,
+        "prepared_batching": true,
+        "prepared_batch_simd": cfg!(all(target_arch = "wasm32", target_feature = "simd128")),
         "forecasting": true,
         "conformal_intervals": true,
         "swarm_orchestration": true,

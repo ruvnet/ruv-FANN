@@ -238,10 +238,6 @@ jobs:
         run: |
           node scripts/verify-webgpu.cjs
           node scripts/verify-demo-dom.cjs
-      - name: Execute prepared inference and historical intervals from the shipped WASM
-        env:
-          NODE_PATH: ${{ runner.temp }}/browser-tools/node_modules
-        run: node scripts/verify-sota-wasm-browser.cjs
       - name: Build and exercise the real OpenCV browser bindings
         env:
           NODE_PATH: ${{ runner.temp }}/browser-tools/node_modules
@@ -260,6 +256,19 @@ jobs:
         env:
           NODE_PATH: ${{ runner.temp }}/browser-tools/node_modules
         run: node scripts/verify-rust-browser-gpu.cjs --build "$RUNNER_TEMP/fann-browser"
+      - name: Verify batched SIMD arithmetic and browser equivalence
+        env:
+          NODE_PATH: ${{ runner.temp }}/browser-tools/node_modules
+        run: |
+          RUSTFLAGS='-C target-feature=+simd128' cargo build --manifest-path ruv-swarm/Cargo.toml -p ruv-swarm-wasm --locked --release --target wasm32-unknown-unknown --example verify_batch_wasm
+          wasm-bindgen ruv-swarm/target/wasm32-unknown-unknown/release/examples/verify_batch_wasm.wasm --target web --out-dir "$RUNNER_TEMP/batch-probe" --out-name batch_probe
+          BATCH_SIMD_PROBE_DIR="$RUNNER_TEMP/batch-probe" node scripts/verify-sota-wasm-browser.cjs
+          curl -fsSL https://github.com/WebAssembly/wabt/releases/download/1.0.42/wabt-1.0.42-linux-x64.tar.gz -o "$RUNNER_TEMP/wabt.tar.gz"
+          echo '84895407a6bbb80e918f33b16b2fb2206021c150b6bc9ff6f761263a745ab131  '"$RUNNER_TEMP/wabt.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/wabt.tar.gz" -C "$RUNNER_TEMP"
+          python3 scripts/inspect-batch-simd.py ruv-swarm/npm/wasm/ruv_swarm_wasm_bg.wasm --wasm2wat "$RUNNER_TEMP/wabt-1.0.42/bin/wasm2wat" --expected scalar
+          python3 scripts/inspect-batch-simd.py ruv-swarm/npm/wasm/ruv_swarm_simd.wasm --wasm2wat "$RUNNER_TEMP/wabt-1.0.42/bin/wasm2wat" --expected simd
+          python3 scripts/inspect-batch-simd.py "$RUNNER_TEMP/batch-probe/batch_probe_bg.wasm" --wasm2wat "$RUNNER_TEMP/wabt-1.0.42/bin/wasm2wat" --export verify_prepared_batches --precision both --expected simd
 
   release-archives:
     name: Verify every Cargo release archive

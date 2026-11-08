@@ -40,13 +40,14 @@ impl<T: Ord + Copy> ResidualCalibrator<T> {
         }
         let mut output = Vec::with_capacity(count);
         for (id, mut window) in windows {
-            if window.keys().copied().collect::<BTreeSet<_>>()
-                != self.models.iter().map(String::as_str).collect()
+            if !window
+                .keys()
+                .copied()
+                .eq(self.models.iter().map(String::as_str))
             {
                 return Err(error("Forecast model set differs from calibration"));
             }
-            let mut reference: Option<Vec<T>> = None;
-            for (model, rows) in &mut window {
+            for rows in window.values_mut() {
                 rows.sort_by_key(|r| r.timestamp);
                 if rows.len() != self.config.horizon
                     || rows.windows(2).any(|p| p[0].timestamp == p[1].timestamp)
@@ -55,15 +56,42 @@ impl<T: Ord + Copy> ResidualCalibrator<T> {
                         "Forecast windows require exactly H distinct target timestamps",
                     ));
                 }
-                let labels: Vec<_> = rows.iter().map(|r| r.timestamp).collect();
-                if reference.as_ref().is_some_and(|old| *old != labels) {
+            }
+            let reference = window
+                .values()
+                .next()
+                .ok_or_else(|| error("Empty forecast window"))?;
+            for rows in window.values().skip(1) {
+                if !rows
+                    .iter()
+                    .zip(reference)
+                    .all(|(r, first)| r.timestamp == first.timestamp)
+                {
                     return Err(error("Forecast models must align target timestamps"));
                 }
-                reference = Some(labels);
-                for (step, r) in rows.iter().enumerate() {
-                    let group = self
-                        .groups
-                        .get(&(id.to_owned(), (*model).to_owned(), step + 1))
+            }
+            let calibrated = self
+                .groups
+                .get(id)
+                .ok_or_else(|| error("Unknown calibrated series/model/horizon"))?;
+            // Both maps are already in model order. Borrowed lookups need no
+            // temporary owned tuple keys, and horizon storage is contiguous.
+            let aligned = window
+                .iter()
+                .map(|(model, rows)| {
+                    calibrated
+                        .get(*model)
+                        .map(|groups| (*model, rows, groups))
+                        .ok_or_else(|| error("Unknown calibrated series/model/horizon"))
+                })
+                .collect::<Result<Vec<_>>>()?;
+            // Aligned target times let us emit final order directly, avoiding a
+            // second O(output_rows log output_rows) sort and its temporary buffer.
+            for step in 0..self.config.horizon {
+                for (model, rows, groups) in &aligned {
+                    let r = rows[step];
+                    let group = groups
+                        .get(step)
                         .ok_or_else(|| error("Unknown calibrated series/model/horizon"))?;
                     for (coverage, radius) in self.config.coverages.iter().zip(&group.radii) {
                         let lower = r.prediction - radius;
@@ -88,13 +116,6 @@ impl<T: Ord + Copy> ResidualCalibrator<T> {
                 }
             }
         }
-        output.sort_by(|a, b| {
-            a.series
-                .cmp(&b.series)
-                .then(a.timestamp.cmp(&b.timestamp))
-                .then(a.model.cmp(&b.model))
-                .then(a.coverage.total_cmp(&b.coverage))
-        });
         Ok(output)
     }
 }

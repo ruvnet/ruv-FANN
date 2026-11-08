@@ -1,4 +1,5 @@
 use super::*;
+use serde_json::json;
 fn fit_json() -> String {
     let mut records = Vec::new();
     for (i, error) in [7., 1., 5., 9., 3., 2., 8., 6., 4.].iter().enumerate() {

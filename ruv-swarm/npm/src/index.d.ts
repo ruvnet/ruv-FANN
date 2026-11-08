@@ -1,6 +1,6 @@
 /** Supported Node.js facade for the generated WASM APIs. */
 import type { WasmNeuralNetwork, WasmForecastingModel, WasmPreparedNetwork } from '../wasm/ruv_swarm_wasm.js';
-export type { WasmPreparedNetwork } from '../wasm/ruv_swarm_wasm.js';
+export type { WasmPreparedNetwork, WasmPreparedBatch } from '../wasm/ruv_swarm_wasm.js';
 export { DAAService, daaService } from './daa-service.js';
 
 export interface InitOptions {

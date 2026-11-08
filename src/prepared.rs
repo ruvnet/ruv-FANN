@@ -8,6 +8,9 @@ use crate::{ActivationFunction, Network};
 use num_traits::Float;
 use std::mem::size_of;
 use thiserror::Error;
+#[path = "prepared_batch.rs"]
+mod batch;
+pub use batch::{BatchFloat, BatchWorkspace};
 
 /// Checked preparation and inference failures. No error requires heap allocation.
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -281,6 +284,32 @@ impl<T: Float> PreparedNetwork<T> {
     }
     pub fn num_outputs(&self) -> usize {
         self.outputs
+    }
+    /// Stored connection count, including duplicate and bias connections.
+    pub fn connection_count(&self) -> usize {
+        self.weights.len()
+    }
+    /// Conservative work units per sample: two per connection (multiply/add),
+    /// three per computed neuron (initialize/check/activate), two per input and
+    /// output (transfer/check), one per bias and one per layer, including input.
+    /// This is a budget estimate, not a measured instruction count or time bound;
+    /// disconnected activation-heavy graphs still consume work units.
+    pub fn inference_work_per_row(&self) -> Result<usize, PreparedError> {
+        let biases = self
+            .layers
+            .iter()
+            .try_fold(usize::from(self.input_bias), |sum, layer| {
+                add(sum, usize::from(layer.bias))
+            })?;
+        let layers = add(self.layers.len(), 1)?;
+        let arithmetic = add(bytes(self.weights.len(), 2)?, bytes(self.rows.len(), 3)?)?;
+        let transfers = bytes(add(self.inputs, self.outputs)?, 2)?;
+        add(add(arithmetic, transfers)?, add(biases, layers)?)
+    }
+    /// Requested snapshot storage, excluding any inference workspace, source
+    /// model, allocator bookkeeping and spare allocator capacity.
+    pub fn snapshot_bytes(&self) -> usize {
+        self.estimated_bytes - size_of::<InferenceWorkspace<T>>() - 2 * self.width * size_of::<T>()
     }
     /// Requested owned storage, including descriptors and one workspace, excluding
     /// allocator bookkeeping, spare allocator capacity and the original network.

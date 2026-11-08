@@ -1345,6 +1345,81 @@ export class WasmNeuralNetwork {
 if (Symbol.dispose) WasmNeuralNetwork.prototype[Symbol.dispose] = WasmNeuralNetwork.prototype.free;
 
 /**
+ * A reusable batch shares its model with the source prepared object. All Rust
+ * numerical buffers are allocated at creation; JS views are temporary copies.
+ */
+export class WasmPreparedBatch {
+    static __wrap(ptr) {
+        const obj = Object.create(WasmPreparedBatch.prototype);
+        obj.__wbg_ptr = ptr;
+        WasmPreparedBatchFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        WasmPreparedBatchFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_wasmpreparedbatch_free(ptr, 0);
+    }
+    /**
+     * Conservative combined snapshot/workspace/staging/cache storage. Shared
+     * values are counted in full; excludes caller JS arrays and allocator slack.
+     * @returns {number}
+     */
+    get estimated_bytes() {
+        const ret = wasm.wasmpreparedbatch_estimated_bytes(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    get input_size() {
+        const ret = wasm.wasmpreparedbatch_input_size(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    get max_rows() {
+        const ret = wasm.wasmpreparedbatch_max_rows(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    get output_size() {
+        const ret = wasm.wasmpreparedbatch_output_size(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Row-major arrays must have exactly rows*input_size / rows*output_size
+     * elements. Zero rows requires valid empty Float64Arrays. Errors preserve
+     * the entire output; input/output aliases are safe. No Rust buffer grows.
+     * @param {Float64Array} inputs
+     * @param {Float64Array} outputs
+     * @param {number} rows
+     */
+    run_into(inputs, outputs, rows) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
+            wasm.wasmpreparedbatch_run_into(retptr, this.__wbg_ptr, inputs, outputs, rows);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            if (r1) {
+                throw takeFromExternrefTable0(r0);
+            }
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+}
+if (Symbol.dispose) WasmPreparedBatch.prototype[Symbol.dispose] = WasmPreparedBatch.prototype.free;
+
+/**
  * Owned parameters and reusable scratch. No raw WASM memory views are exposed.
  */
 export class WasmPreparedNetwork {
@@ -1363,6 +1438,26 @@ export class WasmPreparedNetwork {
     free() {
         const ptr = this.__destroy_into_raw();
         wasm.__wbg_wasmpreparednetwork_free(ptr, 0);
+    }
+    /**
+     * Share this immutable snapshot with a bounded, reusable row batch.
+     * @param {number} max_rows
+     * @returns {WasmPreparedBatch}
+     */
+    create_batch(max_rows) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
+            wasm.wasmpreparednetwork_create_batch(retptr, this.__wbg_ptr, max_rows);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+            if (r2) {
+                throw takeFromExternrefTable0(r1);
+            }
+            return WasmPreparedBatch.__wrap(r0);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
     }
     /**
      * Packed storage, native workspace and staging buffers; excludes the source
@@ -2291,6 +2386,9 @@ const WasmForecastingModelFinalization = (typeof FinalizationRegistry === 'undef
 const WasmNeuralNetworkFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_wasmneuralnetwork_free(ptr, 1));
+const WasmPreparedBatchFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_wasmpreparedbatch_free(ptr, 1));
 const WasmPreparedNetworkFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_wasmpreparednetwork_free(ptr, 1));

@@ -268,12 +268,40 @@ export class WasmNeuralNetwork {
 }
 
 /**
+ * A reusable batch shares its model with the source prepared object. All Rust
+ * numerical buffers are allocated at creation; JS views are temporary copies.
+ */
+export class WasmPreparedBatch {
+    private constructor();
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * Row-major arrays must have exactly rows*input_size / rows*output_size
+     * elements. Zero rows requires valid empty Float64Arrays. Errors preserve
+     * the entire output; input/output aliases are safe. No Rust buffer grows.
+     */
+    run_into(inputs: Float64Array, outputs: Float64Array, rows: number): void;
+    /**
+     * Conservative combined snapshot/workspace/staging/cache storage. Shared
+     * values are counted in full; excludes caller JS arrays and allocator slack.
+     */
+    readonly estimated_bytes: number;
+    readonly input_size: number;
+    readonly max_rows: number;
+    readonly output_size: number;
+}
+
+/**
  * Owned parameters and reusable scratch. No raw WASM memory views are exposed.
  */
 export class WasmPreparedNetwork {
     private constructor();
     free(): void;
     [Symbol.dispose](): void;
+    /**
+     * Share this immutable snapshot with a bounded, reusable row batch.
+     */
+    create_batch(max_rows: number): WasmPreparedBatch;
     /**
      * Import a native serde Network<f64> export (at most 4 MiB UTF-8 JSON).
      * All native activations and sparse connection ordering are retained.
@@ -396,6 +424,7 @@ export interface InitOutput {
     readonly __wbg_wasmconformalcalibrator_free: (a: number, b: number) => void;
     readonly __wbg_wasmforecastingmodel_free: (a: number, b: number) => void;
     readonly __wbg_wasmneuralnetwork_free: (a: number, b: number) => void;
+    readonly __wbg_wasmpreparedbatch_free: (a: number, b: number) => void;
     readonly __wbg_wasmpreparednetwork_free: (a: number, b: number) => void;
     readonly __wbg_wasmswarmorchestrator_free: (a: number, b: number) => void;
     readonly __wbg_wasmtaskresult_free: (a: number, b: number) => void;
@@ -479,6 +508,12 @@ export interface InitOutput {
     readonly wasmneuralnetwork_randomize_weights: (a: number, b: number, c: number, d: number) => void;
     readonly wasmneuralnetwork_run: (a: number, b: number, c: number, d: number) => void;
     readonly wasmneuralnetwork_set_weights: (a: number, b: number, c: number, d: number) => void;
+    readonly wasmpreparedbatch_estimated_bytes: (a: number) => number;
+    readonly wasmpreparedbatch_input_size: (a: number) => number;
+    readonly wasmpreparedbatch_max_rows: (a: number) => number;
+    readonly wasmpreparedbatch_output_size: (a: number) => number;
+    readonly wasmpreparedbatch_run_into: (a: number, b: number, c: any, d: any, e: any) => void;
+    readonly wasmpreparednetwork_create_batch: (a: number, b: number, c: any) => void;
     readonly wasmpreparednetwork_estimated_bytes: (a: number) => number;
     readonly wasmpreparednetwork_from_network_json: (a: number, b: any) => void;
     readonly wasmpreparednetwork_input_size: (a: number) => number;

@@ -10,6 +10,7 @@ const {pathToFileURL} = require('node:url');
 const {chromium} = require('playwright');
 const root = path.resolve(__dirname, '..');
 const npmRoot = path.resolve(process.argv[2] || path.join(root, 'ruv-swarm/npm'));
+const probeDir = process.env.BATCH_SIMD_PROBE_DIR ? path.resolve(process.env.BATCH_SIMD_PROBE_DIR) : null;
 const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 
 (async () => {
@@ -32,6 +33,10 @@ const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
     ['/wasm/ruv_swarm_wasm_bg.wasm', {file: path.join(npmRoot, 'wasm/ruv_swarm_wasm_bg.wasm'), type: 'application/wasm'}],
   ]);
   const hashes = {};
+  if (probeDir) {
+    routes.set('/probe.js', {file: path.join(probeDir, 'batch_probe.js'), type: 'text/javascript'});
+    routes.set('/probe.wasm', {file: path.join(probeDir, 'batch_probe_bg.wasm'), type: 'application/wasm'});
+  }
   for (const [name, artifact] of routes) {
     artifact.bytes = fs.readFileSync(artifact.file);
     hashes[name] = hash(artifact.bytes);
@@ -74,6 +79,7 @@ const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
         const features = JSON.parse(bindings.get_features());
         ensure(features.prepared_inference && features.conformal_intervals, 'Feature declarations missing');
         ensure(features.simd_support === (variant === 'simd'), 'Unexpected core/SIMD build selection');
+        ensure(features.prepared_batching && features.prepared_batch_simd === (variant === 'simd'), 'Batch capability declaration');
         let rejections = 0;
         const reject = operation => {
           let rejected = false;
@@ -156,12 +162,46 @@ const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
               const actual = imported.run(new Float64Array(fixture.input));
               ensure(actual.length === fixture.output.length, 'Imported native output shape');
               actual.forEach((value, i) => ensure(Math.abs(value - fixture.output[i]) < 1e-12, `Native ${kind} parity`));
+              const batch = imported.create_batch(17);
+              try {
+                for (const rows of [0, 1, 2, 3, 8, 17]) {
+                  const inputs = Float64Array.from({length: rows * fixture.input.length}, (_, i) => fixture.input[i % fixture.input.length] + Math.floor(i / fixture.input.length) / 128);
+                  const expected = [];
+                  for (let row = 0; row < rows; row++) expected.push(...imported.run(inputs.subarray(row * fixture.input.length, (row + 1) * fixture.input.length)));
+                  const output = new Float64Array(expected.length);
+                  batch.run_into(inputs, output, rows);
+                  output.forEach((value, i) => ensure(Math.abs(value - expected[i]) < 1e-12, `${kind} batch/tail parity`));
+                }
+              } finally { batch.free(); }
             } finally {
               imported.free();
             }
           }
           reject(() => bindings.WasmPreparedNetwork.from_network_json('{}'));
           rejectBeforeCopy(() => bindings.WasmPreparedNetwork.from_network_json(' '.repeat(4 * 1024 * 1024 + 1)));
+          const batch = prepared.create_batch(17);
+          try {
+            const inputs = Float64Array.from({length: 34}, (_, i) => i % 2 ? 2 : Math.floor(i / 2) + 1);
+            const output = new Float64Array(17);
+            batch.run_into(inputs, output, 17);
+            same(Array.from(output), Array.from({length: 17}, (_, i) => 95 + 17 * i), 'Batched row-major output');
+            const invalid = inputs.slice(); invalid[32] = NaN;
+            output.fill(12345);
+            reject(() => batch.run_into(invalid, output, 17));
+            ensure(output.every(value => value === 12345), 'Later invalid row changed output');
+            for (const rows of [-1, 1.5, NaN, Infinity, 2 ** 32 + 1, '17', new Number(17), 17n, 18]) {
+              reject(() => batch.run_into(inputs, output, rows));
+            }
+            reject(() => batch.run_into(new Float32Array(34), output, 17));
+            reject(() => batch.run_into(new Float64Array(wasm.memory.buffer, 0, 34), output, 17));
+            if (typeof SharedArrayBuffer === 'function') reject(() => batch.run_into(new Float64Array(new SharedArrayBuffer(34 * 8)), output, 17));
+            prepared.free(); prepared = undefined;
+            batch.run_into(inputs, output, 17);
+            ensure(output[0] === 95 && output[16] === 367, 'Batch depends on freed prepared handle');
+            const steady = wasm.memory.buffer.byteLength;
+            for (let i = 0; i < 1000; i++) batch.run_into(inputs, output, 17);
+            ensure(wasm.memory.buffer.byteLength === steady, 'Reused batch grew WASM memory');
+          } finally { batch.free(); }
 
           const records = [];
           for (const [series, scale] of [['alpha', 1], ['beta', 2]]) {
@@ -239,6 +279,7 @@ const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
             module_memory_growth_checked: true,
             calibration_records: records.length, groups: groups.length, intervals: intervals.length,
             native_model_imports: 2, conservative_output_budget_checked: true,
+            batched_rows_per_call: 17, reused_batch_calls: 1000,
             exact_json_float64_cases: 2,
             rejected_invalid_operations: rejections});
         } finally {
@@ -249,6 +290,18 @@ const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
       }
       return results;
     });
+    let nativeSimdProbe = null;
+    if (probeDir) {
+      nativeSimdProbe = await page.evaluate(async () => {
+        const module = await import('/probe.js');
+        await module.default({module_or_path: fetch('/probe.wasm')});
+        const result = JSON.parse(module.verify_prepared_batches());
+        if (!result.passed || !result.simd128 || !result.bitwise_scalar_equivalence || result.float32_rows !== 2310 || result.float64_rows !== 2310) {
+          throw new Error('Native f32/f64 SIMD probe failed');
+        }
+        return result;
+      });
+    }
     await page.goto(`http://127.0.0.1:${server.address().port}/examples/wasm-prepared-conformal.html`);
     await page.waitForFunction(() => {
       const text = document.getElementById('result')?.textContent || '';
@@ -259,7 +312,7 @@ const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
       throw new Error('Documented browser example returned incorrect results');
     }
     if (pageErrors.length) throw new Error(pageErrors.join('\n'));
-    console.log(JSON.stringify({browser: await browser.version(), artifact_sha256: hashes, variants,
+    console.log(JSON.stringify({browser: await browser.version(), artifact_sha256: hashes, variants, native_simd_probe: nativeSimdProbe,
       documented_browser_example: {passed: true, neural_output: 2, interval: [11, 29]}}, null, 2));
   } finally {
     if (browser) await browser.close();

@@ -8,6 +8,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 #[path = "calibration_apply.rs"]
 mod apply;
+#[path = "calibration_quantiles.rs"]
+mod quantiles;
 
 /// Checked calibration/forecast contract violation.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -190,7 +192,7 @@ pub struct IntervalRecord<T> {
 pub struct ResidualCalibrator<T> {
     config: CalibrationConfig<T>,
     models: BTreeSet<String>,
-    groups: BTreeMap<(String, String, usize), CalibrationGroup<T>>,
+    groups: BTreeMap<String, BTreeMap<String, Vec<CalibrationGroup<T>>>>,
 }
 impl<T: Ord + Copy> ResidualCalibrator<T> {
     /// Fit corrected ranks ceil((n+1)*coverage); insufficient samples are errors.
@@ -202,9 +204,7 @@ impl<T: Ord + Copy> ResidualCalibrator<T> {
             return Err(error("Calibration record budget exceeded or input empty"));
         }
         let mut models = BTreeSet::new();
-        let mut series = BTreeSet::new();
-        let mut windows: BTreeMap<(&str, T), BTreeMap<&str, Vec<&CalibrationRecord<T>>>> =
-            BTreeMap::new();
+        let mut ordered = Vec::with_capacity(records.len());
         for r in records {
             config.limits.name(&r.series)?;
             config.limits.name(&r.model)?;
@@ -215,16 +215,23 @@ impl<T: Ord + Copy> ResidualCalibrator<T> {
                 return Err(error("Calibration requires cutoff < timestamp <= as_of"));
             }
             models.insert(r.model.as_str());
-            series.insert(r.series.as_str());
             if models.len() > config.limits.max_models {
                 return Err(error("Calibration model budget exceeded"));
             }
-            windows
-                .entry((&r.series, r.cutoff))
-                .or_default()
-                .entry(&r.model)
-                .or_default()
-                .push(r);
+            ordered.push(r);
+        }
+        // One borrowed-reference array replaces per-window maps, row vectors,
+        // temporary model sets and copied label vectors. No input is mutated.
+        ordered.sort_unstable_by(|a, b| {
+            a.cutoff
+                .cmp(&b.cutoff)
+                .then_with(|| a.series.cmp(&b.series))
+                .then_with(|| a.model.cmp(&b.model))
+                .then_with(|| a.timestamp.cmp(&b.timestamp))
+        });
+        let mut series = BTreeSet::new();
+        for window in ordered.chunk_by(|a, b| a.cutoff == b.cutoff && a.series == b.series) {
+            series.insert(window[0].series.as_str());
         }
         if series
             .len()
@@ -234,65 +241,76 @@ impl<T: Ord + Copy> ResidualCalibrator<T> {
         {
             return Err(error("Calibration group budget exceeded"));
         }
-        let mut scores: BTreeMap<(String, String, usize), Vec<f64>> = BTreeMap::new();
-        let mut groups: BTreeMap<(String, String, usize), CalibrationGroup<T>> = BTreeMap::new();
-        for ((id, _), mut window) in windows {
-            if window.keys().copied().collect::<BTreeSet<_>>() != models {
-                return Err(error("Calibration model set differs between windows"));
+        let window_size = models
+            .len()
+            .checked_mul(config.horizon)
+            .ok_or_else(|| error("Calibration window size overflow"))?;
+        let mut all_scores: BTreeMap<&str, BTreeMap<&str, Vec<(T, T, Vec<f64>)>>> = BTreeMap::new();
+        for window in ordered.chunk_by(|a, b| a.cutoff == b.cutoff && a.series == b.series) {
+            if window.len() != window_size {
+                return Err(error(
+                    "Calibration windows require every model and exactly H targets",
+                ));
             }
-            let mut reference: Option<Vec<(T, f64)>> = None;
-            for (model, rows) in &mut window {
-                rows.sort_by_key(|r| r.timestamp);
-                if rows.len() != config.horizon
-                    || rows.windows(2).any(|p| p[0].timestamp == p[1].timestamp)
-                {
+            let id = window[0].series.as_str();
+            let scores = all_scores.entry(id).or_default();
+            let reference = &window[..config.horizon];
+            for (model, rows) in models.iter().zip(window.chunks_exact(config.horizon)) {
+                if rows.iter().any(|r| r.model != *model) {
+                    return Err(error("Calibration model set differs between windows"));
+                }
+                if rows.windows(2).any(|p| p[0].timestamp == p[1].timestamp) {
                     return Err(error(
                         "Calibration windows require exactly H distinct target timestamps",
                     ));
                 }
-                let labels: Vec<_> = rows.iter().map(|r| (r.timestamp, r.actual)).collect();
-                if reference.as_ref().is_some_and(|old| *old != labels) {
+                if !rows
+                    .iter()
+                    .zip(reference)
+                    .all(|(r, first)| r.timestamp == first.timestamp && r.actual == first.actual)
+                {
                     return Err(error(
                         "Calibration models must align target timestamps and actuals",
                     ));
                 }
-                reference = Some(labels);
-                for (step, r) in rows.iter().enumerate() {
+                let states = scores.entry(*model).or_insert_with(|| {
+                    rows.iter()
+                        .map(|r| (r.timestamp, r.timestamp, Vec::new()))
+                        .collect()
+                });
+                for (r, state) in rows.iter().zip(states) {
                     let residual = (r.actual - r.prediction).abs();
                     if !residual.is_finite() {
                         return Err(error("Calibration residual overflow"));
                     }
-                    let key = (id.to_owned(), (*model).to_owned(), step + 1);
-                    let group = groups
-                        .entry(key.clone())
-                        .or_insert_with(|| CalibrationGroup {
-                            series: id.to_owned(),
-                            model: (*model).to_owned(),
-                            horizon: step + 1,
-                            samples: 0,
-                            first_outcome: r.timestamp,
-                            last_outcome: r.timestamp,
-                            radii: Vec::new(),
-                        });
-                    group.samples += 1;
-                    group.first_outcome = group.first_outcome.min(r.timestamp);
-                    group.last_outcome = group.last_outcome.max(r.timestamp);
-                    scores.entry(key).or_default().push(residual);
+                    state.0 = state.0.min(r.timestamp);
+                    state.1 = state.1.max(r.timestamp);
+                    state.2.push(residual);
                 }
             }
         }
-        for (key, mut errors) in scores {
-            errors.sort_by(f64::total_cmp);
-            let group = groups
-                .get_mut(&key)
-                .ok_or_else(|| error("Missing calibration group"))?;
-            for coverage in &config.coverages {
-                let rank = ((errors.len() + 1) as f64 * coverage).ceil() as usize;
-                if rank == 0 || rank > errors.len() {
-                    return Err(error(format!("Insufficient calibration samples: n={}, coverage={coverage}, required rank={rank}",errors.len())));
+        let mut groups = BTreeMap::new();
+        for (id, scores) in all_scores {
+            let mut by_model = BTreeMap::new();
+            for (model, states) in scores {
+                let mut steps = Vec::with_capacity(config.horizon);
+                for (step, (first_outcome, last_outcome, mut errors)) in
+                    states.into_iter().enumerate()
+                {
+                    let radii = quantiles::radii(&mut errors, &config.coverages)?;
+                    steps.push(CalibrationGroup {
+                        series: id.to_owned(),
+                        model: model.to_owned(),
+                        horizon: step + 1,
+                        samples: errors.len(),
+                        first_outcome,
+                        last_outcome,
+                        radii,
+                    });
                 }
-                group.radii.push(errors[rank - 1]);
+                by_model.insert(model.to_owned(), steps);
             }
+            groups.insert(id.to_owned(), by_model);
         }
         Ok(Self {
             config,
@@ -306,9 +324,15 @@ impl<T: Ord + Copy> ResidualCalibrator<T> {
     }
     /// Deterministically sorted independent group summaries.
     pub fn groups(&self) -> impl Iterator<Item = &CalibrationGroup<T>> {
-        self.groups.values()
+        self.groups
+            .values()
+            .flat_map(|models| models.values().flat_map(|groups| groups.iter()))
     }
 }
 #[cfg(test)]
 #[path = "calibration_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "calibration_reference_tests.rs"]
+mod reference_tests;

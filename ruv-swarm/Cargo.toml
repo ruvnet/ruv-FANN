@@ -98,7 +98,7 @@ opt-level = 0
 debug = true
 
 [profile.release]
-opt-level = "z"  # Optimize for size
+opt-level = 3    # Throughput: measured Node/Chromium batch and JSON workloads
 lto = "fat"      # Full LTO for maximum optimization
 codegen-units = 1
 strip = true

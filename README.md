@@ -122,6 +122,23 @@ measure browser or Node.js latency. Historical intervals retain their documented
 time-series coverage limitations. The [WASM results](docs/sota-results-2026-11-08.md#webassembly-extension)
 show measured timings and the tradeoff for very small networks.
 
+For many samples, create a fixed-capacity batch workspace. Native Rust supports
+both f32 and f64; input and output slices contain one row after another:
+
+```rust
+let mut batch = prepared.batch_workspace(2, 1024 * 1024)?;
+let inputs = [1.0, 2.0, 3.0, 4.0]; // two rows for a two-input network
+let mut outputs = vec![0.0; 2 * prepared.num_outputs()];
+prepared.run_batch_into(&inputs, &mut outputs, 2, &mut batch)?;
+```
+
+The JavaScript API exposes `prepared.create_batch(capacity)` and
+`batch.run_into(inputs, outputs, rows)`. It reuses numeric buffers and can keep
+running after the original prepared handle is freed. The SIMD build processes
+independent samples in parallel without reordering any sample's weighted sum.
+
+![Input rows cross one checked boundary, reuse shared weights in independent SIMD sample lanes, and commit output rows after full success.](docs/assets/batch-flow.svg)
+
 ## Pick the features you need
 
 | Feature | Purpose and limits |
@@ -177,24 +194,28 @@ For a single family, pass `--workspace neuro-divergent` to the verification driv
 
 Measure the workload you intend to deploy. Record the commit, compiler, CPU or GPU, target features, model shape, batch size, thread count, warm-up, and numeric tolerance. Compare identical inputs and weights, and include allocation and transfer costs in end-to-end results. Criterion output is written under `target/criterion/`.
 
-In a local release-mode comparison, prepared inference produced identical f32
-outputs and lower mean latency on three seeded dense shapes:
+The latest comparison uses actual Float64 WASM in Node and Chromium. A
+128-row SIMD batch produced these mean per-row latencies, including JavaScript
+validation and copies. Speed ratios compare repeated prepared single calls in
+the same binary; setup and compilation are outside the timings.
 
-| Layer sizes | Existing `run_into` | Prepared `run_into` | Mean latency reduction |
+| Linear network | Node 24 | Chromium 156 | Chromium speed ratio |
 | --- | ---: | ---: | ---: |
-| 5 → 7 → 3 | 106.39 ns | 102.90 ns | 3.3% |
-| 100 → 50 → 25 → 10 | 6.20 µs | 4.70 µs | 24.2% |
-| 784 → 128 → 64 → 10 | 100.44 µs | 94.77 µs | 5.7% |
+| 5 → 7 → 3 | 83.3 ns | 87.6 ns | 25.96× |
+| 100 → 50 → 25 → 10 | 2.11 µs | 2.22 µs | 3.07× |
+| 784 → 128 → 64 → 10 | 29.38 µs | 29.02 µs | 3.35× |
 
-These are short Criterion measurements on one AMD EPYC container, using seed 42,
-20 samples, one-second warm-up and two-second measurement windows. Preparation
-and workspace allocation were timed separately; their mean costs were recovered
-after roughly 95, 11 and 50 calls respectively in those workloads. No new ISA
-kernel or explicit SIMD was used. Other machines, shapes and sparse workloads
-need their own measurements. See the [research review](docs/research-sota-2026-11-08.md)
-for current sources and adoption choices, and the [modernization report](docs/modernization.md)
-for the preceding package verification. This comparison establishes no external
-leaderboard, forecasting-accuracy, token-saving or SWE-bench result.
+![Measured batch throughput across model and batch sizes.](docs/assets/batch-throughput.svg)
+
+These single-host results are workload-specific. One-row batches can be slower;
+the native f32/f64 comparison also shows small-batch regressions. Release WASM
+uses optimization level 3 and checked arithmetic: compared with the size profile,
+the binaries grow by about 65 KB each. All measured inference outputs match,
+and old/new calibration JSON is byte-identical. The
+[full results](docs/ultra-results-2026-11-08.md) include raw samples, confidence
+intervals, native calibration results, and reproduction commands. See the
+[research review](docs/research-sota-2026-11-08.md) for adoption choices and
+the [earlier modernization report](docs/modernization.md) for package verification.
 
 ## Contribute
 

@@ -1,0 +1,339 @@
+{
+  "schema_version": 1,
+  "date_utc": "2026-11-08T22:24:16.504518+00:00",
+  "status": "passed_local_implementation_and_benchmarks",
+  "baseline_commit": "a3675099181c89c045b3638a61dc52b678f1756c",
+  "branch": "mission/ultra-wasm-performance",
+  "implementation": {
+    "batch_inference": {
+      "native_precision": [
+        "f32",
+        "f64"
+      ],
+      "javascript_precision": "f64",
+      "all_activations_tested": 21,
+      "row_modes": [
+        "dense",
+        "sparse",
+        "shuffled",
+        "duplicate connections",
+        "biasless/input-only"
+      ],
+      "output_atomicity": true,
+      "steady_state_native_allocations": 0,
+      "preallocated_wasm_numeric_buffers": true,
+      "shared_immutable_model_and_intrinsics": true,
+      "wasm_capacity_range": [
+        1,
+        4096
+      ],
+      "zero_rows_requires_empty_valid_float64_arrays": true,
+      "wasm_work_limit": 100000000,
+      "work_formula": "rows * (2*connections + 3*computed regular neurons + 2*(inputs+outputs) + bias nodes + all layers)",
+      "estimated_wasm_storage_limit_bytes": 67108864,
+      "storage_scope": "Snapshot + workspace + staging + shared cache + wrapper/Rc metadata; allocator slack and caller JS arrays excluded, not total process memory.",
+      "new_unsafe_code": false,
+      "new_runtime_dependencies": false
+    },
+    "calibration": {
+      "exact_quantile_selection_from_group_samples": 1024,
+      "smaller_groups": "full sort",
+      "wire_schema_changed": false,
+      "forecasting_algorithm_changed": false,
+      "native_before_after_fingerprints": 24,
+      "node_exact_calibration_json_cases": 24,
+      "chromium_exact_calibration_json_cases": 24,
+      "borrowed_serialization_edge_case_test": "Full string bytes match legacy serde_json Value for Unicode/control escaping, signed zero, 2^98 and small exponents."
+    },
+    "security_fixes": [
+      "Count entire wrapper/Rc metadata in single prepared memory budget.",
+      "Bound disconnected activation-heavy networks despite zero edge count; 30,000-layer regression."
+    ]
+  },
+  "build": {
+    "receipt": "ruv-swarm/npm/wasm/build-info.json",
+    "receipt_sha256": "e11abe4cbbd7729716699db610f8dd58f44b2e379c2fd069d861306a0e05e43e",
+    "source_sha256": "6c4af0e744a8a5c8514cfddd586ebc7aa609038863f7c1ea6dc4c83b688939f9",
+    "toolchain": {
+      "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+      "wasmPack": "wasm-pack 0.15.1"
+    },
+    "profile": {
+      "manifest": "ruv-swarm/Cargo.toml",
+      "opt_level": 3,
+      "lto": "fat",
+      "codegen_units": 1,
+      "overflow_checks": true,
+      "panic": "abort",
+      "strip": true,
+      "ambient_opt_level_override": false
+    },
+    "artifact_sha256": {
+      "ruv_swarm_wasm_bg.wasm": "913cd614e0fbfe30e18ab400d1a9b71311a88318f0d018f68701259677808c5c",
+      "ruv_swarm_simd.wasm": "404c4c3caed7a9f1e00bb6f3a2b4720302cfd2f090dcd1ce8b976fc96044b110",
+      "ruv_swarm_wasm.js": "85d0209e09cc4c9b7a226ac2cf39af8deabc987697d4abb2050e737a5422ddbd",
+      "ruv_swarm_wasm.d.ts": "880692277920273fa76f4899247ef3124c810f566e91fd41cddcbae25adee1a7",
+      "ruv_swarm_wasm_bg.wasm.d.ts": "2e6ec867550d66d2d2fe1befd9bc78bcbcd223e3b15052aa9a19eaf343438cd7",
+      "package.json": "31a11a6fee35db46b7a6a996689d519e93083f6e055138bfa65cc7e13f37ebef",
+      "wasm-bindings-loader.mjs": "b2bc4abd1997b1d01d32ef4dba60f1e633a6503529752898f0c346e2b5de7158"
+    },
+    "binary_bytes": {
+      "ruv_swarm_wasm_bg.wasm": 467876,
+      "ruv_swarm_simd.wasm": 466518
+    },
+    "benchmarked_bytes_match_final_build": true
+  },
+  "validation": {
+    "root_default": {
+      "library": 207,
+      "integration": 27,
+      "ignored": 0
+    },
+    "root_no_default": {
+      "library": 124,
+      "integration": 25,
+      "ignored": 0
+    },
+    "root_doctests": 5,
+    "native_msrv_no_default": "Rust 1.81 check passed",
+    "native_dataframe_all_features_regressions": 68,
+    "wasm_binding_native_tests": 34,
+    "wasm_simd_probe": {
+      "activations": 21,
+      "bitwise_scalar_equivalence": true,
+      "dense_and_sparse": true,
+      "float32_rows": 2310,
+      "float64_rows": 2310,
+      "late_error_atomicity": true,
+      "passed": true,
+      "simd128": true
+    },
+    "chromium": {
+      "version": "156.0.8078.79",
+      "compiled_variants": [
+        "core",
+        "simd"
+      ],
+      "per_variant_reused_single_calls": 1000,
+      "per_variant_reused_batch_calls": 1000,
+      "per_variant_batch_rows": 17,
+      "loop_memory_growth_bytes": 0,
+      "invalid_operations_rejected_per_variant": 44,
+      "documented_example_passed": true
+    },
+    "simd_opcode_checks": {
+      "wasm2wat": "1.0.42",
+      "archive_sha256": "84895407a6bbb80e918f33b16b2fb2206021c150b6bc9ff6f761263a745ab131",
+      "trace": "Actual export plus transitively direct-called functions; does not analyze indirect calls.",
+      "ordinary_batch_has_no_floating_vector_arithmetic": true,
+      "shipped_simd_batch_reaches": [
+        "f64x2.mul",
+        "f64x2.add"
+      ],
+      "native_wasm_probe_reaches": [
+        "f32x4.mul",
+        "f32x4.add",
+        "f64x2.mul",
+        "f64x2.add"
+      ]
+    },
+    "clippy": "Core and WASM library checks pass with existing style warnings and a nested-map type-complexity suggestion.",
+    "rustfmt_changed_rust_sources": "passed",
+    "package_inventory": "passed",
+    "script_regressions": 13,
+    "docs_and_svg_checks": "passed",
+    "animated_svg_render_and_reduced_motion": "passed",
+    "javascript_syntax_checks": "passed",
+    "independent_final_review": "No blockers; final suggested JSON byte assertion added and passed.",
+    "ruflo_security_scan": "Pinned 3.25.6 heuristic scan of WASM source found zero issues; complements manual review, not a security proof."
+  },
+  "npm_candidate": {
+    "name": "ruv-swarm",
+    "version": "2.0.0",
+    "registry_published": false,
+    "archive_sha256": "8090d72e487506737486b087749ff718c0dd42c5978206f992c64bf66de6d061",
+    "archive_bytes": 624611,
+    "archive_files": 97,
+    "source_security_api_tests": 83,
+    "source_tooling_tests": 4,
+    "labeled_mock_examples": 8,
+    "maintained_lint": "passed",
+    "current_source_validator_and_prepack": "passed",
+    "clean_consumers": {
+      "node_versions": [
+        "22.13.0",
+        "24.22.1"
+      ],
+      "api_tests_per_runtime": 18,
+      "batch_tests_per_runtime": 10,
+      "strict_esm_cjs_types": "TypeScript 5.8.3",
+      "normal_install_lifecycle": true,
+      "native_sqlite": true,
+      "actual_inference_and_forecast": true,
+      "real_mcp_frames": 9,
+      "supported_mcp_tools": 17,
+      "packaged_validation": "passed",
+      "actual_core_and_simd_feature_probes": "passed",
+      "full_graph_audit_findings": 0,
+      "all_97_package_files_match_archive_each_runtime": true
+    },
+    "earlier_candidates": "Preserved immutable Z, interim O3 and historical archives; no previous receipt overwritten.",
+    "receipt_sha256": "5134c3365035f06183404e710b73710fdb2580142b44863a317a4f3de1efa671"
+  },
+  "benchmark": {
+    "native_inference_cases": 48,
+    "wasm_inference_cases_per_runtime": 120,
+    "wasm_calibration_cases_per_runtime": 48,
+    "actual_runtime_samples": "20 blocks per inference API, 12 per calibration API; full raw WASM arrays retained.",
+    "native_samples": "Nine medians; calibration p10/p90 retained. Individual native samples were not retained, so no native CI claimed.",
+    "uncertainty": "5,000 percentile bootstrap resamples, seed20261108; paired within-binary APIs, independent across sequential before/current artifacts. Does not represent host drift, other hardware or workload diversity.",
+    "maximum_observed_inference_error": 0,
+    "reports": [
+      "docs/ultra-results-2026-11-08.md",
+      "docs/benchmarks/node-2026-11-08.json",
+      "docs/benchmarks/browser-2026-11-08.json",
+      "docs/benchmarks/summary-2026-11-08.json"
+    ],
+    "limitations": [
+      "Single AMD EPYC host with four-core container quota.",
+      "Tiny batches can be slower; scalar/SIMD and activation results are separate.",
+      "Native and WASM fixtures/paths differ.",
+      "No model accuracy, external leaderboard, hardware GPU, cold-start distribution or peak process-memory claim."
+    ]
+  },
+  "lockfiles": {
+    "unchanged": true,
+    "sha256": {
+      "Cargo.lock": "8b47266eb8835a4a18e658521b149507799cce30c1280bf2e7b6e9a15ecd4f8c",
+      "ruv-swarm/Cargo.lock": "bb0a255f31a0430806bfd8fc08353ecc7e9d0e7a252c9e76afe109a002555568",
+      "neuro-divergent/Cargo.lock": "50e70e307a2c5ffd17a43d5ce73320860ead04f8a07518f1400d9cd1b7beccdf",
+      "cuda-wasm/Cargo.lock": "ff4bb589d5b39585ac19858640a1a98389dcda0ce3b782d886312aa27f4d11e0",
+      "opencv-rust/Cargo.lock": "818a9e96facee00e9d00ace47e553d879e64e296929a28d37d91f735810b1b17",
+      "package-lock.json": "088550774a049975671d2e0cc075b8be515c4c436f1fc543bee4256ebeba09a8",
+      "ruv-swarm/npm/package-lock.json": "e80d214dfd4f6cd0068ca5beb43de8b028594fd4c52f133c82565c4c3996adf7",
+      "cuda-wasm/package-lock.json": "1cfc5ae406d55538289943a4c417e1d39aa0f7ee620d1bade20920e37886e138",
+      "ruv-swarm/npm/test-npm-install-v106/package-lock.json": "4ce197425ee37207814a6a99f78349dbc0f33602c5eebb4e7699b147dd66a56c"
+    }
+  },
+  "hosted_ci": {
+    "receipt_scope": "Local checks before commit/push; inspect the resulting commit Actions run for hosted status.",
+    "last_baseline_run": 42521667026,
+    "last_baseline_conclusion": "success",
+    "workflow_enablement_changed": false,
+    "publication_or_release_tag_created": false
+  },
+  "evidence_logs": [
+    {
+      "name": "root-default-tests.log",
+      "sha256": "6442e7590288581b0b7c99fca3fd2f020df3756f33517b1e232a14534aef0771"
+    },
+    {
+      "name": "root-no-default-tests.log",
+      "sha256": "6574d522d005603dbfb15ca00a385f933f3f869550f01860365822762eb8fcc2"
+    },
+    {
+      "name": "root-doctests.log",
+      "sha256": "55935574f20937ca6ccc219519792355aac0d464fac944fa557d9544f8fb451a"
+    },
+    {
+      "name": "msrv.log",
+      "sha256": "c4c7d6cfa343db8fb8ab01764f7263ea601e62299993248b30ae67da1dc51295"
+    },
+    {
+      "name": "wasm-binding-final-tests.log",
+      "sha256": "f74a28066543eb8be7ff35867b9345c2ba9de11142388b61f6fbfccd1fa37ee5"
+    },
+    {
+      "name": "browser-speed-final.json",
+      "sha256": "fb885ecbe8ab6d8b5afca7fda5157d0c53bb97685c91f932074bc5acfbc07e37"
+    },
+    {
+      "name": "opcodes-speed-core.json",
+      "sha256": "8e94717a7d6947e60371f8972da50e4eab772f7ef3522544180f9199a3fe94ab"
+    },
+    {
+      "name": "opcodes-speed-simd.json",
+      "sha256": "fe03ff451eeb21129b5f2f0a6189635579d70dc5cd96a5e5bc3e8ca3de9dc7aa"
+    },
+    {
+      "name": "opcodes-speed-probe.json",
+      "sha256": "14652da86caf8c6c072aa2dbedb64a0b3581f762e98bce6b201d11c3d60e1dfd"
+    },
+    {
+      "name": "build-speed-receipt-final.log",
+      "sha256": "39ac94e9393a299a0c79c31353ed1bb097691232521a796f56f0ace1243dd0d6"
+    },
+    {
+      "name": "probe-speed-build.log",
+      "sha256": "7c4a69b660294a74e969cf8312c92394357569d17502eab74ef14de1c27a5021"
+    },
+    {
+      "name": "probe-speed-bindgen.log",
+      "sha256": "3e3688a2f389097516e738e6b593fc5ea7adfa959b4967fc269a0c878a6441d6"
+    },
+    {
+      "name": "clippy-core.log",
+      "sha256": "11a9da88ea227b23568de69c6db843a77a0291097bf63036de26df9cac12ca90"
+    },
+    {
+      "name": "clippy-wasm.log",
+      "sha256": "dfd24c80cc43d7378dd65532133b8bac978ad773c86f7a109f925fd88f7b1350"
+    },
+    {
+      "name": "rustfmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "script-tests.log",
+      "sha256": "255c1c9e415a9d234bf70777122dc14ced659d65f9d3f083e75be56aee2e9b1d"
+    },
+    {
+      "name": "docs-check.log",
+      "sha256": "ce3ff235f9f5e0f2082cf66b6f448d1a098c2aeba4abcb9cda13ab3632cee11b"
+    },
+    {
+      "name": "ruflo-security.log",
+      "sha256": "d0b0c7d39cc22648d8638cfc74ea1054f04d8d3effb7896a25b4fd63a3cbca9f"
+    },
+    {
+      "name": "node-speed-throughput.json",
+      "sha256": "f244226488c3715f66553337445a6f0cd68aca1ce8d11f770a92ded83fda9676"
+    },
+    {
+      "name": "browser-speed-throughput.json",
+      "sha256": "c09f46b7b72cc49c1c9b714537490bc7e3663a56f7b6bc1b50c4afd907d0f7d5"
+    },
+    {
+      "name": "node-throughput.json",
+      "sha256": "f34c0faabda9dcb97d109dbde135888ba12f744675e4bf44a7101ac204cb6f1e"
+    },
+    {
+      "name": "browser-throughput.json",
+      "sha256": "494a16fe0bcae421c551aed6cd55bed86f6223f1907ab5e17b7ab9abd4261497"
+    },
+    {
+      "name": "prepared/receipt.json",
+      "sha256": "c75e73b51f6cda9a9c6709c4442692d7b9e99112abfc567d6f47478f025f66df"
+    },
+    {
+      "name": "prepared/work-budget-source-receipt.json",
+      "sha256": "1a9036398b201ee3c873445b89b715087f7d629b641ef040dfbd2fe6037d8b0d"
+    },
+    {
+      "name": "calibration/receipt.json",
+      "sha256": "a468525949f9722a3d3af43e083d092b5af2b0b9f5bd0baf6fd6e7dbf700527b"
+    },
+    {
+      "name": "calibration/native-adapter-receipt.json",
+      "sha256": "739365c537326732cc88d8878ef8fc58b5025c0842b9a39fa7c5d7bccef0d138"
+    },
+    {
+      "name": "npm-speed-final/receipt.json",
+      "sha256": "5134c3365035f06183404e710b73710fdb2580142b44863a317a4f3de1efa671"
+    },
+    {
+      "name": "final-source-verification.log",
+      "sha256": "dd2cc88093d06b8422378ab4ce96b124b8fda43e0540464e47fff1c0475214bd"
+    }
+  ]
+}
