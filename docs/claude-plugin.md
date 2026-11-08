@@ -3,7 +3,7 @@
 The [`ruv-fann` plugin](../plugins/ruv-fann/README.md) packages maintained
 repository workflows for Claude Code. It contains eight package-specific
 skills, three explicitly invoked commands, a read-only reviewer agent, and a
-Python standard-library helper. Its initial version is `0.1.0`; installing it
+Python standard-library helper. Its current version is `0.1.1`; installing it
 does not change any Rust/npm package version.
 
 ## Start a local session
@@ -57,8 +57,8 @@ under the user's control.
 | Skill | Concrete workflow |
 | --- | --- |
 | [repo-map](../plugins/ruv-fann/skills/repo-map/SKILL.md) | Inspect the five Cargo workspaces and choose the smallest relevant gate |
-| [core-inference](../plugins/ruv-fann/skills/core-inference/SKILL.md) | Check model boundaries and CPU/SIMD/browser/native compute behavior |
-| [forecasting](../plugins/ruv-fann/skills/forecasting/SKILL.md) | Train supported RNN/baseline models and evaluate without future leakage |
+| [core-inference](../plugins/ruv-fann/skills/core-inference/SKILL.md) | Check model boundaries, immutable prepared snapshots, and CPU/browser/native compute behavior |
+| [forecasting](../plugins/ruv-fann/skills/forecasting/SKILL.md) | Train supported RNN/baseline models, evaluate past-only splits, and calibrate residual intervals |
 | [swarm-mcp](../plugins/ruv-fann/skills/swarm-mcp/SKILL.md) | Exercise real local orchestration metadata, WASM, and MCP framing |
 | [cuda-translation](../plugins/ruv-fann/skills/cuda-translation/SKILL.md) | Verify the external compiler prerequisite and genuine source translation |
 | [opencv](../plugins/ruv-fann/skills/opencv/SKILL.md) | Select portable, native C++, or generated WASM image paths |
@@ -69,6 +69,21 @@ Each skill describes when to use it, the sources to read, the commands to run,
 and what successful evidence must contain. Supporting references are loaded
 only when needed. These files are scoped to this repository's implemented APIs;
 they do not copy the older generic skills already present under `.claude/`.
+
+## Version 0.1.1 API guidance
+
+The core skill now covers `PreparedNetwork<T>`, `InferenceWorkspace<T>`, and
+`PreparationLimits`: owned immutable model parameters, separate caller scratch,
+checked canonical unit biases, and scalar packed kernels. Preparation/workspace
+allocation and warm inference are distinct measurement phases; no SIMD or
+XNNPACK backend claim follows from packing.
+
+The forecasting skill now covers explicit `ConformalCalibrator` fitting and
+application. It documents corrected residual ranks, independent series/model/
+horizon groups, `as_of`/forecast-origin leakage guards, sample and memory limits,
+and the statistical assumptions behind empirical coverage. This separate
+calibration API does not enable automatic prediction-interval builders,
+bootstrap/quantile methods, or probabilistic sampling.
 
 ## Bounded verification
 
@@ -153,10 +168,10 @@ and any claimed state-of-the-art capability.
 
 ## Execution evidence
 
-The dated [end-to-end report](claude-plugin-e2e.md) and
+The historical **0.1.0** [end-to-end report](claude-plugin-e2e.md) and
 [machine-readable receipt](claude-plugin-e2e.json) record the actual host version,
 tested file hashes, executed workflows, command results, and remaining limits.
-Use those records for the tested state; the procedure above is not itself proof
+They do not certify the changed **0.1.1** plugin payload. Use those records for the tested state; the procedure above is not itself proof
 that a future installation or changed package passes.
 
 ## Format references

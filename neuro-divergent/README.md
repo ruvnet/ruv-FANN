@@ -47,6 +47,47 @@ History is sorted within each series and checked for finite targets, unique time
 
 Pipeline checkpoints store supported baseline/RNN state, history, frequency, schema, and scaler parameters. Reads are bounded to 64 MiB; writes are atomic and unsupported custom-model persistence fails before writing an artifact. Recreate custom model support explicitly rather than expecting arbitrary Rust objects to deserialize.
 
+## Calibrate forecast intervals from past errors
+
+Use `ConformalCalibrator` after generating genuine out-of-sample backtest
+predictions. Supply the last time at which every calibration target was known,
+the forecast horizon, and coverage fractions such as `0.8` and `0.9`:
+
+```rust
+let config = neuro_divergent::conformal::ConformalConfig::new(
+    calibration_as_of, 3, vec![0.8, 0.9],
+)?;
+let calibrator = neuro_divergent::conformal::ConformalCalibrator::fit(&cv, config)?;
+let intervals = calibrator.apply(&forecasts, &forecast_origins)?;
+```
+
+Here `cv` is a `CrossValidationDataFrame`, `forecasts` is a `ForecastDataFrame`,
+and `forecast_origins` maps each series ID to its last observed timestamp.
+Calibration targets must be known by `calibration_as_of`; every forecast origin
+must be at or after that boundary and every predicted timestamp after its origin.
+Horizon means position in each sorted forecast window, rather than an inferred
+calendar offset. Inputs are validated and never modified.
+
+Errors are kept separate by series, model and horizon. For `n` calibration
+errors and coverage `c`, the radius is the `ceil((n + 1) * c)`-th sorted absolute
+error. Too few observations produce an error. Results use long-form rows with
+point predictions, lower/upper limits, coverage and calibration metadata. Fixed
+record, group, string and output budgets bound the work.
+
+This is a transparent residual/conformal-style baseline. Correlated rolling
+errors, changing fitted models or distribution shift can break the assumptions
+needed for nominal coverage. The rank correction alone does not establish a
+guarantee for arbitrary time series. Automatic pipeline intervals, quantile
+regression and bootstrap configuration remain unsupported.
+
+The [AirPassengers example](examples/conformal_intervals.rs) holds the final
+12 observations out of calibration and reports coverage, width and interval
+score for naive and seasonal baselines:
+
+```sh
+cargo run --manifest-path neuro-divergent/Cargo.toml --example conformal_intervals --locked
+```
+
 ## Build and test
 
 From the repository root:
@@ -59,4 +100,4 @@ cargo test --manifest-path neuro-divergent/Cargo.toml --workspace --doc --locked
 
 See the [review and release evidence](https://github.com/ruvnet/ruv-FANN/blob/main/docs/review-forecasting.md) for exact gate results, security findings, and remaining capability boundaries. Migrated tests and examples use implemented models and real assertions; there are no validated accuracy, throughput, NeuralForecast parity, or state-of-the-art claims.
 
-The `gpu`, `wasm`, `no_std`, and architecture marker features do not implement extra execution backends. GPU, facade probabilistic intervals/sampling, and unsupported validation options return errors rather than silently accepting a configuration. Forecasting methods are synchronous. Registry generic factories/native executable loading, some advanced preprocessing, and unimplemented architecture families remain outside the supported pipeline. Public Polars types move to 0.45.1 and engine integration to ruv-FANN 0.2.2; downstream callers must migrate from 0.1.0.
+The `gpu`, `wasm`, `no_std`, and architecture marker features do not implement extra execution backends. GPU, automatic facade intervals/sampling, and unsupported validation options return errors rather than silently accepting a configuration. Explicit residual calibration is the separate API described above. Forecasting methods are synchronous. Registry generic factories/native executable loading, some advanced preprocessing, and unimplemented architecture families remain outside the supported pipeline. Public Polars types move to 0.45.1 and engine integration to ruv-FANN 0.2.2; downstream callers must migrate from 0.1.0.

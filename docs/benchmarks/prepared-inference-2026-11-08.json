@@ -1,0 +1,140 @@
+{
+  "benchmark_command": "CARGO_BUILD_JOBS=1 CARGO_PROFILE_RELEASE_DEBUG=0 CARGO_INCREMENTAL=0 cargo bench --locked --no-default-features --bench neural_network -- prepared_inference --sample-size 20 --measurement-time 2 --warm-up-time 1",
+  "environment": {
+    "rustc": "1.99.1 (58cf8f9c3 2026-10-13)",
+    "target": "x86_64-unknown-linux-gnu",
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "cpu_quota": "400000/100000 (4 cores)",
+    "kernel": "6.18.57",
+    "notes": "Default release profile; no target-cpu=native or explicit SIMD. Final run:20samples,1s warmup,2smeasurement, no simultaneous Rust builds. Setup timing includes preparation, workspace allocation and destruction. Short local microbenchmark; no universal speed guarantee."
+  },
+  "seed": 42,
+  "results": [
+    {
+      "shape": [
+        5,
+        7,
+        3
+      ],
+      "name": "odd-small",
+      "mean_ns": {
+        "run_into": {
+          "confidence_interval": {
+            "confidence_level": 0.95,
+            "lower_bound": 105.17859974369685,
+            "upper_bound": 107.68522356572146
+          },
+          "point_estimate": 106.38779778618004,
+          "standard_error": 0.6456093118193261
+        },
+        "prepared_run_into": {
+          "confidence_interval": {
+            "confidence_level": 0.95,
+            "lower_bound": 102.23772467370527,
+            "upper_bound": 103.57912408487378
+          },
+          "point_estimate": 102.89833667427959,
+          "standard_error": 0.3419463264237843
+        },
+        "prepare_and_workspace": {
+          "confidence_interval": {
+            "confidence_level": 0.95,
+            "lower_bound": 324.78760378894884,
+            "upper_bound": 336.53090929389384
+          },
+          "point_estimate": 330.2555012697879,
+          "standard_error": 3.0134669805863084
+        }
+      },
+      "latency_reduction_percent": 3.2799448663404336,
+      "speed_ratio": 1.0339117348703721,
+      "amortization_calls": 95,
+      "max_absolute_output_error": 0.0
+    },
+    {
+      "shape": [
+        100,
+        50,
+        25,
+        10
+      ],
+      "name": "medium",
+      "mean_ns": {
+        "run_into": {
+          "confidence_interval": {
+            "confidence_level": 0.95,
+            "lower_bound": 5759.819193032281,
+            "upper_bound": 6885.637109772147
+          },
+          "point_estimate": 6195.536519646146,
+          "standard_error": 302.7931844569279
+        },
+        "prepared_run_into": {
+          "confidence_interval": {
+            "confidence_level": 0.95,
+            "lower_bound": 4626.041018497929,
+            "upper_bound": 4788.912993512496
+          },
+          "point_estimate": 4699.191936629265,
+          "standard_error": 41.992365193515944
+        },
+        "prepare_and_workspace": {
+          "confidence_interval": {
+            "confidence_level": 0.95,
+            "lower_bound": 15748.419616360377,
+            "upper_bound": 16522.190549078987
+          },
+          "point_estimate": 16076.545719625687,
+          "standard_error": 200.53145300753192
+        }
+      },
+      "latency_reduction_percent": 24.15197744815075,
+      "speed_ratio": 1.3184259343299374,
+      "amortization_calls": 11,
+      "max_absolute_output_error": 0.0
+    },
+    {
+      "shape": [
+        784,
+        128,
+        64,
+        10
+      ],
+      "name": "mnist",
+      "mean_ns": {
+        "run_into": {
+          "confidence_interval": {
+            "confidence_level": 0.95,
+            "lower_bound": 98905.24206630519,
+            "upper_bound": 102142.21817908876
+          },
+          "point_estimate": 100444.33991069598,
+          "standard_error": 828.9125597192856
+        },
+        "prepared_run_into": {
+          "confidence_interval": {
+            "confidence_level": 0.95,
+            "lower_bound": 93839.20724847306,
+            "upper_bound": 95713.94686135848
+          },
+          "point_estimate": 94765.06157963314,
+          "standard_error": 479.70664909750445
+        },
+        "prepare_and_workspace": {
+          "confidence_interval": {
+            "confidence_level": 0.95,
+            "lower_bound": 273939.265402718,
+            "upper_bound": 286465.1197856506
+          },
+          "point_estimate": 279573.2008969934,
+          "standard_error": 3232.464943320039
+        }
+      },
+      "latency_reduction_percent": 5.654154665272559,
+      "speed_ratio": 1.0599300864305399,
+      "amortization_calls": 50,
+      "max_absolute_output_error": 0.0
+    }
+  ],
+  "raw_log_sha256": "238a0a8f265a90bcd419c348b0a7b3e54c6f290c92597acf554a31288d3a9ed3"
+}

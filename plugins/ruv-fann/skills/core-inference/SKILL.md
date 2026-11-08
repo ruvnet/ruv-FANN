@@ -1,6 +1,6 @@
 ---
 name: core-inference
-description: "Implement, debug, and measure ruv-fann feedforward inference, training boundaries, model I/O, SIMD, or native/browser WebGPU primitives. Use for root-crate numerical, allocation, input-validation, or backend changes."
+description: "Implement, debug, and measure ruv-fann feedforward inference, prepared immutable inference, training boundaries, model I/O, SIMD, or native/browser WebGPU primitives. Use for root-crate numerical, allocation, input-validation, or backend changes."
 ---
 
 # Work on the neural-network core
@@ -29,6 +29,42 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 For a consumer, use a local `ruv-fann` path dependency against the selected checkout. `run()` returns an owned output vector; `run_into()` writes a caller-owned output slice of exactly `num_outputs()` elements. It reuses the network's stored neuron values. Its repeated-call allocation guarantee is checked separately from latency.
 
+## Prepare once for independent inference workspaces
+
+Read `src/prepared.rs` and the public exports in `src/lib.rs`. `Network::prepare()`
+creates an owned `PreparedNetwork<T>` snapshot; subsequent source edits or source
+destruction cannot change it. Allocate an `InferenceWorkspace<T>` once for each
+concurrent caller, then pass it to `PreparedNetwork::run_into`:
+
+```rust
+// Continue with the explicitly weighted network from the example above.
+let prepared = network.prepare()?;
+let mut workspace = prepared.workspace()?;
+let mut packed_output = [0.0f32];
+prepared.run_into(&[1.0, 2.0], &mut packed_output, &mut workspace)?;
+assert!((packed_output[0] - 0.1).abs() < 1e-6);
+```
+
+Share the immutable snapshot across threads when its scalar type permits; keep
+each mutable workspace and output exclusive to a call. A workspace can be reused
+for another snapshot if its buffers are wide enough. Repeated inference performs
+no heap allocations after preparation, workspace, and output allocation. The
+workspace may change on error, but the caller output is committed only on
+success; the snapshot remains unchanged.
+
+For custom budgets, use `PreparedNetwork::from_network_with_limits(&network,
+PreparationLimits { max_bytes, max_neurons, max_connections })`. Validation runs
+before packing. Bias neurons must be last, unconnected, and exactly one.
+Regular transient neuron sums/values are ignored. Nonfinite parameters/inputs,
+invalid indices, inadequate workspace, numeric overflow, and exceeded budgets
+return `PreparedError` instead of unchecked inference.
+
+Dense canonical rows use contiguous scalar weights; sparse, shuffled, and
+duplicate connections preserve source accumulation order. This is a scalar
+packing optimization, with f32/f64 equivalence coverage. It does not implement
+an explicit SIMD kernel, XNNPACK backend, or batch API. Measure preparation cost,
+reuse count, allocations, and warm inference separately before claiming a gain.
+
 ## Implementation procedure
 
 1. Identify the exact method/feature and reproduce the result with known input, weights, expected shape and tolerance. Check sparse connection and bias order; do not assume a dense weight layout.
@@ -44,6 +80,7 @@ For a consumer, use a local `ruv-fann` path dependency against the selected chec
 | Path | Supported contract and important limit |
 | --- | --- |
 | CPU `run`/`run_into` | Generic scalar types and canonical activation behavior; benchmark the invoked path |
+| `PreparedNetwork::run_into` | Immutable owned scalar parameters and separate reusable workspace; checked finite inputs and canonical unit bias |
 | `simd`/`parallel` utilities | Optional optimization utilities; feature selection alone does not route every operation through them |
 | Native `gpu` | Real WGPU f32 matrix/batch/activation and managed buffers; f64 computation keeps CPU precision |
 | Browser `webgpu`/`wasm-gpu` | Async `WasmGpuBridge` for bounded f32 matrix multiplication and activations; separate from native `gpu` |
@@ -57,6 +94,7 @@ Run from the checkout root with dependencies already available:
 ```sh
 cargo test --locked --lib
 cargo test --locked --test inference_allocations
+cargo test --locked --test prepared_inference --test prepared_allocations
 cargo test --locked --lib --no-default-features --features simd
 cargo test --locked --release --lib tests::core_regressions
 cargo test --locked --doc

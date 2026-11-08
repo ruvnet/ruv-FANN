@@ -29,3 +29,29 @@ For scaled metrics, define behavior when the scale denominator is zero. For an e
 ## Research boundary
 
 Chronos-2, TimesFM, PatchTST and other papers are external evaluation candidates. A current paper citation does not implement its architecture, weights, training recipe or benchmark. Before adopting one, verify the model/checkpoint license, runtime, supported input mapping, cost limits and held-out evaluation. Public Polars types and underlying FANN versions are compatibility boundaries; read the candidate manifests before adapting older 0.1 callers.
+
+## Explicit conformal calibration boundaries
+
+Use `ConformalConfig::new(as_of, horizon, coverages)` and optionally
+`.with_limits(ConformalLimits { max_records, max_groups, max_levels,
+max_output_rows })`. Limits must be positive and may only lower hard maxima:
+100,000 rows-times-models, 10,000 groups, 16 coverage levels, and 1,000,000 output
+rows. At most 128 models and 128 names in each optional schema-feature list are
+accepted. Series IDs, model names, and schema names are bounded to 256 UTF-8
+bytes. Finite primitive numeric values and compatible timestamp types are
+required; reserved/colliding names reject.
+
+Test the exact `ceil((n + 1) * coverage)` order statistic and insufficient samples,
+unequal series/model/horizon residual distributions, shuffled input rows,
+duplicate/missing window targets, exact cutoff metadata, finite endpoints, and
+unchanged point forecasts. A group with n=9 permits coverage 0.90 (rank 9) but
+rejects 0.95 (rank 10). Never borrow another series' residuals to force success.
+
+Exercise observed calibration outcomes after `as_of`, origins before `as_of`,
+forecast targets at/before origin, nanosecond boundary differences, mismatched
+models/schema/H/timestamp representation, unknown groups, and lowered budgets.
+Calibrated output records `calibration_as_of` and `forecast_origin` in nanosecond
+UTC provenance columns; the target timestamp retains its original representation.
+The calibrator verifies temporal frame constraints, not the provenance of how a
+caller trained a model or generated CV predictions. Keep genuinely held-out
+future coverage evaluation separate from calibration and hyperparameter choice.

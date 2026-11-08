@@ -1,6 +1,6 @@
 ---
 name: forecasting
-description: "Build and validate neuro-divergent univariate RNN or baseline forecasts with keyed dates, chronological splits, past-only scaling, and bounded checkpoints. Use for forecasting APIs, training correctness, evaluation leakage, calendar behavior, or persistence."
+description: "Build and validate neuro-divergent univariate RNN or baseline forecasts with keyed dates, chronological splits, past-only scaling, explicit conformal residual intervals, and bounded checkpoints. Use for forecasting APIs, training correctness, evaluation leakage, calendar behavior, or persistence."
 ---
 
 # Train and evaluate supported forecasts
@@ -46,6 +46,57 @@ Use a local path dependency while evaluating the checkout candidate. With the `m
 - Even `refit=false` fits the first prefix afresh. Later windows update history without retraining weights. Confirm cutoffs per series, especially for unequal series lengths.
 - `metrics_by_model()` must score actual held-out targets. Include naive and seasonal-naive comparisons on the same cutoffs before interpreting a learned model's error.
 
+## Calibrate intervals explicitly from past residuals
+
+Read `neuro-divergent/src/conformal.rs`, `conformal_data.rs`, and
+`conformal_apply.rs`. `ConformalCalibrator` is immutable and separate from the
+fitted forecasting pipeline. Supply genuine out-of-sample `CrossValidationDataFrame`
+predictions, their observed targets, and a declared calibration `as_of` boundary.
+Each `(series, cutoff)` window must contain exactly H distinct target timestamps;
+all rows must satisfy `cutoff < target_time <= as_of`. Horizon is the one-based
+ordinal position after sorting each complete window, not an inferred calendar gap.
+
+The API sequence is:
+
+```rust
+// cv: CrossValidationDataFrame<T>; point: ForecastDataFrame<T>.
+// as_of: DateTime<Utc>; origins: BTreeMap<String, DateTime<Utc>>.
+use neuro_divergent::{ConformalCalibrator, ConformalConfig};
+let config = ConformalConfig::new(as_of, 7, vec![0.80, 0.90])?;
+let calibration = ConformalCalibrator::fit(&cv, config)?;
+let intervals = calibration.apply(&point, &origins)?;
+```
+
+Coverage values are distinct fractions strictly between zero and one. Absolute
+errors are calibrated independently for each `(series, model, horizon)` group.
+For n residuals, the symmetric radius is sorted error at one-based rank
+`ceil((n + 1) * coverage)`. Insufficient samples (`rank > n`) return an error;
+the radius is never silently clamped or pooled across unrelated groups.
+
+`apply` requires an explicit origin for exactly every forecast series, each
+`origin >= as_of`, with all targets strictly after their origin. Forecast schema,
+model names, timestamp representation, and H must match calibration. Unknown
+groups, incomplete windows, existing intervals, null/nonfinite values, interval
+overflow, and exceeded resource budgets reject. Point forecasts remain unchanged;
+the separate long-form result includes point/lower/upper, coverage, horizon,
+sample count, forecast origin, and calibration boundary. Inspect `groups()` for
+the residual sample counts and radii.
+
+Finite-sample rank correction alone does not guarantee time-series coverage.
+Classical marginal coverage relies on appropriate exchangeability of calibration
+and future residual scores. Rolling windows can be correlated and come from
+different fitted models; distribution shift and model retraining can invalidate
+calibration. Report empirical coverage and width on held-out future data, and
+refit calibration when the model or residual distribution changes. The frame API
+cannot detect hidden model retraining. There is no automatic online update or
+calibrator persistence API.
+
+This explicit residual baseline does not enable automatic builder prediction
+intervals, bootstrap or quantile interval methods, probabilistic sampling, or
+adaptive ACI/PID/AcMCP algorithms. Unsupported builder paths still return errors.
+Read [evaluation and migration details](references/evaluation.md) for budgets and
+leakage regressions.
+
 ## Persist supported state
 
 Pipeline `save(path)`/`load(path)` retain supported baseline/RNN parameters, history, frequency, schema and scaler state. Loads cap input at 64 MiB. Writes are atomic; unsupported custom-model state must fail before replacing a file. Use a fresh task-owned output path, never a device/FIFO or arbitrary user artifact. Do not serialize arbitrary Rust objects or enable native executable plugin loading to make an unsupported model appear loadable.
@@ -57,9 +108,10 @@ Run from the checkout root. The workspace is substantial; bound jobs and ensure 
 ```sh
 CARGO_BUILD_JOBS=1 CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 cargo test --manifest-path neuro-divergent/Cargo.toml --workspace --all-targets --all-features --locked
 cargo test --manifest-path neuro-divergent/Cargo.toml --workspace --all-features --doc --locked
+cargo test --manifest-path neuro-divergent/Cargo.toml --test conformal_intervals --locked
 ```
 
-Use the helper's `plan --profile forecasting` to inspect its bounded offline profile before execution. Browser/GPU markers do not add an implemented forecasting execution backend. Exogenous-model mapping, probabilistic intervals/sampling, GPU/AMP training and arbitrary executable registry plugins are outside this supported facade.
+Use the helper's `plan --profile forecasting` to inspect its bounded offline profile before execution. Browser/GPU markers do not add an implemented forecasting execution backend. Exogenous-model mapping, automatic/probabilistic interval builders and sampling, GPU/AMP training and arbitrary executable registry plugins are outside this supported facade.
 
 ## Acceptance and diagnosis
 

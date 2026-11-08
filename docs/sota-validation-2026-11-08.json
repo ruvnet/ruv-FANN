@@ -1,0 +1,255 @@
+{
+  "schema_version": 1,
+  "date_utc": "2026-11-08T18:47:13.479472+00:00",
+  "status": "passed_scoped_research_implementation",
+  "baseline_commit": "b2314b5639113e146d2687a16ea9a2cac231ec80",
+  "branch": "mission/sota-inference-calibration",
+  "implementation": {
+    "prepared_inference": {
+      "path": "src/prepared.rs",
+      "precisions_tested": [
+        "f32",
+        "f64"
+      ],
+      "activations_tested": 21,
+      "row_modes": [
+        "dense ordered",
+        "sparse",
+        "shuffled",
+        "duplicate connections"
+      ],
+      "new_tests_passed": 13,
+      "steady_state_allocations": 0,
+      "outputs_unchanged_on_error": true,
+      "default_estimated_memory_bytes": 67108864,
+      "new_unsafe_code": false,
+      "external_runtime_dependency": false
+    },
+    "residual_intervals": {
+      "path": "neuro-divergent/src/conformal.rs",
+      "method": "Finite-sample-corrected absolute-error residual/conformal-style baseline",
+      "new_tests_passed": 18,
+      "groups": [
+        "series",
+        "model",
+        "ordinal horizon"
+      ],
+      "corrected_rank": "ceil((n+1)*coverage); error if rank exceeds n",
+      "time_contract": "cutoff < observed timestamp <= as_of <= forecast origin < forecast timestamp",
+      "integer_conversion": "Int64/UInt64 must be exactly representable as f64 before residual subtraction",
+      "automatic_pipeline_intervals": false,
+      "coverage_guarantee": "No guarantee for arbitrary dependent series, changing procedures, or distribution shift."
+    }
+  },
+  "validation": {
+    "core_default_library": {
+      "passed": 196,
+      "new_integration_tests_passed": 13
+    },
+    "core_no_default_library": {
+      "passed": 113,
+      "new_integration_tests_passed": 13,
+      "doctests_passed": 5
+    },
+    "core_all_features_library": {
+      "passed": 202,
+      "backend": "Vulkan selected explicitly; relocated Mesa/OpenCV prefix and private XDG runtime directory",
+      "initial_attempt": "Headless default GL failed with EGL BadDisplay/BadContext; explicit documented Vulkan selection passed without code changes."
+    },
+    "core_msrv": {
+      "rust": "1.81.0",
+      "scope": "no-default-features library check",
+      "passed": true
+    },
+    "forecasting_library": {
+      "passed": 50,
+      "features": "all"
+    },
+    "forecasting_integration": {
+      "passed": 18,
+      "features": "all"
+    },
+    "plugin_tests": {
+      "passed": 39
+    },
+    "readme_svg_source": {
+      "passed": true
+    },
+    "independent_review": {
+      "status": "passed after remediation",
+      "defect_fixed": "Lossy64-bitinteger conversion could turn residual1 into0; exactness guards and two regression tests added."
+    }
+  },
+  "measurements": {
+    "cpu_benchmark": "benchmarks/prepared-inference-2026-11-08.json",
+    "forecast_evaluation": "benchmarks/airpassengers-conformal-2026-11-08.json",
+    "amortization": "Calculated from setup/destruction mean divided by difference of steady-state means; not a direct end-to-end amortization experiment.",
+    "forecast_warning": "Only4held-out outcomes permodel/horizon. Seasonal12h1 at90% covered2/4; no new model-accuracy or nominal-coverage claim."
+  },
+  "artifacts": {
+    "plugin": {
+      "version": "0.1.1",
+      "files": 27,
+      "zip_bytes": 57585,
+      "zip_sha256": "6990b1dba159fbeac87e17b42c097c67e734af508db742d087e1d9dc73c674c3",
+      "source_bytes": 127885,
+      "host_validation": {
+        "status": "passed",
+        "host": "ruOS / Claude Code 2.1.283 (Claude Code)",
+        "official_validators": "Plugin and marketplace accepted without warnings/errors",
+        "installed_files_byte_identical": 27,
+        "temporary_project_settings_preserved": true,
+        "global_settings_unchanged": true,
+        "portable_tests_passed": 36,
+        "portable_skipped_classes": 1,
+        "full_checkout_methods_not_run_remotely": 3,
+        "model_calls": 0,
+        "proof_sha256": "6fe1b906f1fccf1f65f6e1a99a393cca0dfbe0eb27cfd7f3f0ce945adc53531e"
+      }
+    },
+    "npm": {
+      "name": "ruv-swarm",
+      "version": "2.0.0",
+      "candidate_archive_sha256": "e4cd2e2810bfc7394a041e98620848876e9995993d183353d8902901251fa171",
+      "candidate_archive_bytes": 447621,
+      "archive_files": 97,
+      "source_sha256": "55b91811d9d9e0a4e45513c18de649280ff899bf9c181e94cf37c0ac6233cd22",
+      "compiled_variants": [
+        "core",
+        "simd"
+      ],
+      "binary_and_binding_bytes_reproduced": true,
+      "new_tests": {
+        "security_runtime": 55,
+        "tooling": 3,
+        "consumer_node_versions": [
+          "22.13.0",
+          "24.22.1"
+        ],
+        "api_tests_each": 4,
+        "mcp_frames_each": 9,
+        "public_types": [
+          "strict NodeNext ESM",
+          "strict NodeNext CJS"
+        ],
+        "audits": "zero findings in both clean consumers"
+      },
+      "changed_generated_file": "ruv-swarm/npm/wasm/build-info.json",
+      "receipt_sha256": "349be2eea8929f2186892b19324c926d3b76ccaaccb0076ba669a682a33c065b"
+    },
+    "cargo": {
+      "verified": true,
+      "archives": 7,
+      "commands": 13,
+      "all_command_exit_codes": 0,
+      "scope": [
+        "ruv-fann",
+        "six neuro-divergent crates"
+      ],
+      "snapshot_sha256": "f065db530efa0b15038b971c1c2a8425b24e953ce5c6f4a32e6dad7b650907b7",
+      "receipt_sha256": "0c0453c85d0849eefe5d0ca7d3dbbf62312dbc2817597e32b96f24d7ffb716c0",
+      "normal_cargo_verification": true,
+      "archives_metadata": [
+        {
+          "license": "MIT OR Apache-2.0",
+          "name": "ruv-fann",
+          "sha256": "336f5f8b9eeb98bbada9cc9f56b7164389ed41e9c2498016ca78811f2447b611",
+          "size": 236404,
+          "version": "0.2.2"
+        },
+        {
+          "license": "MIT OR Apache-2.0",
+          "name": "neuro-divergent-core",
+          "sha256": "d33f9e5c64f8ffa5c27fdfa3371745a34d8e36fe4c27efa5b3414fd3b4a78445",
+          "size": 57353,
+          "version": "0.2.0"
+        },
+        {
+          "license": "MIT OR Apache-2.0",
+          "name": "neuro-divergent-data",
+          "sha256": "39c96b3478378d657aa70c180342ac5676fae9d02bd3c9181ed6c36d7ee7ef83",
+          "size": 42279,
+          "version": "0.2.0"
+        },
+        {
+          "license": "MIT OR Apache-2.0",
+          "name": "neuro-divergent-registry",
+          "sha256": "e87eedbbb7bf198c9d876d6b238ab961c1779ff32a16ae61051f1f2b2c54922e",
+          "size": 45397,
+          "version": "0.2.0"
+        },
+        {
+          "license": "MIT OR Apache-2.0",
+          "name": "neuro-divergent-training",
+          "sha256": "db23e88b8d3845faca5b496255a09872b5f2a1589def79424c37744ca726dc2d",
+          "size": 44286,
+          "version": "0.2.0"
+        },
+        {
+          "license": "MIT OR Apache-2.0",
+          "name": "neuro-divergent-models",
+          "sha256": "a9cb9b5f4ec3570c87068308285411c8f638e70e1e5ad4dfb8b398e7a144e383",
+          "size": 124170,
+          "version": "0.2.0"
+        },
+        {
+          "license": "MIT OR Apache-2.0",
+          "name": "neuro-divergent",
+          "sha256": "47920c3aeda72d1ebb885ceec00e9784add1af2aafd48226c28633869020ce14",
+          "size": 418949,
+          "version": "0.2.0"
+        }
+      ]
+    }
+  },
+  "lockfiles": {
+    "before": {
+      "Cargo.lock": "8b47266eb8835a4a18e658521b149507799cce30c1280bf2e7b6e9a15ecd4f8c",
+      "ruv-swarm/Cargo.lock": "bb0a255f31a0430806bfd8fc08353ecc7e9d0e7a252c9e76afe109a002555568",
+      "neuro-divergent/Cargo.lock": "50e70e307a2c5ffd17a43d5ce73320860ead04f8a07518f1400d9cd1b7beccdf",
+      "cuda-wasm/Cargo.lock": "ff4bb589d5b39585ac19858640a1a98389dcda0ce3b782d886312aa27f4d11e0",
+      "opencv-rust/Cargo.lock": "818a9e96facee00e9d00ace47e553d879e64e296929a28d37d91f735810b1b17",
+      "package-lock.json": "088550774a049975671d2e0cc075b8be515c4c436f1fc543bee4256ebeba09a8",
+      "ruv-swarm/npm/package-lock.json": "e80d214dfd4f6cd0068ca5beb43de8b028594fd4c52f133c82565c4c3996adf7",
+      "cuda-wasm/package-lock.json": "1cfc5ae406d55538289943a4c417e1d39aa0f7ee620d1bade20920e37886e138",
+      "ruv-swarm/npm/test-npm-install-v106/package-lock.json": "4ce197425ee37207814a6a99f78349dbc0f33602c5eebb4e7699b147dd66a56c"
+    },
+    "after": {
+      "Cargo.lock": "8b47266eb8835a4a18e658521b149507799cce30c1280bf2e7b6e9a15ecd4f8c",
+      "ruv-swarm/Cargo.lock": "bb0a255f31a0430806bfd8fc08353ecc7e9d0e7a252c9e76afe109a002555568",
+      "neuro-divergent/Cargo.lock": "50e70e307a2c5ffd17a43d5ce73320860ead04f8a07518f1400d9cd1b7beccdf",
+      "cuda-wasm/Cargo.lock": "ff4bb589d5b39585ac19858640a1a98389dcda0ce3b782d886312aa27f4d11e0",
+      "opencv-rust/Cargo.lock": "818a9e96facee00e9d00ace47e553d879e64e296929a28d37d91f735810b1b17",
+      "package-lock.json": "088550774a049975671d2e0cc075b8be515c4c436f1fc543bee4256ebeba09a8",
+      "ruv-swarm/npm/package-lock.json": "e80d214dfd4f6cd0068ca5beb43de8b028594fd4c52f133c82565c4c3996adf7",
+      "cuda-wasm/package-lock.json": "1cfc5ae406d55538289943a4c417e1d39aa0f7ee620d1bade20920e37886e138",
+      "ruv-swarm/npm/test-npm-install-v106/package-lock.json": "4ce197425ee37207814a6a99f78349dbc0f33602c5eebb4e7699b147dd66a56c"
+    }
+  },
+  "evidence_logs": [
+    {
+      "name": "core-all-features-vulkan.log",
+      "sha256": "0402d5f5cfc0f97e8b5ad2abd593b16d5e847b0f81ebdc9167b75ec7e4da7598"
+    },
+    {
+      "name": "forecasting-library.log",
+      "sha256": "26d184669dcb0e06c34d1be6837b138bacdd21bad07a46567faa7fffac81930e"
+    },
+    {
+      "name": "prepared-benchmark-final.log",
+      "sha256": "238a0a8f265a90bcd419c348b0a7b3e54c6f290c92597acf554a31288d3a9ed3"
+    },
+    {
+      "name": "airpassengers-evaluation.txt",
+      "sha256": "7576c0162d3a504a1791c3ca62a80f9f61652d2890efb7742074856262282108"
+    }
+  ],
+  "limits": [
+    "Dense f32 microbenchmarks on one EPYC container; sparse throughput and other CPUs were not benchmarked.",
+    "Held-out coverage estimates use a small single-series fixture; no SOTA forecasting evaluation or external-model parity claimed.",
+    "Current XNNPACK/KleidiAI packing practices informed an independent scalar implementation, not linked native backends.",
+    "AcMCP/ACI/PID-Expert, pretrained models, quantization and serving schedulers remain unimplemented research alternatives.",
+    "No registry publication, workflow enablement, provider configuration or model-weight download performed.",
+    "Plugin0.1.1officialhost validation/install passed without modelcalls; earlier0.1.0live-model traces remain historical."
+  ]
+}

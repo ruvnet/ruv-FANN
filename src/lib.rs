@@ -10,6 +10,7 @@ pub use connection::Connection;
 pub use layer::Layer;
 pub use network::{Network, NetworkBuilder, NetworkError};
 pub use neuron::Neuron;
+pub use prepared::{InferenceWorkspace, PreparationLimits, PreparedError, PreparedNetwork};
 
 // Re-export training types
 pub use training::{
@@ -45,6 +46,7 @@ pub mod layer;
 pub mod memory_manager;
 pub mod network;
 pub mod neuron;
+pub mod prepared;
 pub mod training;
 
 // Optional I/O module

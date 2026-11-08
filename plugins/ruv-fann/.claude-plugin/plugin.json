@@ -1,6 +1,6 @@
 {
   "name": "ruv-fann",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Repository skills, bounded verification commands, and read-only review for ruv-FANN and its related packages.",
   "author": {
     "name": "ruvnet",

@@ -1,0 +1,139 @@
+{
+  "dataset": "AirPassengers",
+  "source": "https://vincentarelbundock.github.io/Rdatasets/csv/datasets/AirPassengers.csv",
+  "reference_csv_sha256": "bdb98adbd418a6de6842a742e0602f363c3b841c26677e7e61a1e055e9509bd8",
+  "observations": 144,
+  "calibration_as_of": "1959-12-01T00:00:00Z",
+  "calibration_errors_per_group": 18,
+  "heldout_observations": 12,
+  "forecast_horizon": 3,
+  "heldout_origins": 4,
+  "metrics": [
+    {
+      "model": "LastValue",
+      "horizon": 1,
+      "target_coverage": 0.8,
+      "observations": 4,
+      "covered": 3,
+      "empirical_coverage": 0.75,
+      "mean_width": 152.0,
+      "mean_interval_score": 179.5
+    },
+    {
+      "model": "LastValue",
+      "horizon": 1,
+      "target_coverage": 0.9,
+      "observations": 4,
+      "covered": 4,
+      "empirical_coverage": 1.0,
+      "mean_width": 202.0,
+      "mean_interval_score": 202.0
+    },
+    {
+      "model": "LastValue",
+      "horizon": 2,
+      "target_coverage": 0.8,
+      "observations": 4,
+      "covered": 4,
+      "empirical_coverage": 1.0,
+      "mean_width": 256.0,
+      "mean_interval_score": 256.0
+    },
+    {
+      "model": "LastValue",
+      "horizon": 2,
+      "target_coverage": 0.9,
+      "observations": 4,
+      "covered": 4,
+      "empirical_coverage": 1.0,
+      "mean_width": 304.0,
+      "mean_interval_score": 304.0
+    },
+    {
+      "model": "LastValue",
+      "horizon": 3,
+      "target_coverage": 0.8,
+      "observations": 4,
+      "covered": 4,
+      "empirical_coverage": 1.0,
+      "mean_width": 304.0,
+      "mean_interval_score": 304.0
+    },
+    {
+      "model": "LastValue",
+      "horizon": 3,
+      "target_coverage": 0.9,
+      "observations": 4,
+      "covered": 4,
+      "empirical_coverage": 1.0,
+      "mean_width": 394.0,
+      "mean_interval_score": 394.0
+    },
+    {
+      "model": "Seasonal12",
+      "horizon": 1,
+      "target_coverage": 0.8,
+      "observations": 4,
+      "covered": 2,
+      "empirical_coverage": 0.5,
+      "mean_width": 114.0,
+      "mean_interval_score": 176.5
+    },
+    {
+      "model": "Seasonal12",
+      "horizon": 1,
+      "target_coverage": 0.9,
+      "observations": 4,
+      "covered": 2,
+      "empirical_coverage": 0.5,
+      "mean_width": 118.0,
+      "mean_interval_score": 223.0
+    },
+    {
+      "model": "Seasonal12",
+      "horizon": 2,
+      "target_coverage": 0.8,
+      "observations": 4,
+      "covered": 4,
+      "empirical_coverage": 1.0,
+      "mean_width": 114.0,
+      "mean_interval_score": 114.0
+    },
+    {
+      "model": "Seasonal12",
+      "horizon": 2,
+      "target_coverage": 0.9,
+      "observations": 4,
+      "covered": 4,
+      "empirical_coverage": 1.0,
+      "mean_width": 118.0,
+      "mean_interval_score": 118.0
+    },
+    {
+      "model": "Seasonal12",
+      "horizon": 3,
+      "target_coverage": 0.8,
+      "observations": 4,
+      "covered": 3,
+      "empirical_coverage": 0.75,
+      "mean_width": 114.0,
+      "mean_interval_score": 129.0
+    },
+    {
+      "model": "Seasonal12",
+      "horizon": 3,
+      "target_coverage": 0.9,
+      "observations": 4,
+      "covered": 4,
+      "empirical_coverage": 1.0,
+      "mean_width": 136.0,
+      "mean_interval_score": 136.0
+    }
+  ],
+  "notes": [
+    "Final12months excluded from calibration; evaluated in4successive3month blocks.",
+    "Only4outcomes permodel/horizon; empirical coverage is coarse and can bebelow nominal.",
+    "Finite-sample-corrected residualbaseline; no independent/exchangeable-score guarantee on this time series."
+  ],
+  "raw_log_sha256": "7576c0162d3a504a1791c3ca62a80f9f61652d2890efb7742074856262282108"
+}

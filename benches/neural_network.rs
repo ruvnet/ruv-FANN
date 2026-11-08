@@ -1,7 +1,67 @@
 //! Performance benchmarks for ruv-FANN neural network library
 
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
+use rand::{rngs::StdRng, Rng, SeedableRng};
 use ruv_fann::*;
+
+/// Compare identical seeded parameters/inputs. Preparation is outside inference
+/// timing and measured separately, including the reusable caller workspace.
+fn bench_prepared_inference(c: &mut Criterion) {
+    let mut group = c.benchmark_group("prepared_inference");
+    for (name, shape) in [
+        ("odd-small", vec![5, 7, 3]),
+        ("medium", vec![100, 50, 25, 10]),
+        ("mnist", vec![784, 128, 64, 10]),
+    ] {
+        let mut rng = StdRng::seed_from_u64(42);
+        let mut network = Network::<f32>::new(&shape);
+        let weights = (0..network.total_connections())
+            .map(|_| rng.gen_range(-0.1f32..0.1))
+            .collect::<Vec<_>>();
+        network.set_weights(&weights).unwrap();
+        let input = (0..shape[0])
+            .map(|_| rng.gen_range(-1.0f32..1.0))
+            .collect::<Vec<_>>();
+        let prepared = network.prepare().unwrap();
+        let mut workspace = prepared.workspace().unwrap();
+        let mut baseline = vec![0.0; network.num_outputs()];
+        let mut output = baseline.clone();
+        network.run_into(&input, &mut baseline).unwrap();
+        prepared
+            .run_into(&input, &mut output, &mut workspace)
+            .unwrap();
+        assert_eq!(output, baseline, "prepared output must match scalar order");
+        eprintln!("prepared/{name}: seed=42 shape={shape:?} connections={} bytes={} checksum={:.12} max_error=0", network.total_connections(), prepared.estimated_bytes(), output.iter().map(|&v| v as f64).sum::<f64>());
+        group.bench_function(format!("{name}/run_into"), |b| {
+            b.iter(|| {
+                network
+                    .run_into(black_box(&input), black_box(&mut baseline))
+                    .unwrap();
+                black_box(&baseline);
+            })
+        });
+        group.bench_function(format!("{name}/prepared_run_into"), |b| {
+            b.iter(|| {
+                prepared
+                    .run_into(
+                        black_box(&input),
+                        black_box(&mut output),
+                        black_box(&mut workspace),
+                    )
+                    .unwrap();
+                black_box(&output);
+            })
+        });
+        group.bench_function(format!("{name}/prepare_and_workspace"), |b| {
+            b.iter(|| {
+                let prepared = black_box(&network).prepare().unwrap();
+                let workspace = prepared.workspace().unwrap();
+                black_box((prepared, workspace));
+            })
+        });
+    }
+    group.finish();
+}
 
 /// Benchmark network creation with different sizes
 fn bench_network_creation(c: &mut Criterion) {
@@ -313,6 +373,7 @@ criterion_group!(
     benches,
     bench_network_creation,
     bench_forward_propagation,
+    bench_prepared_inference,
     bench_training,
     bench_training_algorithms,
     bench_batch_processing,

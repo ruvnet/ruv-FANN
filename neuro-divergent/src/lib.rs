@@ -8,6 +8,7 @@
 // Re-export essential types at the crate root
 pub use neural_forecast::{BaseModel, NeuralForecast, NeuralForecastBuilder, PredictionConfig, ValidationConfig};
 pub use baseline::NaiveForecaster;
+pub use conformal::{CalibrationGroup, ConformalCalibrator, ConformalConfig, ConformalForecastDataFrame, ConformalLimits};
 #[cfg(feature = "models")]
 pub use model_adapter::ModelAdapter;
 pub use config::{Frequency, ScalerType, PredictionIntervals, CrossValidationConfig};
@@ -22,6 +23,7 @@ pub mod results;
 pub mod utils;
 pub mod errors;
 pub mod baseline;
+pub mod conformal;
 #[cfg(feature = "models")]
 pub mod model_adapter;
 mod timeline;

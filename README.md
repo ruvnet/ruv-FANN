@@ -14,10 +14,10 @@ Rust libraries for neural networks, time-series forecasting, agent coordination,
 
 | Location | Available behavior | Candidate versions / guide |
 | --- | --- | --- |
-| Repository root | `ruv-fann`: build, train, and run feedforward networks; CPU inference and optional WebGPU operations | `0.2.2` · [Core example](examples/basic_usage.rs) · [API](https://docs.rs/ruv-fann) |
+| Repository root | `ruv-fann`: train feedforward networks, prepare immutable CPU inference snapshots, and use optional WebGPU operations | `0.2.2` · [Core example](examples/basic_usage.rs) · [API](https://docs.rs/ruv-fann) |
 | `ruv-swarm/` | Fourteen Rust packages for scheduling, persistence, transport, MCP, CLI, and WASM | `1.0.6`–`1.0.8`; unified WASM `2.0.0` · [Rust guide](ruv-swarm/README.md) |
 | `ruv-swarm/npm/` | Node CLI/MCP, SQLite state, dense WASM inference, statistical forecasts, and capability assignment | `ruv-swarm 2.0.0` · [npm guide](ruv-swarm/npm/README.md) |
-| `neuro-divergent/` | Six Rust packages: actual RNN training, naive/seasonal baselines, dated forecasts, chronological evaluation, and checkpoints | `0.2.0` · [Forecasting guide](neuro-divergent/README.md) |
+| `neuro-divergent/` | Six Rust packages: RNN training, baselines, chronological evaluation, residual-calibrated intervals, and checkpoints | `0.2.0` · [Forecasting guide](neuro-divergent/README.md) |
 | `cuda-wasm/` | Translate a CUDA subset to Rust or WGSL source; Node wrapper requires the external `cuda2rust` compiler | Rust `0.2.0`; npm `2.0.0` · [Translator guide](cuda-wasm/README.md) |
 | `opencv-rust/` | Portable Rust matrices, browser image operations, a small SDK, and native OpenCV C++ bindings | Portable/SDK `4.9.0`; native `opencv-sys 0.2.0` · [Image-processing guide](opencv-rust/README.md) |
 
@@ -63,6 +63,33 @@ The calculation is `0.5 × 1.0 − 0.25 × 2.0 + 0.1 = 0.1`. A real task needs s
 ![Forward-pass diagram: input numbers pass through weighted connections and activation functions; run returns a vector, while run_into writes to a caller-provided output slice.](docs/assets/inference-flow.svg)
 
 For repeated inference, the checkout adds `Network::run_into(inputs, outputs)`. Pass a mutable output slice whose length equals `num_outputs()`. It reuses that buffer and the network's stored neuron values. `run()` remains the convenient API that returns a vector. Check input and output lengths through the returned `Result`.
+
+## Prepare a network for repeated inference
+
+![Prepare parameters once, reuse private inference workspaces, and calibrate forecast intervals only from past errors.](docs/assets/sota-inference-calibration.svg)
+
+After training, `network.prepare()` copies validated parameters into an immutable
+snapshot. Give each caller its own reusable workspace; several threads can share
+the same prepared network without sharing mutable neuron caches:
+
+```rust
+let prepared = network.prepare()?;
+let mut workspace = prepared.workspace()?;
+let mut output = vec![0.0; prepared.num_outputs()];
+prepared.run_into(&[1.0, 2.0], &mut output, &mut workspace)?;
+```
+
+Hot calls allocate no memory. Changing the original network does not change the
+snapshot; prepare a new one after training or editing weights. Preparation rejects
+invalid graph indices, non-finite parameters and noncanonical bias state. The
+default estimated allocation budget is 64 MiB, including one workspace; this is
+not a process-memory limit. A failed call leaves the output slice unchanged.
+
+Dense rows use contiguous scalar arithmetic; sparse and reordered connections
+retain their order. This path adds no external inference engine or quantization.
+Run the [complete example](examples/prepared_inference.rs) with
+`cargo run --locked --example prepared_inference`. The [current research review](docs/research-sota-2026-11-08.md)
+explains adoption choices and separate benchmark/evaluation requirements.
 
 ## Pick the features you need
 
@@ -119,7 +146,24 @@ For a single family, pass `--workspace neuro-divergent` to the verification driv
 
 Measure the workload you intend to deploy. Record the commit, compiler, CPU or GPU, target features, model shape, batch size, thread count, warm-up, and numeric tolerance. Compare identical inputs and weights, and include allocation and transfer costs in end-to-end results. Criterion output is written under `target/criterion/`.
 
-This README makes no numerical speedup, forecasting-accuracy, token-saving, or SWE-bench claims. The repository does not yet provide a reproduced evaluation that supports those comparisons. See the [research and adoption decisions](docs/research-modernization.md) for current primary sources and the [modernization report](docs/modernization.md) for package-specific implementation and verification evidence.
+In a local release-mode comparison, prepared inference produced identical f32
+outputs and lower mean latency on three seeded dense shapes:
+
+| Layer sizes | Existing `run_into` | Prepared `run_into` | Mean latency reduction |
+| --- | ---: | ---: | ---: |
+| 5 → 7 → 3 | 106.39 ns | 102.90 ns | 3.3% |
+| 100 → 50 → 25 → 10 | 6.20 µs | 4.70 µs | 24.2% |
+| 784 → 128 → 64 → 10 | 100.44 µs | 94.77 µs | 5.7% |
+
+These are short Criterion measurements on one AMD EPYC container, using seed 42,
+20 samples, one-second warm-up and two-second measurement windows. Preparation
+and workspace allocation were timed separately; their mean costs were recovered
+after roughly 95, 11 and 50 calls respectively in those workloads. No new ISA
+kernel or explicit SIMD was used. Other machines, shapes and sparse workloads
+need their own measurements. See the [research review](docs/research-sota-2026-11-08.md)
+for current sources and adoption choices, and the [modernization report](docs/modernization.md)
+for the preceding package verification. This comparison establishes no external
+leaderboard, forecasting-accuracy, token-saving or SWE-bench result.
 
 ## Contribute
 
