@@ -122,13 +122,13 @@ pub struct BackupConfig {
     pub location: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct ApiConfig {
     /// API endpoint URL
     pub endpoint: String,
 
     /// API key (can be overridden by env var)
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing)]
     pub api_key: Option<String>,
 
     /// Request timeout (seconds)
@@ -139,6 +139,19 @@ pub struct ApiConfig {
 
     /// Rate limiting (requests per minute)
     pub rate_limit: Option<u32>,
+}
+
+impl std::fmt::Debug for ApiConfig {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("ApiConfig")
+            .field("endpoint", &self.endpoint)
+            .field("api_key", &self.api_key.as_ref().map(|_| "[redacted]"))
+            .field("timeout", &self.timeout)
+            .field("max_retries", &self.max_retries)
+            .field("rate_limit", &self.rate_limit)
+            .finish()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -275,7 +288,39 @@ impl Config {
             }
         }
 
+        config.validate()?;
         Ok(config)
+    }
+
+    /// Validate bounds before they reach timers, queues and network clients.
+    pub fn validate(&self) -> Result<()> {
+        anyhow::ensure!(
+            self.swarm.max_agents > 0,
+            "swarm.max_agents must be positive"
+        );
+        anyhow::ensure!(
+            self.swarm.min_agents <= self.swarm.max_agents,
+            "swarm.min_agents exceeds max_agents"
+        );
+        anyhow::ensure!(
+            self.swarm.task_queue_size > 0,
+            "swarm.task_queue_size must be positive"
+        );
+        anyhow::ensure!(
+            self.swarm.heartbeat_interval > 0 && self.agent.timeout > 0 && self.api.timeout > 0,
+            "timeouts and heartbeat intervals must be positive"
+        );
+        anyhow::ensure!(
+            !self.monitoring.enabled || self.monitoring.export_interval > 0,
+            "monitoring.export_interval must be positive"
+        );
+        let endpoint =
+            reqwest::Url::parse(&self.api.endpoint).context("Invalid API endpoint URL")?;
+        anyhow::ensure!(
+            matches!(endpoint.scheme(), "http" | "https") && endpoint.host_str().is_some(),
+            "API endpoint must use HTTP or HTTPS with a host"
+        );
+        Ok(())
     }
 
     /// Get configuration directory
@@ -289,7 +334,11 @@ impl Config {
         let toml =
             toml::to_string_pretty(self).context("Failed to serialize configuration to TOML")?;
 
-        std::fs::create_dir_all(path.parent().unwrap_or(Path::new(".")))?;
+        std::fs::create_dir_all(
+            path.parent()
+                .filter(|parent| !parent.as_os_str().is_empty())
+                .unwrap_or(Path::new(".")),
+        )?;
         std::fs::write(path, toml).context("Failed to write configuration file")?;
 
         Ok(())
@@ -330,5 +379,39 @@ impl Config {
         }
 
         Ok(config_dir)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn invalid_resource_configuration_is_rejected() {
+        assert!(Config::default().validate().is_ok());
+        let mut config = Config::default();
+        config.swarm.max_agents = 0;
+        assert!(config.validate().is_err());
+        config = Config::default();
+        config.monitoring.export_interval = 0;
+        assert!(config.validate().is_err());
+        config = Config::default();
+        config.api.endpoint = "file:///etc/passwd".into();
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn credentials_are_redacted_in_debug_and_saved_configuration() {
+        let mut config = Config::default();
+        let test_value = "test-placeholder-credential";
+        config.api.api_key = Some(test_value.into());
+        assert!(!format!("{config:?}").contains(test_value));
+        assert!(!serde_json::to_string(&config).unwrap().contains(test_value));
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("config.toml");
+        config.save(&path).unwrap();
+        let saved = std::fs::read_to_string(path).unwrap();
+        assert!(!saved.contains(test_value));
+        assert!(!saved.contains("api_key"));
     }
 }

@@ -70,7 +70,7 @@ async fn test_data_loading() {
 
 #[tokio::test]
 async fn test_model_training() {
-    let loader = StreamDataLoader::new(100, 5);
+    let loader = StreamDataLoader::new(500, 5);
     let events = create_test_events();
     let dataset = loader.load_from_stream(events.into_iter()).await.unwrap();
 
@@ -83,20 +83,25 @@ async fn test_model_training() {
         checkpoint_dir: "/tmp/test".to_string(),
     };
 
-    // Test LSTM training
-    let mut lstm = LSTMModel::new(32, 1);
-    let metrics = lstm.train(&dataset, &config).unwrap();
-    assert!(metrics.best_loss < f64::INFINITY);
-    assert!(metrics.epoch_losses.len() > 0);
-
-    // Test prediction
-    let prediction = lstm.predict(&dataset.sequences[0]).unwrap();
-    assert_eq!(prediction.len(), 3); // Should predict 3 values
+    let mut models: Vec<Box<dyn NeuroDivergentModel>> = vec![
+        Box::new(LSTMModel::new(32, 1)),
+        Box::new(TCNModel::new(vec![16, 16], 3)),
+        Box::new(NBEATSModel::new(vec![StackType::Trend], 1)),
+    ];
+    for model in &mut models {
+        assert!(model
+            .train(&dataset, &config)
+            .err()
+            .expect("Unavailable backend must fail")
+            .to_string()
+            .contains("backend"));
+        assert!(model.predict(&dataset.sequences[0]).is_err());
+    }
 }
 
 #[tokio::test]
 async fn test_hyperparameter_optimization() {
-    let loader = StreamDataLoader::new(100, 5);
+    let loader = StreamDataLoader::new(500, 5);
     let events = create_test_events();
     let dataset = loader.load_from_stream(events.into_iter()).await.unwrap();
 
@@ -131,19 +136,17 @@ async fn test_hyperparameter_optimization() {
         checkpoint_dir: "/tmp/test".to_string(),
     };
 
-    let result = optimizer
+    let error = optimizer
         .optimize(|| Box::new(LSTMModel::new(32, 1)), &dataset, &config)
         .await
-        .unwrap();
-
-    assert!(result.best_score > 0.0);
-    assert_eq!(result.trial_results.len(), 3);
-    assert!(result.best_parameters.contains_key("learning_rate"));
+        .err()
+        .expect("An unavailable backend must propagate an error");
+    assert!(error.to_string().contains("backend"));
 }
 
 #[tokio::test]
 async fn test_model_evaluation() {
-    let loader = StreamDataLoader::new(100, 5);
+    let loader = StreamDataLoader::new(500, 5);
     let events = create_test_events();
     let dataset = loader.load_from_stream(events.into_iter()).await.unwrap();
 
@@ -156,28 +159,16 @@ async fn test_model_evaluation() {
         checkpoint_dir: "/tmp/test".to_string(),
     };
 
-    // Train models
-    let mut models: Vec<Box<dyn NeuroDivergentModel>> = vec![
+    let models: Vec<Box<dyn NeuroDivergentModel>> = vec![
         Box::new(LSTMModel::new(32, 1)),
         Box::new(TCNModel::new(vec![16, 16], 3)),
     ];
-
-    for model in &mut models {
-        model.train(&dataset, &config).unwrap();
-    }
-
-    // Evaluate
     let evaluator = ModelEvaluator::new();
-    let result = evaluator.evaluate_and_select(models, &dataset).unwrap();
-
-    assert!(!result.best_model.is_empty());
-    assert_eq!(result.all_scores.len(), 2);
-
-    for score in &result.all_scores {
-        assert!(score.scores.contains_key("MSE"));
-        assert!(score.scores.contains_key("MAE"));
-        assert!(score.scores.contains_key("R2"));
-    }
+    let error = evaluator
+        .evaluate_and_select(models, &dataset)
+        .err()
+        .expect("Evaluation cannot synthesize predictions for an unavailable backend");
+    assert!(error.to_string().contains("backend"));
 }
 
 #[tokio::test]
@@ -194,11 +185,12 @@ async fn test_full_pipeline() {
     let mut pipeline = TrainingPipeline::new(config);
     let events = create_test_events();
 
-    let result = pipeline.run(events.into_iter()).await.unwrap();
-
-    assert!(!result.best_model.is_empty());
-    assert!(result.model_scores.len() >= 3); // Should have at least 3 models
-    assert!(result.dataset_metadata.total_samples > 0);
+    let error = pipeline
+        .run(events.into_iter())
+        .await
+        .err()
+        .expect("The default pipeline must report unavailable built-in backends");
+    assert!(error.to_string().contains("backend"));
 }
 
 #[test]

@@ -1,214 +1,34 @@
-# SWE-Bench Adapter
+# swe-bench-adapter
 
-A high-performance adapter for integrating SWE-Bench evaluation with the ruv-swarm orchestration system and Claude Code CLI.
+Load local SWE-style instance JSON, generate prompts, parse execution output and evaluate an application-generated patch. The adapter is experimental and is not the official SWE-bench evaluation harness.
 
-## Features
+## Use real application output
 
-- **Instance Loading**: Load and categorize SWE-Bench instances with automatic difficulty assessment
-- **Prompt Generation**: Generate optimized prompts for Claude Code CLI based on instance complexity
-- **Patch Evaluation**: Evaluate generated patches against test requirements in sandboxed environments
-- **Performance Benchmarking**: Comprehensive performance metrics and comparative analysis
-- **Stream Parsing**: Real-time metrics collection from Claude Code CLI output streams
+`evaluate_instance_with_agent(instance_id, &mut agent)` requires an `Agent<Input = Task, Output = ExecutionResult>`. Implement that trait or use `ruv_swarm_agents::FunctionAgent` to connect your actual patch generator. The handler receives the generated task and returns its output, patch and exit code. Execution errors, nonzero exit codes and outputs over 16 MiB fail; execution duration is measured rather than supplied by a mock.
 
-## Architecture
+The old `evaluate_instance(instance_id, &agent)` and the legacy batch path return an error because a shared reference cannot invoke the mutable agent handler. They no longer fabricate a patch and report it as an agent result.
 
-The adapter consists of five main components:
+## Dataset handling
 
-### 1. Instance Loader (`loader.rs`)
-- Loads SWE-Bench instances from local storage or remote repositories
-- Automatically categorizes instances by difficulty (Easy, Medium, Hard, Expert)
-- Supports filtering and batch loading
-- Caches instances for improved performance
+Place `{instance_id}.json` files in the configured instances directory. Missing instances return errors instead of creating mock data. IDs accept 1–200 ASCII letters, digits, underscores or hyphens. Symbolic links are rejected, each document is limited to 16 MiB, and its internal ID must match the requested ID. The cache accepts at most 1,000 documents and 64 MiB of source JSON.
 
-### 2. Prompt Generator (`prompts.rs`)
-- Generates context-aware prompts for Claude Code CLI
-- Adapts prompt complexity based on instance difficulty
-- Supports multiple prompt templates (Simple, Standard, Detailed, Expert)
-- Manages token limits and prompt truncation
+The schema is this crate's `SWEBenchInstance` type; importing official datasets may require an explicit conversion. No dataset download or published solve-rate claim is included.
 
-### 3. Patch Evaluator (`evaluation.rs`)
-- Applies patches in sandboxed environments
-- Runs test suites with configurable timeouts
-- Validates patch quality and identifies common issues
-- Compares patches for similarity analysis
+## Evaluation limits
 
-### 4. Performance Benchmarking (`benchmarking.rs`)
-- Measures execution time, memory usage, and resource consumption
-- Supports comparative benchmarking between solutions
-- Generates detailed performance reports
-- Integrates with Prometheus metrics
+The patch evaluator clones repositories and launches local processes. Its `sandbox_enabled` setting creates a temporary working directory; it does not provide container, kernel, network or credential isolation. Run untrusted code in an externally isolated environment. Pin repositories/revisions and use the official SWE-bench harness before reporting benchmark results.
 
-### 5. Stream Parser (`stream_parser.rs`)
-- Parses Claude Code CLI output in real-time
-- Extracts metrics: token usage, tool calls, file operations
-- Identifies errors and warnings
-- Supports concurrent stream analysis
+The typed high-level path records one actual handler duration and does not attach simulated repeated timings, resource profiles or memory measurements. The older `BenchmarkRunner` remains a simulation helper and must not be treated as measured application performance. No accuracy or solve-rate figure is established by the unit tests.
 
-## Usage
+## Check it
 
-### Basic Evaluation
-
-```rust
-use swe_bench_adapter::{SWEBenchAdapter, SWEBenchConfig};
-use ruv_swarm_agents::Agent;
-
-#[tokio::main]
-async fn main() -> Result<()> {
-    // Initialize adapter
-    let config = SWEBenchConfig::default();
-    let adapter = SWEBenchAdapter::new(config).await?;
-    
-    // Create an agent
-    let agent = Agent::new(
-        AgentId::new(),
-        "claude-coder",
-        vec![AgentCapability::CodeGeneration],
-    );
-    
-    // Evaluate a single instance
-    let report = adapter.evaluate_instance("django-12345", &agent).await?;
-    
-    println!("Evaluation completed: {}", report.passed);
-    println!("Execution time: {:?}", report.execution_time);
-    
-    Ok(())
-}
+```sh
+cargo test --locked -p swe-bench-adapter --lib
+cargo test --locked -p swe-bench-adapter --test integration_test
 ```
 
-### Batch Evaluation
+Rust 1.88 all-target/all-feature coverage includes 18 library tests, six integration tests and 13 Criterion smoke cases. Tests invoke the actual typed handler and apply/check a patch in a local Git fixture, including preservation of an existing patch file. `PatchEvaluator::with_working_directory` supports an existing local checkout. Temporary patch files have unique names, and timed-out child processes are killed. These checks do not run the official benchmark or isolate untrusted code.
 
-```rust
-// Evaluate multiple instances in parallel
-let instance_ids = vec![
-    "django-12345".to_string(),
-    "flask-67890".to_string(),
-    "numpy-11111".to_string(),
-];
+The versions in this checkout are **unpublished release candidates**. See the [workspace guide](https://github.com/ruvnet/ruv-FANN/tree/main/ruv-swarm) for all 14 packages and the [review record](https://github.com/ruvnet/ruv-FANN/blob/main/docs/review-rust-swarm.md) for checks, dependency findings and remaining limits.
 
-let agents = vec![agent1, agent2, agent3];
-
-let batch_report = adapter.evaluate_batch(
-    instance_ids,
-    agents,
-    true, // parallel execution
-).await?;
-
-println!("Success rate: {:.2}%", batch_report.success_rate * 100.0);
-```
-
-### Custom Prompt Generation
-
-```rust
-use swe_bench_adapter::{ClaudePromptGenerator, PromptConfig};
-
-let config = PromptConfig {
-    max_tokens: 6000,
-    include_test_hints: true,
-    include_context_files: true,
-    template_style: PromptStyle::Expert,
-};
-
-let generator = ClaudePromptGenerator::new(config);
-let prompt = generator.generate_prompt(&instance)?;
-
-println!("Generated prompt ({} tokens):\n{}", prompt.token_count, prompt.content);
-```
-
-### Stream Metrics Collection
-
-```rust
-use swe_bench_adapter::stream_parser::{MetricsCollector, StreamAnalyzer};
-
-// Single stream collection
-let mut collector = MetricsCollector::new();
-let metrics = collector.parse_stream(&claude_output)?;
-
-println!("Tool calls: {}", metrics.tool_calls);
-println!("File operations: {:?}", metrics.file_operations);
-
-// Multi-stream analysis
-let mut analyzer = StreamAnalyzer::new();
-let mut rx = analyzer.add_stream("claude-1".to_string());
-
-// Process output as it arrives
-analyzer.process("claude-1", &output_chunk)?;
-
-// Get global summary
-let summary = analyzer.get_global_summary();
-println!("Active streams: {}", summary.active_streams);
-```
-
-## Configuration
-
-### SWEBenchConfig
-
-```rust
-let config = SWEBenchConfig {
-    instances_path: PathBuf::from("./swe-bench-instances"),
-    memory_path: PathBuf::from("./swe-bench-memory"),
-    prompt_config: PromptConfig {
-        max_tokens: 4000,
-        include_test_hints: true,
-        include_context_files: true,
-        template_style: PromptStyle::ClaudeCode,
-    },
-    eval_config: EvalConfig {
-        timeout: Duration::from_secs(300),
-        test_command: "pytest".to_string(),
-        sandbox_enabled: true,
-        max_retries: 3,
-    },
-    benchmark_config: BenchmarkConfig {
-        iterations: 10,
-        warm_up: 3,
-        measure_memory: true,
-        profile_enabled: false,
-    },
-};
-```
-
-## Performance
-
-The adapter is optimized for high-throughput evaluation:
-
-- **Parallel Processing**: Evaluate multiple instances concurrently
-- **Caching**: Instance caching reduces redundant I/O operations
-- **Stream Processing**: Efficient parsing of large output streams
-- **Memory Management**: Configurable memory limits and garbage collection
-
-Benchmark results on standard hardware:
-- Instance loading: ~5ms per instance
-- Prompt generation: ~10ms for expert prompts
-- Stream parsing: ~1ms per KB of output
-- Full evaluation: ~30s per instance (including test execution)
-
-## Integration with Claude Code CLI
-
-The adapter generates prompts specifically optimized for Claude Code CLI:
-
-1. **Context-Aware**: Includes repository information, issue details, and test requirements
-2. **Difficulty-Adapted**: Adjusts prompt complexity based on instance difficulty
-3. **Token-Optimized**: Manages token limits while preserving essential information
-4. **Tool-Friendly**: Structures prompts to encourage effective tool usage
-
-## Error Handling
-
-The adapter provides comprehensive error handling:
-
-- **Patch Application Failures**: Detailed error messages with git output
-- **Test Execution Timeouts**: Configurable timeouts with graceful termination
-- **Stream Parsing Errors**: Resilient parsing with error recovery
-- **Sandbox Failures**: Fallback to non-sandboxed execution when necessary
-
-## Contributing
-
-Contributions are welcome! Please ensure:
-
-1. All tests pass: `cargo test`
-2. Benchmarks show no regression: `cargo bench`
-3. Code follows Rust formatting: `cargo fmt`
-4. No clippy warnings: `cargo clippy`
-
-## License
-
-This project is licensed under the MIT OR Apache-2.0 license.
+![Animated map of the ruv-FANN packages](https://raw.githubusercontent.com/ruvnet/ruv-FANN/main/docs/assets/package-map.svg)

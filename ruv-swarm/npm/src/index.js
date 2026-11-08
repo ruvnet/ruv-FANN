@@ -1,405 +1,208 @@
-/**
- * @ruv/swarm - High-performance neural network swarm orchestration in WebAssembly
- * Enhanced version with progressive WASM loading and full feature set
- */
+/** Node.js facade for the generated WebAssembly bindings. */
 
-// Re-export the enhanced implementation
-export * from './index-enhanced.js';
+import path from 'node:path';
+import { promises as fs, readFileSync } from 'node:fs';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+const packageInfo = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 
-/* Legacy exports for backward compatibility */
-import path from 'path';
-import { promises as fs } from 'fs';
-
-// Lazy-loaded WASM module
 let wasmModule = null;
 let wasmInstance = null;
+const loadedBindings = new Map();
 
-/**
- * WASM loader with feature detection and caching
- */
-class WASMLoader {
-  constructor(options = {}) {
-    this.useSIMD = options.useSIMD && this.detectSIMDSupport();
-    this.wasmPath = options.wasmPath || path.join(new URL('.', import.meta.url).pathname, '..', 'wasm');
-    this.debug = options.debug || false;
-  }
-
-  detectSIMDSupport() {
-    try {
-      // WebAssembly SIMD feature detection
-      if (typeof WebAssembly !== 'undefined' && WebAssembly.validate) {
-        // Test SIMD instruction
-        const simdTest = new Uint8Array([
-          0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
-          0x01, 0x05, 0x01, 0x60, 0x00, 0x01, 0x7b, 0x03,
-          0x02, 0x01, 0x00, 0x0a, 0x0a, 0x01, 0x08, 0x00,
-          0x41, 0x00, 0xfd, 0x0f, 0x26, 0x0b,
-        ]);
-        return WebAssembly.validate(simdTest);
-      }
-    } catch (e) {
-      if (this.debug) {
-        console.warn('SIMD detection failed:', e);
-      }
-    }
-    return false;
-  }
-
-  async loadModule() {
-    if (wasmModule) {
-      return wasmModule;
-    }
-
-    // Use the generated WASM bindings directly (ES module import)
-    try {
-      const wasmJsPath = path.join(this.wasmPath, 'ruv_swarm_wasm.js');
-      const wasmBindings = await import(path.resolve(wasmJsPath));
-      wasmModule = wasmBindings;
-      return wasmModule;
-    } catch (error) {
-      if (this.debug) {
-        console.error('Failed to load WASM bindings:', error);
-      }
-    }
-
-    // Fallback to manual loading
-    const moduleFile = this.useSIMD ? 'ruv_swarm_simd.wasm' : 'ruv_swarm_wasm_bg.wasm';
-    const wasmFilePath = path.join(this.wasmPath, moduleFile);
-
-    try {
-      let wasmBuffer;
-
-      if (typeof window !== 'undefined') {
-        // Browser environment
-        const response = await fetch(wasmFilePath);
-        wasmBuffer = await response.arrayBuffer();
-      } else {
-        // Node.js environment
-        wasmBuffer = await fs.readFile(wasmFilePath);
-      }
-
-      const imports = {
-        // Add any required imports here
-        env: {
-          memory: new WebAssembly.Memory({ initial: 256, maximum: 4096 }),
-        },
-      };
-
-      const result = await WebAssembly.instantiate(wasmBuffer, imports);
-      wasmModule = result.module;
-      wasmInstance = result.instance;
-
-      if (this.debug) {
-        console.log(`Loaded WASM module: ${moduleFile}`);
-      }
-
-      return result;
-    } catch (error) {
-      throw new Error(`Failed to load WASM module: ${error.message}`);
-    }
-  }
+function detectSIMDSupport() {
+  return WebAssembly.validate(new Uint8Array([
+    0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 96, 0, 1, 123,
+    3, 2, 1, 0, 10, 22, 1, 20, 0, 253, 12, ...new Array(16).fill(0), 11,
+  ]));
 }
 
-/**
- * Worker pool for parallel execution
- */
-class WorkerPool {
-  constructor(size = 4) {
-    this.size = size;
-    this.workers = [];
-    this.queue = [];
-    this.initialized = false;
-  }
-
-  async initialize() {
-    if (this.initialized) {
-      return;
-    }
-
-    // In Node.js, use worker_threads
-    if (typeof window === 'undefined') {
-      // const { Worker } = require('worker_threads');
-      for (let i = 0; i < this.size; i++) {
-        // TODO: Create worker thread
-      }
-    } else {
-      // In browser, use Web Workers
-      for (let i = 0; i < this.size; i++) {
-        // TODO: Create web worker
-      }
-    }
-
-    this.initialized = true;
-  }
-
-  async execute(task) {
-    // TODO: Implement worker pool execution
-    return task;
-  }
-
-  terminate() {
-    this.workers.forEach(worker => {
-      if (worker.terminate) {
-        worker.terminate();
-      }
-    });
-    this.workers = [];
-    this.initialized = false;
-  }
-}
-
-/**
- * Main RuvSwarm class
- */
 class RuvSwarm {
-  constructor(wasmSwarm, options = {}) {
-    this._wasmSwarm = wasmSwarm;
-    this._options = options;
-    this._workerPool = null;
-
-    if (options.parallel) {
-      this._workerPool = new WorkerPool(options.workerPoolSize || 4);
+  constructor(bindings, options = {}) {
+    if (typeof bindings?.WasmSwarmOrchestrator !== 'function') {
+      throw new Error('Use await RuvSwarm.initialize() before creating a swarm');
     }
+    this._bindings = bindings;
+    this._options = options;
   }
 
   static async initialize(options = {}) {
-    const loader = new WASMLoader(options);
-    // const wasmResult = await loader.loadModule();
-
-    // Load the WASM bindings (ES module import with proper file URL)
-    const wasmJsPath = path.join(loader.wasmPath, 'ruv_swarm_wasm.js');
-    const bindings = await import(path.resolve(wasmJsPath));
-
-    // Initialize WASM module with file buffer for Node.js
-    if (bindings.default) {
-      const wasmPath = path.join(loader.wasmPath, 'ruv_swarm_wasm_bg.wasm');
-      const wasmBuffer = await fs.readFile(wasmPath);
-      await bindings.default({ module_or_path: wasmBuffer });
+    const wasmPath = path.resolve(options.wasmPath || fileURLToPath(new URL('../wasm/', import.meta.url)));
+    const simd = Boolean(options.useSIMD && detectSIMDSupport());
+    const moduleUrl = pathToFileURL(path.join(wasmPath, 'ruv_swarm_wasm.js'));
+    moduleUrl.searchParams.set('variant', simd ? 'simd' : 'core');
+    const key = moduleUrl.href;
+    if (!loadedBindings.has(key)) {
+      const loading = (async() => {
+        const bindings = await import(key);
+        const bytes = await fs.readFile(path.join(wasmPath, simd ? 'ruv_swarm_simd.wasm' : 'ruv_swarm_wasm_bg.wasm'));
+        const instance = await bindings.default({ module_or_path: bytes });
+        return { bindings, instance };
+      })();
+      loadedBindings.set(key, loading);
+      loading.catch(() => loadedBindings.delete(key));
     }
-
-    // Get runtime features
-    const features = new bindings.RuntimeFeatures();
-    if (options.debug) {
-      console.log('Runtime features:', {
-        simd: features.simd_available,
-        threads: features.threads_available,
-        memoryLimit: features.memory_limit,
-      });
-    }
-
-    return new RuvSwarm(bindings, options);
+    const loaded = await loadedBindings.get(key);
+    wasmModule = loaded.bindings;
+    wasmInstance = loaded.instance;
+    return new RuvSwarm(loaded.bindings, { ...options, useSIMD: simd });
   }
 
   static detectSIMDSupport() {
-    const loader = new WASMLoader();
-    return loader.detectSIMDSupport();
+    return detectSIMDSupport();
+  }
+  detectSIMDSupport() {
+    return detectSIMDSupport();
+  }
+  static getVersion() {
+    return packageInfo.version;
   }
 
   static getRuntimeFeatures() {
-    if (!wasmInstance) {
-      throw new Error('RuvSwarm not initialized. Call RuvSwarm.initialize() first.');
+    if (!wasmModule) {
+      throw new Error('Call RuvSwarm.initialize() first');
     }
-
-    const features = new wasmInstance.exports.RuntimeFeatures();
-    return {
-      simdAvailable: features.simd_available,
-      threadsAvailable: features.threads_available,
-      memoryLimit: features.memory_limit,
-    };
-  }
-
-  static getVersion() {
-    if (!wasmInstance) {
-      return require('../package.json').version;
+    const features = new wasmModule.RuntimeFeatures();
+    try {
+      return { simdAvailable: features.simd_available, threadsAvailable: features.threads_available,
+        memoryLimit: Number(features.memory_limit) };
+    } finally {
+      features.free();
     }
-    return wasmInstance.exports.get_version();
   }
 
   static getMemoryUsage() {
-    if (!wasmInstance) {
-      return 0;
-    }
-    return wasmInstance.exports.get_wasm_memory_usage();
+    return wasmInstance ? wasmInstance.memory.buffer.byteLength : 0;
   }
 
-  async createSwarm(config) {
-    try {
-      const swarm = new this._wasmSwarm.RuvSwarm(config);
-      return new SwarmWrapper(swarm, this._options);
-    } catch (error) {
-      throw new Error(`Failed to create swarm: ${error.message}`);
+  async createSwarm(config = {}) {
+    if (!config || typeof config !== 'object' || Array.isArray(config)) {
+      throw new TypeError('Swarm configuration must be an object');
     }
+    const maxAgents = config.maxAgents ?? 10;
+    if (!Number.isInteger(maxAgents) || maxAgents < 1 || maxAgents > 1000) {
+      throw new RangeError('maxAgents must be an integer between 1 and 1000');
+    }
+    const topology = config.topology || ({ centralized: 'star', distributed: 'mesh', hybrid: 'mesh' }[config.mode] || config.mode) || 'mesh';
+    const swarm = new this._bindings.WasmSwarmOrchestrator(topology);
+    return new SwarmWrapper(swarm, { ...config, topology, maxAgents, name: config.name || 'default-swarm' });
   }
 
-  // Instance method that delegates to static method for API convenience
-  detectSIMDSupport() {
-    return RuvSwarm.detectSIMDSupport();
+  createNeuralNetwork(layers, activation = 'Sigmoid') {
+    if (!Array.isArray(layers) && !(layers instanceof Uint32Array)) {
+      throw new TypeError('layers must be an array of positive integers');
+    }
+    if (!Array.from(layers).every(layer => Number.isSafeInteger(layer) && layer > 0 && layer <= 1000000)) {
+      throw new RangeError('layers must contain positive bounded integers');
+    }
+    const value = this._bindings.ActivationFunction[activation];
+    if (typeof value !== 'number') {
+      throw new RangeError('Unknown activation function');
+    }
+    return new this._bindings.WasmNeuralNetwork(Uint32Array.from(layers), value);
+  }
+
+  createForecastingModel(modelType) {
+    return new this._bindings.WasmForecastingModel(modelType);
   }
 }
 
-/**
- * Swarm wrapper class
- */
 class SwarmWrapper {
-  constructor(wasmSwarm, options = {}) {
-    this._swarm = wasmSwarm;
-    this._options = options;
-    this._retryAttempts = options.retryAttempts || 3;
-    this._retryDelay = options.retryDelay || 1000;
+  constructor(swarm, config) {
+    this._swarm = swarm;
+    this._config = config;
   }
-
   get name() {
-    return this._swarm.name;
+    return this._config.name;
   }
-
-  get agentCount() {
-    return this._swarm.agent_count;
-  }
-
   get maxAgents() {
-    return this._swarm.max_agents;
+    return this._config.maxAgents;
+  }
+  get agentCount() {
+    return this._swarm.get_agent_count();
+  }
+  _details() {
+    return JSON.parse(this._swarm.get_status(true));
   }
 
   async spawn(config) {
-    return await this._retryOperation(async() => {
-      const agent = await this._swarm.spawn(config);
-      return new AgentWrapper(agent, this._options);
-    });
+    if (this.agentCount >= this.maxAgents) {
+      throw new RangeError('Swarm agent limit reached');
+    }
+    const info = JSON.parse(this._swarm.spawn(JSON.stringify(config)));
+    return new AgentWrapper(this, info);
   }
 
   async orchestrate(task) {
-    return await this._retryOperation(async() => {
-      return await this._swarm.orchestrate(task);
-    });
+    if (!task || typeof task !== 'object' || Array.isArray(task)) {
+      throw new TypeError('Task must be an object');
+    }
+    if (task.dependencies?.length) {
+      throw new Error('Dependency scheduling is not supported by the WASM metadata orchestrator');
+    }
+    const config = { description: task.description, priority: task.priority || 'medium' };
+    for (const key of ['maxAgents', 'requiredCapabilities']) {
+      if (task[key] !== undefined) {
+        config[key] = task[key];
+      }
+    }
+    const result = this._swarm.orchestrate(JSON.stringify(config));
+    try {
+      return { taskId: result.task_id, description: result.description, priority: result.priority,
+        status: result.status, assignedAgents: Array.from(result.assigned_agents) };
+    } finally {
+      result.free();
+    }
   }
 
   getAgents() {
-    return this._swarm.get_agents();
+    return this._details().agent_details.map(agent => agent.id);
   }
-
   getStatus() {
-    return this._swarm.get_status();
+    const details = this._details();
+    return { ...details, name: this.name, agentCount: this.agentCount, maxAgents: this.maxAgents,
+      strategy: this._config.strategy || 'metadata', mode: this._config.topology };
   }
-
-  async _retryOperation(operation) {
-    let lastError;
-
-    for (let attempt = 0; attempt < this._retryAttempts; attempt++) {
-      try {
-        return await operation();
-      } catch (error) {
-        lastError = error;
-        if (attempt < this._retryAttempts - 1) {
-          await new Promise(resolve => setTimeout(resolve, this._retryDelay));
-        }
-      }
-    }
-
-    throw lastError;
+  free() {
+    this._swarm.free();
   }
 }
 
-/**
- * Agent wrapper class
- */
 class AgentWrapper {
-  constructor(wasmAgent, options = {}) {
-    this._agent = wasmAgent;
-    this._options = options;
+  constructor(swarm, info) {
+    this._swarm = swarm; this._info = info;
   }
-
   get id() {
-    return this._agent.id;
+    return this._info.agent_id;
   }
-
   get agentType() {
-    return this._agent.agent_type;
+    return this._info.type;
   }
-
   get status() {
-    return this._agent.status;
+    return this._swarm._details().agent_details.find(agent => agent.id === this.id)?.status;
   }
-
   get tasksCompleted() {
-    return this._agent.tasks_completed;
+    return 0;
   }
-
-  async execute(task) {
-    return await this._agent.execute(task);
+  async execute() {
+    throw new Error('WASM agents track assignments; external task execution is not implemented');
   }
-
   getMetrics() {
-    return this._agent.get_metrics();
+    throw new Error('Execution metrics require an external task executor');
   }
-
   getCapabilities() {
-    return this._agent.get_capabilities();
+    return [...this._info.capabilities];
   }
-
   reset() {
-    this._agent.reset();
+    this._swarm._swarm.update_agent_status(this.id, 'idle');
   }
 }
 
-// Re-export utility functions
-const consoleLog = (message) => {
-  if (wasmInstance && wasmInstance.exports.console_log) {
-    wasmInstance.exports.console_log(message);
-  } else {
-    console.log(message);
-  }
-};
+const consoleLog = message => console.log(message);
+const consoleError = message => console.error(message);
+const consoleWarn = message => console.warn(message);
+const formatJsError = error => String(error);
 
-const consoleError = (message) => {
-  if (wasmInstance && wasmInstance.exports.console_error) {
-    wasmInstance.exports.console_error(message);
-  } else {
-    console.error(message);
-  }
-};
-
-const consoleWarn = (message) => {
-  if (wasmInstance && wasmInstance.exports.console_warn) {
-    wasmInstance.exports.console_warn(message);
-  } else {
-    console.warn(message);
-  }
-};
-
-const formatJsError = (error) => {
-  if (wasmInstance && wasmInstance.exports.format_js_error) {
-    return wasmInstance.exports.format_js_error(error);
-  }
-  return error.toString();
-};
-
-// Import neural agent capabilities
-import {
-  NeuralAgent,
-  NeuralAgentFactory,
-  NeuralNetwork,
-  COGNITIVE_PATTERNS,
-  AGENT_COGNITIVE_PROFILES,
-} from './neural-agent.js';
-
-// Import DAA service for comprehensive agent management
+// Reserved autonomous service APIs fail explicitly until implemented.
 import { DAAService, daaService } from './daa-service.js';
-
-// Legacy exports - these are now provided by index-enhanced.js
-// Export all the legacy functions and classes directly
-export {
-  RuvSwarm,
-  consoleLog,
-  consoleError,
-  consoleWarn,
-  formatJsError,
-  // Neural agent exports
-  NeuralAgent,
-  NeuralAgentFactory,
-  NeuralNetwork,
-  COGNITIVE_PATTERNS,
-  AGENT_COGNITIVE_PROFILES,
-  // DAA service exports
-  DAAService,
-  daaService,
-};
+export { RuvSwarm, SwarmWrapper as WasmSwarm, AgentWrapper as JsAgent,
+  consoleLog, consoleError, consoleWarn, formatJsError, DAAService, daaService };

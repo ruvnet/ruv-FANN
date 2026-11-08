@@ -1,693 +1,439 @@
-//! WASM storage implementation using IndexedDB
-
+//! Browser-local IndexedDB persistence with awaited commits and atomic writes.
 use crate::{models::*, Storage, StorageError, Transaction as TransactionTrait};
 use async_trait::async_trait;
-use rexie::{Database, ObjectStore, TransactionMode};
-use serde_json;
-use std::sync::Arc;
+use rexie::{Index, KeyRange, ObjectStore, Rexie, Transaction, TransactionMode};
+use serde::{de::DeserializeOwned, Serialize};
+use std::collections::HashMap;
 use wasm_bindgen::JsValue;
-use web_sys::console;
 
-/// WASM storage implementation using IndexedDB
-pub struct WasmStorage {
-    db: Arc<Database>,
+const STORES: [&str; 6] = [
+    "agents", "tasks", "events", "messages", "metrics", "metadata",
+];
+fn database_error(error: impl std::fmt::Debug) -> StorageError {
+    StorageError::Database(format!("{error:?}"))
 }
 
+#[path = "wasm_batch.rs"]
+mod batch;
+pub use batch::WasmMutation;
+
+/// IndexedDB handles and futures stay on their JavaScript thread.
+pub struct WasmStorage {
+    db: Option<Rexie>,
+}
+impl Drop for WasmStorage {
+    fn drop(&mut self) {
+        if let Some(db) = self.db.take() {
+            db.close();
+        }
+    }
+}
 impl WasmStorage {
-    /// Create new WASM storage instance
     pub async fn new() -> Result<Self, StorageError> {
-        console::log_1(&"Initializing WASM storage with IndexedDB".into());
-
-        // Create database
-        let db = Database::create("ruv_swarm", 1, |builder| {
-            // Create object stores
-            builder.create_object_store("agents", |store| {
-                store.key_path("id");
-                store.add_index("status", "status", false);
-                store.add_index("agent_type", "agent_type", false);
-            });
-
-            builder.create_object_store("tasks", |store| {
-                store.key_path("id");
-                store.add_index("status", "status", false);
-                store.add_index("priority", "priority", false);
-                store.add_index("assigned_to", "assigned_to", false);
-            });
-
-            builder.create_object_store("events", |store| {
-                store.key_path("id");
-                store.add_index("event_type", "event_type", false);
-                store.add_index("agent_id", "agent_id", false);
-                store.add_index("timestamp", "timestamp", false);
-            });
-
-            builder.create_object_store("messages", |store| {
-                store.key_path("id");
-                store.add_index("from_agent", "from_agent", false);
-                store.add_index("to_agent", "to_agent", false);
-                store.add_index("read", "read", false);
-            });
-
-            builder.create_object_store("metrics", |store| {
-                store.key_path("id");
-                store.add_index("metric_type", "metric_type", false);
-                store.add_index("agent_id", "agent_id", false);
-                store.add_index("timestamp", "timestamp", false);
-            });
+        Self::open("ruv_swarm").await
+    }
+    /// Open a named database; version 2 adds the transactional event counter.
+    pub async fn open(name: &str) -> Result<Self, StorageError> {
+        if name.is_empty() {
+            return Err(StorageError::Database(
+                "Database name must not be empty".into(),
+            ));
+        }
+        let schema = [
+            ("agents", &["status", "agent_type"][..]),
+            ("tasks", &["status", "assigned_to"][..]),
+            ("events", &["event_type", "agent_id"][..]),
+            ("messages", &["from_agent", "to_agent"][..]),
+            ("metrics", &["metric_type", "agent_id"][..]),
+            ("metadata", &[][..]),
+        ];
+        let mut builder = Rexie::builder(name).version(2);
+        for (name, indexes) in schema {
+            let mut store = ObjectStore::new(name).key_path("id");
+            for index in indexes {
+                store = store.add_index(Index::new(index, index));
+            }
+            builder = builder.add_object_store(store);
+        }
+        Ok(Self {
+            db: Some(builder.build().await.map_err(database_error)?),
         })
-        .await
-        .map_err(|e| StorageError::Database(format!("Failed to create database: {:?}", e)))?;
-
-        Ok(Self { db: Arc::new(db) })
     }
-
-    /// Convert model to JsValue
-    fn to_js_value<T: serde::Serialize>(value: &T) -> Result<JsValue, StorageError> {
-        let json = serde_json::to_string(value)?;
-        Ok(JsValue::from_str(&json))
+    fn database(&self) -> &Rexie {
+        self.db
+            .as_ref()
+            .expect("open database remains owned until drop")
     }
-
-    /// Convert JsValue to model
-    fn from_js_value<T: serde::de::DeserializeOwned>(value: JsValue) -> Result<T, StorageError> {
-        let json = value.as_string().ok_or_else(|| {
-            StorageError::Serialization(serde_json::Error::custom("Invalid JS value"))
-        })?;
+    fn transaction(
+        &self,
+        stores: &[&str],
+        mode: TransactionMode,
+    ) -> Result<Transaction, StorageError> {
+        self.database()
+            .transaction(stores, mode)
+            .map_err(database_error)
+    }
+    // Keep exact JSON in a string envelope: JS numbers would round large u64
+    // fields. IndexedDB still receives an object with a real inline id and indexes.
+    fn encode<T: Serialize>(model: &T) -> Result<JsValue, StorageError> {
+        let value = serde_json::to_value(model)?;
+        let id = value
+            .get("id")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| StorageError::Database("Record requires a string id".into()))?;
+        let object = js_sys::Object::new();
+        js_sys::Reflect::set(&object, &"id".into(), &id.into()).map_err(database_error)?;
+        js_sys::Reflect::set(&object, &"record".into(), &value.to_string().into())
+            .map_err(database_error)?;
+        for field in [
+            "status",
+            "agent_type",
+            "assigned_to",
+            "agent_id",
+            "event_type",
+            "from_agent",
+            "to_agent",
+            "metric_type",
+        ] {
+            if let Some(text) = value.get(field).and_then(|v| v.as_str()) {
+                js_sys::Reflect::set(&object, &field.into(), &text.into())
+                    .map_err(database_error)?;
+            }
+        }
+        Ok(object.into())
+    }
+    fn decode<T: DeserializeOwned>(value: JsValue) -> Result<T, StorageError> {
+        let json = js_sys::Reflect::get(&value, &"record".into())
+            .map_err(database_error)?
+            .as_string()
+            .ok_or_else(|| {
+                StorageError::Database("Stored record has an invalid envelope".into())
+            })?;
         Ok(serde_json::from_str(&json)?)
     }
+    async fn finish<T>(
+        tx: Transaction,
+        result: Result<T, StorageError>,
+    ) -> Result<T, StorageError> {
+        match result {
+            Err(error) => {
+                let _ = tx.abort().await;
+                Err(error)
+            }
+            Ok(value) => {
+                let completion = tx.done().await.map_err(database_error)?;
+                if !completion.is_committed() {
+                    return Err(StorageError::Transaction(
+                        "IndexedDB transaction aborted".into(),
+                    ));
+                }
+                Ok(value)
+            }
+        }
+    }
+    async fn get<T: DeserializeOwned>(
+        &self,
+        name: &str,
+        id: &str,
+    ) -> Result<Option<T>, StorageError> {
+        let tx = self.transaction(&[name], TransactionMode::ReadOnly)?;
+        let result = async {
+            tx.store(name)
+                .map_err(database_error)?
+                .get(id.into())
+                .await
+                .map_err(database_error)?
+                .map(Self::decode)
+                .transpose()
+        }
+        .await;
+        Self::finish(tx, result).await
+    }
+    async fn records<T: DeserializeOwned>(
+        &self,
+        name: &str,
+        filter: Option<(&str, &str)>,
+    ) -> Result<Vec<T>, StorageError> {
+        let tx = self.transaction(&[name], TransactionMode::ReadOnly)?;
+        let result = async {
+            let store = tx.store(name).map_err(database_error)?;
+            let values = if let Some((field, value)) = filter {
+                let range = KeyRange::only(&JsValue::from_str(value)).map_err(database_error)?;
+                store
+                    .index(field)
+                    .map_err(database_error)?
+                    .get_all(Some(range), None)
+                    .await
+                    .map_err(database_error)?
+            } else {
+                store.get_all(None, None).await.map_err(database_error)?
+            };
+            values.into_iter().map(Self::decode).collect()
+        }
+        .await;
+        Self::finish(tx, result).await
+    }
+    async fn next_sequence(tx: &Transaction) -> Result<u64, StorageError> {
+        let store = tx.store("metadata").map_err(database_error)?;
+        let previous = store
+            .get("event_sequence".into())
+            .await
+            .map_err(database_error)?;
+        let current = if let Some(value) = previous {
+            js_sys::Reflect::get(&value, &"value".into())
+                .map_err(database_error)?
+                .as_string()
+                .and_then(|value| value.parse::<u64>().ok())
+                .ok_or_else(|| StorageError::Database("Invalid event sequence counter".into()))?
+        } else {
+            0
+        };
+        let next = current
+            .checked_add(1)
+            .ok_or_else(|| StorageError::Database("Event sequence exhausted".into()))?;
+        let value = js_sys::Object::new();
+        js_sys::Reflect::set(&value, &"id".into(), &"event_sequence".into())
+            .map_err(database_error)?;
+        js_sys::Reflect::set(&value, &"value".into(), &next.to_string().into())
+            .map_err(database_error)?;
+        store.put(&value, None).await.map_err(database_error)?;
+        Ok(next)
+    }
 }
 
-#[async_trait]
+#[async_trait(?Send)]
 impl Storage for WasmStorage {
     type Error = StorageError;
-
-    // Agent operations
-    async fn store_agent(&self, agent: &AgentModel) -> Result<(), Self::Error> {
-        let tx = self
-            .db
-            .transaction(&["agents"], TransactionMode::ReadWrite)
-            .map_err(|e| StorageError::Transaction(format!("{:?}", e)))?;
-
-        let store = tx
-            .object_store("agents")
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let value = Self::to_js_value(agent)?;
-        store
-            .put(&value)
+    async fn store_agent(&self, value: &AgentModel) -> Result<(), StorageError> {
+        self.write_batch(&[WasmMutation::Agent(value.clone())])
             .await
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        tx.commit()
+    }
+    async fn get_agent(&self, id: &str) -> Result<Option<AgentModel>, StorageError> {
+        self.get("agents", id).await
+    }
+    async fn update_agent(&self, value: &AgentModel) -> Result<(), StorageError> {
+        self.store_agent(value).await
+    }
+    async fn delete_agent(&self, id: &str) -> Result<(), StorageError> {
+        self.write_batch(&[WasmMutation::DeleteAgent(id.into())])
             .await
-            .map_err(|e| StorageError::Transaction(format!("{:?}", e)))?;
-
-        Ok(())
     }
-
-    async fn get_agent(&self, id: &str) -> Result<Option<AgentModel>, Self::Error> {
-        let tx = self
-            .db
-            .transaction(&["agents"], TransactionMode::ReadOnly)
-            .map_err(|e| StorageError::Transaction(format!("{:?}", e)))?;
-
-        let store = tx
-            .object_store("agents")
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        match store.get(&JsValue::from_str(id)).await {
-            Ok(value) => Ok(Some(Self::from_js_value(value)?)),
-            Err(_) => Ok(None),
-        }
+    async fn list_agents(&self) -> Result<Vec<AgentModel>, StorageError> {
+        self.records("agents", None).await
     }
-
-    async fn update_agent(&self, agent: &AgentModel) -> Result<(), Self::Error> {
-        // In IndexedDB, put operation updates if key exists
-        self.store_agent(agent).await
+    async fn list_agents_by_status(&self, status: &str) -> Result<Vec<AgentModel>, StorageError> {
+        self.records("agents", Some(("status", status))).await
     }
-
-    async fn delete_agent(&self, id: &str) -> Result<(), Self::Error> {
-        let tx = self
-            .db
-            .transaction(&["agents"], TransactionMode::ReadWrite)
-            .map_err(|e| StorageError::Transaction(format!("{:?}", e)))?;
-
-        let store = tx
-            .object_store("agents")
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        store
-            .delete(&JsValue::from_str(id))
-            .await
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        tx.commit()
-            .await
-            .map_err(|e| StorageError::Transaction(format!("{:?}", e)))?;
-
-        Ok(())
+    async fn store_task(&self, value: &TaskModel) -> Result<(), StorageError> {
+        self.write_batch(&[WasmMutation::Task(value.clone())]).await
     }
-
-    async fn list_agents(&self) -> Result<Vec<AgentModel>, Self::Error> {
-        let tx = self
-            .db
-            .transaction(&["agents"], TransactionMode::ReadOnly)
-            .map_err(|e| StorageError::Transaction(format!("{:?}", e)))?;
-
-        let store = tx
-            .object_store("agents")
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let values = store
-            .get_all()
-            .await
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        values.into_iter().map(Self::from_js_value).collect()
+    async fn get_task(&self, id: &str) -> Result<Option<TaskModel>, StorageError> {
+        self.get("tasks", id).await
     }
-
-    async fn list_agents_by_status(&self, status: &str) -> Result<Vec<AgentModel>, Self::Error> {
-        let tx = self
-            .db
-            .transaction(&["agents"], TransactionMode::ReadOnly)
-            .map_err(|e| StorageError::Transaction(format!("{:?}", e)))?;
-
-        let store = tx
-            .object_store("agents")
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let index = store
-            .index("status")
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let values = index
-            .get_all(Some(&JsValue::from_str(status)))
-            .await
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        values.into_iter().map(Self::from_js_value).collect()
+    async fn update_task(&self, value: &TaskModel) -> Result<(), StorageError> {
+        self.store_task(value).await
     }
-
-    // Task operations
-    async fn store_task(&self, task: &TaskModel) -> Result<(), Self::Error> {
-        let tx = self
-            .db
-            .transaction(&["tasks"], TransactionMode::ReadWrite)
-            .map_err(|e| StorageError::Transaction(format!("{:?}", e)))?;
-
-        let store = tx
-            .object_store("tasks")
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let value = Self::to_js_value(task)?;
-        store
-            .put(&value)
-            .await
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        tx.commit()
-            .await
-            .map_err(|e| StorageError::Transaction(format!("{:?}", e)))?;
-
-        Ok(())
-    }
-
-    async fn get_task(&self, id: &str) -> Result<Option<TaskModel>, Self::Error> {
-        let tx = self
-            .db
-            .transaction(&["tasks"], TransactionMode::ReadOnly)
-            .map_err(|e| StorageError::Transaction(format!("{:?}", e)))?;
-
-        let store = tx
-            .object_store("tasks")
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        match store.get(&JsValue::from_str(id)).await {
-            Ok(value) => Ok(Some(Self::from_js_value(value)?)),
-            Err(_) => Ok(None),
-        }
-    }
-
-    async fn update_task(&self, task: &TaskModel) -> Result<(), Self::Error> {
-        self.store_task(task).await
-    }
-
-    async fn get_pending_tasks(&self) -> Result<Vec<TaskModel>, Self::Error> {
-        let tx = self
-            .db
-            .transaction(&["tasks"], TransactionMode::ReadOnly)
-            .map_err(|e| StorageError::Transaction(format!("{:?}", e)))?;
-
-        let store = tx
-            .object_store("tasks")
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let index = store
-            .index("status")
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let values = index
-            .get_all(Some(&JsValue::from_str("pending")))
-            .await
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let mut tasks: Vec<TaskModel> = values
-            .into_iter()
-            .filter_map(|v| Self::from_js_value(v).ok())
-            .collect();
-
-        // Sort by priority and creation time
+    async fn get_pending_tasks(&self) -> Result<Vec<TaskModel>, StorageError> {
+        let mut tasks: Vec<TaskModel> = self.records("tasks", Some(("status", "pending"))).await?;
         tasks.sort_by(|a, b| {
             b.priority
                 .cmp(&a.priority)
                 .then_with(|| a.created_at.cmp(&b.created_at))
+                .then_with(|| a.id.cmp(&b.id))
         });
-
         Ok(tasks)
     }
-
-    async fn get_tasks_by_agent(&self, agent_id: &str) -> Result<Vec<TaskModel>, Self::Error> {
-        let tx = self
-            .db
-            .transaction(&["tasks"], TransactionMode::ReadOnly)
-            .map_err(|e| StorageError::Transaction(format!("{:?}", e)))?;
-
-        let store = tx
-            .object_store("tasks")
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let index = store
-            .index("assigned_to")
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let values = index
-            .get_all(Some(&JsValue::from_str(agent_id)))
-            .await
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        values.into_iter().map(Self::from_js_value).collect()
+    async fn get_tasks_by_agent(&self, agent: &str) -> Result<Vec<TaskModel>, StorageError> {
+        self.records("tasks", Some(("assigned_to", agent))).await
     }
-
-    async fn claim_task(&self, task_id: &str, agent_id: &str) -> Result<bool, Self::Error> {
-        let mut task = match self.get_task(task_id).await? {
-            Some(t) => t,
-            None => return Ok(false),
-        };
-
-        if task.status == TaskStatus::Pending {
-            task.assign_to(agent_id);
-            self.update_task(&task).await?;
+    async fn claim_task(&self, id: &str, agent: &str) -> Result<bool, StorageError> {
+        let tx = self.transaction(&["tasks"], TransactionMode::ReadWrite)?;
+        let result = async {
+            let store = tx.store("tasks").map_err(database_error)?;
+            let Some(value) = store.get(id.into()).await.map_err(database_error)? else {
+                return Ok(false);
+            };
+            let mut task: TaskModel = Self::decode(value)?;
+            if task.status != TaskStatus::Pending {
+                return Ok(false);
+            }
+            task.assign_to(agent);
+            store
+                .put(&Self::encode(&task)?, None)
+                .await
+                .map_err(database_error)?;
             Ok(true)
-        } else {
-            Ok(false)
         }
+        .await;
+        Self::finish(tx, result).await
     }
-
-    // Event operations
-    async fn store_event(&self, event: &EventModel) -> Result<(), Self::Error> {
-        let tx = self
-            .db
-            .transaction(&["events"], TransactionMode::ReadWrite)
-            .map_err(|e| StorageError::Transaction(format!("{:?}", e)))?;
-
-        let store = tx
-            .object_store("events")
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let value = Self::to_js_value(event)?;
-        store
-            .put(&value)
+    async fn store_event(&self, value: &EventModel) -> Result<(), StorageError> {
+        self.write_batch(&[WasmMutation::Event(value.clone())])
             .await
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        tx.commit()
-            .await
-            .map_err(|e| StorageError::Transaction(format!("{:?}", e)))?;
-
-        Ok(())
     }
-
     async fn get_events_by_agent(
         &self,
-        agent_id: &str,
+        agent: &str,
         limit: usize,
-    ) -> Result<Vec<EventModel>, Self::Error> {
-        let tx = self
-            .db
-            .transaction(&["events"], TransactionMode::ReadOnly)
-            .map_err(|e| StorageError::Transaction(format!("{:?}", e)))?;
-
-        let store = tx
-            .object_store("events")
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let index = store
-            .index("agent_id")
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let values = index
-            .get_all(Some(&JsValue::from_str(agent_id)))
-            .await
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let mut events: Vec<EventModel> = values
-            .into_iter()
-            .filter_map(|v| Self::from_js_value(v).ok())
-            .collect();
-
-        events.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+    ) -> Result<Vec<EventModel>, StorageError> {
+        let mut events: Vec<EventModel> = self.records("events", Some(("agent_id", agent))).await?;
+        events.sort_by(|a, b| {
+            b.timestamp
+                .cmp(&a.timestamp)
+                .then_with(|| b.sequence.cmp(&a.sequence))
+        });
         events.truncate(limit);
-
         Ok(events)
     }
-
     async fn get_events_by_type(
         &self,
-        event_type: &str,
+        kind: &str,
         limit: usize,
-    ) -> Result<Vec<EventModel>, Self::Error> {
-        let tx = self
-            .db
-            .transaction(&["events"], TransactionMode::ReadOnly)
-            .map_err(|e| StorageError::Transaction(format!("{:?}", e)))?;
-
-        let store = tx
-            .object_store("events")
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let index = store
-            .index("event_type")
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let values = index
-            .get_all(Some(&JsValue::from_str(event_type)))
-            .await
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let mut events: Vec<EventModel> = values
-            .into_iter()
-            .filter_map(|v| Self::from_js_value(v).ok())
-            .collect();
-
-        events.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+    ) -> Result<Vec<EventModel>, StorageError> {
+        let mut events: Vec<EventModel> =
+            self.records("events", Some(("event_type", kind))).await?;
+        events.sort_by(|a, b| {
+            b.timestamp
+                .cmp(&a.timestamp)
+                .then_with(|| b.sequence.cmp(&a.sequence))
+        });
         events.truncate(limit);
-
         Ok(events)
     }
-
-    async fn get_events_since(&self, timestamp: i64) -> Result<Vec<EventModel>, Self::Error> {
-        // IndexedDB doesn't support range queries easily, so we get all and filter
-        let tx = self
-            .db
-            .transaction(&["events"], TransactionMode::ReadOnly)
-            .map_err(|e| StorageError::Transaction(format!("{:?}", e)))?;
-
-        let store = tx
-            .object_store("events")
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let values = store
-            .get_all()
-            .await
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let events: Vec<EventModel> = values
-            .into_iter()
-            .filter_map(|v| Self::from_js_value(v).ok())
-            .filter(|e| e.timestamp.timestamp() > timestamp)
-            .collect();
-
+    async fn get_events_since(&self, timestamp: i64) -> Result<Vec<EventModel>, StorageError> {
+        let mut events: Vec<EventModel> = self.records("events", None).await?;
+        events.retain(|e| e.timestamp.timestamp() >= timestamp);
+        events.sort_by(|a, b| a.timestamp.cmp(&b.timestamp).then_with(|| a.id.cmp(&b.id)));
         Ok(events)
     }
-
-    // Message operations
-    async fn store_message(&self, message: &MessageModel) -> Result<(), Self::Error> {
-        let tx = self
-            .db
-            .transaction(&["messages"], TransactionMode::ReadWrite)
-            .map_err(|e| StorageError::Transaction(format!("{:?}", e)))?;
-
-        let store = tx
-            .object_store("messages")
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let value = Self::to_js_value(message)?;
-        store
-            .put(&value)
+    async fn store_message(&self, value: &MessageModel) -> Result<(), StorageError> {
+        self.write_batch(&[WasmMutation::Message(value.clone())])
             .await
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        tx.commit()
-            .await
-            .map_err(|e| StorageError::Transaction(format!("{:?}", e)))?;
-
-        Ok(())
     }
-
     async fn get_messages_between(
         &self,
-        agent1: &str,
-        agent2: &str,
+        first: &str,
+        second: &str,
         limit: usize,
-    ) -> Result<Vec<MessageModel>, Self::Error> {
-        // We need to get all messages and filter manually
-        let tx = self
-            .db
-            .transaction(&["messages"], TransactionMode::ReadOnly)
-            .map_err(|e| StorageError::Transaction(format!("{:?}", e)))?;
-
-        let store = tx
-            .object_store("messages")
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let values = store
-            .get_all()
-            .await
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let mut messages: Vec<MessageModel> = values
-            .into_iter()
-            .filter_map(|v| Self::from_js_value(v).ok())
-            .filter(|m| {
-                (m.from_agent == agent1 && m.to_agent == agent2)
-                    || (m.from_agent == agent2 && m.to_agent == agent1)
-            })
-            .collect();
-
-        messages.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+    ) -> Result<Vec<MessageModel>, StorageError> {
+        let mut messages: Vec<MessageModel> = self.records("messages", None).await?;
+        messages.retain(|m| {
+            (m.from_agent == first && m.to_agent == second)
+                || (m.from_agent == second && m.to_agent == first)
+        });
+        messages.sort_by(|a, b| {
+            b.created_at
+                .cmp(&a.created_at)
+                .then_with(|| a.id.cmp(&b.id))
+        });
         messages.truncate(limit);
-
         Ok(messages)
     }
-
-    async fn get_unread_messages(&self, agent_id: &str) -> Result<Vec<MessageModel>, Self::Error> {
-        let tx = self
-            .db
-            .transaction(&["messages"], TransactionMode::ReadOnly)
-            .map_err(|e| StorageError::Transaction(format!("{:?}", e)))?;
-
-        let store = tx
-            .object_store("messages")
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let index = store
-            .index("to_agent")
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let values = index
-            .get_all(Some(&JsValue::from_str(agent_id)))
-            .await
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let messages: Vec<MessageModel> = values
-            .into_iter()
-            .filter_map(|v| Self::from_js_value(v).ok())
-            .filter(|m| !m.read)
-            .collect();
-
+    async fn get_unread_messages(&self, agent: &str) -> Result<Vec<MessageModel>, StorageError> {
+        let mut messages: Vec<MessageModel> =
+            self.records("messages", Some(("to_agent", agent))).await?;
+        messages.retain(|m| !m.read);
         Ok(messages)
     }
-
-    async fn mark_message_read(&self, message_id: &str) -> Result<(), Self::Error> {
-        let mut message = match self.get_message(message_id).await? {
-            Some(m) => m,
-            None => {
-                return Err(StorageError::NotFound(format!(
-                    "Message {} not found",
-                    message_id
-                )))
-            }
-        };
-
-        message.mark_read();
-        self.store_message(&message).await
+    async fn mark_message_read(&self, id: &str) -> Result<(), StorageError> {
+        let tx = self.transaction(&["messages"], TransactionMode::ReadWrite)?;
+        let result = async {
+            let store = tx.store("messages").map_err(database_error)?;
+            let value = store
+                .get(id.into())
+                .await
+                .map_err(database_error)?
+                .ok_or_else(|| StorageError::NotFound(format!("Message {id} not found")))?;
+            let mut message: MessageModel = Self::decode(value)?;
+            message.mark_read();
+            store
+                .put(&Self::encode(&message)?, None)
+                .await
+                .map_err(database_error)?;
+            Ok(())
+        }
+        .await;
+        Self::finish(tx, result).await
     }
-
-    // Metric operations
-    async fn store_metric(&self, metric: &MetricModel) -> Result<(), Self::Error> {
-        let tx = self
-            .db
-            .transaction(&["metrics"], TransactionMode::ReadWrite)
-            .map_err(|e| StorageError::Transaction(format!("{:?}", e)))?;
-
-        let store = tx
-            .object_store("metrics")
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let value = Self::to_js_value(metric)?;
-        store
-            .put(&value)
+    async fn store_metric(&self, value: &MetricModel) -> Result<(), StorageError> {
+        self.write_batch(&[WasmMutation::Metric(value.clone())])
             .await
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        tx.commit()
-            .await
-            .map_err(|e| StorageError::Transaction(format!("{:?}", e)))?;
-
-        Ok(())
     }
-
     async fn get_metrics_by_agent(
         &self,
-        agent_id: &str,
-        metric_type: &str,
-    ) -> Result<Vec<MetricModel>, Self::Error> {
-        let tx = self
-            .db
-            .transaction(&["metrics"], TransactionMode::ReadOnly)
-            .map_err(|e| StorageError::Transaction(format!("{:?}", e)))?;
-
-        let store = tx
-            .object_store("metrics")
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let values = store
-            .get_all()
-            .await
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let metrics: Vec<MetricModel> = values
-            .into_iter()
-            .filter_map(|v| Self::from_js_value(v).ok())
-            .filter(|m| m.agent_id.as_deref() == Some(agent_id) && m.metric_type == metric_type)
-            .collect();
-
+        agent: &str,
+        kind: &str,
+    ) -> Result<Vec<MetricModel>, StorageError> {
+        let mut metrics: Vec<MetricModel> =
+            self.records("metrics", Some(("agent_id", agent))).await?;
+        metrics.retain(|m| m.metric_type == kind);
         Ok(metrics)
     }
-
     async fn get_aggregated_metrics(
         &self,
-        metric_type: &str,
-        start_time: i64,
-        end_time: i64,
-    ) -> Result<Vec<MetricModel>, Self::Error> {
-        // For WASM, we'll do simple client-side aggregation
-        let tx = self
-            .db
-            .transaction(&["metrics"], TransactionMode::ReadOnly)
-            .map_err(|e| StorageError::Transaction(format!("{:?}", e)))?;
-
-        let store = tx
-            .object_store("metrics")
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let values = store
-            .get_all()
-            .await
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        let filtered_metrics: Vec<MetricModel> = values
-            .into_iter()
-            .filter_map(|v| Self::from_js_value(v).ok())
-            .filter(|m| {
-                let ts = m.timestamp.timestamp();
-                m.metric_type == metric_type && ts >= start_time && ts <= end_time
-            })
-            .collect();
-
-        // Simple aggregation by agent_id
-        use std::collections::HashMap;
-        let mut grouped: HashMap<(Option<String>, String), Vec<f64>> = HashMap::new();
-
-        for metric in filtered_metrics {
-            let key = (metric.agent_id.clone(), metric.unit.clone());
-            grouped
-                .entry(key)
-                .or_insert_with(Vec::new)
-                .push(metric.value);
-        }
-
-        let mut results = Vec::new();
-        for ((agent_id, unit), values) in grouped {
-            if !values.is_empty() {
-                let avg = values.iter().sum::<f64>() / values.len() as f64;
-                let mut metric = MetricModel::new(metric_type.to_string(), avg, unit);
-                metric.agent_id = agent_id;
-                metric
-                    .tags
-                    .insert("count".to_string(), values.len().to_string());
-                results.push(metric);
+        kind: &str,
+        start: i64,
+        end: i64,
+    ) -> Result<Vec<MetricModel>, StorageError> {
+        let metrics: Vec<MetricModel> =
+            self.records("metrics", Some(("metric_type", kind))).await?;
+        let mut groups: HashMap<(Option<String>, String), (f64, usize)> = HashMap::new();
+        for metric in metrics {
+            let time = metric.timestamp.timestamp();
+            if time >= start && time <= end {
+                let entry = groups.entry((metric.agent_id, metric.unit)).or_default();
+                entry.0 += metric.value;
+                entry.1 += 1;
             }
         }
-
-        Ok(results)
+        Ok(groups
+            .into_iter()
+            .map(|((agent, unit), (sum, count))| {
+                let mut value = MetricModel::new(kind.into(), sum / count as f64, unit);
+                value.agent_id = agent;
+                value.tags.insert("count".into(), count.to_string());
+                value
+            })
+            .collect())
     }
-
-    // Transaction support
-    async fn begin_transaction(&self) -> Result<Box<dyn TransactionTrait>, Self::Error> {
-        Ok(Box::new(WasmTransaction))
+    async fn begin_transaction(&self) -> Result<Box<dyn TransactionTrait>, StorageError> {
+        Err(StorageError::Transaction("IndexedDB transactions are scoped to write_batch; use WasmStorage::write_batch for atomic multi-record updates".into()))
     }
-
-    // Maintenance operations
-    async fn vacuum(&self) -> Result<(), Self::Error> {
-        // No-op for IndexedDB
-        console::log_1(&"Vacuum called on WASM storage (no-op)".into());
-        Ok(())
+    async fn vacuum(&self) -> Result<(), StorageError> {
+        Err(StorageError::Other(
+            "IndexedDB compaction is managed by the browser".into(),
+        ))
     }
-
-    async fn checkpoint(&self) -> Result<(), Self::Error> {
-        // No-op for IndexedDB
-        console::log_1(&"Checkpoint called on WASM storage (no-op)".into());
-        Ok(())
+    /// Commit barrier for previously queued writes; IndexedDB has no exposed WAL.
+    async fn checkpoint(&self) -> Result<(), StorageError> {
+        let tx = self.transaction(&STORES, TransactionMode::ReadOnly)?;
+        Self::finish(tx, Ok(())).await
     }
-
-    async fn get_storage_size(&self) -> Result<u64, Self::Error> {
-        // Browser storage estimation API could be used here
-        // For now, return a placeholder
-        Ok(0)
-    }
-}
-
-impl WasmStorage {
-    /// Helper to get a message by ID
-    async fn get_message(&self, id: &str) -> Result<Option<MessageModel>, StorageError> {
-        let tx = self
-            .db
-            .transaction(&["messages"], TransactionMode::ReadOnly)
-            .map_err(|e| StorageError::Transaction(format!("{:?}", e)))?;
-
-        let store = tx
-            .object_store("messages")
-            .map_err(|e| StorageError::Database(format!("{:?}", e)))?;
-
-        match store.get(&JsValue::from_str(id)).await {
-            Ok(value) => Ok(Some(Self::from_js_value(value)?)),
-            Err(_) => Ok(None),
+    /// Serialized payload bytes, not physical origin-wide disk usage.
+    async fn get_storage_size(&self) -> Result<u64, StorageError> {
+        let tx = self.transaction(&STORES, TransactionMode::ReadOnly)?;
+        let result = async {
+            let mut size = 0u64;
+            for name in STORES {
+                for value in tx
+                    .store(name)
+                    .map_err(database_error)?
+                    .get_all(None, None)
+                    .await
+                    .map_err(database_error)?
+                {
+                    let json = js_sys::JSON::stringify(&value)
+                        .map_err(database_error)?
+                        .as_string()
+                        .ok_or_else(|| StorageError::Database("Invalid stored value".into()))?;
+                    size = size
+                        .checked_add(json.len() as u64)
+                        .ok_or_else(|| StorageError::Database("Storage size overflow".into()))?;
+                }
+            }
+            Ok(size)
         }
-    }
-}
-
-/// WASM transaction (no-op implementation)
-struct WasmTransaction;
-
-#[async_trait]
-impl TransactionTrait for WasmTransaction {
-    async fn commit(self: Box<Self>) -> Result<(), StorageError> {
-        // IndexedDB transactions auto-commit
-        Ok(())
-    }
-
-    async fn rollback(self: Box<Self>) -> Result<(), StorageError> {
-        // IndexedDB transactions auto-rollback on error
-        Ok(())
+        .await;
+        Self::finish(tx, result).await
     }
 }

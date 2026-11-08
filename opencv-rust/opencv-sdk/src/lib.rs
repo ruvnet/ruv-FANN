@@ -16,7 +16,7 @@ use pyo3::prelude::*;
 
 #[cfg(feature = "python")]
 #[pymodule]
-fn opencv_sdk(_py: Python, m: &PyModule) -> PyResult<()> {
+fn opencv_sdk(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(py_init, m)?)?;
     m.add_class::<PyMat>()?;
     Ok(())
@@ -45,5 +45,14 @@ pub extern "C" fn opencv_sdk_init() -> i32 {
 
 #[no_mangle]
 pub extern "C" fn opencv_sdk_version() -> *const u8 {
-    SDK_VERSION.as_ptr()
+    concat!(env!("CARGO_PKG_VERSION"), "\0").as_ptr()
+}
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn c_version_is_nul_terminated() {
+        // SAFETY: the SDK returns a pointer to an immutable static C string.
+        let version = unsafe { std::ffi::CStr::from_ptr(super::opencv_sdk_version().cast()) };
+        assert_eq!(version.to_str().unwrap(), super::SDK_VERSION);
+    }
 }

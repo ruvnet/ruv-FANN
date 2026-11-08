@@ -2,7 +2,7 @@
 
 use crate::{Error, Result, Size, Point, Rect, Scalar};
 use std::fmt;
-use std::marker::PhantomData;
+
 
 /// OpenCV Mat data types
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -58,8 +58,86 @@ pub struct Mat {
     channels: i32,
 }
 
-unsafe impl Send for Mat {}
-unsafe impl Sync for Mat {}
+mod sealed {
+    pub trait Sealed {}
+    impl Sealed for u8 {} impl Sealed for i8 {} impl Sealed for u16 {}
+    impl Sealed for i16 {} impl Sealed for i32 {} impl Sealed for f32 {}
+    impl Sealed for f64 {}
+}
+
+/// Primitive matrix element with no padding or uninitialized bytes.
+///
+/// The sealed implementations ensure safe slice imports cannot read arbitrary
+/// object representations. Use `u16` for the raw bits of `CV_16F` elements.
+pub trait MatElement: sealed::Sealed + Copy {
+    /// Whether the element's representation matches the requested matrix type.
+    fn matches(mat_type: MatType) -> bool;
+    /// Append the native-endian representation of an element.
+    fn append_bytes(self, output: &mut Vec<u8>);
+}
+
+macro_rules! mat_element {
+    ($ty:ty, $($variant:pat_param)|+) => {
+        impl MatElement for $ty {
+            fn matches(mat_type: MatType) -> bool { matches!(mat_type, $($variant)|+) }
+            fn append_bytes(self, output: &mut Vec<u8>) { output.extend_from_slice(&self.to_ne_bytes()); }
+        }
+    };
+}
+mat_element!(u8, MatType::CV_8U);
+mat_element!(i8, MatType::CV_8S);
+mat_element!(u16, MatType::CV_16U | MatType::CV_16F);
+mat_element!(i16, MatType::CV_16S);
+mat_element!(i32, MatType::CV_32S);
+mat_element!(f32, MatType::CV_32F);
+mat_element!(f64, MatType::CV_64F);
+
+/// Maximum allocation accepted by the portable matrix API (1 GiB).
+pub const MAX_MAT_BYTES: usize = 1024 * 1024 * 1024;
+
+fn byte_len(rows: i32, cols: i32, elem_size: usize) -> Result<usize> {
+    if rows < 0 || cols < 0 {
+        return Err(Error::InvalidArgument("Matrix dimensions must be nonnegative".into()));
+    }
+    (rows as usize).checked_mul(cols as usize)
+        .and_then(|n| n.checked_mul(elem_size))
+        .filter(|&n| n <= MAX_MAT_BYTES)
+        .ok_or_else(|| Error::InvalidArgument("Matrix exceeds 1 GiB allocation limit".into()))
+}
+
+fn buffer(len: usize) -> Result<Vec<u8>> {
+    let mut data = Vec::new();
+    data.try_reserve_exact(len).map_err(|e| Error::Memory(e.to_string()))?;
+    Ok(data)
+}
+
+fn encode(value: f64, ty: MatType, output: &mut Vec<u8>) -> Result<()> {
+    match ty {
+        MatType::CV_8U => (value.round() as u8).append_bytes(output),
+        MatType::CV_8S => (value.round() as i8).append_bytes(output),
+        MatType::CV_16U => (value.round() as u16).append_bytes(output),
+        MatType::CV_16S => (value.round() as i16).append_bytes(output),
+        MatType::CV_32S => (value.round() as i32).append_bytes(output),
+        MatType::CV_32F => (value as f32).append_bytes(output),
+        MatType::CV_64F => value.append_bytes(output),
+        MatType::CV_16F if value == 0.0 => 0u16.append_bytes(output),
+        MatType::CV_16F => return Err(Error::Unsupported("Half-float scalar conversion is not implemented".into())),
+    }
+    Ok(())
+}
+
+fn decode(bytes: &[u8], ty: MatType) -> Result<f64> {
+    Ok(match ty {
+        MatType::CV_8U => bytes[0] as f64,
+        MatType::CV_8S => bytes[0] as i8 as f64,
+        MatType::CV_16U => u16::from_ne_bytes(bytes.try_into().unwrap()) as f64,
+        MatType::CV_16S => i16::from_ne_bytes(bytes.try_into().unwrap()) as f64,
+        MatType::CV_32S => i32::from_ne_bytes(bytes.try_into().unwrap()) as f64,
+        MatType::CV_32F => f32::from_ne_bytes(bytes.try_into().unwrap()) as f64,
+        MatType::CV_64F => f64::from_ne_bytes(bytes.try_into().unwrap()),
+        MatType::CV_16F => return Err(Error::Unsupported("Half-float scalar conversion is not implemented".into())),
+    })
+}
 
 impl Mat {
     /// Create a new empty Mat
@@ -78,51 +156,44 @@ impl Mat {
         Self::new_size_with_default(size, mat_type, Scalar::default())
     }
 
-    /// Create a Mat with specified dimensions, type, and default value
-    pub fn new_size_with_default(size: Size, mat_type: MatType, _default_value: Scalar) -> Result<Self> {
-        let total_size = (size.width * size.height) as usize * mat_type.elem_size();
-        Ok(Mat {
-            data: vec![0u8; total_size],
-            rows: size.height,
-            cols: size.width,
-            mat_type,
-            channels: 1,
-        })
+    /// Create a single-channel matrix initialized to the scalar's first value.
+    pub fn new_size_with_default(size: Size, mat_type: MatType, default_value: Scalar) -> Result<Self> {
+        let len = byte_len(size.height, size.width, mat_type.elem_size())?;
+        let mut data = buffer(len)?;
+        let mut element = Vec::with_capacity(mat_type.elem_size());
+        encode(default_value.val[0], mat_type, &mut element)?;
+        data.resize(len, 0);
+        if default_value.val[0] != 0.0 {
+            for bytes in data.chunks_exact_mut(mat_type.elem_size()) {
+                bytes.copy_from_slice(&element);
+            }
+        }
+        Ok(Mat { data, rows: size.height, cols: size.width, mat_type, channels: 1 })
     }
 
-    /// Create a Mat from existing data
-    pub fn from_slice<T>(data: &[T], rows: i32, cols: i32, mat_type: MatType) -> Result<Self> {
-        let elem_size = mat_type.elem_size();
-        let expected_size = (rows * cols) as usize;
-        
-        if data.len() != expected_size {
-            return Err(Error::InvalidArgument(format!(
-                "Data size mismatch: expected {}, got {}",
-                expected_size,
-                data.len()
-            )));
+    /// Copy matching primitive elements into a single-channel matrix.
+    ///
+    /// Rejects negative dimensions, mismatched element representations and
+    /// allocations over `MAX_MAT_BYTES`. Arbitrary user-defined structs are not
+    /// accepted because their padding may contain uninitialized bytes.
+    pub fn from_slice<T: MatElement>(data: &[T], rows: i32, cols: i32, mat_type: MatType) -> Result<Self> {
+        let len = byte_len(rows, cols, mat_type.elem_size())?;
+        if !T::matches(mat_type) {
+            return Err(Error::TypeConversion("Slice element type does not match MatType".into()));
         }
-
-        let byte_size = expected_size * elem_size;
-        let mut mat_data = vec![0u8; byte_size];
-        
-        // Copy data (simplified - assumes matching types)
-        unsafe {
-            std::ptr::copy_nonoverlapping(
-                data.as_ptr() as *const u8,
-                mat_data.as_mut_ptr(),
-                byte_size,
-            );
+        if data.len() != len / mat_type.elem_size() {
+            return Err(Error::InvalidArgument("Slice length does not match matrix dimensions".into()));
         }
-
-        Ok(Mat {
-            data: mat_data,
-            rows,
-            cols,
-            mat_type,
-            channels: 1,
-        })
+        let mut bytes = buffer(len)?;
+        for &element in data { element.append_bytes(&mut bytes); }
+        Ok(Mat { data: bytes, rows, cols, mat_type, channels: 1 })
     }
+
+    /// Borrow the initialized, contiguous matrix bytes in native endian order.
+    pub fn data_bytes(&self) -> &[u8] { &self.data }
+
+    /// Mutably borrow the initialized, contiguous matrix bytes.
+    pub fn data_bytes_mut(&mut self) -> &mut [u8] { &mut self.data }
 
     /// Get the number of rows
     pub fn rows(&self) -> i32 {
@@ -154,22 +225,22 @@ impl Mat {
         self.data.is_empty() || self.rows == 0 || self.cols == 0
     }
 
-    /// Get a region of interest (ROI)
+    /// Copy a rectangular region into an independent contiguous matrix.
     pub fn roi(&self, rect: Rect) -> Result<Mat> {
-        if rect.x < 0 || rect.y < 0 || 
-           rect.x + rect.width > self.cols || 
-           rect.y + rect.height > self.rows {
+        if rect.x < 0 || rect.y < 0 || rect.width < 0 || rect.height < 0 ||
+            rect.x.checked_add(rect.width).map_or(true, |x| x > self.cols) ||
+            rect.y.checked_add(rect.height).map_or(true, |y| y > self.rows) {
             return Err(Error::InvalidArgument("ROI out of bounds".into()));
         }
-
-        // For now, create a new Mat with the ROI data (simplified)
-        Ok(Mat {
-            data: Vec::new(), // Would copy ROI data here
-            rows: rect.height,
-            cols: rect.width,
-            mat_type: self.mat_type,
-            channels: self.channels,
-        })
+        let elem_size = self.elem_size();
+        let len = byte_len(rect.height, rect.width, elem_size)?;
+        let mut data = buffer(len)?;
+        let row_bytes = rect.width as usize * elem_size;
+        for row in rect.y..rect.y + rect.height {
+            let start = (row as usize * self.cols as usize + rect.x as usize) * elem_size;
+            data.extend_from_slice(&self.data[start..start + row_bytes]);
+        }
+        Ok(Mat { data, rows: rect.height, cols: rect.width, mat_type: self.mat_type, channels: self.channels })
     }
 
     /// Clone the matrix
@@ -193,14 +264,23 @@ impl Mat {
         Ok(())
     }
 
-    /// Convert matrix type
-    pub fn convert_to(&self, dst: &mut Mat, rtype: MatType, _alpha: f64, _beta: f64) -> Result<()> {
-        // Simplified conversion - just change type for now
-        dst.data = self.data.clone();
-        dst.rows = self.rows;
-        dst.cols = self.cols;
-        dst.mat_type = rtype;
-        dst.channels = self.channels;
+    /// Convert each element using `dst = alpha * src + beta`.
+    ///
+    /// Integer destinations round and saturate. Half-float conversion returns an
+    /// explicit unsupported error rather than changing metadata without data.
+    pub fn convert_to(&self, dst: &mut Mat, rtype: MatType, alpha: f64, beta: f64) -> Result<()> {
+        if !alpha.is_finite() || !beta.is_finite() {
+            return Err(Error::InvalidArgument("Conversion coefficients must be finite".into()));
+        }
+        if self.mat_type == MatType::CV_16F || rtype == MatType::CV_16F {
+            return Err(Error::Unsupported("Half-float scalar conversion is not implemented".into()));
+        }
+        let len = byte_len(self.rows, self.cols, rtype.elem_size() * self.channels as usize)?;
+        let mut data = buffer(len)?;
+        for bytes in self.data.chunks_exact(self.mat_type.elem_size()) {
+            encode(decode(bytes, self.mat_type)? * alpha + beta, rtype, &mut data)?;
+        }
+        *dst = Mat { data, rows: self.rows, cols: self.cols, mat_type: rtype, channels: self.channels };
         Ok(())
     }
 
@@ -221,7 +301,7 @@ impl Mat {
 
     /// Get total number of elements
     pub fn total(&self) -> usize {
-        (self.rows * self.cols) as usize
+        self.rows as usize * self.cols as usize
     }
 }
 

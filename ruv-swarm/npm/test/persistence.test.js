@@ -4,18 +4,20 @@
  */
 
 import assert from 'assert';
-const sqlite3 = require('sqlite3').verbose();
+import sqlite3Module from 'sqlite3';
+const sqlite3 = sqlite3Module.verbose();
 import path from 'path';
 import { promises as fs } from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import os from 'node:os';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Test database path
-const TEST_DB_PATH = path.join(__dirname, 'test-swarm.db');
+const TEST_DB_PATH = path.join(os.tmpdir(), `ruv-persistence-${process.pid}-${uuidv4()}.db`);
 
 // SQLite persistence wrapper
 class SwarmPersistence {
@@ -223,7 +225,7 @@ class SwarmPersistence {
     const sql = `
             SELECT * FROM memory 
             WHERE key = ? 
-            AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+            AND (expires_at IS NULL OR julianday(expires_at) > julianday('now'))
         `;
     const row = await this.get(sql, [key]);
     if (row) {
@@ -233,7 +235,7 @@ class SwarmPersistence {
   }
 
   async cleanupExpiredMemory() {
-    const sql = 'DELETE FROM memory WHERE expires_at <= CURRENT_TIMESTAMP';
+    const sql = "DELETE FROM memory WHERE julianday(expires_at) <= julianday('now')";
     return this.run(sql);
   }
 
@@ -471,6 +473,20 @@ async function runPersistenceTests() {
       // Should be expired
       retrieved = await db.getMemory(key);
       assert.strictEqual(retrieved, null);
+    });
+
+    await test('Memory TTL handles millisecond timestamps and explicit time zones', async() => {
+      const now = Date.now();
+      const expired = new Date(now - 5000 + 2 * 3600000).toISOString().replace('Z', '+02:00');
+      const future = new Date(now + 60000 - 5 * 3600000).toISOString().replace('Z', '-05:00');
+      for (const [key, expires] of [['offset-expired', expired], ['offset-future', future]]) {
+        await db.run('INSERT INTO memory (key, value, expires_at) VALUES (?, ?, ?)', [key, '{"valid":true}', expires]);
+      }
+      assert.strictEqual(await db.getMemory('offset-expired'), null);
+      assert.deepStrictEqual(await db.getMemory('offset-future'), { valid: true });
+      await db.cleanupExpiredMemory();
+      assert.strictEqual(await db.get('SELECT key FROM memory WHERE key = ?', ['offset-expired']), undefined);
+      assert.deepStrictEqual(await db.getMemory('offset-future'), { valid: true });
     });
 
     // Test Swarm State Persistence

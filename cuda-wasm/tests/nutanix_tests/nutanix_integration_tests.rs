@@ -5,7 +5,7 @@
 //! generation patterns using serde serialization and string-based YAML validation.
 //! They serve as specification-level tests for the expected Nutanix integration API.
 
-#[cfg(test)]
+#[cfg(all(test, feature = "serde"))]
 mod tests {
     use serde::{Deserialize, Serialize};
 

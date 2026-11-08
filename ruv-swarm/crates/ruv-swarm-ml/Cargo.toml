@@ -1,6 +1,17 @@
 [package]
+# Publish source and required assets, excluding session state and runtime databases.
+include = [
+    "/src/**",
+    "/tests/**",
+    "/examples/**",
+    "/benches/**",
+    "/build.rs",
+    "/Cargo.toml",
+    "/README.md",
+    "/LICENSE*",
+]
 name = "ruv-swarm-ml"
-version = "1.0.5"
+version = "1.0.6"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -9,8 +20,8 @@ rust-version.workspace = true
 description = "Machine learning integration for RUV Swarm"
 
 [dependencies]
-ruv-swarm-core = { path = "../ruv-swarm-core", version = "1.0.6" }
-ruv-fann = { path = "../../..", features = ["gpu", "serde"] }
+ruv-swarm-core = { path = "../ruv-swarm-core", version = "1.0.7" }
+ruv-fann = { path = "../../..", version = "0.2.2", default-features = false, features = ["std", "serde"] }
 
 # Core dependencies
 serde = { workspace = true }
@@ -33,6 +44,11 @@ wasm = ["wasm-bindgen", "serde-wasm-bindgen", "js-sys", "web-sys"]
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+# Native CPU acceleration is opt-in by target; browsers do not start Rayon threads.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+ruv-fann = { path = "../../..", version = "0.2.2", default-features = false, features = ["parallel", "simd"] }
+
 # Target-specific dependencies for WASM
 [target.'cfg(target_arch = "wasm32")'.dependencies]
+js-sys = { workspace = true }
 getrandom = { version = "0.2", features = ["js"] }

@@ -337,64 +337,17 @@ impl Nc2Client {
 
     // --- Local system probing for non-nutanix builds ---
 
-    /// Discover NC2-like clusters by probing cloud instance metadata
-    /// and local GPU availability.
+    /// Discover a local GPU candidate without contacting cloud metadata.
     ///
-    /// Checks for AWS instance metadata (IMDSv1) to detect cloud environments.
-    /// Falls back to probing for local GPUs via `nvidia-smi` or ROCm presence
-    /// to synthesize an on-prem cluster entry.
-    ///
-    /// Returns an empty vector when no cloud metadata or local GPUs are found.
+    /// Requires an opted-in GPU feature. A local GPU candidate is not proof of
+    /// an NC2 deployment; remote discovery requires a configured Prism API.
     #[cfg(not(feature = "nutanix"))]
     fn local_nc2_clusters(&self) -> Vec<Nc2Cluster> {
         let mut clusters = Vec::new();
 
-        // Check for AWS instance metadata (IMDSv1)
-        if let Ok(output) = std::process::Command::new("curl")
-            .args([
-                "-s",
-                "--connect-timeout",
-                "1",
-                "http://169.254.169.254/latest/meta-data/instance-id",
-            ])
-            .output()
-        {
-            if output.status.success() && !output.stdout.is_empty() {
-                let instance_id =
-                    String::from_utf8_lossy(&output.stdout).to_string();
-                if !instance_id.is_empty()
-                    && !instance_id.contains("<!DOCTYPE")
-                {
-                    let region = std::process::Command::new("curl")
-                        .args([
-                            "-s",
-                            "--connect-timeout",
-                            "1",
-                            "http://169.254.169.254/latest/meta-data/placement/region",
-                        ])
-                        .output()
-                        .ok()
-                        .and_then(|o| {
-                            if o.status.success() {
-                                String::from_utf8(o.stdout).ok()
-                            } else {
-                                None
-                            }
-                        })
-                        .unwrap_or_else(|| "unknown".to_string());
-                    clusters.push(Nc2Cluster {
-                        cluster_id: format!("nc2-aws-{}", &region),
-                        name: format!("NC2-AWS-{}", region),
-                        provider: CloudProvider::Aws,
-                        region,
-                        gpu_types: vec!["Detected".to_string()],
-                        status: ClusterStatus::Running,
-                        gpu_node_count: 1,
-                        total_gpu_memory_bytes: 0,
-                    });
-                }
-            }
-        }
+        // Local discovery must not contact cloud instance metadata or imply
+        // that detecting an AWS host establishes an NC2 cluster deployment.
+        if !crate::backend::gpu_enabled() { return clusters; }
 
         // If no cloud environment detected, check for local GPUs
         if clusters.is_empty() {

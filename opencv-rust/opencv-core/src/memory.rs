@@ -96,6 +96,9 @@ impl MemoryPool {
 
 /// Aligned memory allocation
 pub fn allocate_aligned(size: usize, alignment: usize) -> Result<*mut u8> {
+    if size == 0 {
+        return Err(Error::Memory("Aligned allocation size must be nonzero".into()));
+    }
     let layout = Layout::from_size_align(size, alignment)
         .map_err(|_| Error::Memory("Invalid layout".into()))?;
     

@@ -21,6 +21,7 @@ import { EventEmitter } from 'events';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
+import { fileURLToPath } from 'url';
 
 class SQLiteConnectionPool extends EventEmitter {
   constructor(dbPath, options = {}) {
@@ -84,9 +85,12 @@ class SQLiteConnectionPool extends EventEmitter {
     };
     
     // Prepared statements cache
-    this.preparedStatements = new Map();
+    this.preparedStatements = new WeakMap();
     
-    this.initialize();
+    // Defer until callers can attach ready/error listeners, and consume the
+    // initialization rejection after it has been reported through the event.
+    this.initialization = Promise.resolve().then(() => this.initialize());
+    this.initialization.catch(() => {});
   }
   
   async initialize() {
@@ -160,7 +164,7 @@ class SQLiteConnectionPool extends EventEmitter {
   }
   
   async initializeWorkerThreads() {
-    const workerScript = path.join(path.dirname(new URL(import.meta.url).pathname), 'sqlite-worker.js');
+    const workerScript = fileURLToPath(new URL('./sqlite-worker.js', import.meta.url));
     
     for (let i = 0; i < this.options.maxWorkers; i++) {
       try {
@@ -225,25 +229,23 @@ class SQLiteConnectionPool extends EventEmitter {
   // Read operation with connection pooling
   async read(sql, params = []) {
     const startTime = Date.now();
-    
+    let connection;
     try {
-      const connection = await this.acquireReaderConnection();
+      connection = await this.acquireReaderConnection();
       const stmt = this.getPreparedStatement(connection, sql);
       const result = stmt.all(params);
-      
-      this.releaseReaderConnection(connection);
-      
-      // Update statistics
       this.stats.totalReads++;
       this.updateAverageTime('read', Date.now() - startTime);
-      
       return result;
     } catch (error) {
       this.emit('read-error', error);
       throw error;
+    } finally {
+      // A failed SQL prepare/query must not permanently consume a pool slot.
+      if (connection) this.releaseReaderConnection(connection);
     }
   }
-  
+
   // Write operation with queuing
   async write(sql, params = []) {
     return new Promise((resolve, reject) => {
@@ -403,13 +405,25 @@ class SQLiteConnectionPool extends EventEmitter {
   }
   
   getPreparedStatement(connection, sql) {
-    const key = `${connection._id || 'main'}_${sql}`;
-    if (!this.preparedStatements.has(key)) {
-      this.preparedStatements.set(key, connection.prepare(sql));
+    let statements = this.preparedStatements.get(connection);
+    if (!statements) {
+      statements = new Map();
+      this.preparedStatements.set(connection, statements);
     }
-    return this.preparedStatements.get(key);
+    if (statements.has(sql)) {
+      const statement = statements.get(sql);
+      statements.delete(sql);
+      statements.set(sql, statement);
+      return statement;
+    }
+    const statement = connection.prepare(sql);
+    statements.set(sql, statement);
+    // Bound retained statements per connection; never share a handle with
+    // another database connection, even when their private IDs are undefined.
+    if (statements.size > 128) statements.delete(statements.keys().next().value);
+    return statement;
   }
-  
+
   startHealthMonitoring() {
     this.healthCheckTimer = setInterval(() => {
       this.performHealthCheck();
@@ -490,7 +504,7 @@ class SQLiteConnectionPool extends EventEmitter {
   
   async createReplacementWorker() {
     try {
-      const workerScript = path.join(path.dirname(new URL(import.meta.url).pathname), 'sqlite-worker.js');
+      const workerScript = fileURLToPath(new URL('./sqlite-worker.js', import.meta.url));
       const worker = new Worker(workerScript, {
         workerData: { 
           dbPath: this.dbPath,

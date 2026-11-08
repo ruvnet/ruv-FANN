@@ -9,7 +9,7 @@ use crate::task::{Task, TaskId};
 use async_trait::async_trait;
 
 #[cfg(not(feature = "std"))]
-use alloc::{collections::BTreeMap as HashMap, vec::Vec};
+use alloc::{boxed::Box, collections::BTreeMap as HashMap, string::String, vec::Vec};
 #[cfg(feature = "std")]
 use std::collections::HashMap;
 

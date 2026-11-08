@@ -8,8 +8,11 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { spawn } from 'child_process';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import { dirname } from 'path';
+import { setTimeout as delay } from 'node:timers/promises';
+import { createServer } from 'node:net';
+import os from 'node:os';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -35,7 +38,7 @@ const TEST_SUITES = [
     requiresServer: false,
   },
   {
-    name: 'Basic WASM Tests',
+    name: 'Mock API Examples',
     file: './test.js',
     timeout: 30000, // 30 seconds
     requiresServer: false,
@@ -134,6 +137,18 @@ class TestReport {
 }
 
 // Test execution utilities
+export function parseSuiteOutput(output) {
+  const summary = output.match(/(?:✅\s*)?Passed:\s*(\d+)[\s\S]*?(?:❌\s*)?Failed:\s*(\d+)/);
+  const examples = output.match(/Tests completed:\s*(\d+) passed,\s*(\d+) failed/);
+  const counts = summary || examples;
+  if (!counts) {
+    return { totalTests: 0, passedTests: 0, failedTests: 0 };
+  }
+  const passedTests = Number(counts[1]);
+  const failedTests = Number(counts[2]);
+  return { totalTests: passedTests + failedTests, passedTests, failedTests };
+}
+
 async function runTestSuite(suite, report) {
   console.log(`\n🚀 Running ${suite.name}`);
   console.log('─'.repeat(50));
@@ -153,9 +168,10 @@ async function runTestSuite(suite, report) {
   };
 
   return new Promise((resolve) => {
-    const testProcess = spawn('node', [suite.file], {
+    const testProcess = spawn(process.execPath, [suite.file], {
       cwd: __dirname,
-      env: { ...process.env, NODE_ENV: 'test' },
+      env: { ...process.env, NODE_ENV: 'test',
+        ...(mcpContext ? { RUV_SWARM_TEST_HTTP_URL: mcpContext.url } : {}) },
     });
 
     let output = '';
@@ -166,16 +182,6 @@ async function runTestSuite(suite, report) {
       output += text;
       process.stdout.write(data);
 
-      // Parse test results from output
-      const passedMatches = text.match(/✅|✓/g);
-      const failedMatches = text.match(/❌|✗/g);
-
-      if (passedMatches) {
-        suiteResult.passedTests += passedMatches.length;
-      }
-      if (failedMatches) {
-        suiteResult.failedTests += failedMatches.length;
-      }
     });
 
     testProcess.stderr.on('data', (data) => {
@@ -187,12 +193,13 @@ async function runTestSuite(suite, report) {
       testProcess.kill('SIGTERM');
       suiteResult.errors.push(`Test suite timed out after ${suite.timeout / 1000}s`);
     }, suite.timeout);
+    testProcess.on('error', error => suiteResult.errors.push(error.message));
 
     testProcess.on('close', (code) => {
       clearTimeout(timeout);
 
       suiteResult.duration = Date.now() - suiteStartTime;
-      suiteResult.totalTests = suiteResult.passedTests + suiteResult.failedTests;
+      Object.assign(suiteResult, parseSuiteOutput(output));
       suiteResult.passed = code === 0 && suiteResult.failedTests === 0;
       suiteResult.exitCode = code;
       suiteResult.output = output.split('\n').filter(line => line.trim());
@@ -211,58 +218,104 @@ async function runTestSuite(suite, report) {
 
 // MCP Server management
 let mcpServer = null;
+let mcpContext = null;
+
+async function reserveLoopbackPort() {
+  const reservation = createServer();
+  await new Promise((resolve, reject) => {
+    reservation.once('error', reject);
+    reservation.listen(0, '127.0.0.1', resolve);
+  });
+  const port = reservation.address().port;
+  await new Promise((resolve, reject) => reservation.close(error => error ? reject(error) : resolve()));
+  return port;
+}
 
 async function startMCPServer() {
   console.log('🚀 Starting MCP Server...');
-
-  return new Promise((resolve, reject) => {
-    mcpServer = spawn('npm', ['run', 'mcp:server'], {
-      cwd: path.join(__dirname, '..'),
-      detached: true,
-    });
-
-    let serverStarted = false;
-
-    mcpServer.stdout.on('data', (data) => {
-      const output = data.toString();
-      console.log(`MCP Server: ${output.trim()}`);
-
-      if (output.includes('Starting RUV-Swarm MCP server') || output.includes('listening')) {
-        serverStarted = true;
-        setTimeout(resolve, 2000); // Give server time to fully initialize
-      }
-    });
-
-    mcpServer.stderr.on('data', (data) => {
-      console.error(`MCP Server Error: ${data.toString()}`);
-    });
-
-    mcpServer.on('error', reject);
-
-    // Timeout if server doesn't start
-    setTimeout(() => {
-      if (!serverStarted) {
-        reject(new Error('MCP Server failed to start within timeout'));
-      }
-    }, 10000);
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'ruv-mcp-integration-'));
+  const address = `127.0.0.1:${await reserveLoopbackPort()}`;
+  mcpContext = { directory, address, url: `http://${address}` };
+  mcpServer = spawn('cargo', ['run', '--locked', '--bin', 'ruv-swarm-mcp'], {
+    cwd: path.join(__dirname, '../../crates/ruv-swarm-mcp'),
+    detached: process.platform !== 'win32',
+    env: { ...process.env, RUST_LOG: 'ruv_swarm_mcp=info', RUV_SWARM_MCP_BIND_ADDR: address,
+      RUV_SWARM_DB_PATH: path.join(directory, 'mcp.sqlite') },
   });
+  const server = mcpServer;
+  let startupError;
+  let ownedListener = false;
+  let startupLog = '';
+  const checkListener = data => {
+    startupLog = (startupLog + data.toString()).slice(-8192);
+    // This message is emitted by the owned child only after bind succeeds.
+    // A healthy service on a colliding port cannot satisfy this condition.
+    if (startupLog.includes(`MCP server listening on ${address}`)) {
+      ownedListener = true;
+    }
+  };
+  server.on('error', error => {
+    startupError = error;
+  });
+  server.stdout.on('data', data => {
+    checkListener(data); process.stdout.write(data);
+  });
+  server.stderr.on('data', data => {
+    checkListener(data); process.stderr.write(data);
+  });
+  const deadline = Date.now() + Number(process.env.MCP_START_TIMEOUT_MS || 600000);
+  while (Date.now() < deadline) {
+    if (startupError || server.exitCode !== null || server.signalCode !== null) {
+      throw startupError || new Error(`MCP server exited during startup (${server.exitCode})`);
+    }
+    try {
+      const response = ownedListener && await fetch(`${mcpContext.url}/health`, { signal: AbortSignal.timeout(750) });
+      if (response?.ok && server.exitCode === null && server.signalCode === null) {
+        return;
+      }
+    } catch {
+      // Compilation or socket binding is still in progress.
+    }
+    await delay(250);
+  }
+  throw new Error('MCP server did not become healthy before the startup deadline');
 }
 
 async function stopMCPServer() {
-  if (mcpServer) {
-    console.log('\n🛑 Stopping MCP Server...');
-
-    // Try graceful shutdown first
-    mcpServer.kill('SIGTERM');
-
-    // Force kill after timeout
-    setTimeout(() => {
-      if (mcpServer && !mcpServer.killed) {
-        mcpServer.kill('SIGKILL');
+  const context = mcpContext;
+  mcpContext = null;
+  try {
+    if (mcpServer) {
+      console.log('\n🛑 Stopping MCP Server...');
+      const server = mcpServer;
+      mcpServer = null;
+      if (server.exitCode !== null || !server.pid) {
+        return;
       }
-    }, 5000);
-
-    mcpServer = null;
+      const closed = new Promise(resolve => server.once('close', resolve));
+      const kill = signal => {
+        try {
+          if (process.platform === 'win32') {
+            server.kill(signal);
+          } else {
+            process.kill(-server.pid, signal);
+          }
+        } catch (error) {
+          if (error.code !== 'ESRCH') {
+            throw error;
+          }
+        }
+      };
+      kill('SIGTERM');
+      const force = setTimeout(() => kill('SIGKILL'), 3000);
+      force.unref();
+      await closed;
+      clearTimeout(force);
+    }
+  } finally {
+    if (context) {
+      await fs.rm(context.directory, { recursive: true, force: true });
+    }
   }
 }
 
@@ -341,6 +394,7 @@ async function main() {
         console.log('✅ MCP Server started successfully\n');
       } catch (error) {
         console.error('❌ Failed to start MCP Server:', error.message);
+        await stopMCPServer();
         console.log('⚠️  Skipping tests that require MCP server\n');
       }
     }
@@ -388,7 +442,8 @@ async function main() {
     console.log(`  Max Memory: ${perfReport.maxMemoryMB}MB`);
 
     // Save detailed report
-    const reportPath = path.join(__dirname, `test-report-${Date.now()}.json`);
+    const reportPath = path.join(__dirname, 'test-reports', `${process.pid}-${Date.now()}.json`);
+    await fs.mkdir(path.dirname(reportPath), { recursive: true });
     await report.saveReport(reportPath);
     console.log(`\n📄 Detailed report saved to: ${reportPath}`);
 
@@ -396,27 +451,26 @@ async function main() {
     report.printSummary();
 
     // Set exit code based on results
-    process.exit(report.summary.failedSuites > 0 ? 1 : 0);
+    process.exit(report.summary.failedSuites > 0 || process.exitCode ? 1 : 0);
   }
 }
 
-// Handle interrupts
-process.on('SIGINT', async() => {
-  console.log('\n⚠️  Test run interrupted');
-  await stopMCPServer();
-  process.exit(1);
-});
-
-process.on('unhandledRejection', async(error) => {
-  console.error('\n❌ Unhandled rejection:', error);
-  await stopMCPServer();
-  process.exit(1);
-});
-
-// Run tests
-main().catch(error => {
-  console.error('Fatal error:', error);
-  process.exit(1);
-});
+// Importing report utilities must not start servers or execute the suites.
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+  process.on('SIGINT', async() => {
+    console.log('\n⚠️  Test run interrupted');
+    await stopMCPServer();
+    process.exit(1);
+  });
+  process.on('unhandledRejection', async(error) => {
+    console.error('\n❌ Unhandled rejection:', error);
+    await stopMCPServer();
+    process.exit(1);
+  });
+  main().catch(error => {
+    console.error('Fatal error:', error);
+    process.exit(1);
+  });
+}
 
 export { TestReport, runTestSuite };

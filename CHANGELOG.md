@@ -1,9 +1,50 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+Changes follow [Semantic Versioning](https://semver.org/). Versions in a checkout
+are release candidates until publication is verified in the registry.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [0.2.2] - Unreleased
+
+### Security
+
+- Check SIMD slice lengths and dimension products in release builds before
+  entering unsafe vector kernels. Dispatch AVX2/FMA only when supported.
+- Bound model/training-data headers, text lines and decompressed output before
+  allocating. Validate binary connection indices against the previous layer.
+- Reject invalid public network topology at inference boundaries.
+- Update the root lock to patched Crossbeam and Tokio versions; remove the stale
+  Rand soundness-advisory exception. Audit every workspace lock independently.
+- Restrict the core crate archive to library sources, examples, Rust tests,
+  documentation assets and package metadata; exclude agent state and sibling
+  projects.
+
+### Performance and correctness
+
+- Add `Network::run_into` for repeated inference into a caller-owned output
+  slice. Regression tests prove zero allocations on this path and one final
+  output allocation for `run`; no latency speedup is asserted.
+- Borrow neighboring layer neurons during inference instead of allocating
+  intermediate value buffers for each neuron/layer.
+- Implement the scalar GELU, Swish and other exposed activation variants and
+  correct SIMD gradient outer-product dimensions.
+
+### Documentation and validation
+
+- Replace unverified performance and compatibility promises in the root README
+  with a working example, package map, feature limits and reproducible commands.
+- Add accessible animated SVG diagrams with reduced-motion fallbacks and a
+  primary-source research report.
+- Add a verification driver for all five workspaces, binary/regression tests
+  and dependency audits. CI now uses locked dependency resolution, tests pull
+  requests, and reports failures without auto-fixing source or suppressing them.
+- Replace the duplicate automatic npm publishing paths with a version-matched
+  manual release workflow gated by repository and package validation.
+
+This entry describes the core candidate and repository tooling. See
+[the modernization report](docs/modernization.md) and family reports for changes,
+behavior migrations and release blockers in the other packages. The previous
+unreleased draft's speedup, memory and coverage numbers had no reproduced
+comparison and are omitted.
 
 ## [0.2.1] - 2026-05-23
 
@@ -38,37 +79,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   range + non-NaN guarantees, output dimension correctness, input validation,
   deterministic forward pass, and Adam weight-decay activation
 
-## [Unreleased]
-
-### Added
-- Initial pure Rust implementation of FANN library
-- Core neural network functionality with customizable layers
-- Multiple activation functions: Sigmoid, ReLU, Tanh, Linear
-- Training algorithms: Backpropagation, RPROP, QuickProp
-- Serialization support for saving/loading trained networks
-- Parallel training support with `rayon` feature
-- Property-based testing with `proptest`
-- Comprehensive benchmarks comparing with C FANN
-- Example applications: XOR, MNIST, Time Series
-- `no_std` support for embedded systems
-- Custom activation function support
-- Batch training capabilities
-- Early stopping mechanisms
-- Cross-validation utilities
-
-### Performance
-- 18% faster training compared to C FANN
-- 27% faster inference compared to C FANN
-- 27% lower memory usage compared to C FANN
-
-## [0.1.0] - TBD
-
-### Initial Release
-- First public release on crates.io
-- Full API documentation
-- Migration guide from C FANN
-- Comprehensive test coverage (>90%)
-- CI/CD pipeline with GitHub Actions
-
-[Unreleased]: https://github.com/ruvnet/ruv-FANN/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/ruvnet/ruv-FANN/releases/tag/v0.1.0
+[0.2.2]: https://github.com/ruvnet/ruv-FANN/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/ruvnet/ruv-FANN/releases/tag/v0.2.1

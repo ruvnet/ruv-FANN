@@ -1,12 +1,12 @@
-//! Flash Attention v2 — memory-efficient scaled dot-product attention
+//! Tiled CPU reference for memory-efficient scaled dot-product attention
 //!
 //! Implements the tiled, I/O-aware attention algorithm from Dao et al. (2022/2023).
 //! Instead of materializing the full N×N attention matrix in memory, Flash Attention
-//! processes attention in tiles, keeping the running softmax statistics (m, l) on-chip
-//! and never writing the full S = Q·K^T matrix to main memory.
+//! processes scores in tiles and keeps running softmax statistics in host vectors,
+//! without materializing the full S = Q·K^T matrix.
 //!
-//! This reduces memory from O(N²) to O(N) and improves wall-clock time by
-//! minimizing HBM (high-bandwidth memory) accesses.
+//! This uses O(N) auxiliary memory without materializing the score matrix.
+//! It is not a fused GPU FlashAttention-2 kernel and has no measured HBM benefit.
 //!
 //! Reference: "FlashAttention-2: Faster Attention with Better Parallelism
 //!             and Work Partitioning" — Tri Dao, 2023
@@ -20,7 +20,7 @@ pub struct FlashAttentionConfig {
     pub head_dim: usize,
     /// Number of attention heads.
     pub num_heads: usize,
-    /// Tile size for the Q (query) outer loop. Controls on-chip SRAM usage.
+    /// Query tile rows for the CPU reference outer loop.
     pub block_size_q: usize,
     /// Tile size for the K/V (key/value) inner loop.
     pub block_size_kv: usize,
@@ -83,11 +83,11 @@ pub struct FlashAttentionOutput {
     pub logsumexp: Vec<f32>,
     /// Total FLOPs performed.
     pub flops: u64,
-    /// Peak SRAM (tile) usage in bytes.
+    /// Peak score-row scratch allocation in bytes (host memory, excluding outputs).
     pub peak_sram_bytes: usize,
 }
 
-/// Flash Attention v2 engine.
+/// Tiled CPU attention reference engine.
 ///
 /// Processes attention in tiles to achieve O(N) memory instead of O(N²).
 pub struct FlashAttention {
@@ -111,6 +111,7 @@ impl FlashAttention {
     /// `FlashAttentionOutput` with the attention output and statistics.
     pub fn forward(&self, q: &[f32], k: &[f32], v: &[f32]) -> crate::Result<FlashAttentionOutput> {
         let d = self.config.head_dim;
+        self.validate_config()?;
         let seq_q = q.len() / d;
         let seq_kv = k.len() / d;
 
@@ -132,29 +133,32 @@ impl FlashAttention {
         let mut m_i = vec![f32::NEG_INFINITY; seq_q]; // row max
         let mut l_i = vec![0.0f32; seq_q];            // row sum of exp
 
-        let peak_sram = (bq * d + 2 * bkv * d + bq * bkv) * 4; // bytes for Q_tile, K_tile, V_tile, S_tile
+        // This CPU implementation holds one score row, not a Q/K/V SRAM tile.
+        // Reuse the row for every query and tile instead of allocating in the loop.
+        let mut dots = Vec::with_capacity(bkv.min(seq_kv));
+        let peak_sram = dots.capacity().saturating_mul(std::mem::size_of::<f32>());
 
         // Outer loop: iterate over query tiles
-        let num_q_tiles = (seq_q + bq - 1) / bq;
-        let num_kv_tiles = (seq_kv + bkv - 1) / bkv;
+        let num_q_tiles = seq_q.div_ceil(bq);
+        let num_kv_tiles = seq_kv.div_ceil(bkv);
 
         for qi in 0..num_q_tiles {
             let q_start = qi * bq;
-            let q_end = (q_start + bq).min(seq_q);
+            let q_end = q_start.saturating_add(bq).min(seq_q);
             let q_rows = q_end - q_start;
 
             // Inner loop: iterate over key/value tiles
             let kv_limit = if self.config.causal {
                 // For causal masking, only attend to kv positions <= max query position
                 let max_q_pos = q_end - 1;
-                ((max_q_pos + bkv) / bkv).min(num_kv_tiles)
+                (max_q_pos / bkv + 1).min(num_kv_tiles)
             } else {
                 num_kv_tiles
             };
 
             for kvi in 0..kv_limit {
                 let kv_start = kvi * bkv;
-                let kv_end = (kv_start + bkv).min(seq_kv);
+                let kv_end = kv_start.saturating_add(bkv).min(seq_kv);
                 let kv_rows = kv_end - kv_start;
 
                 // Compute S_tile = Q_tile · K_tile^T  (q_rows × kv_rows)
@@ -166,7 +170,7 @@ impl FlashAttention {
                     let mut row_max = m_i[qi_global];
 
                     // First pass: find new max (for numerical stability)
-                    let mut dots = Vec::with_capacity(kv_rows);
+                    dots.clear();
                     for kvi_local in 0..kv_rows {
                         let kvi_global = kv_start + kvi_local;
 
@@ -235,8 +239,8 @@ impl FlashAttention {
             }
         }
 
-        let flops = 2 * (seq_q as u64) * (seq_kv as u64) * (d as u64) // Q·K^T
-                   + 2 * (seq_q as u64) * (seq_kv as u64) * (d as u64); // P·V
+        let flops = 4u64.saturating_mul(seq_q as u64)
+            .saturating_mul(seq_kv as u64).saturating_mul(d as u64);
 
         Ok(FlashAttentionOutput {
             output,
@@ -262,8 +266,13 @@ impl FlashAttention {
     ) -> crate::Result<FlashAttentionOutput> {
         let d = self.config.head_dim;
         let h = self.config.num_heads;
-        let expected_q = batch_size * h * seq_len_q * d;
-        let expected_kv = batch_size * h * seq_len_kv * d;
+        self.validate_config()?;
+        let heads = batch_size.checked_mul(h)
+            .ok_or_else(|| crate::runtime_error!("Flash Attention MHA: dimension overflow"))?;
+        let expected_q = heads.checked_mul(seq_len_q).and_then(|x| x.checked_mul(d))
+            .ok_or_else(|| crate::runtime_error!("Flash Attention MHA: dimension overflow"))?;
+        let expected_kv = heads.checked_mul(seq_len_kv).and_then(|x| x.checked_mul(d))
+            .ok_or_else(|| crate::runtime_error!("Flash Attention MHA: dimension overflow"))?;
 
         if q.len() != expected_q || k.len() != expected_kv || v.len() != expected_kv {
             return Err(crate::error::CudaRustError::RuntimeError(
@@ -297,7 +306,7 @@ impl FlashAttention {
                 all_lse[lse_offset..lse_offset + seq_len_q]
                     .copy_from_slice(&result.logsumexp);
 
-                total_flops += result.flops;
+                total_flops = total_flops.saturating_add(result.flops);
                 if result.peak_sram_bytes > peak_sram {
                     peak_sram = result.peak_sram_bytes;
                 }
@@ -312,14 +321,26 @@ impl FlashAttention {
         })
     }
 
+    fn validate_config(&self) -> crate::Result<()> {
+        if self.config.head_dim == 0 || self.config.num_heads == 0 ||
+            self.config.block_size_q == 0 || self.config.block_size_kv == 0 {
+            return Err(crate::runtime_error!("Flash Attention: head and tile dimensions must be nonzero"));
+        }
+        if !self.config.softmax_scale().is_finite() {
+            return Err(crate::runtime_error!("Flash Attention: scale must be finite"));
+        }
+        if self.config.dropout_p != 0.0 {
+            return Err(crate::error::CudaRustError::NotImplemented(
+                "Flash Attention: CPU reference supports inference with dropout_p=0 only".into()));
+        }
+        Ok(())
+    }
+
     /// Estimate memory savings vs naive attention.
     pub fn memory_savings(&self, seq_len: usize) -> MemorySavings {
-        let d = self.config.head_dim;
-        let naive_bytes = seq_len * seq_len * 4; // Full N×N attention matrix
-        let flash_bytes = (self.config.block_size_q * d
-            + 2 * self.config.block_size_kv * d
-            + self.config.block_size_q * self.config.block_size_kv) * 4
-            + seq_len * 4 * 2; // m, l vectors
+        let naive_bytes = seq_len.saturating_mul(seq_len).saturating_mul(4);
+        let flash_bytes = self.config.block_size_kv.min(seq_len).saturating_mul(4)
+            .saturating_add(seq_len.saturating_mul(4).saturating_mul(3));
 
         MemorySavings {
             naive_bytes,

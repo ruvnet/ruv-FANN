@@ -1,5 +1,9 @@
-//! WebGPU Pipeline Cache and Compilation System
-//! Optimized shader pipeline caching for high-performance neural network operations
+//! Legacy device-less pipeline lookup interface.
+//!
+//! This helper has no GPU device and cannot compile pipelines or create layouts.
+//! Those requests return `UnsupportedOperation`; the real WebGPU backend owns
+//! its device-bound pipeline cache separately. Request counts do not imply a
+//! successful compilation or cache hit.
 
 use crate::webgpu::error::ComputeError;
 use std::collections::HashMap;
@@ -45,7 +49,8 @@ pub struct BindGroupLayout {
     _placeholder: std::marker::PhantomData<()>,
 }
 
-/// High-performance pipeline cache with optimized compilation and reuse
+/// Legacy lookup helper without a GPU device. Compilation and layout creation
+/// explicitly fail, leaving compiled entries and hit statistics unchanged.
 #[derive(Debug)]
 pub struct PipelineCache {
     /// Compiled compute pipelines indexed by shader type
@@ -90,87 +95,31 @@ impl PipelineCache {
         }
     }
 
-    /// Get or compile a compute pipeline with automatic caching
+    /// Request compilation. A device-less helper cannot produce a real pipeline.
     pub fn get_or_compile_pipeline(
         &self,
         shader_type: &ShaderType,
     ) -> Result<Arc<ComputePipeline>, ComputeError> {
-        // Update cache statistics
         {
             let mut stats = self.cache_stats.write().unwrap();
-            stats.pipeline_requests += 1;
+            stats.pipeline_requests = stats.pipeline_requests.saturating_add(1);
         }
-
-        // Try to get from cache first
-        {
-            let pipelines = self.pipelines.read().unwrap();
-            if let Some(pipeline) = pipelines.get(shader_type) {
-                let mut stats = self.cache_stats.write().unwrap();
-                stats.pipeline_hits += 1;
-                return Ok(Arc::clone(pipeline));
-            }
-        }
-
-        // Cache miss - compile new pipeline
-        let start_time = std::time::Instant::now();
-        let pipeline = self.compile_pipeline(shader_type)?;
-        let compilation_time = start_time.elapsed();
-
-        // Update compilation statistics
-        {
-            let mut stats = self.compilation_stats.write().unwrap();
-            stats.total_compilations += 1;
-            stats.compilation_time_ns += compilation_time.as_nanos() as u64;
-            stats.cache_misses += 1;
-            stats.average_compilation_time_ns =
-                stats.compilation_time_ns / stats.total_compilations;
-        }
-
-        // Store in cache
-        let pipeline_arc = Arc::new(pipeline);
-        {
-            let mut pipelines = self.pipelines.write().unwrap();
-            pipelines.insert(shader_type.clone(), Arc::clone(&pipeline_arc));
-        }
-
-        Ok(pipeline_arc)
+        self.compile_pipeline(shader_type).map(Arc::new)
     }
 
-    /// Get or create a bind group layout with caching
+    /// Request a layout. Device-bound layout creation is unsupported here.
     pub fn get_or_create_bind_group_layout(
         &self,
         shader_type: &ShaderType,
     ) -> Result<Arc<BindGroupLayout>, ComputeError> {
-        // Update cache statistics
         {
             let mut stats = self.cache_stats.write().unwrap();
-            stats.layout_requests += 1;
+            stats.layout_requests = stats.layout_requests.saturating_add(1);
         }
-
-        // Try to get from cache first
-        {
-            let layouts = self.bind_group_layouts.read().unwrap();
-            if let Some(layout) = layouts.get(shader_type) {
-                let mut stats = self.cache_stats.write().unwrap();
-                stats.layout_hits += 1;
-                return Ok(Arc::clone(layout));
-            }
-        }
-
-        // Cache miss - create new layout
-        let layout = self.create_bind_group_layout(shader_type)?;
-        let layout_arc = Arc::new(layout);
-
-        // Store in cache
-        {
-            let mut layouts = self.bind_group_layouts.write().unwrap();
-            layouts.insert(shader_type.clone(), Arc::clone(&layout_arc));
-        }
-
-        Ok(layout_arc)
+        self.create_bind_group_layout(shader_type).map(Arc::new)
     }
 
-    /// Precompile commonly used shaders for optimal startup performance
+    /// Attempt warmup; returns the same unsupported error as compilation.
     pub fn warmup_cache(&self) -> Result<(), ComputeError> {
         let common_shaders = vec![
             ShaderType::MatrixVectorMultiply,
@@ -230,34 +179,19 @@ impl PipelineCache {
         stats.pipeline_hits as f64 / stats.pipeline_requests as f64
     }
 
-    /// Compile a shader pipeline (placeholder implementation)
     fn compile_pipeline(&self, _shader_type: &ShaderType) -> Result<ComputePipeline, ComputeError> {
-        // In actual implementation, this would:
-        // 1. Load shader source based on shader_type
-        // 2. Create shader module from WGSL source
-        // 3. Create compute pipeline with proper bind group layout
-        // 4. Return compiled pipeline
-
-        // For now, return placeholder
-        Ok(ComputePipeline {
-            _placeholder: std::marker::PhantomData,
-        })
+        Err(ComputeError::UnsupportedOperation(
+            "Legacy PipelineCache cannot compile without a GPU device; use WebGPUBackend's device-bound cache".into(),
+        ))
     }
 
-    /// Create bind group layout for shader type (placeholder implementation)
     fn create_bind_group_layout(
         &self,
         _shader_type: &ShaderType,
     ) -> Result<BindGroupLayout, ComputeError> {
-        // In actual implementation, this would:
-        // 1. Define buffer bindings based on shader requirements
-        // 2. Create bind group layout with proper visibility and types
-        // 3. Return layout for use in pipeline creation and bind groups
-
-        // For now, return placeholder
-        Ok(BindGroupLayout {
-            _placeholder: std::marker::PhantomData,
-        })
+        Err(ComputeError::UnsupportedOperation(
+            "Legacy PipelineCache cannot create a bind group layout without a GPU device".into(),
+        ))
     }
 }
 
@@ -270,6 +204,77 @@ impl Default for PipelineCache {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn device_less_requests_fail_without_compilations_or_cached_entries() {
+        let cache = PipelineCache::new();
+        for _ in 0..3 {
+            assert!(matches!(
+                cache.get_or_compile_pipeline(&ShaderType::MatrixVectorMultiply),
+                Err(ComputeError::UnsupportedOperation(_))
+            ));
+            assert!(matches!(
+                cache.get_or_create_bind_group_layout(&ShaderType::MatrixVectorMultiply),
+                Err(ComputeError::UnsupportedOperation(_))
+            ));
+        }
+        let (compiled, requested) = cache.get_performance_stats();
+        assert_eq!(requested.pipeline_requests, 3);
+        assert_eq!(requested.layout_requests, 3);
+        assert_eq!(compiled.total_compilations, 0);
+        assert_eq!(compiled.compilation_time_ns, 0);
+        assert_eq!(compiled.average_compilation_time_ns, 0);
+        assert_eq!(compiled.cache_hits, 0);
+        assert_eq!(requested.pipeline_hits, 0);
+        assert_eq!(requested.layout_hits, 0);
+        assert_eq!(requested.memory_usage_bytes, 0);
+        assert_eq!(cache.get_cache_hit_ratio(), 0.0);
+        assert!(cache.pipelines.read().unwrap().is_empty());
+        assert!(cache.bind_group_layouts.read().unwrap().is_empty());
+    }
+
+    #[test]
+    fn unsupported_warmup_never_populates_the_cache_and_clear_resets_requests() {
+        let cache = PipelineCache::new();
+        assert!(matches!(
+            cache.warmup_cache(),
+            Err(ComputeError::UnsupportedOperation(_))
+        ));
+        assert_eq!(cache.get_performance_stats().0.total_compilations, 0);
+        assert_eq!(cache.get_performance_stats().1.pipeline_hits, 0);
+        assert!(cache.pipelines.read().unwrap().is_empty());
+        cache.clear_cache();
+        assert_eq!(cache.get_performance_stats().1.pipeline_requests, 0);
+        assert_eq!(cache.get_performance_stats().1.layout_requests, 0);
+    }
+
+    #[cfg(feature = "gpu")]
+    #[test]
+    fn shader_manager_propagates_unsupported_pipeline_and_layout_errors() {
+        use crate::webgpu::shaders::webgpu_shaders::ShaderManager;
+        let manager = ShaderManager::new().unwrap();
+        let shader = ShaderType::MatrixVectorMultiply;
+        assert!(manager.get_shader_source(&shader).is_some());
+        for _ in 0..2 {
+            assert!(matches!(
+                manager.get_pipeline(&shader),
+                Err(ComputeError::UnsupportedOperation(_))
+            ));
+            assert!(matches!(
+                manager.get_bind_group_layout(&shader),
+                Err(ComputeError::UnsupportedOperation(_))
+            ));
+        }
+        assert!(matches!(
+            manager.warmup_cache(),
+            Err(ComputeError::UnsupportedOperation(_))
+        ));
+        let (compiled, requested) = manager.get_performance_stats();
+        assert_eq!(compiled.total_compilations, 0);
+        assert_eq!(requested.pipeline_hits, 0);
+        assert_eq!(requested.layout_hits, 0);
+        assert_eq!(manager.get_cache_hit_ratio(), 0.0);
+    }
 
     #[test]
     fn test_pipeline_cache_creation() {

@@ -192,33 +192,7 @@ fn momentum_update_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     weight_gradients[index] = new_momentum;
 }
 
-// Adam optimizer state update (simplified version)
-@compute @workgroup_size(256)
-fn adam_update_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-    let index = global_id.x;
-    
-    if (index >= uniforms.input_size) {
-        return;
-    }
-    
-    let gradient = weight_gradients[index];
-    
-    // Note: In full implementation, we would need separate buffers for m and v
-    // For now, this is a placeholder for the Adam update logic
-    let beta1 = 0.9;  // First moment decay
-    let beta2 = 0.999; // Second moment decay
-    let epsilon = 1e-8;
-    
-    // m = beta1 * m + (1 - beta1) * gradient
-    // v = beta2 * v + (1 - beta2) * gradient^2
-    // gradient_adjusted = m / (sqrt(v) + epsilon)
-    
-    // Simplified update (would need proper state management in real implementation)
-    let gradient_squared = gradient * gradient;
-    let adjusted_gradient = gradient / (sqrt(gradient_squared) + epsilon);
-    
-    weight_gradients[index] = adjusted_gradient * uniforms.learning_rate;
-}
+// Stateful Adam and AdamW are implemented in adam_optimizer.wgsl.
 
 // Batch normalization gradient computation
 @compute @workgroup_size(256)

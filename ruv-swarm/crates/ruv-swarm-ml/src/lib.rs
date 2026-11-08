@@ -3,8 +3,6 @@
 //! This crate provides neural forecasting capabilities for agent-specific time series prediction,
 //! ensemble methods, and swarm-level forecasting coordination.
 
-#![cfg_attr(target_arch = "wasm32", no_std)]
-
 extern crate alloc;
 
 #[cfg(target_arch = "wasm32")]
@@ -34,7 +32,7 @@ pub mod models;
 pub mod time_series;
 pub mod integration_example;
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(all(target_arch = "wasm32", feature = "wasm"))]
 pub mod wasm_bindings;
 
 // Re-export main types
@@ -49,5 +47,5 @@ pub use models::{ForecastModel, ModelFactory, ModelType};
 
 pub use time_series::{TimeSeriesData, TimeSeriesProcessor, TransformationType};
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(all(target_arch = "wasm32", feature = "wasm"))]
 pub use wasm_bindings::*;

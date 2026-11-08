@@ -71,7 +71,7 @@ enum Commands {
         #[arg(long)]
         non_interactive: bool,
 
-        /// Skip onboarding flow
+        /// Compatibility flag retained for existing scripts
         #[arg(long)]
         skip_onboarding: bool,
     },

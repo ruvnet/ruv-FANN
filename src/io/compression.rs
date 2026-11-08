@@ -16,14 +16,27 @@ where
     Ok(())
 }
 
-/// Decompress gzip data
-pub fn decompress_data<R, W>(reader: &mut R, writer: &mut W) -> IoResult<()>
-where
-    R: Read,
-    W: Write,
-{
+/// Decompresses gzip data with a default maximum output size of 1 GiB.
+/// A rejected stream may have written a prefix of at most that size.
+pub fn decompress_data<R: Read, W: Write>(reader: &mut R, writer: &mut W) -> IoResult<()> {
+    decompress_data_with_limit(reader, writer, DEFAULT_DECOMPRESS_MAX_BYTES as u64)
+}
+
+/// Decompresses gzip data without writing more than `max_bytes` to the writer.
+/// Use a temporary destination if partial output must not be visible on failure.
+pub fn decompress_data_with_limit<R: Read, W: Write>(
+    reader: &mut R,
+    writer: &mut W,
+    max_bytes: u64,
+) -> IoResult<()> {
     let mut decoder = GzDecoder::new(reader);
-    std::io::copy(&mut decoder, writer)?;
+    std::io::copy(&mut (&mut decoder).take(max_bytes), writer)?;
+    let mut sentinel = [0u8; 1];
+    if decoder.read(&mut sentinel)? != 0 {
+        return Err(crate::io::error::IoError::CompressionError(format!(
+            "Decompressed data exceeds size limit of {max_bytes} bytes"
+        )));
+    }
     Ok(())
 }
 
@@ -61,7 +74,7 @@ pub fn decompress_bytes_with_limit(data: &[u8], max_bytes: usize) -> IoResult<Ve
         if n == 0 {
             break;
         }
-        if decompressed.len() + n > max_bytes {
+        if n > max_bytes.saturating_sub(decompressed.len()) {
             return Err(IoError::CompressionError(format!(
                 "Decompressed data exceeds size limit of {} bytes (possible decompression bomb)",
                 max_bytes

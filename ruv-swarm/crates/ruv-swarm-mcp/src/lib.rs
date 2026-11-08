@@ -1,15 +1,15 @@
 //! RUV-Swarm MCP (Model Context Protocol) Server
 //!
-//! This crate provides a comprehensive MCP server implementation for RUV-Swarm,
+//! This crate provides local MCP stdio and JSON-RPC/WebSocket services for RUV-Swarm,
 //! enabling Claude Code and other MCP-compatible clients to interact with the
 //! swarm orchestration system through a standardized JSON-RPC 2.0 interface.
 //!
 //! ## Features
 //!
-//! - **Complete MCP Implementation**: Full JSON-RPC 2.0 and WebSocket support
-//! - **11 Comprehensive Tools**: Agent spawning, task orchestration, monitoring
+//! - **Local JSON-RPC/WebSocket service**: bounded connections, sessions and requests
+//! - **Tool schemas**: agent/task state and experimental orchestration paths
 //! - **Real-time Event Streaming**: Live updates on swarm activity
-//! - **Session Management**: Secure session handling with metadata support
+//! - **Session Management**: metadata and WebSocket quota accounting; no complete multi-tenant authentication model
 //! - **Performance Metrics**: Built-in performance monitoring and optimization
 //! - **Extensible Architecture**: Easy to add new tools and capabilities
 //!
@@ -22,6 +22,8 @@
 //!
 //! # #[tokio::main]
 //! # async fn main() -> anyhow::Result<()> {
+//! # let db_path = std::env::temp_dir().join(format!("ruv-swarm-doc-{}.db", uuid::Uuid::new_v4()));
+//! # std::env::set_var("RUV_SWARM_DB_PATH", &db_path);
 //! // Create swarm orchestrator
 //! let orchestrator = Arc::new(SwarmOrchestrator::new(SwarmConfig::default()).await);
 //!
@@ -31,6 +33,8 @@
 //! // Create and start server
 //! let server = McpServer::new(orchestrator, config);
 //! // server.start().await?;
+//! # drop(server);
+//! # let _ = std::fs::remove_file(db_path);
 //! # Ok(())
 //! # }
 //! ```
@@ -64,7 +68,7 @@ use dashmap::DashMap;
 use futures::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use tokio::sync::{mpsc, RwLock};
+use tokio::sync::{mpsc, RwLock, Semaphore};
 use tower_http::cors::CorsLayer;
 use tracing::{debug, error, info};
 use uuid::Uuid;
@@ -78,21 +82,21 @@ pub mod tools;
 pub mod types;
 pub mod validation;
 
-use crate::orchestrator::SwarmOrchestrator;
 use crate::handlers::RequestHandler;
 use crate::limits::{ResourceLimiter, ResourceLimits};
+use crate::orchestrator::SwarmOrchestrator;
 use crate::tools::ToolRegistry;
 
 /// MCP Server configuration
-/// 
+///
 /// This struct defines the configuration options for the MCP server,
 /// including network settings, connection limits, and debug options.
-/// 
+///
 /// # Example
-/// 
+///
 /// ```rust
 /// use ruv_swarm_mcp::McpConfig;
-/// 
+///
 /// let config = McpConfig {
 ///     bind_addr: "127.0.0.1:3000".parse().unwrap(),
 ///     max_connections: 100,
@@ -140,6 +144,7 @@ pub struct McpServerState {
     limiter: Arc<ResourceLimiter>,
     /// Server configuration
     config: McpConfig,
+    connection_slots: Arc<Semaphore>,
 }
 
 /// Client session
@@ -151,26 +156,30 @@ pub struct Session {
 }
 
 /// MCP Server
-/// 
+///
 /// The main MCP server that handles WebSocket connections and JSON-RPC requests.
-/// This server implements the Model Context Protocol specification and provides
-/// access to swarm orchestration capabilities through standardized tools.
-/// 
+/// This local WebSocket service has its own JSON-RPC handlers; the separate stdio
+/// service uses the MCP SDK. Some execution paths remain experimental.
+///
 /// # Example
-/// 
+///
 /// ```rust
 /// use std::sync::Arc;
 /// use ruv_swarm_core::SwarmConfig;
 /// use ruv_swarm_mcp::{orchestrator::SwarmOrchestrator, McpConfig, McpServer};
-/// 
+///
 /// # #[tokio::main]
 /// # async fn main() -> anyhow::Result<()> {
+/// # let db_path = std::env::temp_dir().join(format!("ruv-swarm-doc-{}.db", uuid::Uuid::new_v4()));
+/// # std::env::set_var("RUV_SWARM_DB_PATH", &db_path);
 /// let orchestrator = Arc::new(SwarmOrchestrator::new(SwarmConfig::default()).await);
 /// let config = McpConfig::default();
 /// let server = McpServer::new(orchestrator, config);
-/// 
+///
 /// // Start the server
 /// // server.start().await?;
+/// # drop(server);
+/// # let _ = std::fs::remove_file(db_path);
 /// # Ok(())
 /// # }
 /// ```
@@ -194,6 +203,7 @@ impl McpServer {
             tools,
             sessions: Arc::new(DashMap::new()),
             limiter,
+            connection_slots: Arc::new(Semaphore::new(config.max_connections)),
             config,
         });
 
@@ -208,6 +218,7 @@ impl McpServer {
         info!("Starting MCP server on {}", addr);
 
         let listener = tokio::net::TcpListener::bind(addr).await?;
+        info!("MCP server listening on {}", listener.local_addr()?);
         axum::serve(listener, app).await?;
 
         Ok(())
@@ -229,7 +240,8 @@ impl McpServer {
         let mut cors = CorsLayer::new();
 
         // Configure allowed origins
-        let origins: Vec<axum::http::HeaderValue> = if self.state.config.allowed_origins.is_empty() {
+        let origins: Vec<axum::http::HeaderValue> = if self.state.config.allowed_origins.is_empty()
+        {
             // Default to localhost only if no origins specified
             vec![
                 "http://localhost:3000".parse().unwrap(),
@@ -239,13 +251,16 @@ impl McpServer {
             ]
         } else {
             // Use configured origins
-            self.state.config.allowed_origins
+            self.state
+                .config
+                .allowed_origins
                 .iter()
                 .filter_map(|origin| origin.parse().ok())
                 .collect()
         };
 
-        cors = cors.allow_origin(origins)
+        cors = cors
+            .allow_origin(origins)
             .allow_methods([
                 axum::http::Method::GET,
                 axum::http::Method::POST,
@@ -301,7 +316,17 @@ async fn websocket_handler(
     ws: WebSocketUpgrade,
     State(state): State<Arc<McpServerState>>,
 ) -> impl IntoResponse {
-    ws.on_upgrade(move |socket| handle_socket(socket, state))
+    let Ok(permit) = state.connection_slots.clone().try_acquire_owned() else {
+        return axum::http::StatusCode::SERVICE_UNAVAILABLE.into_response();
+    };
+    let max_message_size = ResourceLimits::default().max_message_size;
+    ws.max_message_size(max_message_size)
+        .max_frame_size(max_message_size)
+        .on_upgrade(move |socket| async move {
+            let _permit = permit;
+            handle_socket(socket, state).await;
+        })
+        .into_response()
 }
 
 /// Handle WebSocket connection
@@ -315,10 +340,10 @@ async fn handle_socket(socket: axum::extract::ws::WebSocket, state: Arc<McpServe
     });
 
     state.sessions.insert(session_id, session.clone());
-    
+
     // Initialize resource tracking for this session
     state.limiter.init_session(session_id).await;
-    
+
     info!("New MCP session: {}", session_id);
 
     let (mut sender, mut receiver) = socket.split();
@@ -353,7 +378,13 @@ async fn handle_socket(socket: axum::extract::ws::WebSocket, state: Arc<McpServe
                     *session.last_activity.write().await = chrono::Utc::now();
 
                     // Handle request
-                    match handler.handle_request(request).await {
+                    let response = tokio::time::timeout(
+                        std::time::Duration::from_secs(state.config.request_timeout_secs),
+                        handler.handle_request(request),
+                    )
+                    .await
+                    .unwrap_or_else(|_| Err(anyhow::anyhow!("Request timed out")));
+                    match response {
                         Ok(response) => {
                             if let Ok(json) = serde_json::to_string(&response) {
                                 let _ = tx.send(axum::extract::ws::Message::Text(json)).await;
@@ -365,8 +396,7 @@ async fn handle_socket(socket: axum::extract::ws::WebSocket, state: Arc<McpServe
                                 &session_id,
                                 state.config.debug,
                             );
-                            let error_response =
-                                McpResponse::error(None, -32603, sanitized_error);
+                            let error_response = McpResponse::error(None, -32603, sanitized_error);
                             if let Ok(json) = serde_json::to_string(&error_response) {
                                 let _ = tx.send(axum::extract::ws::Message::Text(json)).await;
                             }

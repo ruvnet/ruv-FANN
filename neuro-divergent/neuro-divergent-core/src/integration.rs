@@ -13,8 +13,10 @@ use num_traits::Float;
 use serde::{Deserialize, Serialize};
 
 use ruv_fann::{
-    ActivationFunction, Network, NetworkBuilder, TrainingAlgorithm, TrainingData,
+    ActivationFunction, Network, NetworkBuilder, TrainingData,
 };
+
+use ruv_fann::training::TrainingAlgorithm;
 
 use crate::{
     data::{SeriesData, TimeSeriesDataset, TimeSeriesDataFrame},
@@ -42,7 +44,7 @@ pub struct NetworkAdapter<T: Float + Send + Sync + 'static> {
 }
 
 /// Configuration for NetworkAdapter
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NetworkAdapterConfig<T: Float + Send + Sync + 'static> {
     /// Input dimension
     pub input_size: usize,
@@ -350,9 +352,9 @@ impl<T: Float + Send + Sync + 'static + 'static> NetworkAdapter<T> {
         let config = NetworkAdapterConfig {
             input_size: network.num_inputs(),
             output_size: network.num_outputs(),
-            hidden_layers: Vec::new(), // TODO: Extract from network
-            activations: Vec::new(),    // TODO: Extract from network
-            use_bias: true,
+            hidden_layers: network.layers.iter().skip(1).take(network.layers.len().saturating_sub(2)).map(|layer| layer.num_regular_neurons()).collect(),
+            activations: network.layers.iter().skip(1).filter_map(|layer| layer.neurons.iter().find(|neuron| !neuron.is_bias).map(|neuron| neuron.activation_function)).collect(),
+            use_bias: network.layers.iter().any(|layer| layer.neurons.iter().any(|neuron| neuron.is_bias)),
             dropout_rates: None,
             network_type: "feedforward".to_string(),
         };
@@ -403,7 +405,11 @@ impl<T: Float + Send + Sync + 'static + 'static> NetworkAdapter<T> {
         }
 
         // Run through network
-        let raw_outputs = self.network.run(&processed_input);
+        let raw_outputs = self.network.run(&processed_input)
+            .map_err(|error| NetworkIntegrationError::ValidationError {
+                message: format!("Network inference failed: {error}"),
+                layer: None,
+            })?;
 
         Ok(NetworkOutput {
             raw_outputs,
@@ -477,71 +483,74 @@ impl<T: Float + Send + Sync + 'static> TrainingBridge<T> {
         data: &TimeSeriesDataset<T>,
         config: &TrainingBridgeConfig<T>,
     ) -> NeuroDivergentResult<T> {
-        // Convert time series data to ruv-FANN training format
-        let training_data = self.prepare_training_data(data)?;
-
-        // Update configuration
+        if config.max_epochs == 0 || !config.learning_rate.is_finite() || config.learning_rate <= T::zero()
+            || !config.target_error.is_finite() || config.target_error < T::zero() {
+            return Err(ErrorBuilder::config("Epoch count/rate must be positive and target error finite and nonnegative").build());
+        }
+        if config.validation_split.is_some() || config.early_stopping.is_some() || config.batch_size.is_some() {
+            return Err(ErrorBuilder::config("Use the explicit chronological forecasting backtester for validation; bridge mini-batching/early-stopping is unsupported").build());
+        }
+        let mut algorithm_state = self.algorithm.save_state();
+        let rate = algorithm_state.algorithm_specific.get_mut("learning_rate")
+            .ok_or_else(|| ErrorBuilder::config("This bridge requires an algorithm exposing a configurable learning_rate").build())?;
+        *rate = vec![config.learning_rate];
+        self.algorithm.restore_state(algorithm_state);
+        let mut training_data = self.prepare_training_data(data, network.num_inputs(), network.num_outputs())?;
         self.config = config.clone();
-
-        // Initialize training state
         {
-            let mut state = self.state.lock().unwrap();
-            state.training_active = true;
-            state.epoch = 0;
-            state.metrics = TrainingStatistics::default();
+            let mut state = self.state.lock().unwrap_or_else(|poison| poison.into_inner());
+            state.training_active = true; state.epoch = 0; state.metrics = TrainingStatistics::default();
         }
-
-        // Execute training loop
-        let mut final_error = T::infinity();
-        for epoch in 0..self.config.max_epochs {
-            let epoch_error = self.algorithm.train_epoch(network, &training_data)
-                .map_err(|e| NetworkIntegrationError::TrainingAlgorithmError {
-                    message: format!("Training epoch {} failed: {}", epoch, e),
-                    algorithm: Some("ruv-fann".to_string()),
-                })?;
-            
-            final_error = epoch_error;
-            
-            // Update training state
-            {
-                let mut state = self.state.lock().unwrap();
+        let started = std::time::Instant::now();
+        let result = (|| {
+            let mut final_error = T::infinity();
+            for epoch in 0..self.config.max_epochs {
+                if self.config.shuffle {
+                    use rand::Rng;
+                    let mut rng = rand::thread_rng();
+                    for index in (1..training_data.inputs.len()).rev() {
+                        let other = rng.gen_range(0..=index);
+                        training_data.inputs.swap(index, other); training_data.outputs.swap(index, other);
+                    }
+                }
+                let epoch_started = std::time::Instant::now();
+                final_error = self.algorithm.train_epoch(network, &training_data)
+                    .map_err(|error| NetworkIntegrationError::TrainingAlgorithmError { message: format!("Training epoch {epoch} failed: {error}"), algorithm: Some("ruv-fann".into()) })?;
+                if !final_error.is_finite() { return Err(ErrorBuilder::training("Non-finite training loss").build()); }
+                let mut state = self.state.lock().unwrap_or_else(|poison| poison.into_inner());
                 state.epoch = epoch + 1;
+                state.metrics.epochs_completed = epoch + 1;
+                state.metrics.training_loss.push(final_error);
+                state.metrics.learning_rate.push(self.config.learning_rate);
+                state.metrics.epoch_times.push(epoch_started.elapsed().as_secs_f64());
+                if final_error <= self.config.target_error { state.metrics.converged = true; break; }
             }
-            
-            // Check for early stopping
-            if epoch_error < T::from(0.001).unwrap() {
-                break;
-            }
-        }
-
-        // Update final state
-        {
-            let mut state = self.state.lock().unwrap();
-            state.training_active = false;
-        }
-
-        Ok(final_error)
+            Ok(final_error)
+        })();
+        let mut state = self.state.lock().unwrap_or_else(|poison| poison.into_inner());
+        state.training_active = false;
+        state.metrics.total_training_time = started.elapsed().as_secs_f64();
+        result
     }
 
     /// Prepare time series data for ruv-FANN training
-    fn prepare_training_data(&self, dataset: &TimeSeriesDataset<T>) -> NeuroDivergentResult<TrainingData<T>> {
-        let mut inputs = Vec::new();
-        let mut outputs = Vec::new();
-
-        for series in dataset.series_data.values() {
-            // Create sliding windows for training
-            let window_size = 10; // TODO: Make configurable
-            let horizon = 1;      // TODO: Make configurable
-
-            for i in 0..(series.target_values.len().saturating_sub(window_size + horizon)) {
-                let input_window = &series.target_values[i..i + window_size];
-                let output_window = &series.target_values[i + window_size..i + window_size + horizon];
-
-                inputs.push(input_window.to_vec());
-                outputs.push(output_window.to_vec());
+    fn prepare_training_data(&self, dataset: &TimeSeriesDataset<T>, window_size: usize, horizon: usize) -> NeuroDivergentResult<TrainingData<T>> {
+        let needed = window_size.checked_add(horizon).filter(|_| window_size > 0 && horizon > 0)
+            .ok_or_else(|| ErrorBuilder::config("Network input/output dimensions must be positive and bounded").build())?;
+        if !dataset.schema.static_features.is_empty() || !dataset.schema.historical_exogenous.is_empty() || !dataset.schema.future_exogenous.is_empty() {
+            return Err(ErrorBuilder::config("The bridge maps univariate target windows; exogenous/static mapping is unsupported").build());
+        }
+        let mut inputs = Vec::new(); let mut outputs = Vec::new();
+        for (id, series) in &dataset.series_data {
+            if series.target_values.len() < needed || series.target_values.iter().any(|value| !value.is_finite()) {
+                return Err(ErrorBuilder::data(format!("Series '{id}' requires at least {needed} finite observations")).build());
+            }
+            for index in 0..=series.target_values.len() - needed {
+                inputs.push(series.target_values[index..index + window_size].to_vec());
+                outputs.push(series.target_values[index + window_size..index + needed].to_vec());
             }
         }
-
+        if inputs.is_empty() { return Err(ErrorBuilder::data("No training windows").build()); }
         Ok(TrainingData { inputs, outputs })
     }
 
@@ -550,8 +559,7 @@ impl<T: Float + Send + Sync + 'static> TrainingBridge<T> {
         &mut self,
         _config: CascadeConfig<T>,
     ) -> NeuroDivergentResult<()> {
-        // TODO: Implement cascade correlation configuration
-        Ok(())
+        Err(ErrorBuilder::config("Cascade-correlation training is not implemented by this bridge").build())
     }
 
     /// Get training state
@@ -722,12 +730,11 @@ mod tests {
 
     #[test]
     fn test_network_adapter_creation() {
-        let network = NetworkBuilder::new()
+        let network = NetworkBuilder::<f64>::new()
             .input_layer(3)
             .hidden_layer(5)
             .output_layer(1)
-            .build::<f64>()
-            .unwrap();
+            .build();
 
         let adapter = NetworkAdapter::from_network(network);
         assert_eq!(adapter.config.input_size, 3);
@@ -735,8 +742,30 @@ mod tests {
     }
 
     #[test]
+    fn network_adapter_propagates_checked_core_inference_errors() {
+        let network = NetworkBuilder::<f64>::new().input_layer(2)
+            .output_layer_with_activation(1, ActivationFunction::Linear, 1.0).build();
+        let mut adapter = NetworkAdapter::from_network(network);
+        adapter.network_mut().set_weights(&[0.5, -0.25, 0.1]).unwrap();
+        let input = TimeSeriesInput {
+            target_history: vec![1.0, 2.0],
+            exogenous_history: None,
+            exogenous_future: None,
+            static_features: None,
+            timestamps: Vec::new(),
+            series_id: "test".to_string(),
+            metadata: HashMap::new(),
+        };
+        let output = adapter.forward(&input).unwrap();
+        assert!((output.raw_outputs[0] - 0.1).abs() < 1e-12);
+        adapter.network_mut().layers.clear();
+        let error = adapter.forward(&input).unwrap_err();
+        assert!(error.to_string().contains("Network has no layers"));
+    }
+
+    #[test]
     fn test_training_bridge_creation() {
-        let algorithm = Box::new(ruv_fann::training::BackpropagationAlgorithm::new());
+        let algorithm = Box::new(ruv_fann::training::IncrementalBackprop::new(0.01));
         let bridge = TrainingBridge::<f64>::new(algorithm);
         
         assert_eq!(bridge.config.max_epochs, 1000);
@@ -782,3 +811,6 @@ mod tests {
         assert_eq!(config.hidden_layers, deserialized.hidden_layers);
     }
 }
+#[cfg(test)]
+#[path = "integration_regression_tests.rs"]
+mod integration_regression_tests;

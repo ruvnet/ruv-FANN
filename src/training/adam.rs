@@ -188,7 +188,8 @@ impl<T: Float + Send + Default> Adam<T> {
                 for neuron in &layer.neurons {
                     for conn in &neuron.connections {
                         if update_idx < weight_updates[layer_idx].len() {
-                            weight_updates[layer_idx][update_idx] = weight_updates[layer_idx][update_idx]
+                            weight_updates[layer_idx][update_idx] = weight_updates[layer_idx]
+                                [update_idx]
                                 - self.learning_rate * self.weight_decay * conn.weight;
                             update_idx += 1;
                         }

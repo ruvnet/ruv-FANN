@@ -100,21 +100,63 @@ impl fmt::Display for ValidationReport {
 #[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]
 pub enum ValidationError {
     /// Data is missing or empty
-    MissingData { field: String, details: String },
+    MissingData {
+        /// Field or column involved in the validation result.
+        field: String,
+        /// Additional diagnostic information.
+        details: String,
+    },
     /// Invalid data format
-    InvalidFormat { field: String, details: String },
+    InvalidFormat {
+        /// Field or column involved in the validation result.
+        field: String,
+        /// Additional diagnostic information.
+        details: String,
+    },
     /// Data type mismatch
-    TypeMismatch { field: String, expected: String, actual: String },
+    TypeMismatch {
+        /// Field or column involved in the validation result.
+        field: String,
+        /// Expected shape or type.
+        expected: String,
+        /// Observed shape or type.
+        actual: String,
+    },
     /// Data range violation
-    OutOfRange { field: String, value: String, min: Option<String>, max: Option<String> },
+    OutOfRange {
+        /// Field or column involved in the validation result.
+        field: String,
+        /// Value that failed validation.
+        value: String,
+        /// Minimum permitted value, when configured.
+        min: Option<String>,
+        /// Maximum permitted value, when configured.
+        max: Option<String>,
+    },
     /// Duplicate data detected
-    DuplicateData { field: String, details: String },
+    DuplicateData {
+        /// Field or column involved in the validation result.
+        field: String,
+        /// Additional diagnostic information.
+        details: String,
+    },
     /// Temporal consistency violation
-    TemporalError { details: String },
+    TemporalError {
+        /// Additional diagnostic information.
+        details: String,
+    },
     /// Statistical anomaly
-    StatisticalAnomaly { test: String, details: String },
+    StatisticalAnomaly {
+        /// Statistical test that produced the result.
+        test: String,
+        /// Additional diagnostic information.
+        details: String,
+    },
     /// Data integrity violation
-    IntegrityViolation { details: String },
+    IntegrityViolation {
+        /// Additional diagnostic information.
+        details: String,
+    },
 }
 
 impl fmt::Display for ValidationError {
@@ -159,15 +201,38 @@ impl fmt::Display for ValidationError {
 #[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]
 pub enum ValidationWarning {
     /// Potential data quality issue
-    DataQuality { field: String, details: String },
+    DataQuality {
+        /// Field or column involved in the validation result.
+        field: String,
+        /// Additional diagnostic information.
+        details: String,
+    },
     /// Suspicious patterns detected
-    SuspiciousPattern { pattern: String, details: String },
+    SuspiciousPattern {
+        /// Pattern detected in the observations.
+        pattern: String,
+        /// Additional diagnostic information.
+        details: String,
+    },
     /// Performance concern
-    Performance { details: String },
+    Performance {
+        /// Additional diagnostic information.
+        details: String,
+    },
     /// Missing optional data
-    MissingOptional { field: String, details: String },
+    MissingOptional {
+        /// Field or column involved in the validation result.
+        field: String,
+        /// Additional diagnostic information.
+        details: String,
+    },
     /// Statistical concern
-    StatisticalConcern { test: String, details: String },
+    StatisticalConcern {
+        /// Statistical test that produced the result.
+        test: String,
+        /// Additional diagnostic information.
+        details: String,
+    },
 }
 
 impl fmt::Display for ValidationWarning {
@@ -307,6 +372,7 @@ impl<T: Float> DataValidator<T> {
     /// Set the value range for validation
     pub fn with_value_range(mut self, min: T, max: T) -> Self {
         self.config.value_range = Some((min, max));
+        self.config.check_value_ranges = true;
         self
     }
     
@@ -964,10 +1030,12 @@ pub fn validate_time_series<T: Float>(data: &TimeSeriesData<T>) -> ValidationRep
     DataValidator::new().validate_series(data)
 }
 
+/// Validate every series in a dataset and return the combined report.
 pub fn validate_time_series_dataset<T: Float>(dataset: &TimeSeriesDataset<T>) -> ValidationReport {
     DataValidator::new().validate_dataset(dataset)
 }
 
+/// Return an error when a series fails the default quality checks.
 pub fn quick_data_quality_check<T: Float>(data: &TimeSeriesData<T>) -> Result<()> {
     let report = validate_time_series(data);
     
@@ -1018,7 +1086,7 @@ mod tests {
     
     #[test]
     fn test_empty_series_validation() {
-        let data = TimeSeriesData::new("empty".to_string(), "D".to_string());
+        let data = TimeSeriesData::<f64>::new("empty".to_string(), "D".to_string());
         let validator = DataValidator::new();
         let report = validator.validate_series(&data);
         
@@ -1062,13 +1130,16 @@ mod tests {
         ];
         let values = vec![10.0, 12.0, 11.0];
         
-        let data = TimeSeriesDatasetBuilder::new("test_series".to_string())
+        let mut data = TimeSeriesDatasetBuilder::new("test_series".to_string())
             .with_frequency("D".to_string())
             .with_values(values)
             .with_timestamps(timestamps)
             .build()
             .unwrap();
         
+        // Builders sort timestamps; corrupt the stored order explicitly to
+        // exercise validation of manually modified input.
+        data.data_points.swap(1, 2);
         let validator = DataValidator::new();
         let report = validator.validate_series(&data);
         
@@ -1089,15 +1160,13 @@ mod tests {
     
     #[test]
     fn test_outlier_detection() {
-        let timestamps = vec![
-            chrono::Utc.ymd_opt(2023, 1, 1).unwrap().and_hms_opt(0, 0, 0).unwrap(),
-            chrono::Utc.ymd_opt(2023, 1, 2).unwrap().and_hms_opt(0, 0, 0).unwrap(),
-            chrono::Utc.ymd_opt(2023, 1, 3).unwrap().and_hms_opt(0, 0, 0).unwrap(),
-            chrono::Utc.ymd_opt(2023, 1, 4).unwrap().and_hms_opt(0, 0, 0).unwrap(),
-            chrono::Utc.ymd_opt(2023, 1, 5).unwrap().and_hms_opt(0, 0, 0).unwrap(),
-        ];
-        let values = vec![10.0, 12.0, 100.0, 13.0, 12.5]; // 100.0 is an outlier
-        
+        // A population z-score cannot exceed sqrt(n - 1); five observations
+        // cannot demonstrate the configured 3-sigma threshold.
+        let start = chrono::Utc.with_ymd_and_hms(2023, 1, 1, 0, 0, 0).unwrap();
+        let timestamps = (0..32).map(|i| start + Duration::days(i)).collect();
+        let mut values = (0..32).map(|i| 10.0 + (i % 4) as f64).collect::<Vec<_>>();
+        values[16] = 100.0;
+
         let data = TimeSeriesDatasetBuilder::new("test_series".to_string())
             .with_frequency("D".to_string())
             .with_values(values)
@@ -1166,7 +1235,7 @@ mod tests {
         assert!(quick_data_quality_check(&data).is_ok());
         
         // Test with invalid data
-        let invalid_data = TimeSeriesData::new("empty".to_string(), "D".to_string());
+        let invalid_data = TimeSeriesData::<f64>::new("empty".to_string(), "D".to_string());
         assert!(quick_data_quality_check(&invalid_data).is_err());
     }
 }

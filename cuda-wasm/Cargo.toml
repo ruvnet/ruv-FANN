@@ -1,11 +1,11 @@
 [package]
 name = "cuda-rust-wasm"
-version = "0.1.6"
+version = "0.2.0"
 edition = "2021"
 authors = ["CUDA-Rust Team"]
 description = "CUDA to Rust transpiler with WebGPU/WASM support"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/vibecast/cuda-rust-wasm"
+repository = "https://github.com/ruvnet/ruv-FANN"
 keywords = ["cuda", "gpu", "webgpu", "wasm", "transpiler"]
 categories = ["development-tools", "web-programming", "wasm"]
 
@@ -59,6 +59,7 @@ wasm-bindgen-futures = "0.4"
 web-sys = { version = "0.3", features = [
     "console",
     "Window",
+    "Performance",
     "Document",
     "Element",
     "HtmlCanvasElement",
@@ -76,6 +77,7 @@ web-sys = { version = "0.3", features = [
 ] }
 js-sys = "0.3"
 console_error_panic_hook = "0.1"
+wasm-logger = "0.2"
 # Override tokio for WASM to exclude net features
 tokio = { version = "1.35", features = ["rt", "sync", "time"], default-features = false }
 wgpu = { version = "0.19", features = ["webgl"] }
@@ -87,7 +89,7 @@ cuda-sys = { version = "0.2", optional = true }
 opencl3 = { version = "0.9", optional = true }
 vulkano = { version = "0.34", optional = true }
 # HTTP client for Nutanix Prism Central API
-reqwest = { version = "0.11", features = ["json", "rustls-tls"], default-features = false, optional = true }
+reqwest = { version = "0.12.28", features = ["json", "rustls-tls"], default-features = false, optional = true }
 
 [dev-dependencies]
 # Benchmarking
@@ -106,17 +108,14 @@ tempfile = "3.8"
 # Async testing
 tokio-test = "0.4"
 
-# Coverage
-cargo-tarpaulin = "0.27"
-
 [build-dependencies]
-lalrpop = "0.20"  # Parser generator for complex grammars
 bindgen = { version = "0.69", optional = true }  # For native bindings
 cc = "1.0"  # C/C++ compilation
 pkg-config = "0.3"  # System dependency detection
 
 [features]
-default = ["native-gpu", "serde"]
+# Portable CPU/parser use must not require CUDA or OpenCL development libraries.
+default = ["serde"]
 native-gpu = ["cuda-sys", "opencl3"]
 vulkan = ["vulkano"]
 cuda-backend = ["cuda-sys"]
@@ -173,7 +172,11 @@ name = "transpiler_benchmarks"
 harness = false
 
 [[bench]]
-name = "wasm_vs_native_benchmarks"
+name = "cpu_vector_benchmarks"
+harness = false
+
+[[bench]]
+name = "performance_benchmarks"
 harness = false
 
 [[bench]]

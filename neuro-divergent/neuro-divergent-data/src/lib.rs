@@ -1,52 +1,4 @@
-//! # Neuro-Divergent Data Pipeline
-//!
-//! A comprehensive data processing and validation pipeline for neural forecasting applications.
-//! This crate provides efficient, memory-safe data processing capabilities specifically designed
-//! for time series forecasting with neural networks.
-//!
-//! ## Features
-//!
-//! - **Time Series Preprocessing**: Scaling, normalization, differencing
-//! - **Feature Engineering**: Lag features, rolling statistics, temporal features
-//! - **Data Validation**: Comprehensive data quality checks
-//! - **Cross-Validation**: Time series specific CV strategies
-//! - **Data Loaders**: Efficient batch loading for training
-//! - **Missing Value Handling**: Interpolation and imputation strategies
-//! - **Data Augmentation**: Time series augmentation techniques
-//!
-//! ## Example Usage
-//!
-//! ```rust,no_run
-//! use neuro_divergent_data::prelude::*;
-//! use chrono::{DateTime, Utc};
-//!
-//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
-//! // Create a time series dataset
-//! let timestamps: Vec<DateTime<Utc>> = vec![/* your timestamps */];
-//! let values: Vec<f64> = vec![1.0, 2.0, 3.0, 4.0, 5.0];
-//! 
-//! let mut dataset = TimeSeriesDataset::new("series_1".to_string())
-//!     .with_values(values)
-//!     .with_timestamps(timestamps)
-//!     .with_frequency("D".to_string())
-//!     .build()?;
-//!
-//! // Apply preprocessing
-//! let mut preprocessor = StandardScaler::default();
-//! preprocessor.fit(&dataset.values)?;
-//! let normalized_data = preprocessor.transform(&dataset.values)?;
-//!
-//! // Generate features
-//! let mut feature_engine = FeatureEngine::new()
-//!     .with_lag_features(vec![1, 2, 3, 7])
-//!     .with_rolling_features(vec![7, 14, 30])
-//!     .with_temporal_features(true);
-//!
-//! let features = feature_engine.generate_features(&dataset)?;
-//!
-//! # Ok(())
-//! # }
-//! ```
+#![doc = include_str!("../README.md")]
 
 #![deny(missing_docs)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
@@ -61,10 +13,6 @@ use serde::{Deserialize, Serialize};
 pub mod preprocessing;
 pub mod features;
 pub mod validation;
-pub mod crossval;
-pub mod loaders;
-pub mod transforms;
-pub mod augmentation;
 
 // Re-export commonly used types
 pub use chrono::{DateTime, Utc};
@@ -77,10 +25,6 @@ pub mod prelude {
         preprocessing::*,
         features::*,
         validation::*,
-        crossval::*,
-        loaders::*,
-        transforms::*,
-        augmentation::*,
     };
     pub use chrono::{DateTime, Utc};
     pub use ndarray::{Array1, Array2};
@@ -91,20 +35,30 @@ pub mod prelude {
 pub enum DataPipelineError {
     /// Invalid data format or structure
     #[error("Invalid data format: {message}")]
-    InvalidFormat { message: String },
+    InvalidFormat {
+        /// Description of the failure.
+        message: String,
+    },
     
     /// Missing required data
     #[error("Missing data: {field}")]
-    MissingData { field: String },
+    MissingData {
+        /// Field or column involved in the validation result.
+        field: String,
+    },
     
     /// Data validation failed
     #[error("Validation failed: {reason}")]
-    ValidationFailed { reason: String },
+    ValidationFailed {
+        /// Reason validation failed.
+        reason: String,
+    },
     
     /// Input/Output error
     #[error("I/O error: {source}")]
     IoError {
         #[from]
+        /// Underlying error returned by the operation.
         source: std::io::Error,
     },
     
@@ -113,24 +67,41 @@ pub enum DataPipelineError {
     #[error("Serialization error: {source}")]
     SerializationError {
         #[from]
+        /// Underlying error returned by the operation.
         source: serde_json::Error,
     },
     
     /// Computation error
     #[error("Computation error: {message}")]
-    ComputationError { message: String },
+    ComputationError {
+        /// Description of the failure.
+        message: String,
+    },
     
     /// Index out of bounds
     #[error("Index out of bounds: {index} >= {length}")]
-    IndexOutOfBounds { index: usize, length: usize },
+    IndexOutOfBounds {
+        /// Requested index.
+        index: usize,
+        /// Number of available elements.
+        length: usize,
+    },
     
     /// Incompatible dimensions
     #[error("Incompatible dimensions: expected {expected}, got {actual}")]
-    IncompatibleDimensions { expected: String, actual: String },
+    IncompatibleDimensions {
+        /// Expected shape or type.
+        expected: String,
+        /// Observed shape or type.
+        actual: String,
+    },
     
     /// Configuration error
     #[error("Configuration error: {message}")]
-    ConfigError { message: String },
+    ConfigError {
+        /// Description of the failure.
+        message: String,
+    },
 }
 
 /// Specialized Result type for data pipeline operations

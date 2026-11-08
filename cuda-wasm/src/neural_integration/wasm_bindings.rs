@@ -91,7 +91,7 @@ pub struct WasmSystemCapabilities {
 impl Default for WasmBridgeConfig {
     fn default() -> Self {
         Self {
-            enable_gpu: true,
+            enable_gpu: crate::backend::gpu_enabled(),
             gpu_device: "auto".to_string(),
             memory_pool_size: 512,
             enable_monitoring: true,
@@ -680,9 +680,6 @@ impl WasmSystemCapabilities {
 pub fn init_wasm() {
     console_error_panic_hook::set_once();
     
-    // Set up logging
-    wasm_logger::init(wasm_logger::Config::default());
-    
     // Initialize neural integration
     if let Err(e) = crate::neural_integration::initialize() {
         console::error_1(&format!("Failed to initialize neural integration: {}", e).into());
@@ -798,7 +795,7 @@ mod tests {
         let rust_config: BridgeConfig = wasm_config;
         
         assert_eq!(rust_config.batch_size, 32);
-        assert!(rust_config.enable_gpu);
+        assert_eq!(rust_config.enable_gpu, crate::backend::gpu_enabled());
     }
     
     #[cfg(target_arch = "wasm32")]

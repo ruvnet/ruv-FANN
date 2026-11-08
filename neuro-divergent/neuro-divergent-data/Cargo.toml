@@ -1,36 +1,30 @@
 [package]
 name = "neuro-divergent-data"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "Comprehensive data processing and validation pipeline for neural forecasting"
 license = "MIT OR Apache-2.0"
 authors = ["ruv-FANN Contributors"]
-repository = "https://github.com/ruv-inc/ruv-FANN"
+repository = "https://github.com/ruvnet/ruv-FANN"
 keywords = ["neural-networks", "time-series", "forecasting", "data-processing", "machine-learning"]
 categories = ["science", "mathematics", "algorithms"]
 
 [features]
 default = ["std", "serde_support", "parallel"]
 std = []
-serde_support = ["serde", "serde_json", "chrono/serde"]
-parallel = ["rayon"]
+serde_support = ["serde", "serde_json", "chrono/serde", "ndarray/serde"]
+parallel = ["dep:rayon", "ndarray/rayon"]
 simd = []
 
 [dependencies]
-# Internal dependencies
-neuro-divergent-core = { version = "0.1.0", path = "../neuro-divergent-core" }
-
 # Core numeric traits and operations  
 num-traits = "0.2"
-num-complex = "0.4"
 
 # Date and time handling
 chrono = { version = "0.4", features = ["std"] }
 
 # Statistical and mathematical operations
-statrs = "0.16"
-ndarray = { version = "0.15", features = ["rayon"] }
-ndarray-stats = "0.5"
+ndarray = "0.15"
 
 # Serialization support
 serde = { version = "1.0", features = ["derive"], optional = true }
@@ -44,25 +38,9 @@ thiserror = "1.0"
 
 # Random number generation
 rand = "0.8"
-rand_distr = "0.4"
-
-# Data format support
-csv = "1.2"
-arrow = { version = "52.0", features = ["csv", "json"] }
-polars = { version = "0.33", features = ["lazy", "temporal", "csv", "json", "parquet"] }
-
-# Interpolation and numerical methods
-interpolate = "0.2"
-splines = "4.2"
 
 # FFT for Fourier features
 rustfft = "6.1"
-
-# Memory efficient collections
-smallvec = "1.11"
-
-# Logging
-log = "0.4"
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }

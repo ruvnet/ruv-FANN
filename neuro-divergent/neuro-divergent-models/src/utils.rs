@@ -17,6 +17,12 @@ pub mod math {
             return Err(NeuroDivergentError::dimension_mismatch(actual.len(), predicted.len()));
         }
         
+        if actual.is_empty() {
+            return Err(NeuroDivergentError::data("Cannot score empty forecasts"));
+        }
+        validation::validate_finite(actual, "actual")?;
+        validation::validate_finite(predicted, "predicted")?;
+
         let sum = actual.iter()
             .zip(predicted.iter())
             .map(|(&a, &p)| {
@@ -34,6 +40,12 @@ pub mod math {
             return Err(NeuroDivergentError::dimension_mismatch(actual.len(), predicted.len()));
         }
         
+        if actual.is_empty() {
+            return Err(NeuroDivergentError::data("Cannot score empty forecasts"));
+        }
+        validation::validate_finite(actual, "actual")?;
+        validation::validate_finite(predicted, "predicted")?;
+
         let sum = actual.iter()
             .zip(predicted.iter())
             .map(|(&a, &p)| (a - p).abs())
@@ -50,7 +62,10 @@ pub mod math {
     
     /// Apply softmax function
     pub fn softmax<T: Float + Send + Sync + std::fmt::Debug + std::iter::Sum + 'static>(inputs: &[T]) -> Vec<T> {
-        let max_val = inputs.iter().fold(inputs[0], |max, &x| max.max(x));
+        let Some(&first) = inputs.first() else {
+            return Vec::new();
+        };
+        let max_val = inputs.iter().fold(first, |max, &x| max.max(x));
         let exp_values: Vec<T> = inputs.iter()
             .map(|&x| (x - max_val).exp())
             .collect();
@@ -85,12 +100,17 @@ pub mod math {
             return Err(NeuroDivergentError::dimension_mismatch(cols_a, rows_b));
         }
         
+        if cols_a == 0 || cols_b == 0
+            || a.iter().any(|row| row.len() != cols_a)
+            || b.iter().any(|row| row.len() != cols_b)
+        {
+            return Err(NeuroDivergentError::data("Matrices must be nonempty and rectangular"));
+        }
         let mut result = vec![vec![T::zero(); cols_b]; rows_a];
-        
-        for i in 0..rows_a {
-            for j in 0..cols_b {
-                for k in 0..cols_a {
-                    result[i][j] = result[i][j] + a[i][k] * b[k][j];
+        for (a_row, result_row) in a.iter().zip(result.iter_mut()) {
+            for (&a_value, b_row) in a_row.iter().zip(b.iter()) {
+                for (value, &b_value) in result_row.iter_mut().zip(b_row.iter()) {
+                    *value = *value + a_value * b_value;
                 }
             }
         }
@@ -323,15 +343,10 @@ pub mod timeseries {
         window_size: usize, 
         step_size: usize
     ) -> Vec<Vec<T>> {
-        let mut windows = Vec::new();
-        
-        for i in (0..data.len()).step_by(step_size) {
-            if i + window_size <= data.len() {
-                windows.push(data[i..i + window_size].to_vec());
-            }
+        if window_size == 0 || step_size == 0 || window_size > data.len() {
+            return Vec::new();
         }
-        
-        windows
+        data.windows(window_size).step_by(step_size).map(<[T]>::to_vec).collect()
     }
     
     /// Split time series into train/validation sets
@@ -339,7 +354,7 @@ pub mod timeseries {
         data: &[T], 
         validation_split: f64
     ) -> NeuroDivergentResult<(Vec<T>, Vec<T>)> {
-        if validation_split < 0.0 || validation_split >= 1.0 {
+        if !validation_split.is_finite() || !(0.0..1.0).contains(&validation_split) {
             return Err(NeuroDivergentError::config(
                 "Validation split must be in range [0, 1)"
             ));
@@ -383,3 +398,7 @@ pub mod timeseries {
         Ok((trend, seasonal))
     }
 }
+
+#[cfg(test)]
+#[path = "utility_tests.rs"]
+mod tests;

@@ -49,32 +49,98 @@ fn create_test_instance() -> SWEBenchInstance {
     }
 }
 
+const LOCAL_PATCH: &str = "diff --git a/example.txt b/example.txt\n--- a/example.txt\n+++ b/example.txt\n@@ -1 +1 @@\n-before\n+after\n";
+
+struct LocalFixture {
+    directory: tempfile::TempDir,
+    instance: SWEBenchInstance,
+}
+
+impl LocalFixture {
+    fn new() -> Self {
+        let directory = tempfile::tempdir().unwrap();
+        let command = |arguments: &[&str]| {
+            let status = std::process::Command::new("git")
+                .current_dir(directory.path())
+                .args(arguments)
+                .status()
+                .unwrap();
+            assert!(status.success());
+        };
+        command(&["init", "--quiet"]);
+        std::fs::write(directory.path().join("example.txt"), "before\n").unwrap();
+        command(&["add", "example.txt"]);
+        command(&[
+            "-c",
+            "user.name=Fixture",
+            "-c",
+            "user.email=fixture@example.invalid",
+            "-c",
+            "commit.gpgsign=false",
+            "commit",
+            "--quiet",
+            "-m",
+            "fixture",
+        ]);
+        let mut instance = create_test_instance();
+        instance.repo = directory.path().to_string_lossy().into_owned();
+        instance.test_directives = vec!["git diff --check".into()];
+        Self {
+            directory,
+            instance,
+        }
+    }
+    fn reset(&self) {
+        assert!(std::process::Command::new("git")
+            .current_dir(self.directory.path())
+            .args(["reset", "--hard", "--quiet", "HEAD"])
+            .status()
+            .unwrap()
+            .success());
+    }
+    fn evaluator(&self) -> PatchEvaluator {
+        PatchEvaluator::new(swe_bench_adapter::EvalConfig {
+            sandbox_enabled: false,
+            ..Default::default()
+        })
+        .with_working_directory(self.directory.path())
+        .unwrap()
+    }
+    fn dataset_directory(&self) -> std::path::PathBuf {
+        let path = self.directory.path().join("instances");
+        std::fs::create_dir_all(&path).unwrap();
+        std::fs::write(
+            path.join("bench-001.json"),
+            serde_json::to_vec(&self.instance).unwrap(),
+        )
+        .unwrap();
+        path
+    }
+}
+
 fn benchmark_instance_loading(c: &mut Criterion) {
     let mut group = c.benchmark_group("instance_loading");
-    group.measurement_time(Duration::from_secs(10));
-
     let runtime = tokio::runtime::Runtime::new().unwrap();
-
+    let fixture = LocalFixture::new();
+    let path = fixture.dataset_directory();
     group.bench_function("load_single_instance", |b| {
         b.iter(|| {
             runtime.block_on(async {
-                let mut loader = InstanceLoader::new("./bench-instances").unwrap();
-                let instance = loader.load_instance(black_box("bench-001")).await;
-                instance
+                let mut loader = InstanceLoader::new(&path).unwrap();
+                black_box(loader.load_instance("bench-001").await.unwrap())
             })
         })
     });
-
     group.bench_function("load_multiple_instances", |b| {
         b.iter(|| {
             runtime.block_on(async {
-                let mut loader = InstanceLoader::new("./bench-instances").unwrap();
-                let instances = loader.load_instances(None).await;
-                instances
+                let mut loader = InstanceLoader::new(&path).unwrap();
+                let instances = loader.load_instances(None).await.unwrap();
+                assert_eq!(instances.len(), 1);
+                black_box(instances)
             })
         })
     });
-
     group.finish();
 }
 
@@ -156,65 +222,60 @@ Task completed with 2 tool calls.
 
 fn benchmark_patch_evaluation(c: &mut Criterion) {
     let mut group = c.benchmark_group("patch_evaluation");
-    group.measurement_time(Duration::from_secs(20));
-
     let runtime = tokio::runtime::Runtime::new().unwrap();
-    let config = swe_bench_adapter::EvalConfig::default();
-    let evaluator = PatchEvaluator::new(config);
-    let instance = create_test_instance();
-
-    let test_patch = r#"
-diff --git a/src/main.rs b/src/main.rs
---- a/src/main.rs
-+++ b/src/main.rs
-@@ -1,5 +1,6 @@
- fn main() {
-+    // Added initialization
-     println!("Hello, world!");
- }
-"#;
-
-    group.bench_function("evaluate_simple_patch", |b| {
+    let fixture = LocalFixture::new();
+    let evaluator = fixture.evaluator();
+    group.bench_function("evaluate_local_patch", |b| {
         b.iter(|| {
-            runtime.block_on(async {
-                evaluator
-                    .evaluate_patch(black_box(&instance), black_box(test_patch))
-                    .await
-            })
+            fixture.reset();
+            let result = runtime
+                .block_on(evaluator.evaluate_patch(&fixture.instance, black_box(LOCAL_PATCH)))
+                .unwrap();
+            assert!(result.patch_applied && result.passed);
+            black_box(result)
         })
     });
-
     group.bench_function("patch_comparison", |b| {
-        let patch1 = test_patch;
-        let patch2 = test_patch.replace("initialization", "setup");
-        b.iter(|| evaluator.compare_patches(black_box(patch1), black_box(patch2)))
+        let other = LOCAL_PATCH.replace("after", "changed");
+        b.iter(|| evaluator.compare_patches(black_box(LOCAL_PATCH), black_box(&other)))
     });
-
     group.finish();
 }
 
 fn benchmark_full_evaluation(c: &mut Criterion) {
-    let mut group = c.benchmark_group("full_evaluation");
-    group.sample_size(10);
-    group.measurement_time(Duration::from_secs(30));
-
+    use ruv_swarm_agents::FunctionAgent;
+    use ruv_swarm_core::Task;
+    let mut group = c.benchmark_group("full_local_fixture_evaluation");
     let runtime = tokio::runtime::Runtime::new().unwrap();
-
-    group.bench_function("end_to_end_evaluation", |b| {
+    let fixture = LocalFixture::new();
+    let config = SWEBenchConfig {
+        instances_path: fixture.dataset_directory(),
+        memory_path: fixture.directory.path().join("results.db"),
+        ..Default::default()
+    };
+    let adapter = runtime
+        .block_on(SWEBenchAdapter::new(config))
+        .unwrap()
+        .with_patch_evaluator(fixture.evaluator());
+    let mut agent = FunctionAgent::new("fixture-patch", vec![], |_: Task| async {
+        Ok::<_, std::io::Error>(swe_bench_adapter::ExecutionResult {
+            output: "fixture patch".into(),
+            patch: LOCAL_PATCH.into(),
+            exit_code: 0,
+            duration: Duration::ZERO,
+        })
+    })
+    .unwrap();
+    group.bench_function("actual_handler_and_local_patch_check", |b| {
         b.iter(|| {
-            runtime.block_on(async {
-                let config = SWEBenchConfig::default();
-                let adapter = SWEBenchAdapter::new(config).await.unwrap();
-
-                // Note: In a real benchmark, you would use an actual agent implementation
-                // For now, this is commented out as it requires a concrete Agent implementation
-
-                // adapter.evaluate_instance(black_box("test-001"), black_box(&agent)).await
-                Ok(())
-            })
+            fixture.reset();
+            let result = runtime
+                .block_on(adapter.evaluate_instance_with_agent("bench-001", &mut agent))
+                .unwrap();
+            assert!(result.patch_result.patch_applied && result.patch_result.passed);
+            black_box(result)
         })
     });
-
     group.finish();
 }
 

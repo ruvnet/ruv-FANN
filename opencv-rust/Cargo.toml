@@ -2,18 +2,20 @@
 members = [
     "opencv-core",
     "opencv-wasm",
-    "opencv-sdk"
+    "opencv-sdk",
+    "opencv-sys"
 ]
 resolver = "2"
 
 [workspace.package]
-version = "4.8.1"
+version = "4.9.0"
 edition = "2021"
+rust-version = "1.88"
 authors = ["ruv-FANN Team <team@ruv-fann.org>"]
 license = "Apache-2.0"
 repository = "https://github.com/ruvnet/ruv-FANN"
 homepage = "https://ruv-fann.org"
-description = "Complete OpenCV 4.x implementation in Rust with FANN integration"
+description = "Rust matrix primitives and experimental browser and SDK adapters"
 keywords = ["opencv", "computer-vision", "image-processing", "rust", "fann"]
 categories = ["computer-vision", "multimedia::images", "science"]
 

@@ -46,8 +46,8 @@ async fn example_instance_loading() -> Result<()> {
             println!("Complexity score: {:.2}", instance.metrics.complexity_score);
         }
         Err(e) => {
-            println!("Note: Instance not found ({}), creating mock instance", e);
-            // The loader will create a mock instance for demonstration
+            println!("Instance not found ({}); supply a local dataset fixture", e);
+            // Missing data is reported; the loader never creates a substitute dataset.
         }
     }
 
@@ -167,7 +167,7 @@ Task completed with 4 tool calls.
 }
 
 async fn example_full_evaluation() -> Result<()> {
-    println!("=== Example 4: Full Evaluation Pipeline ===\n");
+    println!("=== Example 4: Application-Owned Evaluation Setup ===\n");
 
     // Configure the adapter
     let config = SWEBenchConfig {
@@ -177,7 +177,7 @@ async fn example_full_evaluation() -> Result<()> {
             max_tokens: 4000,
             include_test_hints: true,
             include_context_files: true,
-            template_style: swe_bench_adapter::PromptStyle::Standard,
+            template_style: swe_bench_adapter::PromptStyle::ClaudeCode,
         },
         eval_config: swe_bench_adapter::EvalConfig {
             timeout: std::time::Duration::from_secs(300),
@@ -196,18 +196,17 @@ async fn example_full_evaluation() -> Result<()> {
     // Create adapter
     let adapter = SWEBenchAdapter::new(config).await?;
 
-    // Create a mock agent
+    // Supply an application-owned typed agent to execute work.
     use ruv_swarm_core::{agent::Agent, AgentId};
 
     // Note: In a real scenario, you would use an actual agent implementation
     // that implements the Agent trait
 
     // Note: In a real scenario, you would evaluate an actual instance
-    println!("Full evaluation pipeline configured successfully!");
-    println!("In production, you would call:");
-    println!("  adapter.evaluate_instance(\"instance-id\", &agent).await?");
-    println!("\nOr for batch evaluation:");
-    println!("  adapter.evaluate_batch(instance_ids, agents, true).await?");
+    println!("Local evaluation configuration created; no task was executed.");
+    println!("With an Agent<Input = Task, Output = ExecutionResult>, call:");
+    println!("  adapter.evaluate_instance_with_agent(\"instance-id\", &mut agent).await?");
+    println!("Legacy shared-agent batch evaluation returns an unsupported-operation error.");
 
     // Get statistics (empty in this example)
     let stats = adapter.get_statistics().await?;

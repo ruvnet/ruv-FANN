@@ -125,11 +125,7 @@ pub use autonomous_gpu_resource_manager::{
 
 // Re-export WASM GPU bridge for browser deployment
 #[cfg(all(target_arch = "wasm32", feature = "webgpu"))]
-pub use wasm_gpu_bridge::{
-    BrowserCompatibility, CrossOriginManager, CrossTabCoordinator, DaaWebRuntime,
-    ServiceWorkerAgent, SharedBuffer, WasmGpuBridge, WasmMemoryManager, WasmPerformanceMonitor,
-    WebGpuContext, WebMessageRouter, WebStorageManager, WebWorkerAgent,
-};
+pub use wasm_gpu_bridge::WasmGpuBridge;
 
 /// Check if enhanced memory management features are available
 pub fn has_enhanced_memory_features() -> bool {
@@ -139,7 +135,7 @@ pub fn has_enhanced_memory_features() -> bool {
 /// Get memory management capabilities summary
 pub fn get_memory_capabilities() -> MemoryCapabilities {
     MemoryCapabilities {
-        webgpu_available: cfg!(feature = "gpu"),
+        webgpu_available: cfg!(feature = "gpu") || has_wasm_gpu_bridge(),
         enhanced_features: has_enhanced_memory_features(),
         daa_support: cfg!(feature = "gpu"),
         pressure_monitoring: cfg!(feature = "gpu"),
@@ -153,7 +149,7 @@ pub fn get_memory_capabilities() -> MemoryCapabilities {
 /// Check if WASM GPU bridge is available
 #[cfg(target_arch = "wasm32")]
 pub fn has_wasm_gpu_bridge() -> bool {
-    cfg!(feature = "wasm-gpu")
+    cfg!(feature = "webgpu")
 }
 
 #[cfg(not(target_arch = "wasm32"))]

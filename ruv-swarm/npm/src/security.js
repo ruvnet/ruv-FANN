@@ -6,12 +6,13 @@
 import crypto from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 /**
  * WASM module integrity verification
  */
 export class WasmIntegrityVerifier {
-  constructor(hashesPath = path.join(new URL('.', import.meta.url).pathname, '..', 'wasm', 'checksums.json')) {
+  constructor(hashesPath = path.join(fileURLToPath(new URL('.', import.meta.url)), '..', 'wasm', 'checksums.json')) {
     this.hashesPath = hashesPath;
     this.knownHashes = new Map();
     this.initialized = false;
@@ -98,8 +99,15 @@ export class WasmIntegrityVerifier {
       this.initialized = true;
     }
 
-    await this.verifyWasmModule(wasmPath);
-    return await fs.readFile(wasmPath);
+    // Verify exactly the bytes returned to the caller. Reopening after verification
+    // permits a replaced file to bypass the integrity check and doubles I/O.
+    const wasmData = await fs.readFile(wasmPath);
+    const hash = crypto.createHash('sha256').update(wasmData).digest('hex');
+    const filename = path.basename(wasmPath);
+    const knownHash = this.knownHashes.get(filename);
+    if (!knownHash) throw new SecurityError(`Unknown WASM module: ${filename}`);
+    if (hash !== knownHash) throw new SecurityError(`WASM module integrity check failed for ${filename}`);
+    return wasmData;
   }
 }
 
@@ -151,9 +159,14 @@ export class CommandSanitizer {
  */
 export class DependencyVerifier {
   static async verifyNpmPackage(packageName, expectedVersion) {
+    // Restrict filesystem lookup to an npm package name (including scoped names).
+    if (typeof packageName !== 'string' || packageName.length > 214 ||
+        !/^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/.test(packageName)) {
+      throw new SecurityError('Invalid npm package name');
+    }
     try {
       const packageJsonPath = path.join(
-        new URL('.', import.meta.url).pathname,
+        fileURLToPath(new URL('.', import.meta.url)),
         '..',
         'node_modules',
         packageName,

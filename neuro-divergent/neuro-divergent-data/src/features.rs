@@ -7,7 +7,7 @@
 use crate::{DataPipelineError, Result, TimeSeriesData, DataPoint};
 use num_traits::Float;
 use chrono::{DateTime, Utc, Datelike, Timelike, Weekday};
-use ndarray::{Array1, Array2};
+use ndarray::{s, Array1, Array2};
 use rustfft::{FftPlanner, num_complex::Complex};
 use std::collections::HashMap;
 use std::marker::PhantomData;
@@ -100,15 +100,25 @@ impl Default for RollingConfig {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]
 pub enum RollingStatistic {
+    /// Arithmetic mean of the window.
     Mean,
+    /// Standard deviation of the window.
     Std,
+    /// Variance of the window.
     Var,
+    /// Minimum value in the window.
     Min,
+    /// Maximum value in the window.
     Max,
+    /// Median value in the window.
     Median,
+    /// Twenty-fifth percentile of the window.
     Quantile25,
+    /// Seventy-fifth percentile of the window.
     Quantile75,
+    /// Asymmetry of the window distribution.
     Skewness,
+    /// Kurtosis of the window distribution.
     Kurtosis,
 }
 
@@ -396,22 +406,12 @@ impl<T: Float> FeatureEngine<T> {
         // Combine all features
         let combined_features = self.combine_feature_matrices(all_features)?;
         
-        // Determine valid timestamps (after any lag/rolling window requirements)
-        let max_lag = self.config.lag_features.as_ref()
-            .map(|cfg| cfg.lags.iter().cloned().max().unwrap_or(0))
-            .unwrap_or(0);
-            
-        let max_window = self.config.rolling_features.as_ref()
-            .map(|cfg| cfg.windows.iter().cloned().max().unwrap_or(0))
-            .unwrap_or(0);
-            
-        let skip_rows = std::cmp::max(max_lag, max_window);
-        let valid_timestamps = if skip_rows < data.timestamps().len() {
-            data.timestamps()[skip_rows..].to_vec()
-        } else {
-            Vec::new()
-        };
-        
+        // Every matrix ends at the same input timestamp. Align their common
+        // suffix so lag, rolling, calendar and exogenous columns describe the
+        // same observations after their different warm-up periods.
+        let skip_rows = data.len() - combined_features.nrows();
+        let valid_timestamps = data.timestamps()[skip_rows..].to_vec();
+
         FeatureMatrix::new(
             combined_features,
             all_feature_names,
@@ -520,8 +520,15 @@ impl<T: Float> FeatureEngine<T> {
                 let mut stat_values = Vec::with_capacity(valid_samples);
                 
                 for i in max_window..n_samples {
-                    let start_idx = if i >= window { i - window + 1 } else { 0 };
-                    let window_data = &values[start_idx..=i];
+                    if window == 0 {
+                        return Err(DataPipelineError::ConfigError {
+                            message: "Rolling window sizes must be positive".to_string(),
+                        });
+                    }
+                    // Exclude the value at prediction time: otherwise fitting a
+                    // target at this row leaks its label into the predictors.
+                    let start_idx = i - window;
+                    let window_data = &values[start_idx..i];
                     
                     let min_periods = config.min_periods.unwrap_or(1);
                     if window_data.len() >= min_periods {
@@ -891,18 +898,8 @@ impl<T: Float> FeatureEngine<T> {
             });
         }
         
-        let n_rows = matrices[0].nrows();
+        let n_rows = matrices.iter().map(|matrix| matrix.nrows()).min().unwrap();
         let total_cols: usize = matrices.iter().map(|m| m.ncols()).sum();
-        
-        // Verify all matrices have the same number of rows
-        for matrix in &matrices {
-            if matrix.nrows() != n_rows {
-                return Err(DataPipelineError::IncompatibleDimensions {
-                    expected: format!("nrows={}", n_rows),
-                    actual: format!("nrows={}", matrix.nrows()),
-                });
-            }
-        }
         
         let mut combined = Array2::zeros((n_rows, total_cols));
         let mut col_offset = 0;
@@ -911,7 +908,7 @@ impl<T: Float> FeatureEngine<T> {
             let cols = matrix.ncols();
             if cols > 0 {
                 combined.slice_mut(s![.., col_offset..col_offset + cols])
-                    .assign(&matrix);
+                    .assign(&matrix.slice(s![matrix.nrows() - n_rows.., ..]));
                 col_offset += cols;
             }
         }
@@ -957,19 +954,21 @@ mod tests {
     #[test]
     fn test_lag_features() {
         let data = create_test_series();
-        let feature_engine = FeatureEngine::new().with_lag_features(vec![1, 2, 3]);
-        
+        let feature_engine = FeatureEngine::new().with_lag_features(vec![1, 2, 3])
+            .with_rolling_features(vec![])
+            .with_temporal_features(false);
+
         let features = feature_engine.generate_features(&data).unwrap();
-        
-        // Should have 3 lag features
-        assert_eq!(features.n_features(), 7); // 3 lags + 4 rolling stats * 1 window
+
+        // This fixture explicitly selects only lag predictors.
+        assert_eq!(features.n_features(), 3);
         assert!(features.feature_names.contains(&"lag_1".to_string()));
         assert!(features.feature_names.contains(&"lag_2".to_string()));
         assert!(features.feature_names.contains(&"lag_3".to_string()));
         
         // Check first few lag_1 values
         let lag_1_column = features.get_feature("lag_1").unwrap();
-        assert_relative_eq!(lag_1_column[0], 270.0, epsilon = 1e-10); // lag_1 at position max_lag(3) should be value at position 2
+        assert_relative_eq!(lag_1_column[0], 30.0, epsilon = 1e-10); // lag_1 at position max_lag(3) should be value at position 2
     }
     
     #[test]
@@ -1077,3 +1076,7 @@ mod tests {
         assert_relative_eq!(feature1[2], 5.0, epsilon = 1e-10);
     }
 }
+
+#[cfg(test)]
+#[path = "feature_alignment_tests.rs"]
+mod alignment_tests;

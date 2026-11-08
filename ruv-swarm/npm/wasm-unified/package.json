@@ -4,7 +4,7 @@
   "collaborators": [
     "rUv Contributors"
   ],
-  "description": "WebAssembly bindings for ruv-swarm neural network orchestration",
+  "description": "Legacy unbuilt unified WASM prototype; not a release artifact",
   "version": "1.0.5",
   "license": "MIT OR Apache-2.0",
   "files": [
@@ -16,5 +16,6 @@
   "types": "ruv_swarm_wasm.d.ts",
   "sideEffects": [
     "./snippets/*"
-  ]
+  ],
+  "private": true
 }

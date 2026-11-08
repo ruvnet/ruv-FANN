@@ -4,7 +4,7 @@ use crate::{protocol::Message, Transport, TransportConfig, TransportError, Trans
 use async_trait::async_trait;
 use dashmap::DashMap;
 use std::sync::{
-    atomic::{AtomicBool, AtomicU64, Ordering},
+    atomic::{AtomicBool, Ordering},
     Arc,
 };
 use tokio::sync::{broadcast, mpsc, RwLock};
@@ -28,9 +28,11 @@ pub struct InProcessRegistry {
 }
 
 /// Endpoint for a registered transport
+#[derive(Clone)]
 struct InProcessEndpoint {
     tx: mpsc::Sender<(String, Message)>,
     broadcast_tx: broadcast::Sender<Message>,
+    max_message_size: usize,
 }
 
 impl InProcessRegistry {
@@ -42,9 +44,20 @@ impl InProcessRegistry {
     }
 
     /// Register a transport
-    fn register(&self, id: String, endpoint: InProcessEndpoint) {
-        self.transports.insert(id.clone(), endpoint);
+    fn register(&self, id: String, endpoint: InProcessEndpoint) -> Result<(), TransportError> {
+        match self.transports.entry(id.clone()) {
+            dashmap::mapref::entry::Entry::Vacant(entry) => {
+                entry.insert(endpoint);
+            }
+            dashmap::mapref::entry::Entry::Occupied(_) => {
+                return Err(TransportError::ConnectionError(format!(
+                    "Transport {} is already registered",
+                    id
+                )));
+            }
+        }
         info!("Registered in-process transport: {}", id);
+        Ok(())
     }
 
     /// Unregister a transport
@@ -54,43 +67,63 @@ impl InProcessRegistry {
     }
 
     /// Send a message to a specific transport
-    async fn send(&self, from: &str, to: &str, msg: Message) -> Result<(), TransportError> {
-        if let Some(endpoint) = self.transports.get(to) {
-            endpoint
-                .tx
-                .send((from.to_string(), msg))
-                .await
-                .map_err(|_| {
-                    TransportError::ConnectionError(format!("Transport {} is not receiving", to))
-                })?;
-            Ok(())
-        } else {
-            Err(TransportError::ConnectionError(format!(
-                "Transport {} not found",
-                to
-            )))
+    async fn send(
+        &self,
+        from: &str,
+        to: &str,
+        msg: Message,
+        size: usize,
+    ) -> Result<(), TransportError> {
+        // A bounded channel may suspend: release the map guard first so a
+        // blocked sender cannot prevent closing/removing its destination.
+        let endpoint = self
+            .transports
+            .get(to)
+            .map(|entry| entry.value().clone())
+            .ok_or_else(|| {
+                TransportError::ConnectionError(format!("Transport {} not found", to))
+            })?;
+        if size > endpoint.max_message_size {
+            return Err(TransportError::MessageTooLarge {
+                size,
+                max: endpoint.max_message_size,
+            });
         }
+        endpoint
+            .tx
+            .send((from.to_string(), msg))
+            .await
+            .map_err(|_| {
+                TransportError::ConnectionError(format!("Transport {} is not receiving", to))
+            })
     }
 
     /// Broadcast a message to all transports
-    async fn broadcast(&self, from: &str, msg: Message) -> Result<(), TransportError> {
+    async fn broadcast(&self, from: &str, msg: Message, size: usize) -> Result<(), TransportError> {
+        let peers: Vec<_> = self
+            .transports
+            .iter()
+            .filter(|entry| entry.key() != from)
+            .map(|entry| (entry.key().clone(), entry.value().clone()))
+            .collect();
         let mut errors = Vec::new();
-
-        for entry in self.transports.iter() {
-            let (id, endpoint) = entry.pair();
-
-            // Don't send to self
-            if id == from {
+        for (id, endpoint) in peers {
+            if size > endpoint.max_message_size {
+                errors.push(format!("{}: message exceeds receiver limit", id));
                 continue;
             }
-
-            // Clone message for each recipient
-            let msg_clone = msg.clone();
-            if endpoint.broadcast_tx.send(msg_clone).is_err() {
-                errors.push(id.clone());
+            // Broadcasts use the same public receive API as direct messages.
+            // Keep the existing subscription channel as an optional notification.
+            let _ = endpoint.broadcast_tx.send(msg.clone());
+            if endpoint
+                .tx
+                .send((from.to_string(), msg.clone()))
+                .await
+                .is_err()
+            {
+                errors.push(id);
             }
         }
-
         if errors.is_empty() {
             Ok(())
         } else {
@@ -125,15 +158,17 @@ impl InProcessTransport {
         config: TransportConfig,
         registry: Arc<InProcessRegistry>,
     ) -> Result<Self, TransportError> {
-        let (incoming_tx, incoming_rx) = mpsc::channel(config.max_message_size / 1024);
+        let (incoming_tx, incoming_rx) =
+            mpsc::channel((config.max_message_size / 1024).clamp(1, 1024));
         let (broadcast_tx, _) = broadcast::channel(1024);
 
         // Register with the registry
         let endpoint = InProcessEndpoint {
             tx: incoming_tx.clone(),
             broadcast_tx: broadcast_tx.clone(),
+            max_message_size: config.max_message_size,
         };
-        registry.register(id.clone(), endpoint);
+        registry.register(id.clone(), endpoint)?;
 
         Ok(Self {
             id,
@@ -186,7 +221,7 @@ impl Transport for InProcessTransport {
         }
 
         // Send through registry
-        self.registry.send(&self.id, to, msg).await?;
+        self.registry.send(&self.id, to, msg, size_estimate).await?;
 
         // Update stats
         let mut stats = self.stats.write().await;
@@ -235,10 +270,12 @@ impl Transport for InProcessTransport {
         }
 
         // Broadcast through registry
-        self.registry.broadcast(&self.id, msg).await?;
+        self.registry
+            .broadcast(&self.id, msg, size_estimate)
+            .await?;
 
         // Update stats
-        let peer_count = self.registry.transports.len() - 1; // Exclude self
+        let peer_count = self.registry.transports.len().saturating_sub(1); // Exclude self
         let mut stats = self.stats.write().await;
         stats.messages_sent += peer_count as u64;
         stats.bytes_sent += size_estimate as u64 * peer_count as u64;
@@ -305,7 +342,7 @@ impl Default for InProcessTransportBuilder {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests {
     use super::*;
     use crate::protocol::{Message, MessageType};

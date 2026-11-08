@@ -136,7 +136,10 @@ mod tests {
         let mut trainer = Adam::new(0.01);
 
         let initial_error = trainer.train_epoch(&mut network, &data).unwrap();
-        assert!(initial_error.is_finite(), "Initial training error is not finite");
+        assert!(
+            initial_error.is_finite(),
+            "Initial training error is not finite"
+        );
 
         // Train for additional epochs
         let mut final_error = initial_error;

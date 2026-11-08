@@ -114,74 +114,28 @@ impl<T: Float> Neuron<T> {
         self.value = self.apply_activation_function(self.sum);
     }
 
-    /// Apply the activation function to the given input
-    fn apply_activation_function(&self, x: T) -> T {
-        match self.activation_function {
-            ActivationFunction::Linear => x * self.activation_steepness,
-            ActivationFunction::Sigmoid => {
-                let exp_val = (-self.activation_steepness * x).exp();
-                T::one() / (T::one() + exp_val)
-            }
-            ActivationFunction::ReLU => {
-                if x > T::zero() {
-                    x
-                } else {
-                    T::zero()
-                }
-            }
-            ActivationFunction::ReLULeaky => {
-                let alpha = T::from(0.01).unwrap_or(T::zero());
-                if x > T::zero() {
-                    x
-                } else {
-                    alpha * x
-                }
-            }
-            ActivationFunction::Tanh => (self.activation_steepness * x).tanh(),
-            ActivationFunction::SigmoidSymmetric => (self.activation_steepness * x).tanh(),
-            ActivationFunction::Gaussian => {
-                let x_scaled = x * self.activation_steepness;
-                (-x_scaled * x_scaled).exp()
-            }
-            _ => x, // Fallback for other functions
+    /// Calculates from a borrowed layer without copying its output values.
+    pub(crate) fn calculate_from_neurons(&mut self, inputs: &[Neuron<T>]) {
+        if self.is_bias {
+            return;
         }
+        self.sum = self.connections.iter().fold(T::zero(), |sum, connection| {
+            inputs
+                .get(connection.from_neuron)
+                .map_or(sum, |source| sum + source.value * connection.weight)
+        });
+        self.value = self.apply_activation_function(self.sum);
     }
 
-    /// Calculate the derivative of the activation function at the current value
+    /// Apply the activation function to the given input
+    fn apply_activation_function(&self, x: T) -> T {
+        self.activation_function.apply(x, self.activation_steepness)
+    }
+
+    /// Calculates the derivative with respect to the pre-activation sum.
     pub fn activation_derivative(&self) -> T {
-        match self.activation_function {
-            ActivationFunction::Linear => self.activation_steepness,
-            ActivationFunction::Sigmoid => {
-                // For sigmoid: f'(x) = f(x) * (1 - f(x)) * steepness
-                self.value * (T::one() - self.value) * self.activation_steepness
-            }
-            ActivationFunction::ReLU => {
-                if self.sum > T::zero() {
-                    T::one()
-                } else {
-                    T::zero()
-                }
-            }
-            ActivationFunction::ReLULeaky => {
-                let alpha = T::from(0.01).unwrap_or(T::zero());
-                if self.sum > T::zero() {
-                    T::one()
-                } else {
-                    alpha
-                }
-            }
-            ActivationFunction::Tanh | ActivationFunction::SigmoidSymmetric => {
-                // For tanh: f'(x) = (1 - f(x)²) * steepness
-                (T::one() - self.value * self.value) * self.activation_steepness
-            }
-            ActivationFunction::Gaussian => {
-                // For gaussian: f'(x) = -2 * steepness² * x * f(x)
-                let x_scaled = self.sum * self.activation_steepness;
-                let neg_two = T::from(-2.0).unwrap_or(T::zero());
-                neg_two * self.activation_steepness * x_scaled * self.value
-            }
-            _ => T::one(), // Fallback
-        }
+        self.activation_function
+            .derivative(self.sum, self.value, self.activation_steepness)
     }
 
     /// Sets the neuron's output value directly (used for input neurons)

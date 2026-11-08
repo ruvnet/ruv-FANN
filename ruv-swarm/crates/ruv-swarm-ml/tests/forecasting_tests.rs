@@ -3,7 +3,7 @@
 use ruv_swarm_ml::{
     agent_forecasting::{AgentForecastingManager, ForecastDomain, ForecastRequirements},
     ensemble::{EnsembleConfig, EnsembleForecaster, EnsembleStrategy, OptimizationMetric},
-    models::{ModelFactory, ModelType, ModelCategory},
+    models::{ModelCategory, ModelFactory, ModelType},
     time_series::{TimeSeriesData, TimeSeriesProcessor, TransformationType},
 };
 
@@ -56,40 +56,24 @@ fn test_agent_model_assignment() {
 
 #[test]
 fn test_model_factory() {
-    // Test getting available models
     let models = ModelFactory::get_available_models();
-    assert!(!models.is_empty(), "No models available");
-
-    // Verify we have models from each category
-    let has_basic = models
-        .iter()
-        .any(|m| m.category == ModelCategory::Basic);
-    let has_recurrent = models
-        .iter()
-        .any(|m| m.category == ModelCategory::Recurrent);
-    let has_advanced = models
-        .iter()
-        .any(|m| m.category == ModelCategory::Advanced);
-    let has_transformer = models
-        .iter()
-        .any(|m| m.category == ModelCategory::Transformer);
-    let has_specialized = models
-        .iter()
-        .any(|m| m.category == ModelCategory::Specialized);
-
-    assert!(has_basic, "No basic models found");
-    assert!(has_recurrent, "No recurrent models found");
-    assert!(has_advanced, "No advanced models found");
-    assert!(has_transformer, "No transformer models found");
-    assert!(has_specialized, "No specialized models found");
-
-    // Test model requirements
-    let lstm_reqs = ModelFactory::get_model_requirements(ModelType::LSTM);
-    assert!(lstm_reqs
-        .required_params
-        .contains(&"hidden_size".to_string()));
-    assert!(lstm_reqs.required_params.contains(&"horizon".to_string()));
-    assert_eq!(lstm_reqs.min_samples, 100);
+    assert_eq!(models.len(), 3);
+    for info in models {
+        assert_eq!(info.category, ModelCategory::Basic);
+        let model = ModelFactory::create_model(info.model_type, 4, 2).unwrap();
+        assert_eq!(model.model_type(), info.model_type);
+        assert!(!info.supports_multivariate);
+    }
+    for unsupported in [
+        ModelType::LSTM,
+        ModelType::TFT,
+        ModelType::NBEATS,
+        ModelType::NHITS,
+        ModelType::DeepAR,
+    ] {
+        assert!(ModelFactory::get_model_info(unsupported).is_none());
+        assert!(ModelFactory::create_model(unsupported, 4, 2).is_err());
+    }
 }
 
 #[test]

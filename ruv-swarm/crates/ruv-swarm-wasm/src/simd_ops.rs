@@ -5,7 +5,7 @@
 //! functions, and vector operations.
 
 use wasm_bindgen::prelude::*;
-use wide::f32x4;
+use wide::{f32x4, CmpGe};
 
 /// SIMD-accelerated vector operations
 #[wasm_bindgen]
@@ -77,7 +77,8 @@ impl SimdMatrixOps {
         rows: usize,
         cols: usize,
     ) -> Vec<f32> {
-        if matrix.len() != rows * cols || vector.len() != cols {
+        if rows.checked_mul(cols) != Some(matrix.len()) || vector.len() != cols || rows > 1_000_000
+        {
             return Vec::new();
         }
 
@@ -94,7 +95,12 @@ impl SimdMatrixOps {
         a_cols: usize,
         b_cols: usize,
     ) -> Vec<f32> {
-        if a.len() != a_rows * a_cols || b.len() != a_cols * b_cols {
+        if a_rows.checked_mul(a_cols) != Some(a.len())
+            || a_cols.checked_mul(b_cols) != Some(b.len())
+            || a_rows
+                .checked_mul(b_cols)
+                .is_none_or(|count| count > 1_000_000)
+        {
             return Vec::new();
         }
 
@@ -210,8 +216,7 @@ fn simd_sigmoid(vec: &[f32]) -> Vec<f32> {
 
         // Fast sigmoid approximation: 1 / (1 + exp(-x))
         // Using a polynomial approximation for better SIMD performance
-        let clamped = vec_simd.max(f32x4::splat(-10.0)).min(f32x4::splat(10.0));
-        let sigmoid_vec = fast_sigmoid_simd(clamped);
+        let sigmoid_vec = sigmoid_simd(vec_simd);
         let sigmoid_array = sigmoid_vec.as_array_ref();
         result.extend_from_slice(sigmoid_array);
     }
@@ -235,8 +240,7 @@ fn simd_tanh(vec: &[f32]) -> Vec<f32> {
         let vec_simd = f32x4::new([vec[start], vec[start + 1], vec[start + 2], vec[start + 3]]);
 
         // Fast tanh approximation for SIMD
-        let clamped = vec_simd.max(f32x4::splat(-5.0)).min(f32x4::splat(5.0));
-        let tanh_vec = fast_tanh_simd(clamped);
+        let tanh_vec = tanh_simd(vec_simd);
         let tanh_array = tanh_vec.as_array_ref();
         result.extend_from_slice(tanh_array);
     }
@@ -289,23 +293,21 @@ fn simd_matrix_multiply(
     result
 }
 
-// Fast approximation functions for SIMD
-fn fast_sigmoid_simd(x: f32x4) -> f32x4 {
-    // Pade approximation: sigmoid(x) ≈ (2.484 + x) / (4.968 + |x|)
-    let abs_x = x.abs();
-    let numerator = f32x4::splat(2.484) + x;
-    let denominator = f32x4::splat(4.968) + abs_x;
-    (numerator / denominator)
-        .max(f32x4::splat(0.0))
-        .min(f32x4::splat(1.0))
+// Keep vector lanes consistent with the scalar tail. exp(-abs(x)) avoids
+// positive overflow, including wide's out-of-range exponential behavior.
+fn sigmoid_simd(x: f32x4) -> f32x4 {
+    let exponential = (-x.abs()).exp();
+    let denominator = f32x4::ONE + exponential;
+    let positive = f32x4::ONE / denominator;
+    let negative = exponential / denominator;
+    let value = x.cmp_ge(f32x4::ZERO).blend(positive, negative);
+    x.is_nan().blend(x, value)
 }
 
-fn fast_tanh_simd(x: f32x4) -> f32x4 {
-    // Fast tanh approximation: tanh(x) ≈ x / (1 + |x|) for |x| < 1, else sign(x)
-    let abs_x = x.abs();
-    let one_vec = f32x4::splat(1.0);
-    let ratio = x / (one_vec + abs_x);
-    ratio.max(f32x4::splat(-1.0)).min(f32x4::splat(1.0))
+fn tanh_simd(x: f32x4) -> f32x4 {
+    let exponential = (-f32x4::splat(2.0) * x.abs()).exp();
+    let value = ((f32x4::ONE - exponential) / (f32x4::ONE + exponential)).copysign(x);
+    x.is_nan().blend(x, value)
 }
 
 /// Performance benchmarking utilities
@@ -322,13 +324,23 @@ impl SimdBenchmark {
     /// Benchmark SIMD vs scalar dot product
     #[wasm_bindgen]
     pub fn benchmark_dot_product(&self, size: usize, iterations: usize) -> String {
+        if size
+            .checked_mul(iterations)
+            .is_none_or(|work| work > 50_000_000)
+            || size > 1_000_000
+        {
+            return serde_json::json!({"error": "Benchmark work budget exceeded"}).to_string();
+        }
         let a: Vec<f32> = (0..size).map(|i| i as f32 * 0.1).collect();
         let b: Vec<f32> = (0..size).map(|i| (i as f32 * 0.2) + 1.0).collect();
 
         // SIMD benchmark
         let start_time = js_sys::Date::now();
         for _ in 0..iterations {
-            let _ = simd_dot_product(&a, &b);
+            std::hint::black_box(simd_dot_product(
+                std::hint::black_box(&a),
+                std::hint::black_box(&b),
+            ));
         }
         let simd_time = js_sys::Date::now() - start_time;
 
@@ -336,23 +348,29 @@ impl SimdBenchmark {
         let start_time = js_sys::Date::now();
         for _ in 0..iterations {
             let mut sum = 0.0f32;
+            let (a, b) = (std::hint::black_box(&a), std::hint::black_box(&b));
             for i in 0..size {
                 sum += a[i] * b[i];
             }
+            std::hint::black_box(sum);
         }
         let scalar_time = js_sys::Date::now() - start_time;
 
-        let speedup = scalar_time / simd_time;
-
-        format!(
-            "{{\"simd_time\": {:.2}, \"scalar_time\": {:.2}, \"speedup\": {:.2}x}}",
-            simd_time, scalar_time, speedup
-        )
+        let speedup = (simd_time > 0.0).then(|| scalar_time / simd_time);
+        serde_json::json!({"simd_time": simd_time, "scalar_time": scalar_time, "speedup": speedup})
+            .to_string()
     }
 
     /// Benchmark SIMD vs scalar activation functions
     #[wasm_bindgen]
     pub fn benchmark_activation(&self, size: usize, iterations: usize, activation: &str) -> String {
+        if size
+            .checked_mul(iterations)
+            .is_none_or(|work| work > 50_000_000)
+            || size > 1_000_000
+        {
+            return serde_json::json!({"error": "Benchmark work budget exceeded"}).to_string();
+        }
         let vec: Vec<f32> = (0..size).map(|i| (i as f32 * 0.1) - 5.0).collect();
 
         // SIMD benchmark
@@ -360,13 +378,13 @@ impl SimdBenchmark {
         for _ in 0..iterations {
             match activation {
                 "relu" => {
-                    let _ = simd_relu(&vec);
+                    std::hint::black_box(simd_relu(std::hint::black_box(&vec)));
                 }
                 "sigmoid" => {
-                    let _ = simd_sigmoid(&vec);
+                    std::hint::black_box(simd_sigmoid(std::hint::black_box(&vec)));
                 }
                 "tanh" => {
-                    let _ = simd_tanh(&vec);
+                    std::hint::black_box(simd_tanh(std::hint::black_box(&vec)));
                 }
                 _ => {}
             }
@@ -376,21 +394,21 @@ impl SimdBenchmark {
         // Scalar benchmark
         let start_time = js_sys::Date::now();
         for _ in 0..iterations {
-            let _: Vec<f32> = match activation {
+            let vec = std::hint::black_box(&vec);
+            let result: Vec<f32> = match activation {
                 "relu" => vec.iter().map(|&x| x.max(0.0)).collect(),
                 "sigmoid" => vec.iter().map(|&x| 1.0 / (1.0 + (-x).exp())).collect(),
                 "tanh" => vec.iter().map(|&x| x.tanh()).collect(),
-                _ => vec.clone(),
+                _ => vec.to_vec(),
             };
+            std::hint::black_box(result);
         }
         let scalar_time = js_sys::Date::now() - start_time;
 
-        let speedup = scalar_time / simd_time;
-
-        format!(
-            "{{\"activation\": \"{}\", \"simd_time\": {:.2}, \"scalar_time\": {:.2}, \"speedup\": {:.2}x}}",
-            activation, simd_time, scalar_time, speedup
-        )
+        let speedup = (simd_time > 0.0).then(|| scalar_time / simd_time);
+        serde_json::json!({"activation": activation, "simd_time": simd_time,
+            "scalar_time": scalar_time, "speedup": speedup})
+        .to_string()
     }
 }
 
@@ -416,4 +434,45 @@ pub fn detect_simd_capabilities() -> String {
     capabilities.push("\"runtime_detection\": \"requires_js_integration\"");
 
     format!("{{{}}}", capabilities.join(", "))
+}
+
+#[cfg(test)]
+mod numeric_regressions {
+    use super::*;
+
+    #[test]
+    fn vector_and_scalar_activations_agree_across_all_remainders() {
+        for length in 1..=103 {
+            let input: Vec<f32> = (0..length).map(|index| index as f32 * 0.2 - 10.0).collect();
+            for (index, value) in simd_sigmoid(&input).iter().enumerate() {
+                let expected = 1.0 / (1.0 + (-input[index]).exp());
+                assert!((value - expected).abs() < 2e-6, "sigmoid {length}:{index}");
+            }
+            for (index, value) in simd_tanh(&input).iter().enumerate() {
+                assert!(
+                    (value - input[index].tanh()).abs() < 2e-6,
+                    "tanh {length}:{index}"
+                );
+            }
+        }
+        let extremes = [f32::NEG_INFINITY, f32::INFINITY, f32::NAN, -0.0];
+        let values = simd_tanh(&extremes);
+        assert_eq!(values[0], -1.0);
+        assert_eq!(values[1], 1.0);
+        assert!(values[2].is_nan());
+        assert!(values[3].is_sign_negative());
+    }
+
+    #[test]
+    fn matrix_dimensions_reject_integer_overflow_and_output_bombs() {
+        let ops = SimdMatrixOps::new();
+        assert!(ops
+            .matrix_vector_multiply(&[], &[], usize::MAX, 2)
+            .is_empty());
+        assert!(ops.matrix_multiply(&[], &[], usize::MAX, 0, 2).is_empty());
+        assert_eq!(
+            ops.matrix_vector_multiply(&[1.0, 2.0, 3.0, 4.0], &[2.0, 3.0], 2, 2),
+            vec![8.0, 18.0]
+        );
+    }
 }

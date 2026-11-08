@@ -564,33 +564,31 @@ impl<T: Float> GpuMemoryManager<T> {
         }
     }
 
-    /// Allocate a GPU buffer
-    pub fn allocate_buffer(&self, size: usize) -> ComputeResult<super::memory::BufferHandle> {
-        // TODO: Implement actual GPU buffer allocation
-        // For now, return a placeholder handle
-        Ok(super::memory::BufferHandle::new(size as u64))
+    /// This legacy helper has no device. Use WebGPUBackend's MemoryManager
+    /// implementation for real owned buffers and transfers.
+    pub fn allocate_buffer(&self, _size: usize) -> ComputeResult<super::memory::BufferHandle> {
+        Err(ComputeError::UnsupportedOperation(
+            "This memory helper has no device; use WebGPUBackend".into(),
+        ))
     }
-
-    /// Upload data to GPU buffer
     pub fn upload_data(
         &self,
         _handle: super::memory::BufferHandle,
         _data: &[T],
     ) -> ComputeResult<()> {
-        // TODO: Implement GPU data upload
-        Ok(())
+        Err(ComputeError::UnsupportedOperation(
+            "This memory helper has no device".into(),
+        ))
     }
-
-    /// Download data from GPU buffer
     pub fn download_data(&self, _handle: super::memory::BufferHandle) -> ComputeResult<Vec<T>> {
-        // TODO: Implement GPU data download
-        Ok(Vec::new())
+        Err(ComputeError::UnsupportedOperation(
+            "This memory helper has no device".into(),
+        ))
     }
-
-    /// Deallocate GPU buffer
     pub fn deallocate_buffer(&self, _handle: super::memory::BufferHandle) -> ComputeResult<()> {
-        // TODO: Implement GPU buffer deallocation
-        Ok(())
+        Err(ComputeError::UnsupportedOperation(
+            "This memory helper has no device".into(),
+        ))
     }
 }
 
@@ -637,30 +635,7 @@ impl PerformanceTracker {
 
 /// CPU activation function implementation
 fn apply_activation_cpu<T: Float>(x: T, function: ActivationFunction, steepness: T) -> T {
-    match function {
-        ActivationFunction::Linear => x * steepness,
-        ActivationFunction::Sigmoid => {
-            let exp_val = (-steepness * x).exp();
-            T::one() / (T::one() + exp_val)
-        }
-        ActivationFunction::ReLU => {
-            if x > T::zero() {
-                x
-            } else {
-                T::zero()
-            }
-        }
-        ActivationFunction::ReLULeaky => {
-            let alpha = T::from(0.01).unwrap_or(T::zero());
-            if x > T::zero() {
-                x
-            } else {
-                alpha * x
-            }
-        }
-        ActivationFunction::Tanh => (steepness * x).tanh(),
-        _ => x, // Fallback for other functions
-    }
+    function.apply(x, steepness)
 }
 
 /// Comprehensive performance statistics

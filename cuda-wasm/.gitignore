@@ -12,7 +12,7 @@ yarn-error.log*
 *.log
 
 # Build outputs
-/dist/
+/dist/*
 /build/
 /pkg/
 *.wasm
@@ -58,3 +58,7 @@ cuda-examples/
 # Coverage
 coverage/
 .nyc_output/
+# Authored Node-only source entry points are release artifacts.
+!/dist/index.js
+!/dist/index.mjs
+!/dist/index.d.ts

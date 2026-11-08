@@ -196,6 +196,9 @@ impl WasmEnsembleForecaster {
             weights: None,
             meta_learner: None,
             optimization_metric: crate::ensemble::OptimizationMetric::MAE,
+            stacking_cv_folds: 5,
+            bootstrap_samples: 100,
+            quantile_levels: vec![0.1, 0.5, 0.9],
         };
 
         let forecaster = EnsembleForecaster::new(config).map_err(|e| JsValue::from_str(&e))?;
@@ -253,14 +256,10 @@ impl WasmModelFactory {
     #[wasm_bindgen]
     pub fn get_model_requirements(model_name: &str) -> Result<JsValue, JsValue> {
         let model_type = match model_name.to_uppercase().as_str() {
-            "LSTM" => ModelType::LSTM,
-            "GRU" => ModelType::GRU,
-            "NBEATS" => ModelType::NBEATS,
-            "NHITS" => ModelType::NHITS,
-            "TFT" => ModelType::TFT,
-            "DEEPAR" => ModelType::DeepAR,
-            "TCN" => ModelType::TCN,
-            _ => return Err(JsValue::from_str("Unknown model type")),
+            "MLP" => ModelType::MLP,
+            "DLINEAR" => ModelType::DLinear,
+            "MLPMULTIVARIATE" => ModelType::MLPMultivariate,
+            _ => return Err(JsValue::from_str("Model backend is not implemented")),
         };
 
         let requirements = ModelFactory::get_model_requirements(model_type);
@@ -280,56 +279,9 @@ impl WasmModelFactory {
     /// Get all supported model types
     #[wasm_bindgen]
     pub fn get_all_models() -> JsValue {
-        let models = vec![
-            // Basic Models
-            ("MLP", "Multi-Layer Perceptron", "basic"),
-            ("DLinear", "Decomposition Linear", "basic"),
-            ("NLinear", "Normalization Linear", "basic"),
-            ("MLPMultivariate", "Multivariate MLP", "basic"),
-            // Recurrent Models
-            ("RNN", "Recurrent Neural Network", "recurrent"),
-            ("LSTM", "Long Short-Term Memory", "recurrent"),
-            ("GRU", "Gated Recurrent Unit", "recurrent"),
-            // Advanced Models
-            ("NBEATS", "Neural Basis Expansion Analysis", "advanced"),
-            ("NBEATSx", "Extended NBEATS", "advanced"),
-            ("NHITS", "Neural Hierarchical Interpolation", "advanced"),
-            ("TiDE", "Time-series Dense Encoder", "advanced"),
-            // Transformer Models
-            ("TFT", "Temporal Fusion Transformer", "transformer"),
-            ("Informer", "Informer Transformer", "transformer"),
-            ("AutoFormer", "AutoFormer", "transformer"),
-            ("FedFormer", "FedFormer", "transformer"),
-            ("PatchTST", "Patch Time Series Transformer", "transformer"),
-            ("iTransformer", "Inverted Transformer", "transformer"),
-            // Specialized Models
-            ("DeepAR", "Deep AutoRegressive", "specialized"),
-            ("DeepNPTS", "Deep Non-Parametric Time Series", "specialized"),
-            ("TCN", "Temporal Convolutional Network", "specialized"),
-            ("BiTCN", "Bidirectional TCN", "specialized"),
-            ("TimesNet", "TimesNet", "specialized"),
-            (
-                "StemGNN",
-                "Spectral Temporal Graph Neural Network",
-                "specialized",
-            ),
-            ("TSMixer", "Time Series Mixer", "specialized"),
-            ("TSMixerx", "Extended TSMixer", "specialized"),
-            ("PatchMixer", "Patch Mixer", "specialized"),
-            ("SegRNN", "Segment Recurrent Neural Network", "specialized"),
-            ("DishTS", "Dish Time Series", "specialized"),
-        ];
-
-        let model_list: Vec<_> = models
-            .iter()
-            .map(|(code, name, category)| {
-                serde_json::json!({
-                    "code": code,
-                    "name": name,
-                    "category": category,
-                })
-            })
-            .collect();
+        let model_list: Vec<_> = ModelFactory::get_available_models().into_iter().map(|model| {
+            serde_json::json!({"code": model.model_type.to_string(), "name": model.name, "category": "basic"})
+        }).collect();
 
         JsValue::from_str(&serde_json::to_string(&model_list).unwrap())
     }

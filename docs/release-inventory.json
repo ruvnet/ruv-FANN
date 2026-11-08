@@ -1,0 +1,368 @@
+{
+  "schema_version": 1,
+  "observed_utc": "2026-11-07T23:44:23.001019+00:00",
+  "baseline_commit": "f4ca36c2323d08eac822bac43b62040198721cbf",
+  "branch": "mission/package-modernization",
+  "registry_observed_utc": "2026-11-07T15:05:36.218328+00:00",
+  "note": "All 26 Rust manifests are active publish candidates; versions are not published releases. Registry observations retain their separate recorded timestamp. Private fixture/generated npm manifests are not independent products.",
+  "packages": [
+    {
+      "kind": "cargo",
+      "name": "ruv-fann",
+      "version": "0.2.2",
+      "manifest": "Cargo.toml",
+      "workspace": ".",
+      "publish": true,
+      "registry_latest": "0.2.1",
+      "registry_updated": "2026-05-23T07:23:18.997156Z",
+      "registry_source": "https://crates.io/api/v1/crates/ruv-fann"
+    },
+    {
+      "kind": "cargo",
+      "name": "cuda-rust-wasm",
+      "version": "0.2.0",
+      "manifest": "cuda-wasm/Cargo.toml",
+      "workspace": "cuda-wasm",
+      "publish": true,
+      "registry_latest": "0.1.7",
+      "registry_updated": "2026-02-09T15:55:55.424991Z",
+      "registry_source": "https://crates.io/api/v1/crates/cuda-rust-wasm"
+    },
+    {
+      "kind": "cargo",
+      "name": "neuro-divergent",
+      "version": "0.2.0",
+      "manifest": "neuro-divergent/Cargo.toml",
+      "workspace": "neuro-divergent",
+      "publish": true,
+      "registry_latest": "0.1.0",
+      "registry_updated": "2025-06-27T04:53:25.969895Z",
+      "registry_source": "https://crates.io/api/v1/crates/neuro-divergent"
+    },
+    {
+      "kind": "cargo",
+      "name": "neuro-divergent-core",
+      "version": "0.2.0",
+      "manifest": "neuro-divergent/neuro-divergent-core/Cargo.toml",
+      "workspace": "neuro-divergent",
+      "publish": true,
+      "registry_latest": "0.1.0",
+      "registry_updated": "2025-06-27T03:38:29.018096Z",
+      "registry_source": "https://crates.io/api/v1/crates/neuro-divergent-core"
+    },
+    {
+      "kind": "cargo",
+      "name": "neuro-divergent-data",
+      "version": "0.2.0",
+      "manifest": "neuro-divergent/neuro-divergent-data/Cargo.toml",
+      "workspace": "neuro-divergent",
+      "publish": true,
+      "registry_error": "HTTP Error 404: Not Found"
+    },
+    {
+      "kind": "cargo",
+      "name": "neuro-divergent-models",
+      "version": "0.2.0",
+      "manifest": "neuro-divergent/neuro-divergent-models/Cargo.toml",
+      "workspace": "neuro-divergent",
+      "publish": true,
+      "registry_latest": "0.1.0",
+      "registry_updated": "2025-06-27T03:49:00.044407Z",
+      "registry_source": "https://crates.io/api/v1/crates/neuro-divergent-models"
+    },
+    {
+      "kind": "cargo",
+      "name": "neuro-divergent-registry",
+      "version": "0.2.0",
+      "manifest": "neuro-divergent/neuro-divergent-registry/Cargo.toml",
+      "workspace": "neuro-divergent",
+      "publish": true,
+      "registry_latest": "0.1.0",
+      "registry_updated": "2025-06-27T03:40:42.258948Z",
+      "registry_source": "https://crates.io/api/v1/crates/neuro-divergent-registry"
+    },
+    {
+      "kind": "cargo",
+      "name": "neuro-divergent-training",
+      "version": "0.2.0",
+      "manifest": "neuro-divergent/neuro-divergent-training/Cargo.toml",
+      "workspace": "neuro-divergent",
+      "publish": true,
+      "registry_latest": "0.1.0",
+      "registry_updated": "2025-06-27T04:57:52.407373Z",
+      "registry_source": "https://crates.io/api/v1/crates/neuro-divergent-training"
+    },
+    {
+      "kind": "cargo",
+      "name": "opencv-core",
+      "version": "4.9.0",
+      "manifest": "opencv-rust/opencv-core/Cargo.toml",
+      "workspace": "opencv-rust",
+      "publish": true,
+      "registry_latest": "4.8.1",
+      "registry_updated": "2025-07-12T20:24:38.878877Z",
+      "registry_source": "https://crates.io/api/v1/crates/opencv-core"
+    },
+    {
+      "kind": "cargo",
+      "name": "opencv-sdk",
+      "version": "4.9.0",
+      "manifest": "opencv-rust/opencv-sdk/Cargo.toml",
+      "workspace": "opencv-rust",
+      "publish": true,
+      "registry_latest": "4.8.1",
+      "registry_updated": "2025-07-12T20:26:28.334530Z",
+      "registry_source": "https://crates.io/api/v1/crates/opencv-sdk"
+    },
+    {
+      "kind": "cargo",
+      "name": "opencv-sys",
+      "version": "0.2.0",
+      "manifest": "opencv-rust/opencv-sys/Cargo.toml",
+      "workspace": "opencv-rust",
+      "publish": true,
+      "registry_error": "HTTP Error 404: Not Found"
+    },
+    {
+      "kind": "cargo",
+      "name": "opencv-wasm",
+      "version": "4.9.0",
+      "manifest": "opencv-rust/opencv-wasm/Cargo.toml",
+      "workspace": "opencv-rust",
+      "publish": true,
+      "registry_latest": "4.8.1",
+      "registry_updated": "2025-07-12T20:25:32.890088Z",
+      "registry_source": "https://crates.io/api/v1/crates/opencv-wasm"
+    },
+    {
+      "kind": "cargo",
+      "name": "ruv-swarm-benchmarking",
+      "version": "1.0.6",
+      "manifest": "ruv-swarm/benchmarking/Cargo.toml",
+      "workspace": "ruv-swarm",
+      "publish": true,
+      "registry_error": "HTTP Error 404: Not Found"
+    },
+    {
+      "kind": "cargo",
+      "name": "claude-parser",
+      "version": "1.0.6",
+      "manifest": "ruv-swarm/crates/claude-parser/Cargo.toml",
+      "workspace": "ruv-swarm",
+      "publish": true,
+      "registry_latest": "1.0.5",
+      "registry_updated": "2025-07-02T20:43:38.814963Z",
+      "registry_source": "https://crates.io/api/v1/crates/claude-parser"
+    },
+    {
+      "kind": "cargo",
+      "name": "ruv-swarm-agents",
+      "version": "1.0.6",
+      "manifest": "ruv-swarm/crates/ruv-swarm-agents/Cargo.toml",
+      "workspace": "ruv-swarm",
+      "publish": true,
+      "registry_latest": "1.0.5",
+      "registry_updated": "2025-07-02T20:47:20.160527Z",
+      "registry_source": "https://crates.io/api/v1/crates/ruv-swarm-agents"
+    },
+    {
+      "kind": "cargo",
+      "name": "ruv-swarm-cli",
+      "version": "1.0.6",
+      "manifest": "ruv-swarm/crates/ruv-swarm-cli/Cargo.toml",
+      "workspace": "ruv-swarm",
+      "publish": true,
+      "registry_latest": "0.2.0",
+      "registry_updated": "2025-06-30T16:48:08.381929Z",
+      "registry_source": "https://crates.io/api/v1/crates/ruv-swarm-cli"
+    },
+    {
+      "kind": "cargo",
+      "name": "ruv-swarm-core",
+      "version": "1.0.7",
+      "manifest": "ruv-swarm/crates/ruv-swarm-core/Cargo.toml",
+      "workspace": "ruv-swarm",
+      "publish": true,
+      "registry_latest": "1.0.6",
+      "registry_updated": "2025-07-03T18:18:22.301549Z",
+      "registry_source": "https://crates.io/api/v1/crates/ruv-swarm-core"
+    },
+    {
+      "kind": "cargo",
+      "name": "ruv-swarm-daa",
+      "version": "1.0.7",
+      "manifest": "ruv-swarm/crates/ruv-swarm-daa/Cargo.toml",
+      "workspace": "ruv-swarm",
+      "publish": true,
+      "registry_latest": "1.0.6",
+      "registry_updated": "2025-07-03T18:19:30.247561Z",
+      "registry_source": "https://crates.io/api/v1/crates/ruv-swarm-daa"
+    },
+    {
+      "kind": "cargo",
+      "name": "ruv-swarm-mcp",
+      "version": "1.0.6",
+      "manifest": "ruv-swarm/crates/ruv-swarm-mcp/Cargo.toml",
+      "workspace": "ruv-swarm",
+      "publish": true,
+      "registry_latest": "0.2.0",
+      "registry_updated": "2025-06-30T16:46:01.939936Z",
+      "registry_source": "https://crates.io/api/v1/crates/ruv-swarm-mcp"
+    },
+    {
+      "kind": "cargo",
+      "name": "ruv-swarm-ml",
+      "version": "1.0.6",
+      "manifest": "ruv-swarm/crates/ruv-swarm-ml/Cargo.toml",
+      "workspace": "ruv-swarm",
+      "publish": true,
+      "registry_latest": "1.0.5",
+      "registry_updated": "2025-07-02T20:41:42.953257Z",
+      "registry_source": "https://crates.io/api/v1/crates/ruv-swarm-ml"
+    },
+    {
+      "kind": "cargo",
+      "name": "ruv-swarm-persistence",
+      "version": "1.0.8",
+      "manifest": "ruv-swarm/crates/ruv-swarm-persistence/Cargo.toml",
+      "workspace": "ruv-swarm",
+      "publish": true,
+      "registry_latest": "1.0.5",
+      "registry_updated": "2025-07-02T20:37:26.416697Z",
+      "registry_source": "https://crates.io/api/v1/crates/ruv-swarm-persistence"
+    },
+    {
+      "kind": "cargo",
+      "name": "ruv-swarm-transport",
+      "version": "1.0.8",
+      "manifest": "ruv-swarm/crates/ruv-swarm-transport/Cargo.toml",
+      "workspace": "ruv-swarm",
+      "publish": true,
+      "registry_latest": "1.0.5",
+      "registry_updated": "2025-07-02T20:39:37.562131Z",
+      "registry_source": "https://crates.io/api/v1/crates/ruv-swarm-transport"
+    },
+    {
+      "kind": "cargo",
+      "name": "ruv-swarm-wasm-unified",
+      "version": "2.0.0",
+      "manifest": "ruv-swarm/crates/ruv-swarm-wasm-unified/Cargo.toml",
+      "workspace": "ruv-swarm",
+      "publish": true,
+      "registry_error": "HTTP Error 404: Not Found"
+    },
+    {
+      "kind": "cargo",
+      "name": "ruv-swarm-wasm",
+      "version": "1.0.6",
+      "manifest": "ruv-swarm/crates/ruv-swarm-wasm/Cargo.toml",
+      "workspace": "ruv-swarm",
+      "publish": true,
+      "registry_latest": "1.0.5",
+      "registry_updated": "2025-07-02T20:58:01.810716Z",
+      "registry_source": "https://crates.io/api/v1/crates/ruv-swarm-wasm"
+    },
+    {
+      "kind": "cargo",
+      "name": "swe-bench-adapter",
+      "version": "1.0.6",
+      "manifest": "ruv-swarm/crates/swe-bench-adapter/Cargo.toml",
+      "workspace": "ruv-swarm",
+      "publish": true,
+      "registry_latest": "0.2.0",
+      "registry_updated": "2025-06-30T16:46:37.490328Z",
+      "registry_source": "https://crates.io/api/v1/crates/swe-bench-adapter"
+    },
+    {
+      "kind": "cargo",
+      "name": "ruv-swarm-ml-training",
+      "version": "1.0.6",
+      "manifest": "ruv-swarm/ml-training/Cargo.toml",
+      "workspace": "ruv-swarm",
+      "publish": true,
+      "registry_latest": "1.0.5",
+      "registry_updated": "2025-07-02T20:45:12.601166Z",
+      "registry_source": "https://crates.io/api/v1/crates/ruv-swarm-ml-training"
+    },
+    {
+      "kind": "npm",
+      "name": "cuda-rust-wasm-basic-vector-ops",
+      "version": "1.0.0",
+      "manifest": "cuda-wasm/examples/projects/basic-vector-ops/package.json",
+      "private": false,
+      "role": "fixture"
+    },
+    {
+      "kind": "npm",
+      "name": "cuda-wasm",
+      "version": "2.0.0",
+      "manifest": "cuda-wasm/package.json",
+      "private": false,
+      "role": "distribution or tooling",
+      "registry_latest": "1.1.1",
+      "registry_updated": "2025-07-12T22:23:47.739Z",
+      "registry_source": "https://registry.npmjs.org/cuda-wasm"
+    },
+    {
+      "kind": "npm",
+      "name": "(repository tooling)",
+      "version": null,
+      "manifest": "package.json",
+      "private": true,
+      "role": "distribution or tooling"
+    },
+    {
+      "kind": "npm",
+      "name": "ruv-swarm",
+      "version": "2.0.0",
+      "manifest": "ruv-swarm/npm/package.json",
+      "private": false,
+      "role": "distribution or tooling",
+      "registry_latest": "1.0.22",
+      "registry_updated": "2026-11-06T15:29:08.868Z",
+      "registry_source": "https://registry.npmjs.org/ruv-swarm"
+    },
+    {
+      "kind": "npm",
+      "name": "ruv-swarm-install-fixture",
+      "version": "1.0.0",
+      "manifest": "ruv-swarm/npm/test-npm-install-v106/package.json",
+      "private": true,
+      "role": "fixture"
+    },
+    {
+      "kind": "npm",
+      "name": "@ruv/ruv-swarm-wasm",
+      "version": "1.0.5",
+      "manifest": "ruv-swarm/npm/wasm-unified/package.json",
+      "private": true,
+      "role": "distribution or tooling",
+      "registry_error": "HTTP Error 404: Not Found"
+    },
+    {
+      "kind": "npm",
+      "name": "ruv-swarm-wasm",
+      "version": "1.0.6",
+      "manifest": "ruv-swarm/npm/wasm/package.json",
+      "private": true,
+      "role": "distribution or tooling",
+      "registry_error": "HTTP Error 404: Not Found"
+    },
+    {
+      "kind": "npm",
+      "name": "ruv-swarm-test-app",
+      "version": "1.0.0",
+      "manifest": "tests/init-test/test-swarm/package.json",
+      "private": false,
+      "role": "fixture"
+    },
+    {
+      "kind": "npm",
+      "name": "test-wasm-loading",
+      "version": "1.0.0",
+      "manifest": "tests/test-wasm-loading/package.json",
+      "private": false,
+      "role": "fixture"
+    }
+  ]
+}

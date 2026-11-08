@@ -97,8 +97,8 @@ pub enum Precision {
     Float64,
 }
 
-/// Trait for GPU backend implementations
-pub trait GpuBackendTrait: Send + Sync {
+/// GPU backends are thread-safe on native targets and local to the browser on WASM.
+pub trait GpuBackendTrait: wgpu::WasmNotSendSync {
     fn initialize(&self) -> NeuralResult<()>;
     fn is_available(&self) -> bool;
     fn get_device_info(&self) -> DeviceInfo;
@@ -106,8 +106,8 @@ pub trait GpuBackendTrait: Send + Sync {
     fn execute_kernel(&self, kernel: &CompiledKernel, inputs: &[BufferHandle]) -> NeuralResult<BufferHandle>;
 }
 
-/// Trait for memory management
-pub trait MemoryManagerTrait: Send + Sync {
+/// Memory managers are thread-safe on native targets and local to the browser on WASM.
+pub trait MemoryManagerTrait: wgpu::WasmNotSendSync {
     fn allocate(&self, size: usize) -> NeuralResult<MemoryHandle>;
     fn deallocate(&self, handle: MemoryHandle) -> NeuralResult<()>;
     fn transfer_to_gpu(&self, data: &[f32]) -> NeuralResult<BufferHandle>;
@@ -206,7 +206,7 @@ pub struct PerformanceDegradation {
 impl Default for BridgeConfig {
     fn default() -> Self {
         Self {
-            enable_gpu: true,
+            enable_gpu: crate::backend::gpu_enabled(),
             gpu_device: GpuDevice::Auto,
             memory_pool_size: 512, // 512 MB
             enable_monitoring: true,
@@ -458,7 +458,7 @@ pub fn initialize() -> NeuralResult<()> {
     
     #[cfg(not(target_arch = "wasm32"))]
     {
-        env_logger::init();
+        let _ = env_logger::try_init();
     }
     
     log::info!("Neural integration system initialized");
@@ -524,7 +524,7 @@ mod tests {
         let config = BridgeConfig::default();
         assert_eq!(config.batch_size, 32);
         assert_eq!(config.memory_pool_size, 512);
-        assert!(config.enable_gpu);
+        assert_eq!(config.enable_gpu, crate::backend::gpu_enabled());
         assert!(config.auto_fallback);
     }
 }

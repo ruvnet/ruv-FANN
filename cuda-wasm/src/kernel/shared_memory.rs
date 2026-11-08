@@ -10,7 +10,6 @@
 //! threads in the same block.
 
 use std::alloc::{self, Layout};
-use std::marker::PhantomData;
 use std::ptr::NonNull;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -28,110 +27,36 @@ pub const BANK_WIDTH_BYTES: usize = 4;
 /// # Type Parameters
 /// - `T`: Element type (must be `Send + Sync` since shared across threads)
 pub struct SharedMemory<T: Send + Sync> {
-    /// Pointer to the allocated memory
-    ptr: NonNull<T>,
-    /// Number of elements
-    len: usize,
-    /// Alignment requirement in bytes
-    _marker: PhantomData<T>,
+    data: Vec<T>,
 }
-
-// Safety: SharedMemory is explicitly designed for cross-thread sharing.
-unsafe impl<T: Send + Sync> Send for SharedMemory<T> {}
-unsafe impl<T: Send + Sync> Sync for SharedMemory<T> {}
 
 impl<T: Send + Sync> SharedMemory<T> {
-    /// Allocate a new shared memory buffer with `count` elements, all zeroed.
+    /// Allocate initialized shared elements using `T::default()`.
     ///
     /// # Panics
-    /// Panics if the allocation fails or if `count * size_of::<T>()` overflows.
-    pub fn new(count: usize) -> Self {
+    /// Panics for zero count, layout overflow or failed allocation.
+    pub fn new(count: usize) -> Self where T: Default {
         assert!(count > 0, "SharedMemory: count must be > 0");
-        let layout = Layout::array::<T>(count).expect("SharedMemory: layout overflow");
-
-        // Safety: layout has non-zero size (count > 0, T has non-zero size for most types)
-        let ptr = if layout.size() > 0 {
-            let raw = unsafe { alloc::alloc_zeroed(layout) };
-            NonNull::new(raw as *mut T).expect("SharedMemory: allocation failed")
-        } else {
-            NonNull::dangling()
-        };
-
-        Self {
-            ptr,
-            len: count,
-            _marker: PhantomData,
-        }
+        let mut data = Vec::new();
+        data.resize_with(count, T::default);
+        Self { data }
     }
-
-    /// Returns the number of elements.
-    pub fn len(&self) -> usize {
-        self.len
-    }
-
-    /// Returns true if the buffer is empty (always false after construction).
-    pub fn is_empty(&self) -> bool {
-        self.len == 0
-    }
-
-    /// Get a reference to the element at `index`.
-    ///
-    /// # Panics
-    /// Panics if `index >= len`.
-    pub fn get(&self, index: usize) -> &T {
-        assert!(index < self.len, "SharedMemory: index {index} out of bounds (len={})", self.len);
-        unsafe { &*self.ptr.as_ptr().add(index) }
-    }
-
-    /// Get a mutable reference to the element at `index`.
-    ///
-    /// # Safety
-    /// The caller must ensure no other thread is reading or writing the same
-    /// index concurrently (or use appropriate synchronization).
-    ///
-    /// # Panics
-    /// Panics if `index >= len`.
-    pub fn get_mut(&mut self, index: usize) -> &mut T {
-        assert!(index < self.len, "SharedMemory: index {index} out of bounds (len={})", self.len);
-        unsafe { &mut *self.ptr.as_ptr().add(index) }
-    }
-
-    /// Get the raw pointer to the underlying buffer.
-    pub fn as_ptr(&self) -> *const T {
-        self.ptr.as_ptr() as *const T
-    }
-
-    /// Get a mutable raw pointer to the underlying buffer.
-    pub fn as_mut_ptr(&mut self) -> *mut T {
-        self.ptr.as_ptr()
-    }
-
-    /// Get a slice view of the shared memory.
-    pub fn as_slice(&self) -> &[T] {
-        unsafe { std::slice::from_raw_parts(self.ptr.as_ptr() as *const T, self.len) }
-    }
-
-    /// Get a mutable slice view of the shared memory.
-    ///
-    /// # Safety
-    /// Caller must ensure exclusive access.
-    pub fn as_mut_slice(&mut self) -> &mut [T] {
-        unsafe { std::slice::from_raw_parts_mut(self.ptr.as_ptr(), self.len) }
-    }
-}
-
-impl<T: Send + Sync> Drop for SharedMemory<T> {
-    fn drop(&mut self) {
-        if self.len > 0 {
-            let layout = Layout::array::<T>(self.len)
-                .expect("SharedMemory::drop: layout overflow");
-            if layout.size() > 0 {
-                unsafe {
-                    alloc::dealloc(self.ptr.as_ptr() as *mut u8, layout);
-                }
-            }
-        }
-    }
+    /// Number of initialized elements.
+    pub fn len(&self) -> usize { self.data.len() }
+    /// Whether the buffer is empty.
+    pub fn is_empty(&self) -> bool { self.data.is_empty() }
+    /// Borrow an element; panics when out of bounds.
+    pub fn get(&self, index: usize) -> &T { &self.data[index] }
+    /// Mutably borrow an element; panics when out of bounds.
+    pub fn get_mut(&mut self, index: usize) -> &mut T { &mut self.data[index] }
+    /// Raw pointer valid for this buffer's lifetime.
+    pub fn as_ptr(&self) -> *const T { self.data.as_ptr() }
+    /// Mutable raw pointer, subject to Rust's aliasing rules.
+    pub fn as_mut_ptr(&mut self) -> *mut T { self.data.as_mut_ptr() }
+    /// Borrow initialized shared elements.
+    pub fn as_slice(&self) -> &[T] { &self.data }
+    /// Mutably borrow initialized shared elements.
+    pub fn as_mut_slice(&mut self) -> &mut [T] { &mut self.data }
 }
 
 // ---------------------------------------------------------------------------
@@ -184,7 +109,7 @@ impl DynamicSharedMemory {
     /// # Panics
     /// Panics if the buffer size is not a multiple of `size_of::<T>()` or if
     /// the alignment is insufficient.
-    pub fn as_typed_slice<T>(&self) -> &[T] {
+    pub fn as_typed_slice<T: bytemuck::Pod>(&self) -> &[T] {
         let elem_size = std::mem::size_of::<T>();
         assert!(elem_size > 0, "DynamicSharedMemory: zero-sized type");
         assert!(
@@ -206,7 +131,7 @@ impl DynamicSharedMemory {
     ///
     /// # Safety
     /// Caller must ensure exclusive access and correct typing.
-    pub fn as_typed_slice_mut<T>(&mut self) -> &mut [T] {
+    pub fn as_typed_slice_mut<T: bytemuck::Pod>(&mut self) -> &mut [T] {
         let elem_size = std::mem::size_of::<T>();
         assert!(elem_size > 0, "DynamicSharedMemory: zero-sized type");
         assert!(
@@ -395,7 +320,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "index 16 out of bounds")]
+    #[should_panic(expected = "index out of bounds")]
     fn test_static_shared_memory_out_of_bounds() {
         let smem: SharedMemory<u32> = SharedMemory::new(16);
         let _ = smem.get(16);

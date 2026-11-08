@@ -35,3 +35,4 @@ mod swarm_trait_tests;
 
 // Integration tests
 mod swarm_integration_tests;
+mod scheduling_regressions;

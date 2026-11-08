@@ -27,18 +27,16 @@ use crate::{
 /// # Examples
 ///
 /// ```rust
-/// use neuro_divergent_core::traits::BaseModel;
+/// use neuro_divergent_core::traits::{BaseModel, ForecastResult};
 /// use neuro_divergent_core::data::TimeSeriesDataset;
-/// 
-/// struct MyModel {
-///     // model implementation
-/// }
-/// 
-/// impl BaseModel<f64> for MyModel {
-///     type Config = MyModelConfig;
-///     type State = MyModelState;
-///     
-///     // Implement required methods...
+/// use neuro_divergent_core::error::NeuroDivergentResult;
+///
+/// fn checked_forecast<M: BaseModel<f64>>(
+///     model: &M,
+///     data: &TimeSeriesDataset<f64>,
+/// ) -> NeuroDivergentResult<ForecastResult<f64>> {
+///     model.validate_data(data)?;
+///     model.predict(data)
 /// }
 /// ```
 pub trait BaseModel<T: Float + Send + Sync + 'static>: Send + Sync {

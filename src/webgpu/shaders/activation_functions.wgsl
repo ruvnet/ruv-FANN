@@ -25,12 +25,12 @@ fn sigmoid_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     
     let x = input[index] * uniforms.steepness;
     
-    // Clamp to prevent overflow
-    let clamped_x = clamp(x, -10.0, 10.0);
-    
-    // Use optimized sigmoid approximation for better performance
-    // f(x) = 1 / (1 + exp(-x)) with fast exp approximation
-    output[index] = 1.0 / (1.0 + exp(-clamped_x));
+    if (x >= 0.0) {
+        output[index] = 1.0 / (1.0 + exp(-x));
+    } else {
+        let value = exp(x);
+        output[index] = value / (1.0 + value);
+    }
 }
 
 // ReLU activation: f(x) = max(0, x)
@@ -69,10 +69,7 @@ fn tanh_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     
     let x = input[index] * uniforms.steepness;
     
-    // Clamp to prevent overflow
-    let clamped_x = clamp(x, -5.0, 5.0);
-    
-    output[index] = tanh(clamped_x);
+    output[index] = tanh(x);
 }
 
 // Linear activation: f(x) = steepness * x
@@ -239,4 +236,25 @@ fn threshold_symmetric_main(@builtin(global_invocation_id) global_id: vec3<u32>)
     }
     
     output[index] = select(-1.0, 1.0, input[index] >= 0.0);
+}
+
+@compute @workgroup_size(256)
+fn gelu_main(@builtin(global_invocation_id) id: vec3<u32>) {
+    if (id.x >= uniforms.length) { return; }
+    let x = input[id.x];
+    if (x > 10.0) { output[id.x] = x; return; }
+    if (x < -10.0) { output[id.x] = 0.0; return; }
+    output[id.x] = 0.5 * x * (1.0 + tanh(0.7978845608 * (x + 0.044715 * x * x * x)));
+}
+
+@compute @workgroup_size(256)
+fn swish_main(@builtin(global_invocation_id) id: vec3<u32>) {
+    if (id.x >= uniforms.length) { return; }
+    let x = input[id.x];
+    if (x >= 0.0) {
+        output[id.x] = x / (1.0 + exp(-x));
+    } else {
+        let value = exp(x);
+        output[id.x] = x * value / (1.0 + value);
+    }
 }

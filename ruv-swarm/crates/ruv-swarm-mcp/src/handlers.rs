@@ -106,6 +106,20 @@ impl RequestHandler {
 
     /// Handle MCP request
     pub async fn handle_request(&self, request: McpRequest) -> anyhow::Result<McpResponse> {
+        if request.jsonrpc != "2.0" {
+            return Ok(McpResponse::error(
+                request.id,
+                -32600,
+                "jsonrpc must be 2.0".into(),
+            ));
+        }
+        if let Err(error) = self
+            .limiter
+            .check_session_expiration(&self.session.id)
+            .await
+        {
+            return Ok(McpResponse::error(request.id, -32005, error.to_string()));
+        }
         match request.method.as_str() {
             // Standard MCP methods
             "initialize" => self.handle_initialize(request).await,
@@ -171,7 +185,7 @@ impl RequestHandler {
         let default_params = json!({});
         let tool_params = params.get("arguments").unwrap_or(&default_params);
 
-        debug!("Calling tool: {} with params: {:?}", tool_name, tool_params);
+        debug!("Calling tool: {}", tool_name);
 
         // Validate tool exists
         if !self.is_valid_tool(tool_name) {
@@ -303,15 +317,13 @@ impl RequestHandler {
                 &e.to_string(),
                 vec![
                     "Check parameter types and values",
-                    "Ensure required fields are present"
-                ]
+                    "Ensure required fields are present",
+                ],
             ));
         }
 
         // Safe to unwrap after validation
-        let agent_type_str = params.get("agent_type")
-            .and_then(|v| v.as_str())
-            .unwrap();
+        let agent_type_str = params.get("agent_type").and_then(|v| v.as_str()).unwrap();
 
         let agent_type = match agent_type_str {
             "researcher" => AgentType::Researcher,
@@ -335,7 +347,7 @@ impl RequestHandler {
         };
 
         // Check resource limits before spawning
-        if let Err(e) = self.limiter.check_agent_limit(&self.session.id).await {
+        if let Err(e) = self.limiter.increment_agents(&self.session.id).await {
             return Ok(self.create_detailed_error(
                 id,
                 -32005,
@@ -343,22 +355,24 @@ impl RequestHandler {
                 &e.to_string(),
                 vec![
                     "Agent limit reached for this session",
-                    "Consider terminating unused agents"
-                ]
+                    "Consider terminating unused agents",
+                ],
             ));
         }
 
         // Spawn agent
         let agent_name = name.unwrap_or_else(|| format!("{:?}", agent_type));
-        let agent_id = self
+        let agent_id = match self
             .orchestrator
             .spawn_agent(agent_type, agent_name, capabilities)
-            .await?;
-
-        // Update resource tracking
-        if let Err(e) = self.limiter.increment_agents(&self.session.id).await {
-            error!("Failed to update agent count: {}", e);
-        }
+            .await
+        {
+            Ok(id) => id,
+            Err(error) => {
+                let _ = self.limiter.decrement_agents(&self.session.id).await;
+                return Err(error.into());
+            }
+        };
 
         let result = json!({
             "agent_id": agent_id,
@@ -385,16 +399,13 @@ impl RequestHandler {
                 &e.to_string(),
                 vec![
                     "Check parameter types and values",
-                    "Ensure objective is provided"
-                ]
+                    "Ensure objective is provided",
+                ],
             ));
         }
 
         // Safe to unwrap after validation
-        let objective = params
-            .get("objective")
-            .and_then(|v| v.as_str())
-            .unwrap();
+        let objective = params.get("objective").and_then(|v| v.as_str()).unwrap();
 
         let strategy_str = params
             .get("strategy")
@@ -450,7 +461,12 @@ impl RequestHandler {
         // Spawn async task
         tokio::spawn(async move {
             match orchestrator
-                .create_task("orchestration".to_string(), objective_str, vec![], "adaptive".to_string())
+                .create_task(
+                    "orchestration".to_string(),
+                    objective_str,
+                    vec![],
+                    "adaptive".to_string(),
+                )
                 .await
             {
                 Ok(result) => {
@@ -580,18 +596,24 @@ impl RequestHandler {
             .and_then(|v| v.as_str())
             .unwrap_or("throughput")
             .to_string();
-            
+
         let threshold = params
             .get("threshold")
             .and_then(|v| v.as_f64())
             .unwrap_or(0.8);
 
         // Get optimization recommendations
-        let recommendations = self.orchestrator.optimize_performance(target_metric.clone(), threshold).await?;
+        let recommendations = self
+            .orchestrator
+            .optimize_performance(target_metric.clone(), threshold)
+            .await?;
 
         if auto_apply {
             // TODO: Implement optimization application
-            info!("Auto-apply optimization recommendations: {:?}", recommendations);
+            info!(
+                "Auto-apply optimization recommendations: {:?}",
+                recommendations
+            );
         }
 
         let result = json!({
@@ -619,26 +641,25 @@ impl RequestHandler {
                 &e.to_string(),
                 vec![
                     "Check parameter types and values",
-                    "Ensure key and value are provided"
-                ]
+                    "Ensure key and value are provided",
+                ],
             ));
         }
 
         // Safe to unwrap after validation
-        let key = params
-            .get("key")
-            .and_then(|v| v.as_str())
-            .unwrap();
+        let key = params.get("key").and_then(|v| v.as_str()).unwrap();
 
-        let value = params
-            .get("value")
-            .unwrap();
+        let value = params.get("value").unwrap();
 
         let ttl_secs = params.get("ttl_secs").and_then(|v| v.as_u64());
 
         // Check memory limits before storing
         let value_size = serde_json::to_string(&value).unwrap_or_default().len();
-        if let Err(e) = self.limiter.check_memory_limit(&self.session.id, value_size).await {
+        if let Err(e) = self
+            .limiter
+            .update_memory_usage(&self.session.id, value_size, true)
+            .await
+        {
             return Ok(self.create_detailed_error(
                 id,
                 -32006,
@@ -646,18 +667,13 @@ impl RequestHandler {
                 &e.to_string(),
                 vec![
                     "Memory limit reached for this session",
-                    "Consider removing unused data"
-                ]
+                    "Consider removing unused data",
+                ],
             ));
         }
 
         // Store in session metadata with TTL support
         self.session.metadata.insert(key.to_string(), value.clone());
-
-        // Update resource tracking
-        if let Err(e) = self.limiter.update_memory_usage(&self.session.id, value_size, true).await {
-            error!("Failed to update memory usage: {}", e);
-        }
 
         // If TTL is specified, schedule cleanup
         if let Some(ttl) = ttl_secs {
@@ -743,13 +759,14 @@ impl RequestHandler {
         } else {
             vec![]
         };
-        
+
         let strategy = match priority {
             crate::types::TaskPriority::Critical => "urgent",
-            crate::types::TaskPriority::High => "high_priority", 
+            crate::types::TaskPriority::High => "high_priority",
             crate::types::TaskPriority::Medium => "normal",
             crate::types::TaskPriority::Low => "background",
-        }.to_string();
+        }
+        .to_string();
 
         let task_id = self
             .orchestrator
@@ -788,8 +805,8 @@ impl RequestHandler {
                 &e.to_string(),
                 vec![
                     "Check workflow path format",
-                    "Ensure path is relative and safe"
-                ]
+                    "Ensure path is relative and safe",
+                ],
             ));
         }
 
@@ -816,23 +833,30 @@ impl RequestHandler {
             tokio::spawn(async move {
                 // Create workflow definition from parameters
                 let mut steps = vec![];
-                
+
                 // Try to extract steps from parameters
                 if let Some(step_array) = parameters.get("steps").and_then(|v| v.as_array()) {
                     for (i, step_value) in step_array.iter().enumerate() {
-                        let step_name = step_value.get("name")
+                        let step_name = step_value
+                            .get("name")
                             .and_then(|v| v.as_str())
                             .unwrap_or(&format!("Step {}", i + 1))
                             .to_string();
-                        let task_type = step_value.get("task_type")
+                        let task_type = step_value
+                            .get("task_type")
                             .and_then(|v| v.as_str())
                             .unwrap_or("generic_task")
                             .to_string();
-                        let dependencies = step_value.get("dependencies")
+                        let dependencies = step_value
+                            .get("dependencies")
                             .and_then(|v| v.as_array())
-                            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+                            .map(|arr| {
+                                arr.iter()
+                                    .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                                    .collect()
+                            })
                             .unwrap_or_default();
-                            
+
                         steps.push(crate::types::WorkflowStep {
                             name: step_name,
                             task_type,
@@ -840,7 +864,7 @@ impl RequestHandler {
                         });
                     }
                 }
-                
+
                 // If no steps provided, create a default step
                 if steps.is_empty() {
                     steps.push(crate::types::WorkflowStep {
@@ -849,16 +873,13 @@ impl RequestHandler {
                         dependencies: vec![],
                     });
                 }
-                
+
                 let workflow_def = crate::types::WorkflowDefinition {
                     name: workflow_path.clone(),
                     steps,
                 };
-                
-                match orchestrator
-                    .execute_workflow(workflow_def)
-                    .await
-                {
+
+                match orchestrator.execute_workflow(workflow_def).await {
                     Ok(result) => {
                         info!("Workflow completed: {:?}", result);
                     }
@@ -878,23 +899,30 @@ impl RequestHandler {
         } else {
             // Execute synchronously
             let mut steps = vec![];
-            
+
             // Try to extract steps from parameters
             if let Some(step_array) = parameters.get("steps").and_then(|v| v.as_array()) {
                 for (i, step_value) in step_array.iter().enumerate() {
-                    let step_name = step_value.get("name")
+                    let step_name = step_value
+                        .get("name")
                         .and_then(|v| v.as_str())
                         .unwrap_or(&format!("Step {}", i + 1))
                         .to_string();
-                    let task_type = step_value.get("task_type")
+                    let task_type = step_value
+                        .get("task_type")
                         .and_then(|v| v.as_str())
                         .unwrap_or("generic_task")
                         .to_string();
-                    let dependencies = step_value.get("dependencies")
+                    let dependencies = step_value
+                        .get("dependencies")
                         .and_then(|v| v.as_array())
-                        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+                        .map(|arr| {
+                            arr.iter()
+                                .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                                .collect()
+                        })
                         .unwrap_or_default();
-                        
+
                     steps.push(crate::types::WorkflowStep {
                         name: step_name,
                         task_type,
@@ -902,7 +930,7 @@ impl RequestHandler {
                     });
                 }
             }
-            
+
             // If no steps provided, create a default step
             if steps.is_empty() {
                 steps.push(crate::types::WorkflowStep {
@@ -911,16 +939,13 @@ impl RequestHandler {
                     dependencies: vec![],
                 });
             }
-            
+
             let workflow_def = crate::types::WorkflowDefinition {
                 name: workflow_path.to_string(),
                 steps,
             };
-            
-            let result = self
-                .orchestrator
-                .execute_workflow(workflow_def)
-                .await?;
+
+            let result = self.orchestrator.execute_workflow(workflow_def).await?;
 
             Ok(McpResponse::success(
                 id,

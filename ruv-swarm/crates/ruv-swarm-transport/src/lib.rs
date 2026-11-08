@@ -7,13 +7,19 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::error::Error as StdError;
 use std::fmt::Debug;
+use std::sync::Arc;
 use thiserror::Error;
 use uuid::Uuid;
 
 pub mod in_process;
 pub mod protocol;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod shared_memory;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod websocket;
+
+#[cfg(all(test, target_arch = "wasm32"))]
+mod wasm_tests;
 
 #[cfg(test)]
 mod tests;
@@ -136,7 +142,7 @@ pub trait TransportBuilder: Send + Sync {
 
 /// Registry for available transports
 pub struct TransportRegistry {
-    transports: dashmap::DashMap<String, Box<dyn TransportBuilder>>,
+    transports: dashmap::DashMap<String, Arc<dyn TransportBuilder>>,
 }
 
 impl TransportRegistry {
@@ -151,7 +157,7 @@ impl TransportRegistry {
     where
         B: TransportBuilder + 'static,
     {
-        self.transports.insert(name.to_string(), Box::new(builder));
+        self.transports.insert(name.to_string(), Arc::new(builder));
     }
 
     /// Create a transport by name
@@ -160,13 +166,14 @@ impl TransportRegistry {
         name: &str,
         config: TransportConfig,
     ) -> Result<Box<dyn Transport<Message = Message, Error = TransportError>>, TransportError> {
-        self.transports
+        let builder = self
+            .transports
             .get(name)
+            .map(|entry| Arc::clone(entry.value()))
             .ok_or_else(|| {
                 TransportError::NotAvailable(format!("Transport '{}' not registered", name))
-            })?
-            .build(config)
-            .await
+            })?;
+        builder.build(config).await
     }
 }
 

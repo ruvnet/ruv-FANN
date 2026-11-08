@@ -180,6 +180,7 @@ fn resolve_symbol(handle: *mut std::ffi::c_void, name: &str) -> Option<*mut std:
 
 /// Detect the best available GPU API, preferring CUDA > ROCm > Vulkan.
 fn detect_gpu_api() -> GpuApi {
+    if !super::gpu_enabled() { return GpuApi::None; }
     if is_cuda_available() {
         return GpuApi::Cuda;
     }
@@ -879,7 +880,7 @@ impl BackendTrait for NativeGPUBackend {
         }
     }
 
-    async fn launch_kernel(
+    async unsafe fn launch_kernel(
         &self,
         kernel: &[u8],
         grid: (u32, u32, u32),
@@ -1040,16 +1041,9 @@ impl BackendTrait for NativeGPUBackend {
                     }
                 }
 
-                // No runtime loaded, or all real dispatch attempts failed.
-                // Return Ok for forward-compatibility (caller can check
-                // whether initialize() succeeded to decide if this is
-                // meaningful).
-                log::debug!(
-                    "CUDA kernel launch: grid=({},{},{}), block=({},{},{}) \
-                     [no active runtime or module load failed; no-op]",
-                    grid.0, grid.1, grid.2, block.0, block.1, block.2
-                );
-                Ok(())
+                Err(runtime_error!(
+                    "CUDA kernel was not dispatched: no active runtime or module/entry load failed"
+                ))
             }
             GpuApi::Rocm => {
                 let runtime = self.gpu_runtime.lock();
@@ -1160,34 +1154,13 @@ impl BackendTrait for NativeGPUBackend {
                     }
                 }
 
-                log::debug!(
-                    "ROCm kernel launch: grid=({},{},{}), block=({},{},{}) \
-                     [no active runtime or module load failed; no-op]",
-                    grid.0, grid.1, grid.2, block.0, block.1, block.2
-                );
-                Ok(())
+                Err(runtime_error!(
+                    "ROCm kernel was not dispatched: no active runtime or module/entry load failed"
+                ))
             }
-            GpuApi::Vulkan => {
-                let runtime = self.gpu_runtime.lock();
-                if runtime.is_some() {
-                    log::debug!(
-                        "Dispatching Vulkan compute: grid=({},{},{}), block=({},{},{}) \
-                         [runtime loaded, compute pipeline dispatch deferred to SPIR-V pipeline]",
-                        grid.0, grid.1, grid.2, block.0, block.1, block.2
-                    );
-                } else {
-                    log::debug!(
-                        "Dispatching Vulkan compute: grid=({},{},{}), block=({},{},{}) \
-                         [no active runtime; no-op]",
-                        grid.0, grid.1, grid.2, block.0, block.1, block.2
-                    );
-                }
-                // Full Vulkan compute pipeline dispatch (descriptor sets,
-                // command buffers, queue submit) is architecture-level work.
-                // The dlsym loading above confirms the driver is present;
-                // dispatch returns Ok for forward-compatibility.
-                Ok(())
-            }
+            GpuApi::Vulkan => Err(runtime_error!(
+                "Vulkan kernel dispatch is not implemented"
+            )),
             GpuApi::None => Err(runtime_error!(
                 "Cannot launch kernel: no GPU runtime available (detected API: {})",
                 self.api
@@ -1244,7 +1217,7 @@ impl BackendTrait for NativeGPUBackend {
         Ok(())
     }
 
-    fn copy_memory(
+    unsafe fn copy_memory(
         &self,
         dst: *mut u8,
         src: *const u8,
@@ -1471,18 +1444,18 @@ mod tests {
         let src_data: Vec<u8> = (0..128).collect();
 
         let dst = backend.allocate_memory(128).unwrap();
-        backend
-            .copy_memory(dst, src_data.as_ptr(), 128, MemcpyKind::HostToDevice)
+        unsafe { backend
+            .copy_memory(dst, src_data.as_ptr(), 128, MemcpyKind::HostToDevice) }
             .unwrap();
 
         let mut readback = vec![0u8; 128];
-        backend
+        unsafe { backend
             .copy_memory(
                 readback.as_mut_ptr(),
                 dst as *const u8,
                 128,
                 MemcpyKind::DeviceToHost,
-            )
+            ) }
             .unwrap();
 
         assert_eq!(readback, src_data);
@@ -1493,12 +1466,12 @@ mod tests {
     fn test_copy_memory_null_dst_fails() {
         let backend = make_backend(GpuApi::None);
         let src: u8 = 42;
-        let result = backend.copy_memory(
+        let result = unsafe { backend.copy_memory(
             std::ptr::null_mut(),
             &src as *const u8,
             1,
             MemcpyKind::HostToHost,
-        );
+        ) };
         assert!(result.is_err());
     }
 
@@ -1506,12 +1479,12 @@ mod tests {
     fn test_copy_memory_null_src_fails() {
         let backend = make_backend(GpuApi::None);
         let mut dst: u8 = 0;
-        let result = backend.copy_memory(
+        let result = unsafe { backend.copy_memory(
             &mut dst as *mut u8,
             std::ptr::null(),
             1,
             MemcpyKind::HostToHost,
-        );
+        ) };
         assert!(result.is_err());
     }
 
@@ -1520,12 +1493,12 @@ mod tests {
         let backend = make_backend(GpuApi::None);
         let mut dst: u8 = 0;
         let src: u8 = 42;
-        let result = backend.copy_memory(
+        let result = unsafe { backend.copy_memory(
             &mut dst as *mut u8,
             &src as *const u8,
             0,
             MemcpyKind::HostToHost,
-        );
+        ) };
         assert!(result.is_ok());
         assert_eq!(dst, 0); // unchanged
     }
@@ -1581,8 +1554,8 @@ mod tests {
     #[tokio::test]
     async fn test_launch_kernel_none_fails() {
         let backend = make_backend(GpuApi::None);
-        let result = backend
-            .launch_kernel(b"fake", (1, 1, 1), (1, 1, 1), &[])
+        let result = unsafe { backend
+            .launch_kernel(b"fake", (1, 1, 1), (1, 1, 1), &[]) }
             .await;
         assert!(result.is_err());
     }
@@ -1590,8 +1563,8 @@ mod tests {
     #[tokio::test]
     async fn test_launch_kernel_empty_binary_fails() {
         let backend = make_backend(GpuApi::Cuda);
-        let result = backend
-            .launch_kernel(b"", (1, 1, 1), (1, 1, 1), &[])
+        let result = unsafe { backend
+            .launch_kernel(b"", (1, 1, 1), (1, 1, 1), &[]) }
             .await;
         assert!(result.is_err());
     }
@@ -1600,23 +1573,23 @@ mod tests {
     async fn test_launch_kernel_block_dim_exceeded() {
         let backend = make_backend(GpuApi::Cuda);
         // max_block_dim[0] for CUDA is 1024
-        let result = backend
-            .launch_kernel(b"ptx", (1, 1, 1), (2048, 1, 1), &[])
+        let result = unsafe { backend
+            .launch_kernel(b"ptx", (1, 1, 1), (2048, 1, 1), &[]) }
             .await;
         assert!(result.is_err());
     }
 
     #[tokio::test]
-    async fn test_launch_kernel_cuda_succeeds() {
-        let backend = make_backend(GpuApi::Cuda);
-        let compiled = backend
-            .compile_kernel("__global__ void f() {}")
-            .await
-            .unwrap();
-        let result = backend
-            .launch_kernel(&compiled, (1, 1, 1), (32, 1, 1), &[])
-            .await;
-        assert!(result.is_ok());
+    async fn test_launch_kernel_requires_real_dispatch() {
+        for api in [GpuApi::Cuda, GpuApi::Rocm, GpuApi::Vulkan] {
+            let backend = make_backend(api);
+            // No driver/runtime is loaded by make_backend. No arguments are
+            // dereferenced; this verifies that skipped work cannot report success.
+            let result = unsafe {
+                backend.launch_kernel(b"placeholder", (1, 1, 1), (32, 1, 1), &[])
+            }.await;
+            assert!(result.is_err(), "launch must not silently succeed for {api:?}");
+        }
     }
 
     // -- Synchronize --------------------------------------------------------

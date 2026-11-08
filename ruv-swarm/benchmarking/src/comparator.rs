@@ -65,11 +65,12 @@ impl PerformanceComparator {
             None
         };
 
-        // Statistical significance (placeholder for now)
+        // A single pair cannot establish statistical significance. These are
+        // conservative "not calculated" sentinels; analyze_trials needs repeats.
         let statistical_significance = StatisticalSignificance {
-            p_value: 0.01, // Would need multiple trials for real p-value
-            confidence_interval: (0.1, 0.3),
-            effect_size: 0.5,
+            p_value: 1.0,
+            confidence_interval: (0.0, 0.0),
+            effect_size: 0.0,
         };
 
         Ok(ComparisonResult {
@@ -166,19 +167,29 @@ impl StatisticalAnalyzer {
             .map(|t| t.completion_time.as_millis() as f64)
             .collect();
 
-        let analysis = Analysis {
-            mean_improvement: self.calculate_mean_improvement(&baseline_values, &ml_values),
-            median_improvement: self.calculate_median_improvement(&baseline_values, &ml_values),
-            std_deviation: self.calculate_std_deviation(&ml_values),
-            effect_size: self.calculate_cohens_d(&baseline_values, &ml_values),
-            p_value: self.perform_t_test(&baseline_values, &ml_values),
-            confidence_interval_95: self.calculate_confidence_interval(
-                &baseline_values,
-                &ml_values,
-                0.95,
-            ),
+        let analysis = if baseline_values.is_empty() || ml_values.is_empty() {
+            Analysis {
+                mean_improvement: 0.0,
+                median_improvement: 0.0,
+                std_deviation: 0.0,
+                effect_size: 0.0,
+                p_value: 1.0,
+                confidence_interval_95: (0.0, 0.0),
+            }
+        } else {
+            Analysis {
+                mean_improvement: self.calculate_mean_improvement(&baseline_values, &ml_values),
+                median_improvement: self.calculate_median_improvement(&baseline_values, &ml_values),
+                std_deviation: self.calculate_std_deviation(&ml_values),
+                effect_size: self.calculate_cohens_d(&baseline_values, &ml_values),
+                p_value: self.perform_t_test(&baseline_values, &ml_values),
+                confidence_interval_95: self.calculate_confidence_interval(
+                    &baseline_values,
+                    &ml_values,
+                    0.95,
+                ),
+            }
         };
-
         StatisticalAnalysis {
             baseline_stats: self.calculate_stats(&baseline_values),
             ml_stats: self.calculate_stats(&ml_values),
@@ -188,6 +199,17 @@ impl StatisticalAnalyzer {
     }
 
     fn calculate_stats(&self, values: &[f64]) -> SummaryStatistics {
+        if values.is_empty() {
+            return SummaryStatistics {
+                mean: 0.0,
+                median: 0.0,
+                std_dev: 0.0,
+                min: 0.0,
+                max: 0.0,
+                p25: 0.0,
+                p75: 0.0,
+            };
+        }
         let mut sorted_values = values.to_vec();
         sorted_values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 
@@ -198,7 +220,11 @@ impl StatisticalAnalyzer {
             } else {
                 sorted_values[sorted_values.len() / 2]
             },
-            std_dev: values.std_dev(),
+            std_dev: if values.len() > 1 {
+                values.std_dev()
+            } else {
+                0.0
+            },
             min: values.min(),
             max: values.max(),
             p25: self.percentile(values, 0.25),
@@ -242,7 +268,11 @@ impl StatisticalAnalyzer {
     }
 
     fn calculate_std_deviation(&self, values: &[f64]) -> f64 {
-        values.std_dev()
+        if values.len() > 1 {
+            values.std_dev()
+        } else {
+            0.0
+        }
     }
 
     fn calculate_cohens_d(&self, baseline: &[f64], optimized: &[f64]) -> f64 {
@@ -526,6 +556,15 @@ mod tests {
     use std::time::Duration;
 
     #[test]
+    fn empty_trials_do_not_panic_or_claim_significance() {
+        let result = StatisticalAnalyzer::new().analyze_trials(&[], &[]);
+        assert_eq!(result.sample_size, 0);
+        assert_eq!(result.comparison.p_value, 1.0);
+        assert_eq!(result.baseline_stats.p25, 0.0);
+        assert!(result.baseline_stats.mean.is_finite());
+    }
+
+    #[test]
     fn test_speed_improvement_calculation() {
         let comparator = PerformanceComparator::new();
 
@@ -550,6 +589,11 @@ mod tests {
         };
 
         let comparison = comparator.compare(&baseline, &ml_optimized).unwrap();
+        assert_eq!(comparison.statistical_significance.p_value, 1.0);
+        assert_eq!(
+            comparison.statistical_significance.confidence_interval,
+            (0.0, 0.0)
+        );
         assert!(comparison.speed_improvement.is_some());
         assert!((comparison.speed_improvement.unwrap() - 0.3).abs() < 0.01);
     }

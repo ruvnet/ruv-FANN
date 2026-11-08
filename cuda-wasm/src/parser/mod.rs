@@ -1,5 +1,6 @@
 //! CUDA code parsing module
 
+mod limits;
 pub mod cuda_parser;
 pub mod ptx_parser;
 pub mod ast;

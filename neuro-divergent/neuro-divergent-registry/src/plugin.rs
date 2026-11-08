@@ -9,6 +9,9 @@ use crate::{
 };
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::io::Read;
+#[cfg(feature = "plugin-system")]
+use std::sync::Arc;
 use parking_lot::RwLock;
 use serde_json::Value;
 use sha2::{Sha256, Digest};
@@ -286,22 +289,13 @@ impl Plugin {
     pub fn load_from_path<P: AsRef<Path>>(path: P, config: PluginConfig) -> RegistryResult<Self> {
         let path = path.as_ref();
         
-        // Verify path is allowed
-        if !config.allowed_directories.iter().any(|dir| path.starts_with(dir)) {
-            return Err(RegistryError::PluginError(
-                format!("Plugin path {:?} not in allowed directories", path)
-            ));
-        }
-        
-        // Check if path is blocked
-        if config.blocked_directories.iter().any(|dir| path.starts_with(dir)) {
-            return Err(RegistryError::PluginError(
-                format!("Plugin path {:?} is in blocked directories", path)
-            ));
-        }
-        
-        // Load plugin descriptor
-        let descriptor = Self::load_descriptor(path)?;
+        let canonical_path = Self::checked_path(path, &config)?;
+        let path = canonical_path.as_path();
+
+        // Authorize the descriptor independently: an allowed binary can have
+        // a neighboring TOML symlink pointing outside the allowed directory.
+        let descriptor_path = Self::checked_path(&Self::descriptor_path(path), &config)?;
+        let descriptor = Self::load_descriptor(descriptor_path)?;
         
         // Verify security
         Self::verify_security(&descriptor, path, &config)?;
@@ -312,40 +306,71 @@ impl Plugin {
         ))
     }
     
-    /// Load plugin from descriptor file
+    /// Read plugin metadata without loading or authenticating executable code.
+    ///
+    /// The descriptor must resolve inside an allowed directory and outside every
+    /// blocked directory. The read is limited to 1 MiB, including files that grow.
     pub fn load_from_descriptor<P: AsRef<Path>>(descriptor_path: P, config: PluginConfig) -> RegistryResult<Self> {
+        let descriptor_path = Self::descriptor_path(descriptor_path.as_ref());
+        let descriptor_path = Self::checked_path(&descriptor_path, &config)?;
         let descriptor = Self::load_descriptor(descriptor_path)?;
         Ok(Self::new(descriptor, config))
     }
     
     /// Load plugin descriptor from file
     fn load_descriptor<P: AsRef<Path>>(path: P) -> RegistryResult<PluginDescriptor> {
-        let path = path.as_ref();
-        
-        // Try to find descriptor file
-        let descriptor_path = if path.is_dir() {
-            path.join("plugin.toml")
-        } else if path.extension().map_or(false, |ext| ext == "toml") {
-            path.to_path_buf()
-        } else {
-            path.with_extension("toml")
-        };
-        
-        if !descriptor_path.exists() {
+        const MAX_DESCRIPTOR_BYTES: u64 = 1024 * 1024;
+        let descriptor_path = Self::descriptor_path(path.as_ref());
+        let metadata = descriptor_path.metadata()?;
+        if !metadata.is_file() || metadata.len() > MAX_DESCRIPTOR_BYTES {
             return Err(RegistryError::PluginError(
-                format!("Plugin descriptor not found at {:?}", descriptor_path)
+                "Plugin descriptor must be a regular file no larger than 1 MiB".to_string()
             ));
         }
-        
-        let content = std::fs::read_to_string(&descriptor_path)
-            .map_err(|e| RegistryError::IoError(e))?;
-        
+        let mut content = String::new();
+        std::fs::File::open(descriptor_path)?
+            .take(MAX_DESCRIPTOR_BYTES + 1)
+            .read_to_string(&mut content)?;
+        if content.len() as u64 > MAX_DESCRIPTOR_BYTES {
+            return Err(RegistryError::PluginError("Plugin descriptor exceeds 1 MiB".to_string()));
+        }
+
         let descriptor: PluginDescriptor = toml::from_str(&content)
             .map_err(|e| RegistryError::PluginError(format!("Failed to parse descriptor: {}", e)))?;
         
         Ok(descriptor)
     }
     
+    fn descriptor_path(path: &Path) -> PathBuf {
+        if path.is_dir() {
+            path.join("plugin.toml")
+        } else if path.extension().map_or(false, |ext| ext == "toml") {
+            path.to_path_buf()
+        } else {
+            path.with_extension("toml")
+        }
+    }
+
+    fn checked_path(path: &Path, config: &PluginConfig) -> RegistryResult<PathBuf> {
+        let canonical = path.canonicalize()?;
+        for directory in &config.blocked_directories {
+            match directory.canonicalize() {
+                Ok(directory) if canonical.starts_with(&directory) => {
+                    return Err(RegistryError::PluginError("Plugin path is blocked".to_string()));
+                }
+                Ok(_) => {}
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                Err(error) => return Err(error.into()),
+            }
+        }
+        if !config.allowed_directories.iter().any(|directory| {
+            directory.canonicalize().map_or(false, |directory| canonical.starts_with(directory))
+        }) {
+            return Err(RegistryError::PluginError("Plugin path is outside allowed directories".to_string()));
+        }
+        Ok(canonical)
+    }
+
     /// Verify plugin security
     #[allow(dead_code)]
     fn verify_security(descriptor: &PluginDescriptor, path: &Path, config: &PluginConfig) -> RegistryResult<()> {
@@ -353,27 +378,28 @@ impl Plugin {
             SecurityLevel::None => Ok(()),
             
             SecurityLevel::Checksum => {
-                if let Some(expected_checksum) = &descriptor.checksum {
-                    let actual_checksum = Self::calculate_checksum(path)?;
-                    if &actual_checksum != expected_checksum {
-                        return Err(RegistryError::PluginError(
-                            "Plugin checksum verification failed".to_string()
-                        ));
-                    }
+                let expected_checksum = descriptor.checksum.as_ref().ok_or_else(|| {
+                    RegistryError::PluginError("Plugin checksum is required".to_string())
+                })?;
+                let actual_checksum = Self::calculate_checksum(path)?;
+                if !actual_checksum.eq_ignore_ascii_case(expected_checksum) {
+                    return Err(RegistryError::PluginError(
+                        "Plugin checksum verification failed".to_string()
+                    ));
                 }
                 Ok(())
             },
             
             SecurityLevel::Signature => {
-                // TODO: Implement digital signature verification
-                log::warn!("Digital signature verification not implemented");
-                Ok(())
+                Err(RegistryError::UnsupportedOperation(
+                    "Digital signature verification is not implemented".to_string()
+                ))
             },
             
             SecurityLevel::Sandboxed => {
-                // TODO: Implement sandboxed execution
-                log::warn!("Sandboxed execution not implemented");
-                Ok(())
+                Err(RegistryError::UnsupportedOperation(
+                    "Sandboxed execution is not implemented".to_string()
+                ))
             },
         }
     }
@@ -381,9 +407,16 @@ impl Plugin {
     /// Calculate file checksum
     #[allow(dead_code)]
     fn calculate_checksum<P: AsRef<Path>>(path: P) -> RegistryResult<String> {
-        let content = std::fs::read(path)?;
+        let mut file = std::fs::File::open(path)?;
+        let mut buffer = [0_u8; 64 * 1024];
         let mut hasher = Sha256::new();
-        hasher.update(&content);
+        loop {
+            let read = file.read(&mut buffer)?;
+            if read == 0 {
+                break;
+            }
+            hasher.update(&buffer[..read]);
+        }
         let result = hasher.finalize();
         Ok(format!("{:x}", result))
     }
@@ -547,15 +580,15 @@ impl Plugin {
     
     /// Check version compatibility using descriptor
     fn check_version_compatibility(&self, runtime_version: &str) -> bool {
-        // Simple version comparison (should use proper semver parsing)
-        if runtime_version >= self.descriptor.min_runtime_version.as_str() {
-            if let Some(ref max_version) = self.descriptor.max_runtime_version {
-                runtime_version <= max_version.as_str()
-            } else {
-                true
-            }
-        } else {
-            false
+        let Ok(runtime) = semver::Version::parse(runtime_version) else { return false; };
+        let Ok(minimum) = semver::Version::parse(&self.descriptor.min_runtime_version) else { return false; };
+        if runtime < minimum {
+            return false;
+        }
+        match &self.descriptor.max_runtime_version {
+            Some(maximum) => semver::Version::parse(maximum)
+                .map_or(false, |maximum| runtime <= maximum),
+            None => true,
         }
     }
 }
@@ -733,8 +766,12 @@ pub fn load_plugins_from_directory<P: AsRef<Path>>(dir: P) -> RegistryResult<Vec
     }
     
     let mut plugins = Vec::new();
-    let config = PluginConfig::default();
-    
+    // The caller explicitly selected this directory for metadata discovery.
+    let config = PluginConfig {
+        allowed_directories: vec![dir.canonicalize()?],
+        ..PluginConfig::default()
+    };
+
     for entry in walkdir::WalkDir::new(dir)
         .min_depth(1)
         .max_depth(2)
@@ -882,3 +919,7 @@ mod tests {
         assert_eq!(dep.features.len(), 1);
     }
 }
+
+#[cfg(test)]
+#[path = "plugin_security_tests.rs"]
+mod security_tests;

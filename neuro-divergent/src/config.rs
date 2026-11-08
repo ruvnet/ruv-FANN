@@ -193,7 +193,7 @@ impl PredictionIntervals {
     pub fn new(confidence_levels: Vec<f64>, method: IntervalMethod) -> NeuroDivergentResult<Self> {
         // Validate confidence levels
         for &level in &confidence_levels {
-            if level <= 0.0 || level >= 1.0 {
+            if !level.is_finite() || level <= 0.0 || level >= 1.0 {
                 return Err(NeuroDivergentError::config(
                     format!("Confidence level must be in (0, 1), got {}", level)
                 ));
@@ -666,7 +666,10 @@ mod tests {
         ).unwrap();
         
         let quantiles = intervals.quantile_levels();
-        assert_eq!(quantiles, vec![0.05, 0.1, 0.9, 0.95]);
+        assert_eq!(quantiles.len(), 4);
+        for (actual, expected) in quantiles.iter().zip([0.05, 0.1, 0.9, 0.95]) {
+            assert!((actual - expected).abs() < 1e-12);
+        }
     }
     
     #[test]

@@ -3,19 +3,19 @@
 //! This module provides data structures for handling time series data,
 //! including DataFrame-like structures for time series operations.
 
-use std::collections::HashMap;
+use crate::errors::{NeuroDivergentError, NeuroDivergentResult};
+use crate::foundation::{TimeSeriesDataset, TimeSeriesInput, TimeSeriesSample};
 use chrono::{DateTime, Utc};
 use num_traits::Float;
+use std::collections::HashMap;
 use std::marker::PhantomData;
-use crate::errors::{NeuroDivergentError, NeuroDivergentResult};
-use crate::foundation::{TimeSeriesDataset, TimeSeriesSample, TimeSeriesInput};
 
 /// Schema definition for time series data
 #[derive(Debug, Clone)]
 pub struct TimeSeriesSchema {
     pub unique_id_col: String,
-    pub ds_col: String,           // Date/time column
-    pub y_col: String,            // Target variable column
+    pub ds_col: String, // Date/time column
+    pub y_col: String,  // Target variable column
     pub static_features: Vec<String>,
     pub exogenous_features: Vec<String>,
 }
@@ -25,7 +25,7 @@ impl TimeSeriesSchema {
     pub fn new(
         unique_id_col: impl Into<String>,
         ds_col: impl Into<String>,
-        y_col: impl Into<String>
+        y_col: impl Into<String>,
     ) -> Self {
         Self {
             unique_id_col: unique_id_col.into(),
@@ -35,13 +35,13 @@ impl TimeSeriesSchema {
             exogenous_features: Vec::new(),
         }
     }
-    
+
     /// Add static features
     pub fn with_static_features(mut self, features: Vec<String>) -> Self {
         self.static_features = features;
         self
     }
-    
+
     /// Add exogenous features
     pub fn with_exogenous_features(mut self, features: Vec<String>) -> Self {
         self.exogenous_features = features;
@@ -51,7 +51,8 @@ impl TimeSeriesSchema {
 
 /// Main data structure for time series data
 #[derive(Debug, Clone)]
-pub struct TimeSeriesDataFrame<T: Float + Send + Sync + std::fmt::Debug + std::iter::Sum + 'static> {
+pub struct TimeSeriesDataFrame<T: Float + Send + Sync + std::fmt::Debug + std::iter::Sum + 'static>
+{
     pub data: Vec<HashMap<String, DataValue<T>>>,
     pub schema: TimeSeriesSchema,
     phantom: PhantomData<T>,
@@ -66,22 +67,30 @@ impl<T: Float + Send + Sync + std::fmt::Debug + std::iter::Sum + 'static> TimeSe
             phantom: PhantomData,
         }
     }
-    
-    /// Convert to training dataset
+
+    /// Legacy conversion without a lookback/horizon contract is unsupported.
+    /// Use explicit TimeSeriesDataset windows or the primary facade's ModelAdapter.
     pub fn to_dataset(&self) -> NeuroDivergentResult<TimeSeriesDataset<T>> {
-        // This is a placeholder implementation
-        // In a full implementation, this would convert the dataframe to training samples
-        Ok(TimeSeriesDataset {
-            samples: Vec::new(),
-            metadata: crate::foundation::DatasetMetadata {
-                name: None,
-                description: None,
-                num_series: 0,
-                total_samples: 0,
-                feature_names: Vec::new(),
-                target_names: Vec::new(),
-            },
-        })
+        Err(NeuroDivergentError::data("Legacy models DataFrame conversion is unsupported; provide explicit lookback/horizon windows or use the primary facade ModelAdapter"))
+    }
+}
+
+#[cfg(test)]
+mod legacy_boundary_tests {
+    use super::*;
+
+    #[test]
+    fn legacy_dataframe_conversion_does_not_return_an_empty_success() {
+        let mut frame = TimeSeriesDataFrame::<f64>::new(TimeSeriesSchema::new("id", "ds", "y"));
+        assert!(frame
+            .to_dataset()
+            .unwrap_err()
+            .to_string()
+            .contains("unsupported"));
+        frame
+            .data
+            .push(HashMap::from([("y".into(), DataValue::Float(1.0))]));
+        assert!(frame.to_dataset().is_err());
     }
 }
 
@@ -127,14 +136,14 @@ impl<T: Float + Send + Sync + std::fmt::Debug + std::iter::Sum + 'static> DataVa
             _ => None,
         }
     }
-    
+
     pub fn as_string(&self) -> Option<&str> {
         match self {
             DataValue::String(s) => Some(s),
             _ => None,
         }
     }
-    
+
     pub fn as_datetime(&self) -> Option<DateTime<Utc>> {
         match self {
             DataValue::DateTime(dt) => Some(*dt),

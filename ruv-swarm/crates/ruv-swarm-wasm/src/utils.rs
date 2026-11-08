@@ -59,124 +59,26 @@ impl RuntimeFeatures {
 
 #[cfg(target_arch = "wasm32")]
 fn detect_simd_support() -> bool {
-    // Primary check: if we compiled with simd feature, SIMD is available
-    #[cfg(feature = "simd")]
-    {
-        // Additional runtime verification
-        test_simd_functionality()
-    }
-    #[cfg(not(feature = "simd"))]
-    {
-        // Try JavaScript-based detection as fallback
-        detect_wasm_simd_runtime()
-    }
-}
-
-/// Test basic SIMD functionality to ensure it's working
-fn test_simd_functionality() -> bool {
-    // Test with wide crate which should be available with simd feature
-    use wide::f32x4;
-
-    let result = std::panic::catch_unwind(|| {
-        let a = f32x4::new([1.0, 2.0, 3.0, 4.0]);
-        let b = f32x4::new([2.0, 3.0, 4.0, 5.0]);
-        let sum = a + b;
-        let expected = f32x4::new([3.0, 5.0, 7.0, 9.0]);
-
-        // Check if SIMD addition works correctly
-        let diff = sum - expected;
-        let abs_diff = diff.abs();
-        let max_diff = abs_diff
-            .as_array_ref()
-            .iter()
-            .fold(0.0f32, |a, &b| a.max(b));
-        max_diff < 0.001
-    });
-
-    result.unwrap_or(false)
+    cfg!(target_feature = "simd128")
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 fn detect_simd_support() -> bool {
-    // Non-WASM platforms can use std::arch for SIMD detection
-    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-    {
-        #[cfg(target_feature = "sse")]
-        {
-            return true;
-        }
-        #[cfg(target_feature = "avx")]
-        {
-            return true;
-        }
-        #[cfg(target_feature = "avx2")]
-        {
-            return true;
-        }
-
-        #[cfg(not(any(
-            target_feature = "sse",
-            target_feature = "avx",
-            target_feature = "avx2"
-        )))]
-        {
-            false
-        }
-    }
-
-    #[cfg(target_arch = "aarch64")]
-    {
-        #[cfg(target_feature = "neon")]
-        {
-            return true;
-        }
-
-        #[cfg(not(target_feature = "neon"))]
-        {
-            false
-        }
-    }
-
-    false
-}
-
-#[cfg(target_arch = "wasm32")]
-fn detect_wasm_simd_runtime() -> bool {
-    // Try to detect WASM SIMD support at runtime
-    use js_sys::{Reflect, WebAssembly};
-    use wasm_bindgen::JsValue;
-
-    // Check if WebAssembly.validate is available and supports SIMD
-    if let Ok(validate) = Reflect::get(&js_sys::global(), &JsValue::from_str("WebAssembly")) {
-        if !validate.is_undefined() {
-            // Create basic SIMD instruction bytecode for validation
-            let simd_test_module = js_sys::Uint8Array::new_with_length(32);
-
-            // WebAssembly magic number + version
-            simd_test_module.set_index(0, 0x00);
-            simd_test_module.set_index(1, 0x61);
-            simd_test_module.set_index(2, 0x73);
-            simd_test_module.set_index(3, 0x6d);
-            simd_test_module.set_index(4, 0x01);
-            simd_test_module.set_index(5, 0x00);
-            simd_test_module.set_index(6, 0x00);
-            simd_test_module.set_index(7, 0x00);
-
-            // Simple function with SIMD instruction would go here
-            // For now, return true if compilation features are enabled
-            true
-        } else {
-            false
-        }
-    } else {
-        false
-    }
+    cfg!(any(
+        target_feature = "sse",
+        target_feature = "avx",
+        target_feature = "avx2",
+        target_feature = "neon"
+    ))
 }
 
 fn detect_threads_support() -> bool {
     // Check if SharedArrayBuffer is available (required for threads)
     #[cfg(target_arch = "wasm32")]
     {
+        if !cfg!(target_feature = "atomics") {
+            return false;
+        }
         let window = web_sys::window();
         if let Some(window) = window {
             let global = window.as_ref();

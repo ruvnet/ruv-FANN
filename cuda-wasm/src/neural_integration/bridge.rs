@@ -88,14 +88,13 @@ impl WebGpuBackend {
             config: config.clone(),
         };
         
-        // Initialize WebGPU if possible
-        if let Err(e) = backend.init_webgpu() {
-            log::warn!("WebGPU initialization failed: {e}");
-            if !config.auto_fallback {
-                return Err(e);
-            }
+        // A failed adapter initialization must propagate to NeuralBridge,
+        // which owns the CPU fallback decision; an empty backend is not a GPU.
+        if !crate::backend::gpu_enabled() {
+            return Err(NeuralIntegrationError::GpuInitError("GPU support requires a gpu/webgpu feature".into()));
         }
-        
+        backend.init_webgpu()?;
+
         Ok(backend)
     }
     

@@ -69,6 +69,8 @@ pub struct AsyncSwarm {
     health_check_handle: Option<tokio::task::JoinHandle<()>>,
     /// Coordinator agent ID for star topology
     star_coordinator: Arc<RwLock<Option<AgentId>>>,
+    last_round_robin_agent: Mutex<Option<AgentId>>,
+    distribution_lock: Mutex<()>,
 }
 
 #[cfg(feature = "std")]
@@ -84,17 +86,24 @@ impl AsyncSwarm {
             agent_loads: Arc::new(RwLock::new(HashMap::new())),
             health_check_handle: None,
             star_coordinator: Arc::new(RwLock::new(None)),
+            last_round_robin_agent: Mutex::new(None),
+            distribution_lock: Mutex::new(()),
         }
     }
 
     /// Register an agent with the swarm
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Returns an error if the maximum number of agents has been reached.
     pub async fn register_agent(&self, agent: DynamicAgent) -> Result<()> {
         let mut agents = self.agents.write().await;
-        
+
+        if agents.contains_key(agent.id()) {
+            return Err(SwarmError::StrategyError {
+                reason: format!("Agent {} is already registered", agent.id()),
+            });
+        }
         if agents.len() >= self.config.max_agents {
             return Err(SwarmError::ResourceExhausted {
                 resource: "agent slots".into(),
@@ -103,7 +112,7 @@ impl AsyncSwarm {
 
         let agent_id = agent.id().to_string();
         agents.insert(agent_id.clone(), agent);
-        
+
         // Initialize agent load tracking
         let mut agent_loads = self.agent_loads.write().await;
         agent_loads.insert(agent_id.clone(), 0);
@@ -139,13 +148,13 @@ impl AsyncSwarm {
     }
 
     /// Remove an agent from the swarm
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Returns an error if the agent is not found in the swarm.
     pub async fn unregister_agent(&self, agent_id: &AgentId) -> Result<()> {
         let mut agents = self.agents.write().await;
-        
+
         agents
             .remove(agent_id)
             .ok_or_else(|| SwarmError::AgentNotFound {
@@ -165,7 +174,7 @@ impl AsyncSwarm {
                 topology.remove_connection(agent_id, &neighbor);
             }
         }
-        
+
         // Handle star topology coordinator removal
         if self.config.topology_type == TopologyType::Star {
             let mut star_coordinator = self.star_coordinator.write().await;
@@ -173,7 +182,7 @@ impl AsyncSwarm {
                 if coordinator == agent_id {
                     // If coordinator is removed, elect a new one and reconnect all agents
                     *star_coordinator = agents.keys().next().cloned();
-                    
+
                     if let Some(new_coordinator) = star_coordinator.as_ref() {
                         // Reconnect all agents to the new coordinator
                         for agent in agents.keys() {
@@ -190,9 +199,9 @@ impl AsyncSwarm {
     }
 
     /// Submit a task to the swarm
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Currently does not return errors, but may in future implementations.
     pub async fn submit_task(&self, task: Task) -> Result<()> {
         let mut task_queue = self.task_queue.lock().await;
@@ -201,20 +210,18 @@ impl AsyncSwarm {
     }
 
     /// Distribute tasks to agents based on distribution strategy
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Returns an error if task assignment fails.
     pub async fn distribute_tasks(&self) -> Result<Vec<(TaskId, AgentId)>> {
         let mut assignments = Vec::new();
-        let mut task_queue = self.task_queue.lock().await;
-        let mut tasks_to_assign = Vec::new();
-
-        // Collect tasks that can be assigned
-        while let Some(task) = task_queue.pop() {
-            tasks_to_assign.push(task);
+        // Serialize selecting and recording loads across concurrent dispatchers.
+        let _distribution = self.distribution_lock.lock().await;
+        let mut tasks_to_assign = core::mem::take(&mut *self.task_queue.lock().await);
+        if self.config.distribution_strategy == DistributionStrategy::Priority {
+            tasks_to_assign.sort_by(|a, b| b.priority.cmp(&a.priority));
         }
-        drop(task_queue);
 
         for task in tasks_to_assign {
             if let Ok(Some(agent_id)) = self.select_agent_for_task(&task).await {
@@ -248,7 +255,7 @@ impl AsyncSwarm {
         let agents = self.agents.read().await;
         let agent_loads = self.agent_loads.read().await;
 
-        let available_agents: Vec<&AgentId> = agents
+        let mut available_agents: Vec<&AgentId> = agents
             .iter()
             .filter(|(_, agent)| agent.status() == AgentStatus::Running && agent.can_handle(task))
             .map(|(id, _)| id)
@@ -258,10 +265,17 @@ impl AsyncSwarm {
             return Ok(None);
         }
 
+        available_agents.sort_unstable();
         let selected = match self.config.distribution_strategy {
             DistributionStrategy::RoundRobin => {
-                // Simple round-robin (would need state to track last assigned)
-                available_agents.first().copied()
+                let mut last = self.last_round_robin_agent.lock().await;
+                let next = available_agents
+                    .iter()
+                    .copied()
+                    .find(|id| last.as_ref().map_or(true, |last| *id > last))
+                    .or_else(|| available_agents.first().copied());
+                *last = next.cloned();
+                next
             }
             DistributionStrategy::LeastLoaded => {
                 // Select agent with lowest load
@@ -277,7 +291,7 @@ impl AsyncSwarm {
                 available_agents.choose(&mut rng).copied()
             }
             DistributionStrategy::Priority => {
-                // Priority-based (would consider task priority)
+                // Tasks were stably sorted by priority before selecting capable agents.
                 available_agents.first().copied()
             }
             DistributionStrategy::CapabilityBased => {
@@ -317,43 +331,45 @@ impl AsyncSwarm {
     }
 
     /// Start all agents
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Returns an error if any agent fails to start.
     pub async fn start_all_agents(&self) -> Result<()> {
         let mut agents = self.agents.write().await;
-        
+
         for (id, agent) in agents.iter_mut() {
-            agent.start().await.map_err(|e| {
-                SwarmError::Custom(format!("Failed to start agent {id}: {e:?}"))
-            })?;
+            agent
+                .start()
+                .await
+                .map_err(|e| SwarmError::Custom(format!("Failed to start agent {id}: {e:?}")))?;
         }
-        
+
         Ok(())
     }
 
     /// Shutdown all agents
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Returns an error if any agent fails to shutdown.
     pub async fn shutdown_all_agents(&self) -> Result<()> {
         let mut agents = self.agents.write().await;
-        
+
         for (id, agent) in agents.iter_mut() {
-            agent.shutdown().await.map_err(|e| {
-                SwarmError::Custom(format!("Failed to shutdown agent {id}: {e:?}"))
-            })?;
+            agent
+                .shutdown()
+                .await
+                .map_err(|e| SwarmError::Custom(format!("Failed to shutdown agent {id}: {e:?}")))?;
         }
-        
+
         Ok(())
     }
 
     /// Start health check monitoring
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Returns an error if the monitoring system fails to start.
     pub fn start_health_monitoring(&mut self) -> Result<()> {
         if self.health_check_handle.is_some() {
@@ -362,15 +378,14 @@ impl AsyncSwarm {
 
         let agents = self.agents.clone();
         let interval = self.config.health_check_interval_ms;
-        
+
         let handle = tokio::spawn(async move {
-            let mut interval_timer = tokio::time::interval(
-                tokio::time::Duration::from_millis(interval)
-            );
-            
+            let mut interval_timer =
+                tokio::time::interval(tokio::time::Duration::from_millis(interval));
+
             loop {
                 interval_timer.tick().await;
-                
+
                 let agents = agents.read().await;
                 for (id, agent) in agents.iter() {
                     if agent.status() == AgentStatus::Error {
@@ -380,7 +395,7 @@ impl AsyncSwarm {
                 }
             }
         });
-        
+
         self.health_check_handle = Some(handle);
         Ok(())
     }
@@ -393,20 +408,23 @@ impl AsyncSwarm {
     }
 
     /// Process tasks concurrently with timeout
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Returns an error if task processing fails.
-    pub async fn process_tasks_concurrently(&self, max_concurrent: usize) -> Result<Vec<(TaskId, Result<()>)>> {
+    pub async fn process_tasks_concurrently(
+        &self,
+        max_concurrent: usize,
+    ) -> Result<Vec<(TaskId, Result<()>)>> {
         use futures::stream::{FuturesUnordered, StreamExt};
         use tokio::time::{timeout, Duration};
 
         let assignments = self.distribute_tasks().await?;
         let mut results = Vec::new();
-        
+
         let mut futures = FuturesUnordered::new();
         let mut pending = 0;
-        
+
         for (task_id, agent_id) in assignments {
             if pending >= max_concurrent {
                 // Wait for some tasks to complete
@@ -415,10 +433,10 @@ impl AsyncSwarm {
                     pending -= 1;
                 }
             }
-            
+
             let agents = self.agents.clone();
             let task_timeout = Duration::from_millis(self.config.task_timeout_ms);
-            
+
             futures.push(async move {
                 let result = timeout(task_timeout, async {
                     let mut agents = agents.write().await;
@@ -428,24 +446,27 @@ impl AsyncSwarm {
                         tokio::time::sleep(Duration::from_millis(10)).await;
                         Ok(())
                     } else {
-                        Err(SwarmError::AgentNotFound { id: agent_id.to_string() })
+                        Err(SwarmError::AgentNotFound {
+                            id: agent_id.to_string(),
+                        })
                     }
-                }).await;
-                
+                })
+                .await;
+
                 match result {
                     Ok(task_result) => (task_id, task_result),
                     Err(_) => (task_id, Err(SwarmError::Custom("Task timeout".to_string()))),
                 }
             });
-            
+
             pending += 1;
         }
-        
+
         // Wait for remaining tasks to complete
         while let Some((task_id, result)) = futures.next().await {
             results.push((task_id, result));
         }
-        
+
         Ok(results)
     }
 
@@ -512,14 +533,19 @@ pub struct AsyncSwarmMetrics {
 #[cfg(feature = "std")]
 pub trait AsyncSwarmTrait {
     /// Register an agent with the swarm
-    fn register_agent(&self, agent: DynamicAgent) -> impl std::future::Future<Output = Result<()>> + Send;
-    
+    fn register_agent(
+        &self,
+        agent: DynamicAgent,
+    ) -> impl std::future::Future<Output = Result<()>> + Send;
+
     /// Submit a task to the swarm
     fn submit_task(&self, task: Task) -> impl std::future::Future<Output = Result<()>> + Send;
-    
+
     /// Distribute tasks to agents
-    fn distribute_tasks(&self) -> impl std::future::Future<Output = Result<Vec<(TaskId, AgentId)>>> + Send;
-    
+    fn distribute_tasks(
+        &self,
+    ) -> impl std::future::Future<Output = Result<Vec<(TaskId, AgentId)>>> + Send;
+
     /// Get swarm metrics
     fn metrics(&self) -> impl std::future::Future<Output = AsyncSwarmMetrics> + Send;
 }

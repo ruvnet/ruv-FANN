@@ -3,14 +3,24 @@
 //! This example demonstrates how to create and configure an MCP server
 //! for basic swarm orchestration tasks.
 
-use std::sync::Arc;
+use anyhow::Context;
 use ruv_swarm_core::SwarmConfig;
 use ruv_swarm_mcp::{orchestrator::SwarmOrchestrator, McpConfig, McpServer};
+use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Initialize logging
     tracing_subscriber::fmt::init();
+
+    let configured = match std::env::var("RUV_SWARM_MCP_BIND_ADDR") {
+        Ok(value) => value,
+        Err(std::env::VarError::NotPresent) => "127.0.0.1:3000".to_string(),
+        Err(error) => return Err(error).context("Failed to read RUV_SWARM_MCP_BIND_ADDR"),
+    };
+    let bind_addr = configured
+        .parse()
+        .context("RUV_SWARM_MCP_BIND_ADDR must be an IP socket address")?;
 
     // Create swarm configuration
     let swarm_config = SwarmConfig::default();
@@ -20,7 +30,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Configure the MCP server
     let mcp_config = McpConfig {
-        bind_addr: "127.0.0.1:3000".parse().unwrap(),
+        bind_addr,
         max_connections: 100,
         request_timeout_secs: 300,
         debug: true,
@@ -29,13 +39,13 @@ async fn main() -> anyhow::Result<()> {
 
     // Create and start the MCP server
     let server = McpServer::new(orchestrator, mcp_config);
-    
-    println!("🚀 Starting ruv-swarm MCP server on 127.0.0.1:3000");
-    println!("📊 MCP server ready with 11 available tools");
-    println!("🔗 WebSocket endpoint: ws://127.0.0.1:3000/mcp");
-    println!("🔗 Health endpoint: http://127.0.0.1:3000/health");
-    println!("🔗 Tools endpoint: http://127.0.0.1:3000/tools");
-    
+
+    println!("Starting ruv-swarm MCP server on {}", bind_addr);
+    println!("The post-bind listener log reports readiness; /tools lists current schemas.");
+    println!("WebSocket endpoint: ws://{}/mcp", bind_addr);
+    println!("Health endpoint: http://{}/health", bind_addr);
+    println!("Tools endpoint: http://{}/tools", bind_addr);
+
     // Start the server (this will block)
     server.start().await?;
 

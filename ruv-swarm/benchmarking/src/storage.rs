@@ -3,10 +3,8 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::{
-    sqlite::{SqliteConnectOptions, SqlitePoolOptions},
-    Pool, Sqlite,
-};
+use sqlx_core::{from_row::FromRow, pool::Pool, query::query, query_as::query_as, row::Row};
+use sqlx_sqlite::{Sqlite, SqliteConnectOptions, SqlitePoolOptions, SqliteRow};
 use std::path::Path;
 use tracing::info;
 
@@ -46,7 +44,7 @@ impl BenchmarkStorage {
 
     /// Initialize database schema
     async fn initialize_schema(&self) -> Result<()> {
-        sqlx::query(
+        query(
             r#"
             CREATE TABLE IF NOT EXISTS benchmark_runs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -69,7 +67,7 @@ impl BenchmarkStorage {
         .execute(&self.pool)
         .await?;
 
-        sqlx::query(
+        query(
             r#"
             CREATE TABLE IF NOT EXISTS stream_events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -86,7 +84,7 @@ impl BenchmarkStorage {
         .execute(&self.pool)
         .await?;
 
-        sqlx::query(
+        query(
             r#"
             CREATE TABLE IF NOT EXISTS tool_invocations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -106,7 +104,7 @@ impl BenchmarkStorage {
         .execute(&self.pool)
         .await?;
 
-        sqlx::query(
+        query(
             r#"
             CREATE TABLE IF NOT EXISTS thinking_sequences (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -124,7 +122,7 @@ impl BenchmarkStorage {
         .execute(&self.pool)
         .await?;
 
-        sqlx::query(
+        query(
             r#"
             CREATE TABLE IF NOT EXISTS error_recovery_events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -143,7 +141,7 @@ impl BenchmarkStorage {
         .execute(&self.pool)
         .await?;
 
-        sqlx::query(
+        query(
             r#"
             CREATE TABLE IF NOT EXISTS performance_metrics (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -161,7 +159,7 @@ impl BenchmarkStorage {
         .execute(&self.pool)
         .await?;
 
-        sqlx::query(
+        query(
             r#"
             CREATE TABLE IF NOT EXISTS code_quality_metrics (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -180,7 +178,7 @@ impl BenchmarkStorage {
         .execute(&self.pool)
         .await?;
 
-        sqlx::query(
+        query(
             r#"
             CREATE TABLE IF NOT EXISTS resource_usage (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -200,7 +198,7 @@ impl BenchmarkStorage {
         .execute(&self.pool)
         .await?;
 
-        sqlx::query(
+        query(
             r#"
             CREATE TABLE IF NOT EXISTS swarm_coordination_metrics (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -219,7 +217,7 @@ impl BenchmarkStorage {
         .execute(&self.pool)
         .await?;
 
-        sqlx::query(
+        query(
             r#"
             CREATE TABLE IF NOT EXISTS comparison_results (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -240,7 +238,7 @@ impl BenchmarkStorage {
         .execute(&self.pool)
         .await?;
 
-        sqlx::query(
+        query(
             r#"
             CREATE TABLE IF NOT EXISTS swe_bench_results (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -281,7 +279,7 @@ impl BenchmarkStorage {
         ];
 
         for index_sql in indexes {
-            sqlx::query(index_sql).execute(&self.pool).await?;
+            query(index_sql).execute(&self.pool).await?;
         }
 
         Ok(())
@@ -310,7 +308,7 @@ impl BenchmarkStorage {
             "arch": std::env::consts::ARCH,
         });
 
-        sqlx::query(
+        query(
             r#"
             INSERT INTO benchmark_runs (
                 run_id, instance_id, repository, issue_description,
@@ -337,7 +335,7 @@ impl BenchmarkStorage {
 
     /// Update run status
     pub async fn update_run_status(&self, run_id: &str, status: &str) -> Result<()> {
-        sqlx::query(
+        query(
             r#"
             UPDATE benchmark_runs 
             SET status = ?, end_time = ?
@@ -411,7 +409,7 @@ impl BenchmarkStorage {
 
     /// Store a single metric
     async fn store_metric(&self, run_id: &str, metric_type: MetricType, value: f64) -> Result<()> {
-        sqlx::query(
+        query(
             r#"
             INSERT INTO performance_metrics (
                 run_id, metric_type, metric_name, metric_value, unit, timestamp
@@ -437,7 +435,7 @@ impl BenchmarkStorage {
         tool: &ToolInvocation,
         sequence: i32,
     ) -> Result<()> {
-        sqlx::query(
+        query(
             r#"
             INSERT INTO tool_invocations (
                 run_id, tool_name, invocation_time, duration_ms,
@@ -466,7 +464,7 @@ impl BenchmarkStorage {
         run_id: &str,
         sequence: &ThinkingSequence,
     ) -> Result<()> {
-        sqlx::query(
+        query(
             r#"
             INSERT INTO thinking_sequences (
                 run_id, start_time, duration_ms, token_count, decision_points
@@ -486,7 +484,7 @@ impl BenchmarkStorage {
 
     /// Store error recovery event
     async fn store_error_recovery(&self, run_id: &str, recovery: &ErrorRecovery) -> Result<()> {
-        sqlx::query(
+        query(
             r#"
             INSERT INTO error_recovery_events (
                 run_id, error_time, error_type, error_message,
@@ -514,7 +512,7 @@ impl BenchmarkStorage {
         run_id: &str,
         metrics: &crate::metrics::SwarmCoordinationMetrics,
     ) -> Result<()> {
-        sqlx::query(
+        query(
             r#"
             INSERT INTO swarm_coordination_metrics (
                 run_id, timestamp, active_agents, messages_passed,
@@ -544,7 +542,7 @@ impl BenchmarkStorage {
         sequence: i32,
         relative_time_ms: i64,
     ) -> Result<()> {
-        sqlx::query(
+        query(
             r#"
             INSERT INTO stream_events (
                 run_id, event_type, event_timestamp, relative_time_ms,
@@ -575,7 +573,7 @@ impl BenchmarkStorage {
         analysis: &serde_json::Value,
         summary: &str,
     ) -> Result<()> {
-        sqlx::query(
+        query(
             r#"
             INSERT INTO comparison_results (
                 comparison_id, instance_id, baseline_run_id, ml_run_id,
@@ -598,7 +596,7 @@ impl BenchmarkStorage {
 
     /// Get benchmark run by ID
     pub async fn get_run(&self, run_id: &str) -> Result<Option<BenchmarkRun>> {
-        let row = sqlx::query_as::<_, BenchmarkRunRow>(
+        let row = query_as::<_, BenchmarkRunRow>(
             r#"
             SELECT * FROM benchmark_runs WHERE run_id = ?
             "#,
@@ -612,7 +610,7 @@ impl BenchmarkStorage {
 
     /// Get runs by instance ID
     pub async fn get_runs_by_instance(&self, instance_id: &str) -> Result<Vec<BenchmarkRun>> {
-        let rows = sqlx::query_as::<_, BenchmarkRunRow>(
+        let rows = query_as::<_, BenchmarkRunRow>(
             r#"
             SELECT * FROM benchmark_runs 
             WHERE instance_id = ?
@@ -628,7 +626,7 @@ impl BenchmarkStorage {
 
     /// Get metrics for a run
     pub async fn get_run_metrics(&self, run_id: &str) -> Result<Vec<MetricRecord>> {
-        let rows = sqlx::query_as::<_, MetricRow>(
+        let rows = query_as::<_, MetricRow>(
             r#"
             SELECT * FROM performance_metrics
             WHERE run_id = ?
@@ -644,7 +642,6 @@ impl BenchmarkStorage {
 }
 
 // Database row types
-#[derive(sqlx::FromRow)]
 struct BenchmarkRunRow {
     id: i64,
     run_id: String,
@@ -662,7 +659,6 @@ struct BenchmarkRunRow {
     created_at: DateTime<Utc>,
 }
 
-#[derive(sqlx::FromRow)]
 struct MetricRow {
     id: i64,
     run_id: String,
@@ -672,6 +668,43 @@ struct MetricRow {
     unit: Option<String>,
     timestamp: DateTime<Utc>,
     metadata: Option<String>,
+}
+
+// Keep database column mappings explicit so the SQLite backend needs no SQL macros.
+impl<'r> FromRow<'r, SqliteRow> for BenchmarkRunRow {
+    fn from_row(row: &'r SqliteRow) -> Result<Self, sqlx_core::Error> {
+        Ok(Self {
+            id: row.try_get("id")?,
+            run_id: row.try_get("run_id")?,
+            instance_id: row.try_get("instance_id")?,
+            repository: row.try_get("repository")?,
+            issue_description: row.try_get("issue_description")?,
+            difficulty: row.try_get("difficulty")?,
+            execution_mode: row.try_get("execution_mode")?,
+            start_time: row.try_get("start_time")?,
+            end_time: row.try_get("end_time")?,
+            status: row.try_get("status")?,
+            claude_command: row.try_get("claude_command")?,
+            configuration: row.try_get("configuration")?,
+            environment: row.try_get("environment")?,
+            created_at: row.try_get("created_at")?,
+        })
+    }
+}
+
+impl<'r> FromRow<'r, SqliteRow> for MetricRow {
+    fn from_row(row: &'r SqliteRow) -> Result<Self, sqlx_core::Error> {
+        Ok(Self {
+            id: row.try_get("id")?,
+            run_id: row.try_get("run_id")?,
+            metric_type: row.try_get("metric_type")?,
+            metric_name: row.try_get("metric_name")?,
+            metric_value: row.try_get("metric_value")?,
+            unit: row.try_get("unit")?,
+            timestamp: row.try_get("timestamp")?,
+            metadata: row.try_get("metadata")?,
+        })
+    }
 }
 
 // Public types

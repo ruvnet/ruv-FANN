@@ -1,6 +1,18 @@
 [package]
+# Publish source and required assets, excluding session state and runtime databases.
+include = [
+    "/src/**",
+    "/tests/**",
+    "/examples/**",
+    "/benches/**",
+    "/build.rs",
+    "/Cargo.toml",
+    "/README.md",
+    "/LICENSE*",
+]
 name = "ruv-swarm-daa"
-version = "1.0.6"
+version = "1.0.7"
+rust-version.workspace = true
 edition = "2021"
 description = "Decentralized Autonomous Agents (DAA) integration for ruv-swarm"
 authors = ["ruvnet <ruv@ruvnet.com>"]
@@ -11,14 +23,14 @@ keywords = ["daa", "autonomous-agents", "swarm", "coordination", "ai"]
 categories = ["science", "simulation", "algorithms"]
 
 [dependencies]
-ruv-swarm-core = { path = "../ruv-swarm-core", version = "1.0.6" }
-tokio = { version = "1.0", default-features = false, features = ["sync", "macros", "rt", "rt-multi-thread", "signal"] }
+ruv-swarm-core = { path = "../ruv-swarm-core", version = "1.0.7" }
+tokio = { version = "1.0", default-features = false, features = ["sync", "macros", "rt", "time"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 async-trait = "0.1"
 wasm-bindgen = { version = "0.2", optional = true }
 js-sys = { version = "0.3", optional = true }
-web-sys = { version = "0.3", optional = true }
+web-sys = { version = "0.3", optional = true, features = ["console"] }
 anyhow = "1.0"
 uuid = { version = "1.0", features = ["v4", "serde", "js"] }
 tracing = "0.1"
@@ -27,10 +39,8 @@ dashmap = "5.4"
 parking_lot = "0.12"
 rand = "0.8"
 
-# Neural Network dependencies
-tch = { version = "0.13", optional = true }
-candle-core = { version = "0.3", optional = true }
-candle-nn = { version = "0.3", optional = true }
+# Neural learning uses this crate's built-in implementation.
+# External tensor engines were unused and pulled vulnerable archive readers.
 
 # Performance optimization
 rayon = { version = "1.7", optional = true }
@@ -44,13 +54,12 @@ chrono = { version = "0.4", features = ["serde"] }
 # WASM-specific dependencies
 wasm-bindgen-futures = { version = "0.4", optional = true }
 console_error_panic_hook = { version = "0.1", optional = true }
-wee_alloc = { version = "0.4", optional = true }
 thiserror = "1.0"
 
 [features]
 default = ["autonomous-learning", "std"]
-wasm = ["wasm-bindgen", "js-sys", "web-sys", "wasm-bindgen-futures", "console_error_panic_hook", "dep:wee_alloc"]
-neural-networks = ["dep:tch", "dep:candle-core", "dep:candle-nn"]
+wasm = ["wasm-bindgen", "js-sys", "web-sys", "wasm-bindgen-futures", "console_error_panic_hook"]
+neural-networks = []  # Reserved compatibility marker; no external tensor engine
 autonomous-learning = []
 performance = ["dep:rayon", "dep:crossbeam"]
 std = []
@@ -71,6 +80,9 @@ overflow-checks = false
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { version = "1.0", default-features = false, features = ["rt-multi-thread", "signal"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.2", features = ["js"] }

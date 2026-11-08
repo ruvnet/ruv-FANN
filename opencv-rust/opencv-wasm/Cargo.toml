@@ -2,16 +2,17 @@
 name = "opencv-wasm"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "OpenCV WebAssembly bindings for browser deployment"
+description = "Grayscale matrix and canvas helpers for WebAssembly"
 keywords = ["opencv", "wasm", "webassembly", "browser", "computer-vision"]
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-opencv-core = { path = "../opencv-core", version = "4.8.0" }
+opencv-core = { path = "../opencv-core", version = "4.9.0" }
 wasm-bindgen = { workspace = true }
 js-sys = { workspace = true }
 web-sys = { workspace = true, features = [
@@ -28,7 +29,6 @@ web-sys = { workspace = true, features = [
   "Blob",
   "Url"
 ]}
-wee_alloc = "0.4"
 console_error_panic_hook = { version = "0.1", optional = true }
 
 

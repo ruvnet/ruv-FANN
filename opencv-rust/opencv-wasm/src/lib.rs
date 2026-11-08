@@ -1,14 +1,8 @@
 //! OpenCV WebAssembly bindings for browser deployment
 
 use wasm_bindgen::prelude::*;
-use wasm_bindgen::Clamped;
 use opencv_core::{Mat, MatType, Size, Point, Rect};
 use web_sys::{ImageData, CanvasRenderingContext2d, HtmlCanvasElement};
-
-// When the `wee_alloc` feature is enabled, use `wee_alloc` as the global allocator.
-#[cfg(feature = "wee_alloc")]
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[wasm_bindgen]
 extern "C" {
@@ -25,6 +19,7 @@ macro_rules! console_log {
 
 #[wasm_bindgen]
 pub fn init_opencv_wasm() {
+    #[cfg(feature = "console_error_panic_hook")]
     console_error_panic_hook::set_once();
     console_log!("OpenCV WASM initialized successfully!");
 }
@@ -81,30 +76,37 @@ impl WasmMat {
         Ok(WasmMat { inner: roi_mat })
     }
 
-    /// Convert to ImageData for canvas rendering
+    /// Expand the grayscale image into opaque RGBA canvas pixels.
     pub fn to_image_data(&self) -> Result<ImageData, JsValue> {
-        let width = self.width() as u32;
-        let height = self.height() as u32;
-        
-        // For now, create a placeholder ImageData
-        // In a full implementation, this would convert Mat data to RGBA format
-        let data = vec![255u8; (width * height * 4) as usize];
-        let clamped = Clamped(&data[..]);
-        
-        ImageData::new_with_u8_clamped_array_and_sh(clamped, width, height)
+        let len = self.inner.total().checked_mul(4)
+            .filter(|&len| len <= opencv_core::MAX_MAT_BYTES)
+            .ok_or_else(|| JsValue::from_str("RGBA image exceeds allocation limit"))?;
+        let mut data = Vec::new();
+        data.try_reserve_exact(len).map_err(|e| JsValue::from_str(&e.to_string()))?;
+        for &gray in self.inner.data_bytes() { data.extend_from_slice(&[gray, gray, gray, 255]); }
+        // ImageData retains the supplied typed array. A borrowed WASM-memory
+        // view would outlive this Vec and become dangling or detached after
+        // allocation/memory growth. Copy into JavaScript-owned storage first.
+        let pixels = js_sys::Uint8ClampedArray::new_with_length(len as u32);
+        pixels.copy_from(&data);
+        ImageData::new_with_js_u8_clamped_array_and_sh(&pixels, self.width() as u32, self.height() as u32)
     }
 
-    /// Create Mat from ImageData
+    /// Convert RGBA canvas pixels to single-channel grayscale.
+    ///
+    /// Uses integer luma weights (77R + 150G + 29B + 128) / 256; alpha is ignored.
     pub fn from_image_data(image_data: &ImageData) -> Result<WasmMat, JsValue> {
-        let width = image_data.width() as i32;
-        let height = image_data.height() as i32;
-        
-        let size = Size::new(width, height);
-        let mat = Mat::new_size(size, MatType::CV_8U)
+        let width = i32::try_from(image_data.width()).map_err(|_| JsValue::from_str("Image width exceeds i32"))?;
+        let height = i32::try_from(image_data.height()).map_err(|_| JsValue::from_str("Image height exceeds i32"))?;
+        let mut mat = Mat::new_size(Size::new(width, height), MatType::CV_8U)
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
-        
+        let rgba = image_data.data();
+        for (gray, pixel) in mat.data_bytes_mut().iter_mut().zip(rgba.0.chunks_exact(4)) {
+            *gray = ((77 * pixel[0] as u32 + 150 * pixel[1] as u32 + 29 * pixel[2] as u32 + 128) >> 8) as u8;
+        }
         Ok(WasmMat { inner: mat })
     }
+
 }
 
 /// WebAssembly-compatible Point wrapper
@@ -171,49 +173,56 @@ impl WasmSize {
     }
 }
 
-// Image processing functions as standalone functions instead of module
+// These operations are not implemented. Return errors rather than silently
+// returning the source image, which callers could mistake for processed output.
 #[wasm_bindgen]
-pub fn blur(src: &WasmMat, kernel_size: i32) -> Result<WasmMat, JsValue> {
-    // For now, return a clone - full implementation would call opencv_imgproc::blur
-    src.clone()
+pub fn blur(_src: &WasmMat, _kernel_size: i32) -> Result<WasmMat, JsValue> {
+    Err(JsValue::from_str("Box blur is not implemented in this experimental binding"))
 }
 
 #[wasm_bindgen]
-pub fn gaussian_blur(src: &WasmMat, kernel_size: i32, sigma: f64) -> Result<WasmMat, JsValue> {
-    // For now, return a clone - full implementation would call opencv_imgproc::gaussian_blur
-    src.clone()
+pub fn gaussian_blur(_src: &WasmMat, _kernel_size: i32, _sigma: f64) -> Result<WasmMat, JsValue> {
+    Err(JsValue::from_str("Gaussian blur is not implemented in this experimental binding"))
 }
 
 #[wasm_bindgen]
-pub fn canny(src: &WasmMat, threshold1: f64, threshold2: f64) -> Result<WasmMat, JsValue> {
-    // For now, return a clone - full implementation would call opencv_imgproc::canny
-    src.clone()
+pub fn canny(_src: &WasmMat, _threshold1: f64, _threshold2: f64) -> Result<WasmMat, JsValue> {
+    Err(JsValue::from_str("Canny edge detection is not implemented in this experimental binding"))
 }
 
+/// Resize a nonempty grayscale image with nearest-neighbor sampling.
 #[wasm_bindgen]
 pub fn resize(src: &WasmMat, width: i32, height: i32) -> Result<WasmMat, JsValue> {
-    // Create new Mat with target size
-    let size = Size::new(width, height);
-    let mat = Mat::new_size(size, MatType::CV_8U)
+    if src.empty() || width <= 0 || height <= 0 {
+        return Err(JsValue::from_str("Resize requires a nonempty image and positive dimensions"));
+    }
+    let mut mat = Mat::new_size(Size::new(width, height), MatType::CV_8U)
         .map_err(|e| JsValue::from_str(&e.to_string()))?;
-    
+    for y in 0..height as usize {
+        let sy = (y as u64 * src.height() as u64 / height as u64) as usize;
+        for x in 0..width as usize {
+            let sx = (x as u64 * src.width() as u64 / width as u64) as usize;
+            mat.data_bytes_mut()[y * width as usize + x] = src.inner.data_bytes()[sy * src.width() as usize + sx];
+        }
+    }
     Ok(WasmMat { inner: mat })
 }
 
 // Utility functions
 #[wasm_bindgen]
 pub fn mat_from_canvas(canvas: &HtmlCanvasElement) -> Result<WasmMat, JsValue> {
-    let width = canvas.width() as i32;
-    let height = canvas.height() as i32;
-    
-    WasmMat::new(width, height)
+    let context = canvas.get_context("2d")?
+        .ok_or_else(|| JsValue::from_str("Canvas 2D context unavailable"))?
+        .dyn_into::<CanvasRenderingContext2d>()?;
+    let image = context.get_image_data(0.0, 0.0, canvas.width() as f64, canvas.height() as f64)?;
+    WasmMat::from_image_data(&image)
 }
 
 #[wasm_bindgen]
 pub fn mat_to_canvas(mat: &WasmMat, canvas: &HtmlCanvasElement) -> Result<(), JsValue> {
     let context = canvas
         .get_context("2d")?
-        .unwrap()
+        .ok_or_else(|| JsValue::from_str("Canvas 2D context unavailable"))?
         .dyn_into::<CanvasRenderingContext2d>()?;
 
     let image_data = mat.to_image_data()?;
@@ -230,9 +239,10 @@ pub fn get_version() -> String {
 #[wasm_bindgen]
 pub fn check_capabilities() -> js_sys::Object {
     let obj = js_sys::Object::new();
-    js_sys::Reflect::set(&obj, &"simd".into(), &true.into()).unwrap();
+    js_sys::Reflect::set(&obj, &"simd".into(), &cfg!(target_feature = "simd128").into()).unwrap();
     js_sys::Reflect::set(&obj, &"threads".into(), &false.into()).unwrap();
-    js_sys::Reflect::set(&obj, &"opencv_version".into(), &"4.8.0".into()).unwrap();
+    // Historical property name retained; this is the Rust package version.
+    js_sys::Reflect::set(&obj, &"opencv_version".into(), &env!("CARGO_PKG_VERSION").into()).unwrap();
     obj
 }
 
@@ -287,5 +297,15 @@ mod tests {
         
         assert_eq!(roi.width(), 200);
         assert_eq!(roi.height(), 200);
+    }
+}
+#[cfg(test)]
+mod portable_tests {
+    use super::*;
+    #[test]
+    fn resize_samples_source_pixels() {
+        let source = WasmMat { inner: Mat::from_slice(&[1u8, 2, 3, 4], 2, 2, MatType::CV_8U).unwrap() };
+        let result = resize(&source, 4, 2).unwrap();
+        assert_eq!(result.inner.data_bytes(), &[1, 1, 2, 2, 3, 3, 4, 4]);
     }
 }

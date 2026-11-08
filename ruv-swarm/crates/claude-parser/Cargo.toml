@@ -1,6 +1,18 @@
 [package]
+# Publish source and required assets, excluding session state and runtime databases.
+include = [
+    "/src/**",
+    "/tests/**",
+    "/examples/**",
+    "/benches/**",
+    "/build.rs",
+    "/Cargo.toml",
+    "/README.md",
+    "/LICENSE*",
+]
 name = "claude-parser"
-version = "1.0.5"
+version = "1.0.6"
+rust-version.workspace = true
 edition = "2021"
 description = "Claude Code CLI stream-JSON parser for ruv-swarm multi-agent orchestration"
 license = "MIT OR Apache-2.0"

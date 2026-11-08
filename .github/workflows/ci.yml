@@ -2,524 +2,288 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
   workflow_dispatch: {}
+  workflow_call: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
+  CARGO_BUILD_JOBS: 2
+  CARGO_PROFILE_DEV_DEBUG: 0
+  CARGO_INCREMENTAL: 0
   RUST_BACKTRACE: 1
 
 jobs:
-  test:
-    name: Test Suite
+  wasm-targets:
+    uses: ./.github/workflows/wasm-build.yml
+
+  inventory-and-docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - run: python3 scripts/verify-packages.py --inventory > package-inventory.json
+      - run: python3 scripts/verify-packages.py --docs
+      - run: python3 -m unittest discover -s scripts/tests -v
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: package-inventory
+          path: package-inventory.json
+          if-no-files-found: error
+
+  core:
+    name: Core / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    # Add a timeout for the entire job (30 minutes)
     timeout-minutes: 30
     strategy:
-      # Add fail-fast: false to continue with other jobs if one fails
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        # Specify versions that support dependencies like half 2.6.0 (requires Rust 1.81.0)
-        rust: [stable, beta, nightly]
-        include:
-          - os: ubuntu-latest
-            rust: 1.81.0  # Test against MSRV (Minimum Supported Rust Version)
-          - os: ubuntu-latest
-            rust: stable
-    
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install Rust toolchain
-      uses: dtolnay/rust-toolchain@master
-      with:
-        toolchain: ${{ matrix.rust }}
-        # Specify a minimum version that supports Cargo.lock version 4
-        # Cargo.lock version 4 was introduced in Rust 1.70.0
-        components: rustfmt, clippy
-        # MSRV is specified in the matrix as 1.81.0
-    
-    - name: Cache dependencies
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-cargo-${{ matrix.rust }}-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-${{ matrix.rust }}-
-          ${{ runner.os }}-cargo-
-    
-    - name: Check formatting
-      if: matrix.rust == 'stable' && matrix.os == 'ubuntu-latest'
-      run: cargo fmt --all -- --check
-    
-    - name: Run clippy
-      if: matrix.rust == 'stable'
-      # Only check for errors, not warnings
-      run: cargo clippy --all-targets --all-features -- -A warnings
-    
-    - name: Build
-      run: cargo build --verbose --all-features
-    
-    - name: Set up Python 3.11 on macOS
-      if: matrix.os == 'macos-latest'
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-        
-    - name: Install setuptools on macOS
-      if: matrix.os == 'macos-latest'
-      run: pip install setuptools
-      
-    - name: Set up Node.js 16 on macOS
-      if: matrix.os == 'macos-latest'
-      uses: actions/setup-node@v3
-      with:
-        node-version: 16
-        
-    # Skip npm steps on macOS entirely
-    - name: Set RUV_FANN_SKIP_NPM env var on macOS
-      if: matrix.os == 'macos-latest'
-      run: echo "RUV_FANN_SKIP_NPM=1" >> $GITHUB_ENV
-      
-    - name: Install Node.js dependencies
-      if: matrix.os == 'ubuntu-latest' && matrix.rust == 'stable' && env.RUV_FANN_SKIP_NPM != '1'
-      run: npm install --no-audit --no-fund
-      
-    - name: Fix specific JavaScript linting issues
-      if: matrix.os == 'ubuntu-latest' && matrix.rust == 'stable' && env.RUV_FANN_SKIP_NPM != '1'
-      run: |
-        # Run our custom script to fix specific linting issues
-        chmod +x .github/workflows/fix-specific-linting.sh
-        ./.github/workflows/fix-specific-linting.sh
-        
-    - name: Run JavaScript and TypeScript linting
-      if: matrix.os == 'ubuntu-latest' && matrix.rust == 'stable' && env.RUV_FANN_SKIP_NPM != '1'
-      run: |
-        cd ruv-swarm/npm
-        
-        # Run ESLint's auto-fix with our custom config that disables problematic rules
-        echo "Running ESLint auto-fix with custom config..."
-        ESLINT_CONFIG_FILE=.eslintrc.js.ci npm run lint:fix || true
-        
-        # Run ESLint checks with our custom config but don't fail the build
-        echo "\n\nRunning ESLint checks with custom config..."
-        ESLINT_CONFIG_FILE=.eslintrc.js.ci npm run lint:check || true
-        
-        cd ../..
-        
-    - name: Run tests
-      run: |
-        # Pin clap to a version compatible with Rust 1.81.0
-        cargo update -p clap --precise 4.3.19
-        
-        cargo test --all-features
-      env:
-        # Disable WebGPU tests in CI environment to avoid dlopen errors
-        RUV_FANN_CI_TESTING: "1"
-    
-    - name: Run doctests
-      run: cargo test --doc --all-features
-    
-    - name: Test no-std compatibility
-      if: matrix.rust == 'stable' && matrix.os == 'ubuntu-latest'
-      run: cargo build --no-default-features --features no_std
-  
-  # Split code coverage into a separate job to prevent timeouts
-  coverage:
-    name: Code Coverage
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    # Only run coverage on main branch or PRs to main
-    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request' && github.base_ref == 'main'
-    # Add concurrency group to prevent parallel uploads to Codecov
-    concurrency:
-      group: ${{ github.workflow }}-coverage-${{ github.ref }}
-      cancel-in-progress: true
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install Rust toolchain
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        # Using stable Rust which is already 1.81.0+ to support dependencies like half 2.6.0
-        components: rustfmt, clippy
-    
-    - name: Cache dependencies
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-coverage-${{ hashFiles('**/Cargo.lock') }}
-    
-    - name: Install cargo-tarpaulin
-      run: cargo install cargo-tarpaulin
-    
-    - name: Generate code coverage
-      run: |
-        # Pin clap to a version compatible with Rust 1.81.0
-        cargo update -p clap --precise 4.3.19
-        
-        cargo tarpaulin --verbose --all-features --workspace --timeout 300 --out xml
-    
-    # Add retry mechanism for Codecov upload to handle rate limits
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      # Try up to 3 times with a delay between attempts
-      id: codecov-upload
-      continue-on-error: true
-      with:
-        # Use GITHUB_TOKEN instead of CODECOV_TOKEN as it's more reliable
-        token: ${{ secrets.GITHUB_TOKEN }}
-        files: ./cobertura.xml
-        fail_ci_if_error: false
-        verbose: true
-        
-    # First retry after 60 seconds if initial attempt fails
-    - name: Sleep before retry
-      if: steps.codecov-upload.outcome == 'failure'
-      run: sleep 60
-      
-    - name: Retry Codecov upload
-      if: steps.codecov-upload.outcome == 'failure'
-      uses: codecov/codecov-action@v3
-      continue-on-error: true
-      id: codecov-retry-1
-      with:
-        # Use GITHUB_TOKEN instead of CODECOV_TOKEN as it's more reliable
-        token: ${{ secrets.GITHUB_TOKEN }}
-        files: ./cobertura.xml
-        fail_ci_if_error: false
-        
-    # Second retry after 120 seconds if first retry fails
-    - name: Sleep before second retry
-      if: steps.codecov-retry-1.outcome == 'failure'
-      run: sleep 120
-      
-    - name: Second retry Codecov upload
-      if: steps.codecov-retry-1.outcome == 'failure'
-      uses: codecov/codecov-action@v3
-      continue-on-error: true
-      with:
-        # Use GITHUB_TOKEN instead of CODECOV_TOKEN as it's more reliable
-        token: ${{ secrets.GITHUB_TOKEN }}
-        files: ./cobertura.xml
-        fail_ci_if_error: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
+          components: clippy
+      - run: cargo test --locked --lib --tests
+      - run: cargo test --locked --doc
+      - run: cargo clippy --locked --lib
+      - run: cargo package --locked --allow-dirty
 
-  benchmark:
-    name: Performance Benchmarks
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install Rust toolchain
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        # Using stable Rust which is already 1.81.0+ to support dependencies like half 2.6.0
-        components: rustfmt, clippy
-    
-    - name: Cache dependencies
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-benchmark-${{ hashFiles('**/Cargo.lock') }}
-    
-    # Criterion is a library dependency, not a binary to install
-    - name: Run benchmarks
-      run: |
-        # Pin clap to a version compatible with Rust 1.81.0
-        cargo update -p clap --precise 4.3.19
-        
-        cargo bench --all-features
-    
-    - name: Store benchmark results
-      uses: benchmark-action/github-action-benchmark@v1
-      if: github.ref == 'refs/heads/main'
-      with:
-        tool: 'cargo'
-        output-file-path: target/criterion/report/index.html
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        auto-push: true
-        comment-on-alert: true
-        alert-threshold: '150%'
-        fail-on-alert: true
-
-  memory-test:
-    name: Memory Safety Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install Rust toolchain
-      uses: dtolnay/rust-toolchain@nightly
-      with:
-        # Ensure nightly is recent enough to support Cargo.lock version 4
-        min-version: 1.81.0
-        components: miri
-    
-    - name: Cache dependencies
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-miri-${{ hashFiles('**/Cargo.lock') }}
-    
-    - name: Run Miri
-      run: |
-        # Pin clap to a version compatible with Rust 1.81.0
-        cargo update -p clap --precise 4.3.19
-        
-        cargo miri setup
-        # Set CI testing flag to skip WebGPU tests
-        export RUV_FANN_CI_TESTING=1
-        # Run tests but exclude WebGPU tests by using a package filter
-        cargo miri test --all-features -- --skip webgpu
-      env:
-        MIRIFLAGS: -Zmiri-disable-isolation
-
-  security-audit:
-    name: Security Audit
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install cargo-audit
-      run: cargo install cargo-audit
-    
-    - name: Run security audit
-      run: cargo audit
-    
-    - name: Install cargo-deny
-      run: cargo install cargo-deny
-    
-    - name: Check licenses and advisories
-      run: cargo deny check
-
-  property-tests:
-    name: Property-based Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install Rust toolchain
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        # Using stable Rust which is already 1.81.0+ to support dependencies like half 2.6.0
-        components: rustfmt, clippy
-    
-    - name: Cache dependencies
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-proptest-${{ hashFiles('**/Cargo.lock') }}
-    
-    - name: Run property-based tests
-      # Run all tests with proptest features enabled instead of looking for a specific test file
-      run: cargo test --all-features
-      env:
-        # Reduce the number of test cases to speed up execution
-        PROPTEST_CASES: 1000
-        RUST_BACKTRACE: 1
-
-  cross-compile:
-    name: Cross Compilation
+  core-features:
+    name: Core features / ${{ matrix.features }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        # Reduce the number of cross-compilation targets to speed up CI
-        target: 
-          - aarch64-unknown-linux-gnu
-          - x86_64-pc-windows-gnu
-    
+        features: ['', 'simd', 'io', 'parallel']
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install Rust toolchain
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        # Using stable Rust which is already 1.81.0+ to support dependencies like half 2.6.0
-        components: rustfmt, clippy
-        targets: ${{ matrix.target }}
-    
-    - name: Install cross
-      run: cargo install cross --git https://github.com/cross-rs/cross
-    
-    - name: Cross-compile
-      run: |
-        # Pin clap to a version compatible with Rust 1.81.0
-        cargo update -p clap --precise 4.3.19
-        
-        cross build --target ${{ matrix.target }} --all-features
-
-  docs:
-    name: Documentation
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install Rust toolchain
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        # Using stable Rust which is already 1.81.0+ to support dependencies like half 2.6.0
-        components: rustfmt, clippy
-    
-    - name: Cache dependencies
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-docs-${{ hashFiles('**/Cargo.lock') }}
-    
-    - name: Build documentation
-      run: |
-        # Pin clap to a version compatible with Rust 1.81.0
-        cargo update -p clap --precise 4.3.19
-        
-        cargo doc --all-features --no-deps --document-private-items
-      env:
-        RUSTDOCFLAGS: -D warnings
-    
-    - name: Deploy documentation
-      if: github.ref == 'refs/heads/main'
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./target/doc
-        force_orphan: true
-
-  integration-examples:
-    name: Example Integration Tests
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install Rust toolchain
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        # Using stable Rust which is already 1.81.0+ to support dependencies like half 2.6.0
-        components: rustfmt, clippy
-    
-    - name: Cache dependencies
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-examples-${{ hashFiles('**/Cargo.lock') }}
-    
-    - name: Build examples
-      run: |
-        cargo build --example xor
-        cargo build --example basic_usage
-    
-    - name: Run XOR example
-      run: timeout 30s cargo run --example xor || [ $? -eq 124 ]
-    
-    - name: Run basic usage example
-      run: timeout 60s cargo run --example basic_usage || [ $? -eq 124 ]
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
+      - name: Test minimal feature combinations
+        env:
+          TEST_FEATURES: ${{ matrix.features }}
+        run: cargo test --locked --lib --no-default-features --features "$TEST_FEATURES"
+      - name: Test all core features without probing GPU hardware
+        if: matrix.features == ''
+        env:
+          RUV_FANN_CI_TESTING: '1'
+        run: cargo test --locked --all-features --lib
+      - name: Check every core target and the minimal native GPU feature graph
+        if: matrix.features == ''
+        run: |
+          cargo check --locked --all-targets --all-features
+          cargo check --locked --lib --no-default-features --features gpu
 
   msrv:
-    name: MSRV (1.81.0)
+    name: Core library MSRV 1.81
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 20
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install Rust 1.81.0
-      uses: dtolnay/rust-toolchain@master
-      with:
-        toolchain: 1.81.0  # MSRV updated to support dependencies like half 2.6.0
-    
-    - name: Cache dependencies
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-msrv-${{ hashFiles('**/Cargo.lock') }}
-    
-    - name: Check MSRV
-      run: |
-        # Pin clap to a version compatible with Rust 1.81.0
-        cargo update -p clap --precise 4.3.19
-        
-        cargo check --all-features
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: 1.81.0
+      # This is the library's MSRV. Current dev tools may need newer Rust.
+      - run: cargo check --locked --lib
 
-  release-check:
-    name: Release Readiness
+  workspaces:
+    name: Portable libraries / ${{ matrix.workspace }}
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {workspace: 'ruv-swarm', toolchain: '1.88.0'}
+          - {workspace: 'neuro-divergent', toolchain: 'stable'}
+          - {workspace: 'cuda-wasm', toolchain: 'stable'}
+          - {workspace: 'opencv-rust', toolchain: 'stable'}
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    
-    - name: Install Rust toolchain
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        # Using stable Rust which is already 1.81.0+ to support dependencies like half 2.6.0
-        components: rustfmt, clippy
-    
-    - name: Check if version bumped
-      id: version-check
-      run: |
-        if git diff HEAD~1 Cargo.toml | grep -q "^+version"; then
-          echo "version_bumped=true" >> $GITHUB_OUTPUT
-        else
-          echo "version_bumped=false" >> $GITHUB_OUTPUT
-        fi
-    
-    - name: Validate changelog
-      if: steps.version-check.outputs.version_bumped == 'true'
-      run: |
-        if ! grep -q "## \[$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')\]" CHANGELOG.md; then
-          echo "Version bump detected but CHANGELOG.md not updated"
-          exit 1
-        fi
-    
-    - name: Check package
-      run: |
-        # Pin clap to a version compatible with Rust 1.81.0
-        cargo update -p clap --precise 4.3.19
-        
-        cargo package --all-features
-    
-    - name: Check publish readiness
-      run: |
-        # Pin clap to a version compatible with Rust 1.81.0
-        cargo update -p clap --precise 4.3.19
-        
-        cargo publish --dry-run --all-features
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: ${{ matrix.toolchain }}
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Install real native OpenCV build prerequisites
+        if: matrix.workspace == 'opencv-rust'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libopencv-dev libclang-dev
+      - name: Check and test all workspace targets
+        env:
+          TEST_WORKSPACE: ${{ matrix.workspace }}
+        run: |
+          python3 scripts/verify-packages.py --check --workspace "$TEST_WORKSPACE"
+          python3 scripts/verify-packages.py --test --workspace "$TEST_WORKSPACE"
+
+  rust-advisories:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
+      - run: cargo install cargo-audit --version 0.22.2 --locked
+      - run: python3 scripts/verify-packages.py --audit
+
+  npm:
+    name: npm / Node ${{ matrix.node }} / ${{ matrix.directory }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {node: '22.13.0', directory: 'ruv-swarm/npm'}
+          - {node: '24', directory: 'ruv-swarm/npm'}
+          - {node: '22.12.0', directory: 'cuda-wasm'}
+          - {node: '24', directory: 'cuda-wasm'}
+    defaults:
+      run:
+        working-directory: ${{ matrix.directory }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+          package-manager-cache: false
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
+      - run: npm ci
+      - run: npm test
+      - name: Run the swarm integration runner
+        if: matrix.directory == 'ruv-swarm/npm'
+        run: npm run test:all
+      - name: Build the real CUDA source translator
+        if: matrix.directory == 'cuda-wasm'
+        run: cargo build --locked --bin cuda2rust
+      - name: Exercise CUDA Node bindings against the actual translator
+        if: matrix.directory == 'cuda-wasm'
+        env:
+          CUDA2RUST_BINARY: ${{ github.workspace }}/cuda-wasm/target/debug/cuda2rust
+        run: npm run test:integration
+      - run: npm audit --audit-level=low
+      - run: npm pack --dry-run
+
+  compute-and-browser:
+    name: Real software Vulkan and browser compute
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
+          targets: wasm32-unknown-unknown
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - run: |
+          sudo apt-get update
+          sudo apt-get install --yes mesa-vulkan-drivers
+      - name: Execute public GPU operations against a real Vulkan adapter
+        env:
+          WGPU_BACKEND: vulkan
+          RUV_FANN_ALLOW_SOFTWARE_GPU: '1'
+        run: |
+          export XDG_RUNTIME_DIR="$RUNNER_TEMP/xdg-webgpu"
+          mkdir -p "$XDG_RUNTIME_DIR"
+          chmod 700 "$XDG_RUNTIME_DIR"
+          cargo test --locked --features gpu --test webgpu_release_gate -- --test-threads=1
+      - name: Install explicit browser and WASM build tools
+        run: |
+          npm install --prefix "$RUNNER_TEMP/browser-tools" --no-save --ignore-scripts playwright@1.62.1
+          "$RUNNER_TEMP/browser-tools/node_modules/.bin/playwright" install --with-deps chromium
+          cargo install wasm-pack --version 0.15.1 --locked
+      - name: Run repository shaders in a real browser
+        env:
+          NODE_PATH: ${{ runner.temp }}/browser-tools/node_modules
+        run: |
+          node scripts/verify-webgpu.cjs
+          node scripts/verify-demo-dom.cjs
+      - name: Build and exercise the real OpenCV browser bindings
+        env:
+          NODE_PATH: ${{ runner.temp }}/browser-tools/node_modules
+        run: |
+          wasm-pack build opencv-rust/opencv-wasm --target web --out-name opencv_wasm --out-dir "$RUNNER_TEMP/opencv-browser" -- --locked
+          node opencv-rust/tests/browser-smoke.cjs "$RUNNER_TEMP/opencv-browser"
+      - name: Build and execute real browser IndexedDB operations
+        env:
+          NODE_PATH: ${{ runner.temp }}/browser-tools/node_modules
+        run: |
+          cargo install wasm-bindgen-cli --version 0.2.130 --locked
+          cargo build --manifest-path ruv-swarm/Cargo.toml --locked -p ruv-swarm-persistence --example indexeddb_browser_smoke --no-default-features --features wasm --target wasm32-unknown-unknown
+          wasm-bindgen ruv-swarm/target/wasm32-unknown-unknown/debug/examples/indexeddb_browser_smoke.wasm --target web --out-dir "$RUNNER_TEMP/persistence-browser" --out-name persistence_smoke
+          node ruv-swarm/crates/ruv-swarm-persistence/tests/browser-smoke.cjs "$RUNNER_TEMP/persistence-browser"
+      - name: Build and exercise the real Rust WASM GPU bridge
+        env:
+          NODE_PATH: ${{ runner.temp }}/browser-tools/node_modules
+        run: node scripts/verify-rust-browser-gpu.cjs --build "$RUNNER_TEMP/fann-browser"
+
+  release-archives:
+    name: Verify every Cargo release archive
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Install native archive build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libopencv-dev libclang-dev
+      - name: Build and verify ordered candidates in an isolated snapshot
+        run: python3 scripts/verify-release.py --output "$RUNNER_TEMP/cargo-releases"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verified-cargo-release-archives
+          path: |
+            ${{ runner.temp }}/cargo-releases/archives/*.crate
+            ${{ runner.temp }}/cargo-releases/receipt.json
+            ${{ runner.temp }}/cargo-releases/receipt.sha256
+            ${{ runner.temp }}/cargo-releases/publication-order.json
+            ${{ runner.temp }}/cargo-releases/snapshot-files.json
+          if-no-files-found: error

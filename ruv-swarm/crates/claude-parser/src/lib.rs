@@ -13,6 +13,9 @@ use thiserror::Error;
 use tokio::io::{AsyncBufReadExt, AsyncRead, BufReader};
 use tracing::{debug, error, info};
 
+mod limits;
+pub use limits::ParserLimits;
+
 #[derive(Error, Debug)]
 pub enum ParserError {
     #[error("JSON parsing error: {0}")]
@@ -26,6 +29,12 @@ pub enum ParserError {
 
     #[error("Stream processing error: {0}")]
     StreamError(String),
+
+    #[error("Parser {resource} limit exceeded ({limit})")]
+    LimitExceeded {
+        resource: &'static str,
+        limit: usize,
+    },
 }
 
 /// Result type for parser operations
@@ -212,6 +221,9 @@ pub struct ClaudeStreamParser {
     start_time: Instant,
     events: Arc<DashMap<String, Vec<ClaudeStreamEvent>>>,
     metrics_collector: MetricsCollector,
+    limits: ParserLimits,
+    input_bytes: usize,
+    event_count: usize,
 }
 
 impl Default for ClaudeStreamParser {
@@ -226,7 +238,23 @@ impl ClaudeStreamParser {
             start_time: Instant::now(),
             events: Arc::new(DashMap::new()),
             metrics_collector: MetricsCollector::new(),
+            limits: ParserLimits::default(),
+            input_bytes: 0,
+            event_count: 0,
         }
+    }
+
+    /// Set explicit input and retention budgets for this parser's lifetime.
+    pub fn with_limits(limits: ParserLimits) -> Result<Self> {
+        if limits.max_line_bytes == 0 || limits.max_input_bytes == 0 || limits.max_events == 0 {
+            return Err(ParserError::InvalidFormat(
+                "Parser limits must be positive".into(),
+            ));
+        }
+        Ok(Self {
+            limits,
+            ..Self::new()
+        })
     }
 
     /// Parse a stream of Claude events
@@ -234,21 +262,41 @@ impl ClaudeStreamParser {
         &mut self,
         reader: R,
     ) -> Result<PerformanceMetrics> {
-        let mut lines = BufReader::new(reader).lines();
+        let mut reader = BufReader::new(reader);
+        let mut buffer = Vec::new();
         let mut event_count = 0;
 
-        while let Some(line) = lines.next_line().await? {
+        loop {
+            let bytes = limits::read_bounded_line(
+                &mut reader,
+                &mut buffer,
+                self.limits,
+                &mut self.input_bytes,
+            )
+            .await?;
+            if bytes == 0 {
+                break;
+            }
+            let line = std::str::from_utf8(&buffer)
+                .map_err(|error| ParserError::InvalidFormat(error.to_string()))?;
             if line.trim().is_empty() {
                 continue;
             }
 
-            match self.parse_event(&line) {
+            match self.parse_event(line) {
                 Ok(event) => {
+                    if self.event_count >= self.limits.max_events {
+                        return Err(ParserError::LimitExceeded {
+                            resource: "events",
+                            limit: self.limits.max_events,
+                        });
+                    }
                     event_count += 1;
+                    self.event_count += 1;
                     self.process_event(event).await?;
                 }
                 Err(e) => {
-                    error!("Failed to parse event: {} - Line: {}", e, line);
+                    error!("Failed to parse event: {}", e);
                     // Continue processing other events
                 }
             }

@@ -15,7 +15,7 @@ struct AdamParams {
 var<storage, read_write> weights: array<f32>;
 
 @group(0) @binding(1)
-var<storage, read> gradients: array<f32>;
+var<storage, read_write> gradients: array<f32>;
 
 @group(0) @binding(2)
 var<storage, read_write> m_moments: array<f32>;
@@ -29,6 +29,9 @@ var<uniform> params: AdamParams;
 @compute @workgroup_size(WORKGROUP_SIZE)
 fn adam_update(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let idx = global_id.x;
+    if (idx >= arrayLength(&weights) || idx >= arrayLength(&gradients)
+        || idx >= arrayLength(&m_moments) || idx >= arrayLength(&v_moments)
+        || params.step == 0u) { return; }
     
     // Read current values
     let grad = gradients[idx];
@@ -48,14 +51,13 @@ fn adam_update(@builtin(global_invocation_id) global_id: vec3<u32>) {
     // Compute bias-corrected learning rate
     let bias_correction1 = 1.0 - pow(params.beta1, f32(params.step));
     let bias_correction2 = 1.0 - pow(params.beta2, f32(params.step));
-    let lr_t = params.learning_rate * sqrt(bias_correction2) / bias_correction1;
     
     // Compute bias-corrected moment estimates
     let m_hat = new_m / bias_correction1;
     let v_hat = new_v / bias_correction2;
     
     // Update weights
-    weights[idx] -= lr_t * m_hat / (sqrt(v_hat) + params.epsilon);
+    weights[idx] -= params.learning_rate * m_hat / (sqrt(v_hat) + params.epsilon);
 }
 
 // AdamW variant with decoupled weight decay
@@ -74,6 +76,9 @@ var<uniform> adamw_params: AdamWParams;
 @compute @workgroup_size(WORKGROUP_SIZE)
 fn adamw_update(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let idx = global_id.x;
+    if (idx >= arrayLength(&weights) || idx >= arrayLength(&gradients)
+        || idx >= arrayLength(&m_moments) || idx >= arrayLength(&v_moments)
+        || adamw_params.step == 0u) { return; }
     
     // Read current values
     let weight = weights[idx];
@@ -92,14 +97,13 @@ fn adamw_update(@builtin(global_invocation_id) global_id: vec3<u32>) {
     // Compute bias-corrected learning rate
     let bias_correction1 = 1.0 - pow(adamw_params.beta1, f32(adamw_params.step));
     let bias_correction2 = 1.0 - pow(adamw_params.beta2, f32(adamw_params.step));
-    let lr_t = adamw_params.learning_rate * sqrt(bias_correction2) / bias_correction1;
     
     // Compute bias-corrected moment estimates
     let m_hat = new_m / bias_correction1;
     let v_hat = new_v / bias_correction2;
     
     // Update weights with decoupled weight decay
-    weights[idx] = weight - lr_t * m_hat / (sqrt(v_hat) + adamw_params.epsilon) 
+    weights[idx] = weight - adamw_params.learning_rate * m_hat / (sqrt(v_hat) + adamw_params.epsilon)
                          - adamw_params.learning_rate * adamw_params.weight_decay * weight;
 }
 
@@ -107,7 +111,10 @@ fn adamw_update(@builtin(global_invocation_id) global_id: vec3<u32>) {
 @compute @workgroup_size(WORKGROUP_SIZE)
 fn accumulate_gradients(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let idx = global_id.x;
-    let batch_size = 32u; // This should be passed as a parameter
+    let width = arrayLength(&weights);
+    if (idx >= width || width == 0u) { return; }
+    let batch_size = arrayLength(&gradients) / width;
+    if (batch_size == 0u || arrayLength(&gradients) % width != 0u) { return; }
     
     var sum = 0.0f;
     for (var i = 0u; i < batch_size; i += 1u) {

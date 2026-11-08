@@ -27,17 +27,19 @@
 //!
 //! ```rust
 //! use neuro_divergent_core::prelude::*;
+//! use neuro_divergent_core::traits::ConfigBuilder;
 //! use chrono::{DateTime, Utc};
 //!
-//! // Create a time series dataset
-//! let mut dataset = TimeSeriesDatasetBuilder::new()
+//! // Describe the columns expected by a time series dataset
+//! let schema = TimeSeriesDatasetBuilder::<f64>::new()
 //!     .with_target_column("value")
 //!     .with_time_column("timestamp")
 //!     .with_unique_id_column("series_id")
 //!     .build()?;
 //!
 //! // Configure a forecasting model
-//! let config = ModelConfigBuilder::new()
+//! let config = ModelConfigBuilder::<f64>::new()
+//!     .with_model_type("feedforward")
 //!     .with_horizon(12)
 //!     .with_input_size(24)
 //!     .build()?;
@@ -55,12 +57,11 @@
 //! use ruv_fann::Network;
 //!
 //! // Create a ruv-FANN network
-//! let network = Network::new(&[24, 64, 32, 12])?;
+//! let network = Network::<f64>::new(&[24, 64, 32, 12]);
 //!
 //! // Wrap it with our adapter for time series forecasting
-//! let adapter = NetworkAdapter::from_network(network)
-//!     .with_input_preprocessor(/* ... */)
-//!     .with_output_postprocessor(/* ... */);
+//! let adapter = NetworkAdapter::from_network(network);
+//! assert_eq!(adapter.network().num_outputs(), 12);
 //!
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```

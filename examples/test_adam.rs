@@ -1,6 +1,7 @@
 //! Simple test to verify Adam optimizer is working correctly
 //! Tests on XOR problem which should converge quickly
 
+use ruv_fann::training::TrainingAlgorithm;
 use ruv_fann::training::*;
 use ruv_fann::*;
 
@@ -9,7 +10,7 @@ fn main() {
     println!("=========================================");
 
     // Create a simple XOR network
-    let mut network = NetworkBuilder::new()
+    let network = NetworkBuilder::new()
         .input_layer(2)
         .hidden_layer(4)
         .output_layer(1)

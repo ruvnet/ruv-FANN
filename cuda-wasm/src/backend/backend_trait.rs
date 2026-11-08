@@ -37,8 +37,15 @@ pub trait BackendTrait: Send + Sync {
     /// Compile a kernel
     async fn compile_kernel(&self, source: &str) -> Result<Vec<u8>>;
     
-    /// Launch a kernel
-    async fn launch_kernel(
+    /// Launch a trusted kernel using raw argument storage.
+    ///
+    /// # Safety
+    /// The compiled module and argument ABI must match. Each native host
+    /// argument pointer must address live initialized storage of the required
+    /// type/size until the launch completes. Device handles and buffers must
+    /// remain live through device synchronization. The caller must ensure the
+    /// kernel cannot access invalid memory or violate host/device aliasing.
+    async unsafe fn launch_kernel(
         &self,
         kernel: &[u8],
         grid: (u32, u32, u32),
@@ -52,8 +59,14 @@ pub trait BackendTrait: Send + Sync {
     /// Free device memory
     fn free_memory(&self, ptr: *mut u8) -> Result<()>;
     
-    /// Copy memory
-    fn copy_memory(
+    /// Copy raw memory between host/device allocations.
+    ///
+    /// # Safety
+    /// Host pointers must reference live allocations of at least `size` bytes,
+    /// destination writable and source initialized, without concurrent access.
+    /// Device handles must belong to this backend and must be live for the copy.
+    /// Source and destination must not overlap for host copies.
+    unsafe fn copy_memory(
         &self,
         dst: *mut u8,
         src: *const u8,

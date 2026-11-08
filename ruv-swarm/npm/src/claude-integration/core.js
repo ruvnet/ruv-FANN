@@ -3,15 +3,25 @@
  * Handles MCP server setup and basic integration
  */
 
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import { promises as fs } from 'fs';
 import path from 'path';
+
+export function parseClaudeInvocationArgs(args) {
+  const delimiter = args.indexOf('--');
+  const options = delimiter < 0 ? args : args.slice(0, delimiter);
+  const literal = delimiter < 0 ? [] : args.slice(delimiter + 1);
+  const skipPermissions = options.includes('--dangerously-skip-permissions');
+  const prompt = [...options.filter(arg => arg !== '--dangerously-skip-permissions'), ...literal].join(' ').trim();
+  return { skipPermissions, prompt };
+}
 
 class ClaudeIntegrationCore {
   constructor(options = {}) {
     this.autoSetup = options.autoSetup || false;
     this.forceSetup = options.forceSetup || false;
     this.workingDir = options.workingDir || process.cwd();
+    this.run = options.run || execFileSync;
   }
 
   /**
@@ -19,7 +29,7 @@ class ClaudeIntegrationCore {
      */
   async isClaudeAvailable() {
     try {
-      execSync('claude --version', { stdio: 'ignore' });
+      this.run('claude', ['--version'], { stdio: 'ignore' });
       return true;
     } catch {
       return false;
@@ -36,8 +46,9 @@ class ClaudeIntegrationCore {
 
     try {
       // Add ruv-swarm MCP server using stdio (no port needed)
-      const mcpCommand = 'claude mcp add ruv-swarm npx ruv-swarm mcp start';
-      execSync(mcpCommand, { stdio: 'inherit', cwd: this.workingDir });
+      this.run('claude', ['mcp', 'add', 'ruv-swarm', '--', 'npx', 'ruv-swarm', 'mcp', 'start'], {
+        stdio: 'inherit', cwd: this.workingDir,
+      });
       return { success: true, message: 'Added ruv-swarm MCP server to Claude Code (stdio)' };
     } catch (error) {
       throw new Error(`Failed to add MCP server: ${error.message}`);
@@ -49,7 +60,7 @@ class ClaudeIntegrationCore {
      */
   async checkExistingFiles() {
     try {
-      await fs.access(path.join(this.workingDir, 'claude.md'));
+      await fs.access(path.join(this.workingDir, 'CLAUDE.md'));
       await fs.access(path.join(this.workingDir, '.claude/commands'));
       return true;
     } catch {
@@ -84,10 +95,10 @@ class ClaudeIntegrationCore {
   }
 
   /**
-     * Invoke Claude with a prompt (supports both secure and legacy modes)
+     * Invoke Claude with normal permission checks unless explicitly disabled
      */
   async invokeClaudeWithPrompt(prompt, options = {}) {
-    if (!prompt || !prompt.trim()) {
+    if (typeof prompt !== 'string' || !prompt.trim()) {
       throw new Error('No prompt provided');
     }
 
@@ -95,13 +106,14 @@ class ClaudeIntegrationCore {
       throw new Error('Claude Code CLI not found');
     }
 
-    // Default behavior for backward compatibility (legacy mode)
-    const addPermissions = options.secure !== true;
-    const permissions = addPermissions ? ' --dangerously-skip-permissions' : '';
-    const claudeCommand = `claude "${prompt.trim()}"${permissions}`;
+    // Bypassing permission checks requires an explicit opt-in.
+    const addPermissions = options.secure === false;
+    const args = addPermissions ? ['--dangerously-skip-permissions'] : [];
+    // Treat the prompt as one literal positional argument, even if it begins with '-'.
+    args.push('--', prompt.trim());
 
     try {
-      execSync(claudeCommand, { stdio: 'inherit', cwd: this.workingDir });
+      this.run('claude', args, { stdio: 'inherit', cwd: this.workingDir });
       return { success: true, message: 'Claude invocation completed' };
     } catch (error) {
       throw new Error(`Claude invocation failed: ${error.message}`);

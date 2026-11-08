@@ -1,77 +1,29 @@
 {
   "name": "cuda-wasm",
-  "version": "1.1.1",
-  "description": "High-performance CUDA to WebAssembly/WebGPU transpiler with Rust safety - Run GPU kernels in browsers and Node.js",
-  "main": "dist/index.js",
-  "module": "dist/index.esm.js",
-  "types": "dist/index.d.ts",
-  "browser": "dist/index.browser.js",
+  "version": "2.0.0",
+  "description": "Node.js wrapper for cuda2rust: generate Rust or WGSL source from a subset of CUDA C++",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "bin": {
     "cuda-wasm": "./cli/index.js"
   },
   "exports": {
     ".": {
-      "import": "./dist/index.esm.js",
-      "require": "./dist/index.js",
-      "browser": "./dist/index.browser.js",
-      "types": "./dist/index.d.ts"
-    },
-    "./wasm": {
-      "import": "./dist/cuda_rust_wasm_bg.wasm",
-      "require": "./dist/cuda_rust_wasm_bg.wasm"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
     }
   },
   "scripts": {
-    "build": "npm run clean && npm run build:rust && npm run build:wasm && npm run build:node && npm run build:types",
-    "build:all": "npm run build",
-    "build:rust": "cargo build --release --features optimized-build",
-    "build:rust:native": "cargo build --release --features native-gpu,optimized-build,parallel-compilation",
-    "build:rust:wasm": "cargo build --profile wasm --target wasm32-unknown-unknown --features wasm-simd",
-    "build:wasm": "./scripts/build-wasm.sh",
-    "build:wasm:dev": "BUILD_MODE=dev ./scripts/build-wasm.sh",
-    "build:wasm:size": "OPTIMIZE_SIZE=true BUILD_MODE=release ./scripts/build-wasm.sh",
-    "build:wasm:speed": "OPTIMIZE_SIZE=false BUILD_MODE=release ./scripts/build-wasm.sh",
-    "build:wasm:simd": "ENABLE_SIMD=true ./scripts/build-wasm.sh",
-    "build:node": "node-gyp rebuild",
-    "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist",
-    "clean": "rm -rf dist build pkg target/wasm32-unknown-unknown .cargo-cache",
-    "clean:full": "cargo clean && npm run clean",
-    "clean:cache": "ENABLE_CACHE=false ./scripts/build-wasm.sh clean",
-    "test": "npm run test:rust && npm run test:node && npm run test:integration",
-    "test:rust": "cargo test --features native-gpu,optimized-build",
-    "test:wasm": "cargo test --target wasm32-unknown-unknown --features wasm-simd",
-    "test:node": "jest --passWithNoTests",
-    "test:integration": "node scripts/test-integration.js",
-    "test:package": "npm pack && npm install -g ./cuda-wasm-core-*.tgz && npm run test:smoke",
-    "test:smoke": "cuda-wasm --help && node -e 'require(\"cuda-rust-wasm\")'",
-    "test:bench": "cargo bench --features native-gpu",
-    "test:coverage": "cargo tarpaulin --out html --output-dir coverage --features native-gpu",
-    "test:memory": "valgrind --tool=memcheck cargo test --features native-gpu",
-    "lint": "cargo clippy --features native-gpu -- -W clippy::all && eslint cli/ --ext .js --fix",
-    "lint:rust": "cargo clippy --features native-gpu -- -D warnings",
-    "lint:js": "eslint cli/ --ext .js --fix",
-    "format": "cargo fmt && prettier --write 'cli/**/*.js' 'scripts/**/*.js'",
-    "format:check": "cargo fmt -- --check && prettier --check 'cli/**/*.js' 'scripts/**/*.js'",
-    "audit": "cargo audit && npm audit",
-    "prebuild": "echo 'Skipping build checks'",
-    "prepublishOnly": "echo 'Publishing dist files'",
-    "postinstall": "node scripts/postinstall.js",
-    "demo": "cd demo && npm start",
-    "docs": "cargo doc --open --features native-gpu,optimized-build",
-    "docs:build": "cargo doc --no-deps --features native-gpu,optimized-build",
-    "size-analysis": "npm run build:wasm && twiggy top dist/cuda_rust_wasm_bg.wasm -n 20",
-    "benchmark": "cargo bench --features native-gpu && node cli/benchmark.js",
-    "benchmark:wasm": "npm run build:wasm && node scripts/benchmark-wasm.js",
-    "profile": "cargo build --profile bench --features native-gpu && perf record target/release/cuda2rust",
-    "dev": "npm run build:wasm:dev && npm run test:node",
-    "dev:watch": "cargo watch -x 'build --profile wasm-dev --target wasm32-unknown-unknown'",
-    "ci": "npm run format:check && npm run lint && npm run test && npm run build && npm run audit",
-    "ci:quick": "npm run lint:rust && cargo test --features native-gpu",
-    "version": "npm run build && git add dist/",
-    "postversion": "git push && git push --tags",
-    "release": "npm run ci && npm version patch && npm publish",
-    "release:minor": "npm run ci && npm version minor && npm publish",
-    "release:major": "npm run ci && npm version major && npm publish"
+    "build": "npm run validate:package",
+    "test": "node --test tests/package-security.cjs tests/node-wrapper.test.cjs",
+    "test:security": "node --test tests/package-security.cjs tests/node-wrapper.test.cjs",
+    "test:integration": "node --test tests/cli-integration.cjs",
+    "validate:package": "node scripts/validate-package.js",
+    "prepack": "npm run validate:package",
+    "prepublishOnly": "npm run validate:package",
+    "audit": "npm audit --audit-level=low"
   },
   "repository": {
     "type": "git",
@@ -80,25 +32,11 @@
   },
   "keywords": [
     "cuda",
-    "webassembly",
-    "wasm",
-    "webgpu",
-    "gpu",
-    "parallel-computing",
     "transpiler",
     "rust",
-    "scientific-computing",
-    "machine-learning",
-    "high-performance-computing",
-    "browser-gpu",
-    "compute-shaders",
-    "nvidia",
-    "opencl",
-    "vulkan",
-    "performance",
-    "compiler",
-    "kernel",
-    "simd"
+    "wgsl",
+    "cli",
+    "source-generation"
   ],
   "author": {
     "name": "CUDA-WASM Team",
@@ -119,72 +57,24 @@
     "type": "github",
     "url": "https://github.com/sponsors/ruvnet"
   },
-  "dependencies": {
-    "commander": "^11.1.0",
-    "chalk": "^4.1.2",
-    "semver": "^7.5.4"
-  },
-  "devDependencies": {
-    "@types/node": "^20.10.0",
-    "@types/jest": "^29.5.8",
-    "jest": "^29.7.0",
-    "node-gyp": "^11.5.0",
-    "typescript": "^5.3.2",
-    "eslint": "^8.55.0",
-    "prettier": "^3.1.0",
-    "@typescript-eslint/eslint-plugin": "^6.13.0",
-    "@typescript-eslint/parser": "^6.13.0"
-  },
   "engines": {
-    "node": ">=16.0.0",
-    "npm": ">=8.0.0"
+    "node": ">=22.12.0"
   },
-  "os": [
-    "linux",
-    "darwin",
-    "win32"
-  ],
-  "cpu": [
-    "x64",
-    "arm64"
-  ],
   "files": [
-    "dist/",
-    "cli/",
-    "bindings/",
-    "scripts/postinstall.js",
-    "scripts/test-integration.js",
+    "dist/index.js",
+    "dist/index.mjs",
+    "dist/index.d.ts",
+    "cli/index.js",
+    "scripts/validate-package.js",
     "README.md",
-    "LICENSE",
     "CHANGELOG.md",
-    "pkg/cuda_rust_wasm_bg.wasm"
+    "LICENSE",
+    "docs/assets/source-flow.svg"
   ],
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
     "access": "public",
     "tag": "latest"
   },
-  "browserslist": [
-    "> 1%",
-    "last 2 versions",
-    "not dead",
-    "Chrome >= 80",
-    "Firefox >= 78",
-    "Safari >= 14",
-    "Edge >= 80"
-  ],
-  "ava": {
-    "extensions": [
-      "js",
-      "ts"
-    ],
-    "require": [
-      "ts-node/register"
-    ]
-  },
-  "overrides": {
-    "@typescript-eslint/typescript-estree": {
-      "minimatch": "^9.0.7"
-    }
-  }
+  "type": "commonjs"
 }

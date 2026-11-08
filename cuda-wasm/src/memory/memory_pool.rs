@@ -90,7 +90,8 @@ impl MemoryPool {
                 let mut pools = self.pools.lock().unwrap();
                 let pool = pools.entry(pool_size).or_default();
                 
-                for _ in 0..self.config.prealloc_count {
+                let count = self.config.prealloc_count.min(self.config.max_pool_size / pool_size);
+                for _ in 0..count {
                     pool.push(vec![0; pool_size]);
                 }
             }
@@ -155,8 +156,8 @@ impl MemoryPool {
         }
 
         let pool_size = self.round_to_power_of_2(original_size);
-        buffer.resize(pool_size, 0);
-        buffer.clear(); // Clear but keep capacity
+        // Clear stale data before reuse without a redundant first resize.
+        buffer.clear();
         buffer.resize(pool_size, 0);
 
         let mut pools = self.pools.lock().unwrap();
@@ -166,7 +167,9 @@ impl MemoryPool {
         if pool.len() < self.config.max_pool_size / pool_size {
             pool.push(buffer);
         } else {
-            // Pool is full, just drop the buffer
+            // Drop the pools lock before taking stats: allocate takes stats
+            // first, so retaining pools here could deadlock two threads.
+            drop(pools);
             let mut stats = self.stats.lock().unwrap();
             stats.current_memory_usage = stats.current_memory_usage.saturating_sub(pool_size);
         }
@@ -178,11 +181,8 @@ impl MemoryPool {
             return 1;
         }
         
-        let mut power = 1;
-        while power < size {
-            power <<= 1;
-        }
-        power
+        // A configured class near usize::MAX must not wrap to zero and loop.
+        size.checked_next_power_of_two().unwrap_or(size)
     }
 
     /// Get current pool statistics
@@ -255,7 +255,7 @@ pub fn global_stats() -> PoolStats {
 /// High-level memory management for kernel operations
 pub struct KernelMemoryManager {
     pool: Arc<MemoryPool>,
-    allocations: Mutex<HashMap<*const u8, usize>>,
+    allocations: Mutex<HashMap<usize, (Vec<u8>, usize)>>,
 }
 
 impl KernelMemoryManager {
@@ -269,45 +269,37 @@ impl KernelMemoryManager {
 
     /// Allocate aligned memory for kernel operations
     pub fn allocate_kernel_memory(&self, size: usize, alignment: usize) -> Result<*mut u8> {
-        // For WASM, alignment is typically handled by the allocator
-        let buffer = self.pool.allocate(size + alignment - 1);
-        let ptr = buffer.as_ptr() as *mut u8;
-        
-        // Store allocation info for tracking
-        {
-            let mut allocations = self.allocations.lock().unwrap();
-            allocations.insert(ptr, size);
+        if size == 0 || alignment == 0 || !alignment.is_power_of_two() {
+            return Err(crate::memory_error!("Kernel size must be nonzero and alignment a nonzero power of two"));
         }
-        
-        // Prevent buffer from being dropped
-        std::mem::forget(buffer);
-        
+        let len = size.checked_add(alignment - 1)
+            .filter(|&len| len <= isize::MAX as usize)
+            .ok_or_else(|| crate::memory_error!("Kernel allocation size overflow"))?;
+        let mut buffer = self.pool.allocate(len);
+        let base = buffer.as_mut_ptr() as usize;
+        let offset = base.wrapping_neg() & (alignment - 1);
+        // SAFETY: padding guarantees offset + size fits within the owned Vec.
+        let ptr = unsafe { buffer.as_mut_ptr().add(offset) };
+        self.allocations.lock().unwrap().insert(ptr as usize, (buffer, size));
         Ok(ptr)
     }
 
-    /// Deallocate kernel memory
-    /// 
+    /// Release kernel memory without reconstructing its allocation layout.
+    ///
     /// # Safety
-    /// The caller must ensure that the pointer was allocated by this memory pool
-    /// and is not used after this function returns.
+    /// The caller must stop using the pointer and any references derived from
+    /// it before release, and must not reuse it after this function returns.
     pub unsafe fn deallocate_kernel_memory(&self, ptr: *mut u8) -> Result<()> {
-        let size = {
-            let mut allocations = self.allocations.lock().unwrap();
-            allocations.remove(&(ptr as *const u8))
-                .ok_or_else(|| crate::error::CudaRustError::MemoryError("Invalid pointer for deallocation".to_string()))?
-        };
-        
-        // Reconstruct the Vec from the raw pointer
-        let buffer = Vec::from_raw_parts(ptr, size, size);
+        let (buffer, _) = self.allocations.lock().unwrap().remove(&(ptr as usize))
+            .ok_or_else(|| crate::memory_error!("Invalid pointer for deallocation"))?;
         self.pool.deallocate(buffer);
-        
         Ok(())
     }
 
     /// Get total allocated kernel memory
     pub fn total_kernel_memory(&self) -> usize {
         let allocations = self.allocations.lock().unwrap();
-        allocations.values().sum()
+        allocations.values().map(|(_, size)| size).sum()
     }
 }
 

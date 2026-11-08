@@ -1,6 +1,6 @@
 [package]
 name = "neuro-divergent-training"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["rUv Contributors"]
 description = "Comprehensive training infrastructure for neural forecasting models"
@@ -11,9 +11,8 @@ categories = ["science", "algorithms", "mathematics"]
 
 [dependencies]
 # Internal dependencies
-neuro-divergent-core = { version = "0.1.0", path = "../neuro-divergent-core" }
 # Core dependencies
-ruv-fann = "0.1"
+ruv-fann = { version = "0.2.2", path = "../.." }
 num-traits = "0.2"
 thiserror = "1.0"
 serde = { version = "1.0", features = ["derive"], optional = true }
@@ -35,13 +34,6 @@ approx = "0.5"
 # SIMD support
 wide = { version = "0.7", optional = true }
 
-# Memory optimization
-memmap2 = { version = "0.9", optional = true }
-
-# Checkpointing and serialization
-bincode = { version = "1.3", optional = true }
-flate2 = { version = "1.0", optional = true }
-
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
 proptest = "1.4"
@@ -55,6 +47,6 @@ serde = ["dep:serde", "dep:serde_json"]
 parallel = ["dep:rayon", "std"]
 logging = ["dep:log", "std"]
 simd = ["dep:wide"]
-checkpointing = ["dep:bincode", "dep:flate2", "dep:memmap2"]
+checkpointing = ["serde"]
 mixed_precision = []
 

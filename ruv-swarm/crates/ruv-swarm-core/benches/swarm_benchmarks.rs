@@ -17,8 +17,10 @@ fn task_creation_benchmark(c: &mut Criterion) {
         group.bench_with_input(BenchmarkId::from_parameter(size), size, |b, &size| {
             b.iter(|| {
                 for i in 0..size {
-                    let _task = Task::new(format!("task_{}", i), "compute")
-                        .with_priority(TaskPriority::Normal);
+                    std::hint::black_box(
+                        Task::new(format!("task_{}", i), "compute")
+                            .with_priority(TaskPriority::Normal),
+                    );
                 }
             });
         });
@@ -41,7 +43,7 @@ fn swarm_agent_registration(c: &mut Criterion) {
                 for i in 0..100 {
                     let agent =
                         DynamicAgent::new(format!("agent_{}", i), vec!["compute".to_string()]);
-                    let _ = swarm.register_agent(agent);
+                    swarm.register_agent(agent).unwrap();
                 }
             });
         });
@@ -74,8 +76,10 @@ fn task_distribution_strategies(c: &mut Criterion) {
                     for i in 0..10 {
                         let agent =
                             DynamicAgent::new(format!("agent_{}", i), vec!["compute".to_string()]);
-                        let _ = swarm.register_agent(agent);
+                        swarm.register_agent(agent).unwrap();
                     }
+
+                    swarm.start_all_agents().await.unwrap();
 
                     // Submit tasks
                     for i in 0..100 {
@@ -83,8 +87,11 @@ fn task_distribution_strategies(c: &mut Criterion) {
                             .with_priority(TaskPriority::Normal)
                             .require_capability("compute");
 
-                        let _ = swarm.submit_task(task);
+                        swarm.submit_task(task).unwrap();
                     }
+                    let assignments = swarm.distribute_tasks().await.unwrap();
+                    assert_eq!(assignments.len(), 100);
+                    std::hint::black_box(assignments);
                 });
             });
         });

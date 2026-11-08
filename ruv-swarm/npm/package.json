@@ -1,7 +1,7 @@
 {
   "name": "ruv-swarm",
-  "version": "1.0.23",
-  "description": "High-performance neural network swarm orchestration in WebAssembly",
+  "version": "2.0.0",
+  "description": "Node.js swarm metadata, SQLite persistence, and checked WebAssembly inference",
   "main": "src/index.js",
   "module": "src/index.js",
   "types": "src/index.d.ts",
@@ -17,11 +17,23 @@
   "files": [
     "bin/",
     "src/",
-    "wasm/",
-    "README.md"
+    "wasm/ruv_swarm_wasm.js",
+    "wasm/ruv_swarm_wasm.d.ts",
+    "wasm/ruv_swarm_wasm_bg.wasm",
+    "wasm/ruv_swarm_wasm_bg.wasm.d.ts",
+    "wasm/ruv_swarm_simd.wasm",
+    "wasm/wasm-bindings-loader.mjs",
+    "wasm/package.json",
+    "wasm/build-info.json",
+    "README.md",
+    "scripts/validate-package.js",
+    "scripts/wasm-provenance.js",
+    "LICENSE-MIT",
+    "LICENSE-APACHE",
+    "CHANGELOG.md"
   ],
   "scripts": {
-    "test": "node test/test.js",
+    "test": "npm run test:security && npm run test:tooling && node test/test.js",
     "test:all": "node test/run-all-tests.js",
     "test:jest": "NODE_OPTIONS='--experimental-vm-modules --experimental-wasm-modules' jest --config jest.config.cjs",
     "test:jest:watch": "NODE_OPTIONS='--experimental-vm-modules --experimental-wasm-modules' jest --watch --config jest.config.cjs",
@@ -36,7 +48,7 @@
     "test:watch": "nodemon --watch test --exec 'npm run test:all'",
     "test:performance": "node test/comprehensive-performance-validation.test.js",
     "test:load": "node test/load-testing-suite.test.js",
-    "test:security": "node test/security-audit.test.js",
+    "test:security": "node --test test/security-boundaries.test.js test/mcp-framing.test.js test/wasm-provenance.test.js test/wasm-api.test.js test/mcp-runtime.test.js",
     "test:regression": "node test/regression-testing-pipeline.test.js",
     "test:comprehensive": "node test/run-comprehensive-validation.js",
     "test:orchestrator": "node test/comprehensive-test-orchestrator.js",
@@ -58,10 +70,10 @@
     "lint:fix": "eslint src/ test/ --ext .js,.ts,.mjs,.cjs --fix",
     "lint:check": "eslint src/ test/ --ext .js,.ts,.mjs,.cjs --max-warnings 0",
     "lint:report": "eslint src/ test/ --ext .js,.ts,.mjs,.cjs --format json --output-file eslint-report.json",
-    "quality:check": "npm run lint:check && npm run test:all",
+    "quality:check": "npm run lint:maintained && npm test && npm run test:all && npm audit --audit-level=low && node scripts/validate-package.js",
     "quality:fix": "npm run lint:fix && npm run test:all",
-    "mcp:server": "cd ../crates/ruv-swarm-mcp && cargo run",
-    "mcp:server:dev": "cd ../crates/ruv-swarm-mcp && cargo watch -x run",
+    "mcp:server": "cd ../crates/ruv-swarm-mcp && cargo run --locked --bin ruv-swarm-mcp",
+    "mcp:server:dev": "cd ../crates/ruv-swarm-mcp && cargo watch -x \"run --bin ruv-swarm-mcp\"",
     "examples": "node examples/mcp-workflows.js",
     "examples:webapp": "node examples/mcp-workflows.js webapp",
     "examples:research": "node examples/mcp-workflows.js research",
@@ -72,28 +84,53 @@
     "test:daa": "node test/daa-service.test.js",
     "benchmark:wasm": "node test/benchmarks/benchmark-neural-models.js",
     "build": "node scripts/build.js",
-    "build:wasm": "cd ../crates/ruv-swarm-wasm && wasm-pack build --target web --out-dir ../../npm/wasm -- --no-default-features",
-    "build:wasm-simd": "cd ../crates/ruv-swarm-wasm && RUSTFLAGS=\"-C target-feature=+simd128\" wasm-pack build --target web --out-dir ../../npm/wasm-simd -- --no-default-features",
-    "build:wasm-opt": "cd ../crates/ruv-swarm-wasm && wasm-pack build --target web --out-dir ../../npm/wasm-opt -- --features minimal && wasm-opt -Oz -o ../../npm/wasm-opt/ruv_swarm_wasm_bg.wasm ../../npm/wasm-opt/ruv_swarm_wasm_bg.wasm",
-    "build:all": "npm run build:wasm && npm run build:wasm-simd && npm run build",
+    "build:wasm": "node scripts/build.js",
+    "build:wasm-simd": "node scripts/build.js",
+    "build:all": "node scripts/build.js",
     "build:docs": "node scripts/generate-docs.js",
-    "deploy:prepare": "npm run quality:check && npm run build:all && npm run build:docs",
+    "deploy:prepare": "npm run build && npm run quality:check && npm pack --dry-run",
     "deploy:npm": "npm publish --access public",
     "deploy:check": "npm pack --dry-run",
     "version:patch": "npm version patch && git push && git push --tags",
     "version:minor": "npm version minor && git push && git push --tags",
     "version:major": "npm version major && git push && git push --tags",
     "pretest-disabled": "npm run lint:check",
-    "prepublishOnly-disabled": "npm run deploy:prepare"
+    "prepublishOnly-disabled": "npm run deploy:prepare",
+    "test:security:legacy": "node test/security-audit.test.js",
+    "test:mock": "node test/test.js",
+    "prepack": "node scripts/validate-package.js",
+    "prepublishOnly": "npm run quality:check",
+    "validate:package": "node scripts/validate-package.js --artifact-only",
+    "test:tooling": "node --test test/tooling-security.test.js",
+    "test:installation": "node scripts/test-installation.js",
+    "lint:maintained": "eslint src/index.js src/claude-integration/docs.js src/claude-integration/core.js src/claude-integration/index.js src/stdio-rpc.js src/mcp-tools-enhanced.js src/mcp-daa-tools.js src/daa-service.js src/neural.js src/neural-runtime.js src/unsupported.js src/benchmark.js src/performance.js scripts/wasm-provenance.js scripts/validate-package.js scripts/test-installation.js test/mcp-runtime.test.js test/mcp-framing.test.js test/tooling-security.test.js test/security-boundaries.test.js test/wasm-provenance.test.js --max-warnings 0"
   },
   "engines": {
-    "node": ">=18.20.8"
+    "node": ">=22.13.0"
   },
   "overrides": {
     "@types/node": "^18.19.115",
     "vite": "^6.0.0",
     "vitest": "^4.1.12",
-    "@vitest/ui": "^4.1.12"
+    "@vitest/ui": "^4.1.12",
+    "minimatch@>=7.0.0 <11.0.1": "^11.0.1",
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.1"
+    },
+    "nyc": {
+      "minimatch": "^11.0.1",
+      "glob": "^14.0.2"
+    },
+    "glob@>=9.0.0 <=14.0.1": "^14.0.2",
+    "test-exclude": {
+      "glob": "^14.0.2"
+    },
+    "jest-config": {
+      "deepmerge": "npm:@stackline/deepmerge@1.1.2"
+    },
+    "@rollup/plugin-node-resolve": {
+      "deepmerge": "npm:@stackline/deepmerge@1.1.2"
+    }
   },
   "repository": {
     "type": "git",
@@ -109,11 +146,11 @@
     "ai",
     "orchestration",
     "multi-agent",
-    "distributed-computing",
-    "daa",
-    "autonomous-agents",
     "workflow-coordination",
-    "state-persistence"
+    "state-persistence",
+    "sqlite",
+    "local-inference",
+    "statistical-forecast"
   ],
   "author": "rUv Contributors",
   "license": "MIT OR Apache-2.0",
@@ -124,7 +161,7 @@
   "homepage": "https://github.com/ruvnet/ruv-FANN#readme",
   "dependencies": {
     "better-sqlite3": "^11.6.0",
-    "uuid": "^9.0.1",
+    "uuid": "^11.1.1",
     "ws": "^8.21.0"
   },
   "devDependencies": {
@@ -167,17 +204,14 @@
     "jest": "^29.7.0",
     "jest-html-reporters": "^3.1.7",
     "nodemon": "^3.0.0",
-    "nyc": "^17.1.0",
+    "nyc": "^18.0.0",
     "rollup": "^3.30.0",
     "sqlite3": "^6.0.1",
     "typescript": "^5.2.0",
     "vitest": "^4.1.12",
-    "wasm-pack": "^0.15.1",
     "webpack": "^5.88.0",
-    "webpack-cli": "^5.1.4"
-  },
-  "optionalDependencies": {
-    "worker_threads": "*"
+    "webpack-cli": "^5.1.4",
+    "deepmerge": "npm:@stackline/deepmerge@1.1.2"
   },
   "nyc": {
     "all": true,
@@ -217,5 +251,18 @@
         95
       ]
     }
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js",
+      "require": "./src/index.js"
+    },
+    "./package.json": "./package.json",
+    "./wasm/ruv_swarm_wasm.js": {
+      "types": "./wasm/ruv_swarm_wasm.d.ts",
+      "import": "./wasm/ruv_swarm_wasm.js"
+    },
+    "./wasm/wasm-bindings-loader.mjs": "./wasm/wasm-bindings-loader.mjs"
   }
 }

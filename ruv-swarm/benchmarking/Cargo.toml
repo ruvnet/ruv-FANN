@@ -1,6 +1,19 @@
 [package]
+# Publish source and required assets, excluding session state and runtime databases.
+include = [
+    "/src/**",
+    "/tests/**",
+    "/examples/**",
+    "/benches/**",
+    "/build.rs",
+    "/Cargo.toml",
+    "/README.md",
+    "/LICENSE*",
+    "/static/**",
+]
 name = "ruv-swarm-benchmarking"
-version = "1.0.5"
+version = "1.0.6"
+rust-version.workspace = true
 edition = "2021"
 authors = ["RUV-SWARM Team"]
 description = "Comprehensive benchmarking framework for Claude Code CLI and swarm orchestration"
@@ -18,7 +31,11 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # SQLite storage
-sqlx = { version = "0.8.6", default-features = false, features = ["runtime-tokio", "sqlite", "json", "chrono", "macros", "migrate"] }
+# This private backend only needs SQLite. The umbrella/macros package also
+# resolves unused MySQL/RSA dependencies. Keep these semver-exempt crates pinned
+# together, as required by SQLx's driver documentation.
+sqlx-core = { version = "=0.8.6", default-features = false, features = ["_rt-tokio", "json", "chrono"] }
+sqlx-sqlite = { version = "=0.8.6", default-features = false, features = ["bundled", "json", "chrono"] }
 chrono = { version = "0.4", features = ["serde"] }
 
 # Metrics and analysis
@@ -43,8 +60,8 @@ tower = "0.4"
 tower-http = { version = "0.5", features = ["cors", "fs"] }
 
 # Local crates
-ruv-swarm-core = { path = "../crates/ruv-swarm-core", version = "1.0.5" }
-ruv-swarm-persistence = { path = "../crates/ruv-swarm-persistence", version = "1.0.5" }
+ruv-swarm-core = { path = "../crates/ruv-swarm-core", version = "1.0.7" }
+ruv-swarm-persistence = { path = "../crates/ruv-swarm-persistence", version = "1.0.8" }
 
 [dev-dependencies]
 tempfile = "3.8"

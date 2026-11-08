@@ -1,6 +1,17 @@
 [package]
+# Publish source and required assets, excluding session state and runtime databases.
+include = [
+    "/src/**",
+    "/tests/**",
+    "/examples/**",
+    "/benches/**",
+    "/build.rs",
+    "/Cargo.toml",
+    "/README.md",
+    "/LICENSE*",
+]
 name = "ruv-swarm-mcp"
-version = "1.0.5"
+version = "1.0.6"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -59,8 +70,8 @@ chrono = { version = "0.4.39", features = ["serde"] }
 color-eyre = "0.6.3"
 
 # Internal dependencies
-ruv-swarm-core = { path = "../ruv-swarm-core", version = "1.0.6" }
-ruv-swarm-persistence = { path = "../ruv-swarm-persistence" }
+ruv-swarm-core = { path = "../ruv-swarm-core", version = "1.0.7" }
+ruv-swarm-persistence = { path = "../ruv-swarm-persistence", version = "1.0.8" }
 
 [dev-dependencies]
 criterion = { workspace = true }

@@ -115,7 +115,7 @@ impl std::fmt::Display for GpuModel {
 }
 
 /// Nutanix Prism Central connection configuration
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct NutanixConfig {
     /// Prism Central base URL (e.g., "https://prism-central.example.com:9440")
@@ -143,6 +143,20 @@ pub struct NutanixConfig {
     /// Prism Central API version to use (default: "v3")
     #[cfg_attr(feature = "serde", serde(default = "default_api_version"))]
     pub api_version: String,
+}
+
+impl std::fmt::Debug for NutanixConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("NutanixConfig")
+            .field("base_url", &self.base_url)
+            .field("api_key", &"[REDACTED]")
+            .field("username", &self.username)
+            .field("password", &"[REDACTED]")
+            .field("timeout", &self.timeout)
+            .field("verify_ssl", &self.verify_ssl)
+            .field("api_version", &self.api_version)
+            .finish()
+    }
 }
 
 fn default_timeout() -> Duration {

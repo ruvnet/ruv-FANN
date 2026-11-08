@@ -11,7 +11,19 @@ async fn test_instance_loader() {
     let temp_dir = tempfile::tempdir().unwrap();
     let mut loader = InstanceLoader::new(temp_dir.path()).unwrap();
 
-    // Load a mock instance (will be created automatically)
+    let fixture = serde_json::json!({
+        "instance_id": "test-001", "repo": "test/repo", "version": "1.0",
+        "issue_title": "Test issue", "issue_description": "Test description",
+        "hints": [], "test_patch": "", "test_directives": [], "difficulty": "Medium",
+        "metrics": { "files_changed": 2, "lines_changed": 50, "test_count": 5,
+            "dependencies": 3, "complexity_score": 0.5, "domain_specific": false,
+            "requires_external_api": false }, "metadata": {}
+    });
+    std::fs::write(
+        temp_dir.path().join("test-001.json"),
+        serde_json::to_vec(&fixture).unwrap(),
+    )
+    .unwrap();
     let result = loader.load_instance("test-001").await;
     assert!(result.is_ok());
 
@@ -85,9 +97,10 @@ Tokens: 500
 
 #[tokio::test]
 async fn test_adapter_creation() {
+    let directory = tempfile::tempdir().unwrap();
     let config = SWEBenchConfig {
-        instances_path: PathBuf::from("./test-instances"),
-        memory_path: PathBuf::from("./test-memory"),
+        instances_path: directory.path().join("instances"),
+        memory_path: directory.path().join("memory.db"),
         ..Default::default()
     };
 
@@ -127,4 +140,66 @@ fn test_difficulty_categorization() {
         DifficultyLevel::from_metrics(&hard_metrics),
         DifficultyLevel::Hard
     );
+}
+
+#[tokio::test]
+async fn local_patch_evaluation_uses_explicit_repository_and_preserves_existing_files() {
+    let directory = tempfile::tempdir().unwrap();
+    let run_git = |arguments: &[&str]| {
+        let output = std::process::Command::new("git")
+            .current_dir(directory.path())
+            .args(arguments)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    };
+    run_git(&["init", "--quiet"]);
+    std::fs::write(directory.path().join("example.txt"), "before\n").unwrap();
+    run_git(&["add", "example.txt"]);
+    run_git(&[
+        "-c",
+        "user.name=Fixture",
+        "-c",
+        "user.email=fixture@example.invalid",
+        "-c",
+        "commit.gpgsign=false",
+        "commit",
+        "--quiet",
+        "-m",
+        "fixture",
+    ]);
+    let sentinel = directory.path().join(".swe_bench_patch.diff");
+    std::fs::write(&sentinel, "existing application file").unwrap();
+    let instance: SWEBenchInstance = serde_json::from_value(serde_json::json!({
+        "instance_id": "local-001", "repo": "unused-local-repository", "version": "fixture",
+        "issue_title": "fixture", "issue_description": "fixture", "hints": [],
+        "test_patch": "", "test_directives": ["git diff --check"], "difficulty": "Easy",
+        "metrics": {"files_changed": 1, "lines_changed": 2, "test_count": 1,
+            "dependencies": 0, "complexity_score": 0.1, "domain_specific": false,
+            "requires_external_api": false}, "metadata": {}
+    }))
+    .unwrap();
+    let evaluator = PatchEvaluator::new(swe_bench_adapter::EvalConfig {
+        sandbox_enabled: false,
+        ..Default::default()
+    })
+    .with_working_directory(directory.path())
+    .unwrap();
+    let patch = "diff --git a/example.txt b/example.txt\n--- a/example.txt\n+++ b/example.txt\n@@ -1 +1 @@\n-before\n+after\n";
+    let result = evaluator.evaluate_patch(&instance, patch).await.unwrap();
+    assert!(result.patch_applied && result.passed, "{:?}", result.errors);
+    assert_eq!(result.metrics.files_modified, 1);
+    assert_eq!(
+        std::fs::read_to_string(directory.path().join("example.txt")).unwrap(),
+        "after\n"
+    );
+    assert_eq!(
+        std::fs::read_to_string(&sentinel).unwrap(),
+        "existing application file"
+    );
+    assert_eq!(std::fs::read_dir(directory.path()).unwrap().count(), 3);
 }

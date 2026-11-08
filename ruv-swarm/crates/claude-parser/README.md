@@ -1,88 +1,41 @@
-# Claude Parser
+# claude-parser
 
-A high-performance stream-JSON parser for Claude Code CLI output, designed for benchmarking and training data collection.
+Parse line-delimited Claude-style JSON events and collect tool, timing, token and error summaries. Parsed events can be exported to JSON or JSONL for later analysis.
 
-## Features
-
-- **Stream Event Parsing**: Supports all Claude event types:
-  - `message_start`, `message_stop`
-  - `content_block_start`, `content_block_delta`, `content_block_stop`
-  - `tool_use`, `function_result`
-  - `thinking`
-  - `error`
-  - `usage`
-
-- **Performance Metrics Extraction**:
-  - Timing measurements (total duration, time to first output)
-  - Token usage tracking (input, output, total)
-  - Tool invocation statistics
-  - Thinking sequence analysis
-  - Error and recovery patterns
-
-- **Error Handling**: Robust error recovery with detailed tracking of error types and recovery strategies
-
-- **Export Functionality**: Export parsed data for training in JSON or JSONL format
-
-## Usage
+## Parse a saved stream
 
 ```rust
 use claude_parser::ClaudeStreamParser;
-use tokio::fs::File;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create parser
     let mut parser = ClaudeStreamParser::new();
-    
-    // Parse stream from file
-    let file = File::open("claude_output.jsonl").await?;
-    let metrics = parser.parse_stream(file).await?;
-    
-    // Access performance metrics
-    println!("Total duration: {:?}", metrics.total_duration);
-    println!("Tool invocations: {}", metrics.tool_invocations.len());
-    println!("Total tokens: {}", metrics.token_usage.total_tokens);
-    
-    // Export training data
-    let export = parser.export_training_data();
-    export.to_json_file("training_data.json").await?;
-    
+    let input = tokio::fs::File::open("events.jsonl").await?;
+    let metrics = parser.parse_stream(input).await?;
+    println!("Reported tokens: {}", metrics.token_usage.total_tokens);
+    parser.export_training_data().to_json_file("parsed-events.json").await?;
     Ok(())
 }
 ```
 
-## Metrics Collected
+The accepted schema includes message, content-block, tool-use, thinking, function-result, error and usage events. An optional `data: ` prefix is accepted. Unknown or malformed JSON events are logged without printing the raw event and skipped; invalid UTF-8 and exceeded budgets return errors. This schema is not a guarantee of compatibility with every Claude CLI release or SSE framing convention.
 
-### Tool Metrics
-- Invocation count per tool
-- Average duration
-- Success rate
-- Parameter sizes
+## Input budgets
 
-### Thinking Metrics
-- Total sequences
-- Token count per sequence
-- Duration analysis
-- Pattern recognition
+The defaults are 1 MiB per physical line (including its newline), 64 MiB of total input and 100,000 retained valid events. Limits count across repeated `parse_stream` calls on the same parser; blank and malformed lines consume the input budget. Use `ClaudeStreamParser::with_limits(ParserLimits { ... })` to set explicit positive budgets. Create a new parser for a new independent session.
 
-### Error Metrics
-- Error types and frequencies
-- Recovery success rates
-- Recovery strategies used
+Token counts come from incoming events. Timing summaries describe parser observation time; they do not establish model quality or token savings. Exports may contain the full original event content, so choose output locations accordingly.
 
-### Timeline
-- Chronological event sequence
-- Relative timing information
-- Event correlations
+## Check it
 
-## Integration with Benchmarking
+```sh
+cargo test --locked -p claude-parser --lib
+```
 
-This parser is designed to work with the RUV-SWARM benchmarking system for:
-- SWE-Bench instance evaluation
-- Real-time performance monitoring
-- Comparative analysis between baseline and ML-optimized approaches
-- Training data collection for model improvement
+Regression coverage includes unterminated oversized lines, exact limits, cumulative input budgets and event retention limits.
 
-## License
+The package requires Rust 1.88 and participates in the workspace all-target/all-feature acceptance gate.
 
-Licensed under MIT OR Apache-2.0
+The versions in this checkout are **unpublished release candidates**. See the [workspace guide](https://github.com/ruvnet/ruv-FANN/tree/main/ruv-swarm) for all 14 packages and the [review record](https://github.com/ruvnet/ruv-FANN/blob/main/docs/review-rust-swarm.md) for checks, dependency findings and remaining limits.
+
+![Animated map of the ruv-FANN packages](https://raw.githubusercontent.com/ruvnet/ruv-FANN/main/docs/assets/package-map.svg)

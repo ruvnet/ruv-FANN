@@ -449,17 +449,17 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
                 <div>
                     <h3 class="text-lg font-semibold mb-2">Performance Metrics</h3>
                     <div class="grid grid-cols-2 gap-4 text-sm">
-                        <div>Memory Pattern: <span class="text-green-400">${analysis.memoryPattern}</span></div>
-                        <div>Thread Utilization: <span class="text-blue-400">${analysis.threadUtilization}%</span></div>
-                        <div>Shared Memory: <span class="text-purple-400">${analysis.sharedMemoryUsage} bytes</span></div>
-                        <div>Register Usage: <span class="text-yellow-400">${analysis.registerUsage} per thread</span></div>
+                        <div>Memory Pattern: <span class="text-green-400">${this.escapeHtml(String(analysis.memoryPattern))}</span></div>
+                        <div>Thread Utilization: <span class="text-blue-400">${this.escapeHtml(String(analysis.threadUtilization))}%</span></div>
+                        <div>Shared Memory: <span class="text-purple-400">${this.escapeHtml(String(analysis.sharedMemoryUsage))} bytes</span></div>
+                        <div>Register Usage: <span class="text-yellow-400">${this.escapeHtml(String(analysis.registerUsage))} per thread</span></div>
                     </div>
                 </div>
                 
                 <div>
                     <h3 class="text-lg font-semibold mb-2">Optimization Suggestions</h3>
                     <ul class="text-sm space-y-1">
-                        ${analysis.suggestions.map(s => `<li class="text-green-400">• ${s}</li>`).join('')}
+                        ${analysis.suggestions.map(s => `<li class="text-green-400">• ${this.escapeHtml(String(s))}</li>`).join('')}
                     </ul>
                 </div>
                 

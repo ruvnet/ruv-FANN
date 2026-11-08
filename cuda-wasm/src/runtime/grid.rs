@@ -1,9 +1,11 @@
 //! Grid and block dimension types
 
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 /// 3D dimension type (similar to CUDA's dim3)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Dim3 {
     pub x: u32,
     pub y: u32,
@@ -28,7 +30,7 @@ impl Dim3 {
     
     /// Get total number of elements
     pub fn size(&self) -> u32 {
-        self.x * self.y * self.z
+        self.x.saturating_mul(self.y).saturating_mul(self.z)
     }
 }
 
@@ -93,6 +95,9 @@ impl Block {
         const MAX_BLOCK_DIM_Y: u32 = 1024;
         const MAX_BLOCK_DIM_Z: u32 = 64;
         
+        if self.dim.x == 0 || self.dim.y == 0 || self.dim.z == 0 {
+            return Err(crate::runtime_error!("Block dimensions must be nonzero"));
+        }
         if self.num_threads() > MAX_THREADS_PER_BLOCK {
             return Err(crate::runtime_error!(
                 "Block size {} exceeds maximum threads per block {}",

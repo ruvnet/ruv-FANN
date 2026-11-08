@@ -8,6 +8,7 @@
 //! - Transaction support and connection pooling
 
 pub mod memory;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod migrations;
 pub mod models;
 #[cfg(not(target_arch = "wasm32"))]
@@ -25,7 +26,7 @@ pub use memory::MemoryStorage;
 #[cfg(not(target_arch = "wasm32"))]
 pub use sqlite::SqliteStorage;
 #[cfg(target_arch = "wasm32")]
-pub use wasm::WasmStorage;
+pub use wasm::{WasmMutation, WasmStorage};
 
 /// Storage error types
 #[derive(Error, Debug)]
@@ -58,9 +59,20 @@ impl From<Box<dyn StdError + Send + Sync>> for StorageError {
     }
 }
 
-/// Storage trait for persistence operations
-#[async_trait]
-pub trait Storage: Send + Sync {
+/// Native backends are thread-safe; browser handles stay on their JavaScript thread.
+#[cfg(not(target_arch = "wasm32"))]
+pub trait StoragePlatform: Send + Sync {}
+#[cfg(not(target_arch = "wasm32"))]
+impl<T: Send + Sync + ?Sized> StoragePlatform for T {}
+#[cfg(target_arch = "wasm32")]
+pub trait StoragePlatform {}
+#[cfg(target_arch = "wasm32")]
+impl<T: ?Sized> StoragePlatform for T {}
+
+/// Storage trait for persistence operations.
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
+pub trait Storage: StoragePlatform {
     type Error: StdError + Send + Sync + 'static;
 
     // Agent operations
@@ -127,9 +139,10 @@ pub trait Storage: Send + Sync {
     async fn get_storage_size(&self) -> Result<u64, Self::Error>;
 }
 
-/// Transaction trait for atomic operations
-#[async_trait]
-pub trait Transaction: Send + Sync {
+/// Transaction completion interface. Backends document the operations it scopes.
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
+pub trait Transaction: StoragePlatform {
     async fn commit(self: Box<Self>) -> Result<(), StorageError>;
     async fn rollback(self: Box<Self>) -> Result<(), StorageError>;
 }

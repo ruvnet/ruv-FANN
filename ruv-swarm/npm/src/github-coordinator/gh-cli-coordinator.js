@@ -3,10 +3,13 @@
  * Uses gh CLI for all GitHub operations - simpler and more reliable
  */
 
-const { execSync } = require('child_process');
-const fs = require('fs').promises;
-const path = require('path');
-const Database = require('better-sqlite3');
+import { execFileSync } from 'child_process';
+import { promises as fs } from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import Database from 'better-sqlite3';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 class GHCoordinator {
   constructor(options = {}) {
@@ -19,13 +22,26 @@ class GHCoordinator {
     };
 
     this.db = null;
-    this.initialize();
+    this.run = options.run || execFileSync;
+    this.ready = this.initialize();
+  }
+
+  repository() {
+    const { owner, repo } = this.config;
+    if (![owner, repo].every(value => typeof value === 'string' && /^[a-zA-Z0-9_.-]+$/.test(value) && !value.startsWith('-'))) {
+      throw new Error('Invalid GitHub owner or repository');
+    }
+    return `${owner}/${repo}`;
+  }
+
+  validateIssueNumber(value) {
+    if (!Number.isSafeInteger(value) || value <= 0) throw new Error('Invalid issue number');
   }
 
   async initialize() {
     // Check if gh CLI is available
     try {
-      execSync('gh --version', { stdio: 'ignore' });
+      this.run('gh', ['--version'], { stdio: 'ignore' });
     } catch {
       throw new Error('GitHub CLI (gh) is not installed. Install it from https://cli.github.com/');
     }
@@ -60,16 +76,15 @@ class GHCoordinator {
    * Get available tasks from GitHub issues
    */
   async getAvailableTasks(filters = {}) {
-    let cmd = `gh issue list --repo ${this.config.owner}/${this.config.repo} --json number,title,labels,assignees,state,body --limit 100`;
-
-    if (filters.label) {
-      cmd += ` --label "${filters.label}"`;
-    }
+    await this.ready;
+    const args = ['issue', 'list', '--repo', this.repository(), '--json',
+      'number,title,labels,assignees,state,body', '--limit', '100'];
+    if (filters.label) args.push(`--label=${filters.label}`);
     if (filters.state) {
-      cmd += ` --state ${filters.state}`;
+      if (!['open', 'closed', 'all'].includes(filters.state)) throw new Error('Invalid issue state');
+      args.push('--state', filters.state);
     }
-
-    const output = execSync(cmd, { encoding: 'utf8' });
+    const output = this.run('gh', args, { encoding: 'utf8' });
     const issues = JSON.parse(output);
 
     // Filter out already assigned tasks
@@ -89,14 +104,16 @@ class GHCoordinator {
    * Claim a task for a swarm
    */
   async claimTask(swarmId, issueNumber) {
+    await this.ready;
+    this.validateIssueNumber(issueNumber);
     try {
       // Add swarm label to issue
       const label = `${this.config.labelPrefix}${swarmId}`;
-      execSync(`gh issue edit ${issueNumber} --repo ${this.config.owner}/${this.config.repo} --add-label "${label}"`, { stdio: 'ignore' });
+      this.run('gh', ['issue', 'edit', String(issueNumber), '--repo', this.repository(), `--add-label=${label}`], { stdio: 'ignore' });
 
       // Add comment to issue
       const comment = `🐝 Task claimed by swarm: ${swarmId}\n\nThis task is being worked on by an automated swarm agent. Updates will be posted as progress is made.`;
-      execSync(`gh issue comment ${issueNumber} --repo ${this.config.owner}/${this.config.repo} --body "${comment}"`, { stdio: 'ignore' });
+      this.run('gh', ['issue', 'comment', String(issueNumber), '--repo', this.repository(), `--body=${comment}`], { stdio: 'ignore' });
 
       // Record in local database
       this.db.prepare(`
@@ -115,9 +132,11 @@ class GHCoordinator {
    * Release a task
    */
   async releaseTask(swarmId, issueNumber) {
+    await this.ready;
+    this.validateIssueNumber(issueNumber);
     try {
       const label = `${this.config.labelPrefix}${swarmId}`;
-      execSync(`gh issue edit ${issueNumber} --repo ${this.config.owner}/${this.config.repo} --remove-label "${label}"`, { stdio: 'ignore' });
+      this.run('gh', ['issue', 'edit', String(issueNumber), '--repo', this.repository(), `--remove-label=${label}`], { stdio: 'ignore' });
 
       this.db.prepare('DELETE FROM swarm_tasks WHERE issue_number = ?').run(issueNumber);
       return true;
@@ -131,9 +150,11 @@ class GHCoordinator {
    * Update task progress
    */
   async updateTaskProgress(swarmId, issueNumber, message) {
+    await this.ready;
+    this.validateIssueNumber(issueNumber);
     try {
       const comment = `🔄 **Progress Update from swarm ${swarmId}**\n\n${message}`;
-      execSync(`gh issue comment ${issueNumber} --repo ${this.config.owner}/${this.config.repo} --body "${comment}"`, { stdio: 'ignore' });
+      this.run('gh', ['issue', 'comment', String(issueNumber), '--repo', this.repository(), `--body=${comment}`], { stdio: 'ignore' });
       return true;
     } catch (error) {
       console.error(`Failed to update task ${issueNumber}:`, error.message);
@@ -145,6 +166,7 @@ class GHCoordinator {
    * Create a task allocation PR
    */
   async createAllocationPR(allocations) {
+    await this.ready;
     const branch = `swarm-allocation-${Date.now()}`;
 
     // Create allocation file
@@ -158,10 +180,10 @@ class GHCoordinator {
 
     // Create PR using gh CLI
     try {
-      execSync(`git checkout -b ${branch}`, { stdio: 'ignore' });
-      execSync(`git add ${allocationPath}`, { stdio: 'ignore' });
-      execSync('git commit -m "Update swarm task allocations"', { stdio: 'ignore' });
-      execSync(`git push origin ${branch}`, { stdio: 'ignore' });
+      this.run('git', ['checkout', '-b', branch], { stdio: 'ignore' });
+      this.run('git', ['add', '--', allocationPath], { stdio: 'ignore' });
+      this.run('git', ['commit', '-m', 'Update swarm task allocations'], { stdio: 'ignore' });
+      this.run('git', ['push', 'origin', branch], { stdio: 'ignore' });
 
       const prBody = `## Swarm Task Allocation Update
 
@@ -172,7 +194,7 @@ ${allocations.map(a => `- Issue #${a.issue}: Assigned to swarm ${a.swarm_id}`).j
 
 This is an automated update from the swarm coordinator.`;
 
-      const output = execSync(`gh pr create --repo ${this.config.owner}/${this.config.repo} --title "Update swarm task allocations" --body "${prBody}" --base main --head ${branch}`, { encoding: 'utf8' });
+      const output = this.run('gh', ['pr', 'create', '--repo', this.repository(), '--title', 'Update swarm task allocations', '--body-file', '-', '--base', 'main', '--head', branch], { encoding: 'utf8', input: prBody });
 
       return output.trim();
     } catch (error) {
@@ -186,8 +208,8 @@ This is an automated update from the swarm coordinator.`;
    */
   async getCoordinationStatus() {
     // Get issues with swarm labels
-    const cmd = `gh issue list --repo ${this.config.owner}/${this.config.repo} --json number,title,labels,assignees --limit 100`;
-    const output = execSync(cmd, { encoding: 'utf8' });
+    await this.ready;
+    const output = this.run('gh', ['issue', 'list', '--repo', this.repository(), '--json', 'number,title,labels,assignees', '--limit', '100'], { encoding: 'utf8' });
     const issues = JSON.parse(output);
 
     const swarmTasks = issues.filter(issue =>
@@ -222,6 +244,7 @@ This is an automated update from the swarm coordinator.`;
    * Clean up stale locks
    */
   async cleanupStaleLocks() {
+    await this.ready;
     const staleTasks = this.db.prepare(`
       SELECT issue_number, swarm_id FROM swarm_tasks 
       WHERE lock_expires < strftime('%s', 'now')
@@ -257,4 +280,4 @@ This is an automated update from the swarm coordinator.`;
 //   console.log('Coordination status:', status);
 // }
 
-module.exports = GHCoordinator;
+export default GHCoordinator;

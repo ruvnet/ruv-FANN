@@ -10,8 +10,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { promises as fs } from 'fs';
 
 // Test configuration
-const MCP_SERVER_URL = 'ws://localhost:3000/mcp';
-const HTTP_BASE_URL = 'http://localhost:3000';
+const HTTP_BASE_URL = process.env.RUV_SWARM_TEST_HTTP_URL || 'http://127.0.0.1:3000';
+const MCP_SERVER_URL = HTTP_BASE_URL.replace(/^http/, 'ws') + '/mcp';
 const TEST_TIMEOUT = 60000; // 60 seconds
 
 // Test utilities
@@ -42,7 +42,7 @@ class MCPTestClient {
           this.pendingRequests.delete(message.id);
 
           if (message.error) {
-            reject(new Error(message.error.message));
+            reject(Object.assign(new Error(message.error.message), { code: message.error.code }));
           } else {
             resolve(message.result);
           }
@@ -224,9 +224,8 @@ async function runMCPIntegrationTests() {
           agent_type: 'researcher',
           name: 'test-researcher-001',
           capabilities: {
-            max_tokens: 4096,
-            temperature: 0.7,
-            specialized_domains: ['web_frameworks', 'performance'],
+            languages: [], frameworks: [], tools: [],
+            specializations: ['web_frameworks', 'performance'], max_concurrent_tasks: 4,
           },
         },
       });
@@ -248,7 +247,7 @@ async function runMCPIntegrationTests() {
       });
 
       assert(Array.isArray(result.agents));
-      assert(result.count >= 1);
+      assert.strictEqual(result.count, 1);
       assert(result.agents.some(a => a.id === agentId));
     });
 
@@ -324,8 +323,10 @@ async function runMCPIntegrationTests() {
       });
 
       assert(result.agents);
-      assert(result.active_tasks >= 1);
-      assert(result.total_agents >= 1);
+      // Creating a pending task does not assign or execute it.
+      assert.strictEqual(result.active_tasks, 0);
+      assert.strictEqual(result.total_agents, 1);
+      assert(result.agents.some(agent => agent.id === agentId));
       if (result.metrics) {
         assert(typeof result.metrics === 'object');
       }
@@ -395,7 +396,7 @@ async function runMCPIntegrationTests() {
     // 12. Test Workflow Execute
     await test('MCP Tool: ruv-swarm.workflow.execute', async() => {
       // First, create a simple workflow file
-      const workflowPath = '/tmp/test-workflow.json';
+    const workflowPath = `test-workflow-${uuidv4()}.json`;
       const workflow = {
         name: 'test-workflow',
         steps: [
@@ -459,7 +460,8 @@ async function runMCPIntegrationTests() {
         });
         assert.fail('Should have thrown an error');
       } catch (error) {
-        assert(error.message.includes('Invalid agent_type'));
+        assert.strictEqual(error.code, -32602);
+        assert(error.message.includes('agent_type'));
       }
     });
 
@@ -573,7 +575,7 @@ async function runMCPIntegrationTests() {
     });
   }
 
-  return results.failed === 0;
+  return results;
 }
 
 // Integration test scenarios
@@ -600,7 +602,8 @@ async function runIntegrationScenarios() {
           agent_type: 'researcher',
           name: `research-team-${i}`,
           capabilities: {
-            specialization: ['web_tech', 'performance', 'architecture'][i],
+            languages: [], frameworks: [], tools: [],
+            specializations: [['web_tech', 'performance', 'architecture'][i]], max_concurrent_tasks: 4,
           },
         },
       });
@@ -710,14 +713,14 @@ async function runIntegrationScenarios() {
           agent_type: 'analyst',
           name: `neural-analyzer-${i}`,
           capabilities: {
-            neural_enabled: true,
-            learning_rate: 0.01,
+            languages: [], frameworks: [], tools: [],
+            specializations: ['analysis'], max_concurrent_tasks: 4,
           },
         },
       });
       analyzers.push(result.agent_id);
     }
-    console.log(`  ✅ Spawned ${analyzers.length} neural-enabled analyzers`);
+    console.log(`  ✅ Spawned ${analyzers.length} analyzers`);
 
     // 2. Store training data
     const trainingData = {
@@ -775,7 +778,7 @@ async function main() {
   }
 
   // Run comprehensive tests
-  const testsPassed = await runMCPIntegrationTests();
+  const results = await runMCPIntegrationTests();
 
   // Run integration scenarios
   await runIntegrationScenarios();
@@ -783,7 +786,7 @@ async function main() {
   console.log(`\n${ '='.repeat(50)}`);
   console.log(`Completed: ${new Date().toISOString()}`);
 
-  process.exit(testsPassed ? 0 : 1);
+  process.exit(results.failed === 0 ? 0 : 1);
 }
 
 // Handle uncaught errors

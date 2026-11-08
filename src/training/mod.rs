@@ -63,7 +63,8 @@ pub enum TrainingError {
 
 /// Trait for error/loss functions
 pub trait ErrorFunction<T: Float>: Send + Sync {
-    /// Calculate the error between actual and desired outputs
+    /// Calculate the error between actual and desired outputs.
+    /// Built-in losses return NaN for empty, mismatched or non-finite inputs.
     fn calculate(&self, actual: &[T], desired: &[T]) -> T;
 
     /// Calculate the derivative of the error function
@@ -76,15 +77,7 @@ pub struct MseError;
 
 impl<T: Float> ErrorFunction<T> for MseError {
     fn calculate(&self, actual: &[T], desired: &[T]) -> T {
-        let sum = actual
-            .iter()
-            .zip(desired.iter())
-            .map(|(&a, &d)| {
-                let diff = a - d;
-                diff * diff
-            })
-            .fold(T::zero(), |acc, x| acc + x);
-        sum / T::from(actual.len()).unwrap()
+        checked_mean_loss(actual, desired, |diff| diff * diff)
     }
 
     fn derivative(&self, actual: T, desired: T) -> T {
@@ -98,16 +91,13 @@ pub struct MaeError;
 
 impl<T: Float> ErrorFunction<T> for MaeError {
     fn calculate(&self, actual: &[T], desired: &[T]) -> T {
-        let sum = actual
-            .iter()
-            .zip(desired.iter())
-            .map(|(&a, &d)| (a - d).abs())
-            .fold(T::zero(), |acc, x| acc + x);
-        sum / T::from(actual.len()).unwrap()
+        checked_mean_loss(actual, desired, |diff| diff.abs())
     }
 
     fn derivative(&self, actual: T, desired: T) -> T {
-        if actual > desired {
+        if !actual.is_finite() || !desired.is_finite() {
+            T::nan()
+        } else if actual > desired {
             T::one()
         } else if actual < desired {
             -T::one()
@@ -123,16 +113,10 @@ pub struct TanhError;
 
 impl<T: Float> ErrorFunction<T> for TanhError {
     fn calculate(&self, actual: &[T], desired: &[T]) -> T {
-        let sum = actual
-            .iter()
-            .zip(desired.iter())
-            .map(|(&a, &d)| {
-                let diff = a - d;
-                let tanh_diff = diff.tanh();
-                tanh_diff * tanh_diff
-            })
-            .fold(T::zero(), |acc, x| acc + x);
-        sum / T::from(actual.len()).unwrap()
+        checked_mean_loss(actual, desired, |diff| {
+            let value = diff.tanh();
+            value * value
+        })
     }
 
     fn derivative(&self, actual: T, desired: T) -> T {
@@ -140,6 +124,20 @@ impl<T: Float> ErrorFunction<T> for TanhError {
         let tanh_diff = diff.tanh();
         T::from(2.0).unwrap() * tanh_diff * (T::one() - tanh_diff * tanh_diff)
     }
+}
+
+fn checked_mean_loss<T: Float>(actual: &[T], desired: &[T], loss: impl Fn(T) -> T) -> T {
+    if actual.is_empty() || actual.len() != desired.len() {
+        return T::nan();
+    }
+    let mut sum = T::zero();
+    for (&value, &target) in actual.iter().zip(desired) {
+        if !value.is_finite() || !target.is_finite() {
+            return T::nan();
+        }
+        sum = sum + loss(value - target);
+    }
+    sum / T::from(actual.len()).unwrap()
 }
 
 /// Learning rate schedule trait

@@ -1,0 +1,326 @@
+{
+  "schema_version": 2,
+  "observed_utc": "2026-11-08T00:38:40.726771+00:00",
+  "status": "passed_local_release_verification",
+  "baseline_commit": "f4ca36c2323d08eac822bac43b62040198721cbf",
+  "branch": "mission/package-modernization",
+  "working_tree_uncommitted": true,
+  "tool_versions": {
+    "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+    "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+    "node": "v24.22.1",
+    "npm": "11.9.0",
+    "python": "Python 3.12.14",
+    "wasm_bindgen": "0.2.130",
+    "wasm_pack": "0.15.1",
+    "core_library_msrv": "1.81.0",
+    "swarm_verified_msrv": "1.88.0"
+  },
+  "lockfiles": {
+    "Cargo.lock": "8b47266eb8835a4a18e658521b149507799cce30c1280bf2e7b6e9a15ecd4f8c",
+    "ruv-swarm/Cargo.lock": "bb0a255f31a0430806bfd8fc08353ecc7e9d0e7a252c9e76afe109a002555568",
+    "neuro-divergent/Cargo.lock": "50e70e307a2c5ffd17a43d5ce73320860ead04f8a07518f1400d9cd1b7beccdf",
+    "cuda-wasm/Cargo.lock": "ff4bb589d5b39585ac19858640a1a98389dcda0ce3b782d886312aa27f4d11e0",
+    "opencv-rust/Cargo.lock": "818a9e96facee00e9d00ace47e553d879e64e296929a28d37d91f735810b1b17",
+    "package-lock.json": "088550774a049975671d2e0cc075b8be515c4c436f1fc543bee4256ebeba09a8",
+    "ruv-swarm/npm/package-lock.json": "e80d214dfd4f6cd0068ca5beb43de8b028594fd4c52f133c82565c4c3996adf7",
+    "cuda-wasm/package-lock.json": "1cfc5ae406d55538289943a4c417e1d39aa0f7ee620d1bade20920e37886e138",
+    "ruv-swarm/npm/test-npm-install-v106/package-lock.json": "4ce197425ee37207814a6a99f78349dbc0f33602c5eebb4e7699b147dd66a56c"
+  },
+  "gates": {
+    "core_all_targets_all_features": {
+      "command": "cargo test --locked --all-features --all-targets",
+      "exit_code": 0,
+      "log": "/workspace/scratch/blockers-root-all-targets-release-final.log",
+      "log_sha256": "373043085282420d648f1e59f3a8bb52ee49b8433c080d92c741367b87fb8128",
+      "library_tests": 202,
+      "allocation_tests": 2,
+      "real_software_vulkan_tests": 7,
+      "criterion_smoke_cases": 39,
+      "ignored": 0
+    },
+    "core_final_auxiliary": [
+      {
+        "name": "rust-browser-final",
+        "command": [
+          "node",
+          "scripts/verify-rust-browser-gpu.cjs",
+          "--build",
+          "/workspace/scratch/root-browser-gpu-final"
+        ],
+        "exit_code": 0,
+        "log": "/workspace/scratch/blockers-rust-browser-final.log",
+        "seconds": 3.967
+      },
+      {
+        "name": "root-docs-final",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "--all-features",
+          "--doc"
+        ],
+        "exit_code": 0,
+        "log": "/workspace/scratch/blockers-root-docs-final.log",
+        "seconds": 1.01
+      },
+      {
+        "name": "root-msrv-final",
+        "command": [
+          "cargo",
+          "+1.81.0",
+          "check",
+          "--locked",
+          "--lib"
+        ],
+        "exit_code": 0,
+        "log": "/workspace/scratch/blockers-root-msrv-final.log",
+        "seconds": 1.384
+      },
+      {
+        "name": "root-minimal-gpu-final",
+        "command": [
+          "cargo",
+          "check",
+          "--locked",
+          "--lib",
+          "--no-default-features",
+          "--features",
+          "gpu"
+        ],
+        "exit_code": 0,
+        "log": "/workspace/scratch/blockers-root-minimal-gpu-final.log",
+        "seconds": 2.193
+      }
+    ],
+    "core_rust_wasm_browser": {
+      "command": "CHROMIUM_BIN=/usr/bin/chromium node scripts/verify-rust-browser-gpu.cjs --build /workspace/scratch/root-browser-gpu-final",
+      "exit_code": 0,
+      "log": "/workspace/scratch/blockers-rust-browser-final.log",
+      "log_sha256": "f81a3be6e6227bea27ab404fc5cf9614a786efb636464935a42b7112aecc2e1f",
+      "matrixResults": 13902,
+      "activationVariants": 21,
+      "activationResults": 21567,
+      "rejectedRequests": 28,
+      "sharedGrowthChecked": true,
+      "completedBeforeReinitialization": {
+        "completed_dispatches": 28,
+        "returned_bytes": 8534624,
+        "in_flight": false
+      },
+      "maxBufferBytes": 67108864,
+      "maxWorkgroupsPerDimension": 65535,
+      "wasmSha256": "ad860f2ba686bd70aa6a5193de665de9bc6c06028281dd9232d8b0369b9eade4",
+      "bindingsSha256": "3ee0df68b9eba720c5e235fa0e0e069d74b079621911b4bf125315297e827b06",
+      "lockSha256": "8b47266eb8835a4a18e658521b149507799cce30c1280bf2e7b6e9a15ecd4f8c"
+    },
+    "core_wgsl_browser": {
+      "command": "CHROMIUM_BIN=/usr/bin/chromium node scripts/verify-webgpu.cjs",
+      "exit_code": 0,
+      "log": "/workspace/scratch/blockers-browser-webgpu.log",
+      "log_sha256": "251a95e362fbf5b49969d533d6fc11fdb7ab20592106baf12e50e730d5941894",
+      "shaderModules": 7,
+      "matrixResults": 13158,
+      "activationVariants": 21,
+      "activationResults": 21567,
+      "optimizerResults": 670,
+      "activationRelativeTolerance": 4e-05,
+      "trigonometricRelativeTolerance": 0.001,
+      "adapter": {
+        "vendor": "google",
+        "architecture": "swiftshader",
+        "isFallbackAdapter": true
+      }
+    },
+    "demo_dom_boundaries": {
+      "command": "CHROMIUM_BIN=/usr/bin/chromium node scripts/verify-demo-dom.cjs",
+      "exit_code": 0,
+      "log": "/workspace/scratch/blockers-demo-dom.log",
+      "log_sha256": "25e67c40cb06cae36d8a96214cd2b4c37c5c3edc6b36cf8315661eddcca22e85",
+      "checks": 4
+    },
+    "swarm_final_integrated": {
+      "command": "cargo +1.88.0 test --locked --workspace --all-targets --all-features --no-fail-fast",
+      "exit_code": 0,
+      "log": "/workspace/scratch/swarm-integrated-final.log",
+      "log_sha256": "c29d72be8de471d44e905e1869c4354be10bb547eae2b8a39d710f45eeb71ff6",
+      "tests": 482,
+      "ignored": 0,
+      "criterion_smoke_cases": 48
+    },
+    "swarm_feature_matrix": [
+      {
+        "name": "native",
+        "command": "cargo +1.88.0 test --locked --workspace --all-targets --all-features --no-fail-fast",
+        "exit_code": 0,
+        "log": "/workspace/scratch/swarm-final130-native.log"
+      },
+      {
+        "name": "core-minimal",
+        "command": "cargo +1.88.0 check --locked -p ruv-swarm-core --no-default-features --lib",
+        "exit_code": 0,
+        "log": "/workspace/scratch/swarm-final130-core-minimal.log"
+      },
+      {
+        "name": "core-no-std",
+        "command": "cargo +1.88.0 check --locked -p ruv-swarm-core --no-default-features --features no_std --lib",
+        "exit_code": 0,
+        "log": "/workspace/scratch/swarm-final130-core-no-std.log"
+      },
+      {
+        "name": "core-wasm",
+        "command": "cargo +1.88.0 check --locked -p ruv-swarm-core --no-default-features --features wasm --lib --target wasm32-unknown-unknown",
+        "exit_code": 0,
+        "log": "/workspace/scratch/swarm-final130-core-wasm.log"
+      },
+      {
+        "name": "daa-wasm",
+        "command": "cargo +1.88.0 check --locked -p ruv-swarm-daa --no-default-features --features wasm --lib --target wasm32-unknown-unknown",
+        "exit_code": 0,
+        "log": "/workspace/scratch/swarm-final130-daa-wasm.log"
+      },
+      {
+        "name": "persistence-wasm",
+        "command": "cargo +1.88.0 check --locked -p ruv-swarm-persistence --no-default-features --features wasm --lib --target wasm32-unknown-unknown",
+        "exit_code": 0,
+        "log": "/workspace/scratch/swarm-final130-persistence-wasm.log"
+      },
+      {
+        "name": "transport-wasm",
+        "command": "cargo +1.88.0 check --locked -p ruv-swarm-transport --no-default-features --features wasm --lib --target wasm32-unknown-unknown",
+        "exit_code": 0,
+        "log": "/workspace/scratch/swarm-final130-transport-wasm.log"
+      },
+      {
+        "name": "base-unified-simd",
+        "command": "cargo +1.88.0 check --locked -p ruv-swarm-wasm -p ruv-swarm-wasm-unified --all-features --lib --target wasm32-unknown-unknown",
+        "exit_code": 0,
+        "log": "/workspace/scratch/swarm-final130-base-unified-simd.log"
+      }
+    ],
+    "forecasting_final_integrated": {
+      "command": "cargo test --workspace --all-targets --all-features --locked",
+      "exit_code": 0,
+      "log": "/workspace/scratch/neuro-integrated-final.log",
+      "log_sha256": "573c00943d57b8f69032f56a2a6f3086ae4570fe63638b9f024ee54da7fed9ae",
+      "tests": 354,
+      "ignored": 0,
+      "criterion_smoke_cases": 15,
+      "example_targets": 3
+    },
+    "forecasting_doctests": {
+      "command": "cargo test --workspace --all-features --doc --locked",
+      "exit_code": 0,
+      "log": "/workspace/scratch/neuro-canonical-doctests-final.log",
+      "log_sha256": "291a8e0a6a5c92b6cc86b436b44ac0f35bb7b95b43e6d16f4d04e184ca967719",
+      "tests": 16,
+      "ignored": 0
+    },
+    "cuda_and_opencv": {
+      "tests": {
+        "cuda": 744,
+        "opencv": 54
+      },
+      "cuda_criterion_smoke_cases": 42,
+      "opencv_browser_checks": 8,
+      "opencv_raw_native_symbols": 95,
+      "report": "docs/review-cuda-cv.md"
+    },
+    "swarm_indexeddb_browser": {
+      "checks": 7,
+      "binding_version": "0.2.130",
+      "log": "/workspace/scratch/persistence-browser-aligned-tests.log",
+      "report": "docs/review-rust-swarm.md"
+    },
+    "swarm_npm_independent": {
+      "command": "npm test",
+      "exit_code": 0,
+      "log": "/workspace/scratch/blockers-npm-independent-tests.log",
+      "log_sha256": "6b4671a87a6724bd13b9dfa659128ae0ea02bd9a2ead3ff9ac150963ece819e9",
+      "real_tests": 58,
+      "labeled_mock_examples": 8
+    },
+    "swarm_npm_independent_integration": {
+      "command": "npm run test:all",
+      "exit_code": 0,
+      "log": "/workspace/scratch/blockers-npm-independent-integration.log",
+      "log_sha256": "3c5a01e2fcb8be594a1c2d56878150cbea6a9f095037346fec185e787b409ee0",
+      "suites": 4,
+      "assertions": 55
+    },
+    "swarm_npm_artifact_source": {
+      "command": "node scripts/validate-package.js",
+      "exit_code": 0,
+      "log": "/workspace/scratch/blockers-npm-source-validation.log",
+      "log_sha256": "0af557c59cf55cc3b949b3f079458d804dcf630c26b49dcf3952ba7ef3574a76"
+    },
+    "npm_installed_consumers": {
+      "swarm_receipt": "/workspace/scratch/npm-swarm-receipt.json",
+      "swarm_receipt_sha256": "16c03d8eee0992cf2450a96537b869d4ff983c863f35b6abda1a2b2570b8bdb3",
+      "cuda_receipt": "/workspace/scratch/cuda-node-receipt.json",
+      "cuda_receipt_sha256": "62933e7d8c6557105bad96b4c9b33ef1f2185aa43083b74a885ad181722d001a"
+    },
+    "workflow_and_documentation": {
+      "workflow_definitions": 5,
+      "actionlint_version": "1.7.12",
+      "actionlint_exit_code": 0,
+      "readme_svg_check_exit_code": 0,
+      "svg_files": 4
+    },
+    "cargo_release_archives": {
+      "verified": true,
+      "archive_count": 26,
+      "command_count": 34,
+      "all_exit_codes": 0,
+      "live_locks_unchanged": true,
+      "publication_edges_verified": 30,
+      "receipt": "/workspace/scratch/release-candidates-final/receipt.json",
+      "receipt_sha256": "a9baef95b2fe388e72a5edeebade7635dc54f6481a12b8f0bf6e69d85009a611",
+      "publication_order": "/workspace/scratch/release-candidates-final/publication-order.json",
+      "snapshot_sha256": "00be5a87ec94900e8622ef0a379ba4ba1b32c68c849510fbee1c5d4746373d4c",
+      "bytes": 2296265
+    },
+    "verification_driver_tests": {
+      "command": "python3 -m unittest discover -s scripts/tests -v",
+      "exit_code": 0,
+      "tests": 13,
+      "includes_real_offline_three_archive_fixture": true,
+      "log": "/workspace/scratch/blockers-verification-driver-tests-final.log",
+      "log_sha256": "3f8f98429a3fe7c3e517b0799fd34bafee6e5f9d7b4ec42518c855779d6194ed"
+    }
+  },
+  "pending_final_gates": [],
+  "audit_receipt": "docs/dependency-review.json",
+  "limits": [
+    "Software Vulkan and SwiftShader are CPU adapters; no physical CUDA/GPU performance claim.",
+    "Versions are local candidates; registry publication has not been performed.",
+    "No SOTA accuracy, latency, or distributed execution claim is established by these tests."
+  ],
+  "native_rust_tests_total": 1845,
+  "dependency_audit": {
+    "receipt": "docs/dependency-review.json",
+    "sha256": "6889d1b6cb3123c30d8f027a21c6680b152030dd105223590da89f50c545dadb",
+    "cargo_lockfiles": 5,
+    "npm_lockfiles": 4,
+    "known_vulnerabilities": 0,
+    "cargo_unsound_warnings": 0,
+    "maintenance_warnings_documented": true
+  },
+  "publication": {
+    "status": "not_attempted",
+    "registry_credentials_configured": false,
+    "required_external_access": [
+      "npm publishing access",
+      "crates.io publishing access"
+    ]
+  },
+  "artifact_manifest": {
+    "path": "docs/release-artifacts.json",
+    "sha256": "a28d1d60b2993c57de58b2703d02ec4332b0e9aac1a28f87e497325370fb4253"
+  },
+  "release_bundle": {
+    "path": "/workspace/scratch/ruv-fann-release-candidates-2026-11-08.zip",
+    "sha256_file": "/workspace/scratch/ruv-fann-release-candidates-2026-11-08.zip.sha256"
+  }
+}

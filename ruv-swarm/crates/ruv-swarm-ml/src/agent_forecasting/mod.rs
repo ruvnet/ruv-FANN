@@ -17,7 +17,7 @@ use core::fmt;
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::*;
 
-use crate::models::{ForecastModel, ModelType, ModelFactory, TimeSeriesData};
+use crate::models::{ForecastModel, ModelFactory, ModelType, TimeSeriesData};
 
 /// Manages forecasting models for individual agents
 pub struct AgentForecastingManager {
@@ -130,6 +130,9 @@ impl AgentForecastingManager {
         agent_type: String,
         requirements: ForecastRequirements,
     ) -> Result<String, String> {
+        if !self.resource_limit_mb.is_finite() || self.resource_limit_mb < 0.0 {
+            return Err("Model memory budget must be finite and nonnegative".into());
+        }
         // Select optimal model based on agent type
         let primary_model = self.select_optimal_model(&agent_type, &requirements)?;
 
@@ -154,12 +157,18 @@ impl AgentForecastingManager {
             model_switches: Vec::new(),
         };
 
-        // Check memory constraints
-        let estimated_memory = self.estimate_model_memory_usage(primary_model);
-        if self.current_memory_usage_mb + estimated_memory > self.resource_limit_mb {
+        // Reassigning an ID replaces its reservation; validate before mutating it.
+        let previous_memory = self
+            .agent_models
+            .get(&agent_id)
+            .map(|context| self.estimate_model_memory_usage(context.primary_model))
+            .unwrap_or(0.0);
+        let new_usage = self.current_memory_usage_mb - previous_memory
+            + self.estimate_model_memory_usage(primary_model);
+        if !new_usage.is_finite() || new_usage > self.resource_limit_mb {
             return Err(format!(
-                "Memory limit exceeded: {} + {} > {} MB",
-                self.current_memory_usage_mb, estimated_memory, self.resource_limit_mb
+                "Memory limit exceeded: {new_usage} > {} MB",
+                self.resource_limit_mb
             ));
         }
 
@@ -176,7 +185,7 @@ impl AgentForecastingManager {
 
         // Store context and update memory usage
         self.agent_models.insert(agent_id.clone(), context);
-        self.current_memory_usage_mb += estimated_memory;
+        self.current_memory_usage_mb = new_usage;
 
         Ok(agent_id)
     }
@@ -230,19 +239,16 @@ impl AgentForecastingManager {
         agent_type: &str,
         requirements: &ForecastRequirements,
     ) -> Result<ModelType, String> {
-        let model = match agent_type {
-            "researcher" => {
-                if requirements.interpretability_needed {
-                    ModelType::NHITS // Good for exploratory analysis
-                } else {
-                    ModelType::TFT // Temporal Fusion Transformer
-                }
-            }
-            "coder" => ModelType::LSTM,       // Sequential task patterns
-            "analyst" => ModelType::TFT,      // Interpretable attention mechanism
-            "optimizer" => ModelType::NBEATS, // Pure neural architecture
-            "coordinator" => ModelType::DeepAR, // Probabilistic forecasts
-            _ => ModelType::MLP,              // Generic baseline
+        // Choose only implementations the factory can construct. Historical
+        // LSTM/TFT/etc. labels used to silently instantiate a basic MLP.
+        let model = if requirements.interpretability_needed
+            || requirements.latency_requirement_ms < 100.0
+        {
+            ModelType::DLinear
+        } else if agent_type == "coordinator" {
+            ModelType::MLPMultivariate
+        } else {
+            ModelType::MLP
         };
 
         Ok(model)
@@ -310,28 +316,43 @@ impl AgentForecastingManager {
 
             // Only switch if performance is consistently below threshold
             let should_switch = if context.performance_history.recent_accuracies.len() >= 5 {
-                let recent_avg = context.performance_history.recent_accuracies
+                let recent_avg = context
+                    .performance_history
+                    .recent_accuracies
                     .iter()
                     .rev()
                     .take(5)
-                    .sum::<f32>() / 5.0;
+                    .sum::<f32>()
+                    / 5.0;
                 (recent_avg < performance_threshold, recent_avg)
             } else {
                 (false, 0.0)
             };
 
-            (current_model, performance_threshold, agent_type, should_switch.0, should_switch.1)
+            (
+                current_model,
+                performance_threshold,
+                agent_type,
+                should_switch.0,
+                should_switch.1,
+            )
         };
 
         // Now perform the switch if needed
         if should_switch {
             // Find a better model for this agent type
             let new_model = self.find_better_model(&agent_type, current_model)?;
-            
+
             if new_model != current_model {
+                let new_usage = self.current_memory_usage_mb
+                    - self.estimate_model_memory_usage(current_model)
+                    + self.estimate_model_memory_usage(new_model);
+                if new_usage > self.resource_limit_mb {
+                    return Ok(());
+                }
                 // Get current timestamp before borrowing mutably
                 let timestamp = self.get_current_timestamp();
-                
+
                 // Now we can borrow mutably to make the changes
                 let context = self
                     .agent_models
@@ -345,10 +366,14 @@ impl AgentForecastingManager {
                     to_model: new_model.to_string(),
                     reason: format!("Performance below threshold: {:.3}", recent_avg),
                 };
-                
-                context.performance_history.model_switches.push(switch_event);
+
+                context
+                    .performance_history
+                    .model_switches
+                    .push(switch_event);
                 context.primary_model = new_model;
-                
+                self.current_memory_usage_mb = new_usage;
+
                 // Note: We don't immediately clear performance history to allow
                 // for accurate evaluation of switching conditions
                 // In a production system, you might want to keep some history
@@ -367,7 +392,7 @@ impl AgentForecastingManager {
     ) -> Result<ModelType, String> {
         // Get available models for this agent type
         let candidate_models = self.get_candidate_models(agent_type);
-        
+
         // For now, use a simple fallback strategy
         // In a real implementation, this would use historical performance data
         for model in candidate_models {
@@ -375,27 +400,32 @@ impl AgentForecastingManager {
                 return Ok(model);
             }
         }
-        
+
         // If no better model found, return current model
         Ok(current_model)
     }
 
     /// Get candidate models for an agent type
     fn get_candidate_models(&self, agent_type: &str) -> Vec<ModelType> {
-        match agent_type {
-            "researcher" => vec![ModelType::NHITS, ModelType::TFT, ModelType::MLP],
-            "coder" => vec![ModelType::LSTM, ModelType::GRU, ModelType::TCN],
-            "analyst" => vec![ModelType::TFT, ModelType::DeepAR, ModelType::NHITS],
-            "optimizer" => vec![ModelType::NBEATS, ModelType::NBEATSx, ModelType::TiDE],
-            "coordinator" => vec![ModelType::DeepAR, ModelType::TFT, ModelType::Informer],
-            _ => vec![ModelType::MLP, ModelType::DLinear, ModelType::NLinear],
+        if agent_type == "coordinator" {
+            vec![
+                ModelType::MLPMultivariate,
+                ModelType::MLP,
+                ModelType::DLinear,
+            ]
+        } else {
+            vec![
+                ModelType::MLP,
+                ModelType::DLinear,
+                ModelType::MLPMultivariate,
+            ]
         }
     }
 
     /// Estimate memory usage for a model type
     fn estimate_model_memory_usage(&self, model_type: ModelType) -> f32 {
         use crate::models::ModelFactory;
-        
+
         if let Some(info) = ModelFactory::get_model_info(model_type) {
             info.typical_memory_mb
         } else {
@@ -403,10 +433,20 @@ impl AgentForecastingManager {
         }
     }
 
-    /// Get current timestamp (mock implementation)
+    /// Current Unix timestamp in milliseconds for recorded model changes.
     fn get_current_timestamp(&self) -> f64 {
-        // In a real implementation, this would use system time
-        std::f64::consts::PI * 1000.0 // Mock timestamp
+        #[cfg(target_arch = "wasm32")]
+        {
+            js_sys::Date::now()
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs_f64()
+                * 1000.0
+        }
     }
 
     /// Remove agent and free memory
@@ -434,7 +474,7 @@ impl AgentForecastingManager {
     pub fn cleanup_inactive_agents(&mut self, inactive_threshold_forecasts: u64) -> usize {
         let mut removed_count = 0;
         let agent_ids: Vec<String> = self.agent_models.keys().cloned().collect();
-        
+
         for agent_id in agent_ids {
             if let Some(context) = self.agent_models.get(&agent_id) {
                 if context.performance_history.total_forecasts < inactive_threshold_forecasts {
@@ -444,7 +484,7 @@ impl AgentForecastingManager {
                 }
             }
         }
-        
+
         removed_count
     }
 
@@ -461,7 +501,11 @@ impl AgentForecastingManager {
         let current_avg_accuracy = if context.performance_history.recent_accuracies.is_empty() {
             0.0
         } else {
-            context.performance_history.recent_accuracies.iter().sum::<f32>()
+            context
+                .performance_history
+                .recent_accuracies
+                .iter()
+                .sum::<f32>()
                 / context.performance_history.recent_accuracies.len() as f32
         };
 
@@ -475,17 +519,22 @@ impl AgentForecastingManager {
             num_model_switches: context.performance_history.model_switches.len(),
         })
     }
-    
+
     /// Create a neural network model for an agent
-    pub fn create_agent_model(&self, agent_id: &str, input_size: usize, output_size: usize) -> Result<Box<dyn ForecastModel>, String> {
+    pub fn create_agent_model(
+        &self,
+        agent_id: &str,
+        input_size: usize,
+        output_size: usize,
+    ) -> Result<Box<dyn ForecastModel>, String> {
         let context = self
             .agent_models
             .get(agent_id)
             .ok_or_else(|| format!("Agent {} not found", agent_id))?;
-        
+
         ModelFactory::create_model(context.primary_model, input_size, output_size)
     }
-    
+
     /// Train an agent's neural network model
     pub fn train_agent_model(
         &mut self,
@@ -497,16 +546,16 @@ impl AgentForecastingManager {
             .agent_models
             .get_mut(agent_id)
             .ok_or_else(|| format!("Agent {} not found", agent_id))?;
-        
+
         // Train the model
         model.fit(training_data)?;
-        
+
         // Update training metrics
         context.performance_history.total_forecasts += 1;
-        
+
         Ok(())
     }
-    
+
     /// Generate forecasts using an agent's neural network model
     pub fn forecast_with_agent_model(
         &self,
@@ -518,10 +567,10 @@ impl AgentForecastingManager {
             .agent_models
             .get(agent_id)
             .ok_or_else(|| format!("Agent {} not found", agent_id))?;
-        
+
         model.predict(horizon)
     }
-    
+
     /// Create ensemble of models for an agent
     pub fn create_agent_ensemble(
         &self,
@@ -533,40 +582,46 @@ impl AgentForecastingManager {
             .agent_models
             .get(agent_id)
             .ok_or_else(|| format!("Agent {} not found", agent_id))?;
-        
+
         let mut models = Vec::new();
-        
+
         // Create primary model
-        let primary_model = ModelFactory::create_model(context.primary_model, input_size, output_size)?;
+        let primary_model =
+            ModelFactory::create_model(context.primary_model, input_size, output_size)?;
         models.push(primary_model);
-        
+
         // Create ensemble models if specified
         for &model_type in &context.ensemble_models {
             let model = ModelFactory::create_model(model_type, input_size, output_size)?;
             models.push(model);
         }
-        
+
         // If no ensemble models, create default ensemble based on agent type
         if context.ensemble_models.is_empty() {
             let candidate_models = self.get_candidate_models(&context.agent_type);
-            for model_type in candidate_models.into_iter().take(3) { // Limit to 3 additional models
+            for model_type in candidate_models.into_iter().take(3) {
+                // Limit to 3 additional models
                 if model_type != context.primary_model {
                     let model = ModelFactory::create_model(model_type, input_size, output_size)?;
                     models.push(model);
                 }
             }
         }
-        
+
         Ok(models)
     }
-    
+
     /// Update agent ensemble models based on performance
-    pub fn update_agent_ensemble(&mut self, agent_id: &str, model_types: Vec<ModelType>) -> Result<(), String> {
+    pub fn update_agent_ensemble(
+        &mut self,
+        agent_id: &str,
+        model_types: Vec<ModelType>,
+    ) -> Result<(), String> {
         let context = self
             .agent_models
             .get_mut(agent_id)
             .ok_or_else(|| format!("Agent {} not found", agent_id))?;
-        
+
         context.ensemble_models = model_types;
         Ok(())
     }
@@ -638,10 +693,10 @@ mod tests {
 
     #[test]
     fn test_memory_constraint_handling() {
-        let mut manager = AgentForecastingManager::new(30.0); // Memory limit that allows NHITS + TFT
+        let mut manager = AgentForecastingManager::new(3.0); // MLP (1MB) + wide MLP (1.5MB) planning budget
         let requirements = ForecastRequirements::default();
 
-        // First assignment should succeed (researcher uses NHITS ~8MB)
+        // First assignment reserves the MLP planning estimate.
         let result1 = manager.assign_model(
             "agent_1".to_string(),
             "researcher".to_string(),
@@ -649,18 +704,18 @@ mod tests {
         );
         assert!(result1.is_ok(), "First assignment should succeed");
 
-        // Second assignment should succeed (coordinator uses TFT ~20MB, total = 28MB)
+        // Second assignment fits within the remaining planning budget.
         let result2 = manager.assign_model(
             "agent_2".to_string(),
-            "coordinator".to_string(), // TFT model uses more memory
+            "coordinator".to_string(), // Wider MLP estimate is 1.5MB
             requirements.clone(),
         );
         assert!(result2.is_ok(), "Second assignment should succeed");
 
-        // Third assignment should fail due to memory constraint (another TFT model would exceed limit)
+        // A third wide MLP exceeds the configured planning budget.
         let result3 = manager.assign_model(
             "agent_3".to_string(),
-            "coordinator".to_string(), // Another TFT model would exceed limit
+            "coordinator".to_string(), // Total would exceed 3MB
             requirements,
         );
         assert!(result3.is_err(), "Third assignment should fail");
@@ -747,7 +802,10 @@ mod tests {
         let stats = manager.get_memory_stats();
         assert!(stats.current_usage_mb > 0.0);
         assert_eq!(stats.num_active_agents, 1);
-        assert_eq!(stats.available_mb, stats.total_limit_mb - stats.current_usage_mb);
+        assert_eq!(
+            stats.available_mb,
+            stats.total_limit_mb - stats.current_usage_mb
+        );
     }
 
     #[test]
@@ -802,7 +860,9 @@ mod tests {
                 .unwrap();
         }
 
-        let comparison = manager.get_model_performance_comparison("test_agent").unwrap();
+        let comparison = manager
+            .get_model_performance_comparison("test_agent")
+            .unwrap();
         assert_eq!(comparison.agent_id, "test_agent");
         assert_eq!(comparison.total_forecasts, 5);
         assert!(comparison.current_avg_accuracy > 0.0);

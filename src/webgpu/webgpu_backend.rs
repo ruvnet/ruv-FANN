@@ -1,57 +1,25 @@
-//! Advanced WebGPU compute backend implementation
+//! WebGPU matrix/vector and activation operations with a scalar fallback.
 //!
-//! This module provides a production-ready WebGPU-accelerated compute backend for neural network operations.
-//! It includes advanced optimizations from staging, DAA compatibility, and comprehensive performance monitoring.
+//! Large f32 matrix products and activation arrays dispatch WGSL compute kernels.
+//! Smaller operations and wider floating-point types use CPU arithmetic to avoid
+//! transfer overhead and preserve precision. The thresholds are fixed heuristics;
+//! measure representative inputs on the deployment adapter before tuning them.
 //!
-//! # Features
-//!
-//! - **GPU Acceleration**: High-performance matrix operations using WebGPU compute shaders
-//! - **DAA Integration**: Seamless compatibility with Decentralized Autonomous Agents
-//! - **ComputeContext Bridge**: Direct `Network<T>` integration for performance
-
-#![allow(clippy::needless_range_loop)]
-//! - **Pipeline Caching**: Advanced shader pipeline caching and optimization
-//! - **Memory Pooling**: Intelligent GPU buffer management with automatic cleanup
-//! - **Performance Monitoring**: Real-time performance tracking and optimization
-//! - **Intelligent Fallback**: Automatic degradation to optimized CPU implementations
-//! - **Thread Safety**: All operations are thread-safe and can be used across multiple threads
-//! - **Error Resilience**: Comprehensive error handling with detailed diagnostics
-//!
-//! # Usage
+//! Native headless checks may opt into software adapters with
+//! `RUV_FANN_ALLOW_SOFTWARE_GPU=1` and select a backend with `WGPU_BACKEND`.
+//! This setting validates dispatch and arithmetic; it measures no physical GPU.
 //!
 //! ```rust,no_run
-//! use ruv_fann::webgpu::WebGPUBackend;
-//! use ruv_fann::webgpu::ComputeBackend;
-//!
-//! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//! // Initialize WebGPU backend asynchronously
-//! let backend = WebGPUBackend::<f32>::initialize().await?;
-//!
-//! // Perform matrix-vector multiplication with optimal backend selection
-//! let matrix = vec![1.0, 2.0, 3.0, 4.0]; // 2x2 matrix
-//! let vector = vec![5.0, 6.0];
-//! let result = backend.matrix_vector_multiply(&matrix, &vector, 2, 2)?;
+//! use ruv_fann::webgpu::{ComputeBackend, WebGPUBackend};
+//! # fn example() -> Result<(), Box<dyn std::error::Error>> {
+//! let backend = WebGPUBackend::<f32>::new()?;
+//! let result = backend.matrix_vector_multiply(&[1.0, 2.0, 3.0, 4.0], &[5.0, 6.0], 2, 2)?;
+//! assert_eq!(result, vec![17.0, 39.0]);
 //! # Ok(())
 //! # }
 //! ```
-//!
-//! # Architecture
-//!
-//! The WebGPU backend is structured around four main components:
-//!
-//! 1. **Compute Backend**: Core mathematical operations (matrix multiplication, activation functions)
-//! 2. **Memory Manager**: Advanced GPU buffer allocation, pooling, and optimization
-//! 3. **Shader Manager**: WGSL shader compilation, caching, and pipeline management
-//! 4. **ComputeContext**: Bridge for `Network<T>` integration and DAA compatibility
-//!
-//! # Performance Characteristics
-//!
-//! - **Matrix Operations**: ~10-100x speedup for large matrices (>1000x1000)
-//! - **Batch Processing**: Excellent scaling with batch size
-//! - **Memory Bandwidth**: Utilizes full GPU memory bandwidth (200-1000+ GB/s)
-//! - **Activation Functions**: SIMD-optimized GPU kernels for all supported functions
-//! - **Pipeline Caching**: 50-90% reduction in shader compilation overhead
-//! - **Memory Pooling**: 80% reduction in allocation overhead
+
+#![allow(clippy::needless_range_loop)]
 
 #[cfg(feature = "gpu")]
 pub mod webgpu_impl {
@@ -68,9 +36,7 @@ pub mod webgpu_impl {
 
     /// WebGPU compute backend
     ///
-    /// High-performance GPU-accelerated backend for neural network computations.
-    /// This implementation provides real WebGPU acceleration when available,
-    /// with intelligent fallback to optimized CPU implementations.
+    /// Device-backed f32 matrix products and activations, with scalar fallbacks.
     ///
     /// # Thread Safety
     ///
@@ -79,15 +45,12 @@ pub mod webgpu_impl {
     ///
     /// # Memory Management
     ///
-    /// The backend automatically manages GPU memory allocation, buffer pooling,
-    /// and data transfer optimization. Memory pressure is monitored and handled
-    /// gracefully with automatic garbage collection.
-    ///
-    /// # Performance
-    ///
-    /// - Matrix operations: O(n²) → O(n²/p) where p is the number of GPU cores
-    /// - Batch processing: Near-linear scaling with batch size
-    /// - Memory transfers: Minimized through intelligent caching and batching
+    /// Managed buffers own device allocations until explicitly released or the
+    /// backend drops. Handles are process-unique. Transfers accept f32/f64 IEEE
+    /// storage; f64 storage does not enable f64 shaders. The active allocation
+    /// budget is the device's maximum buffer size, with at most 4,096 handles.
+    /// Reported availability is remaining managed budget, not free physical VRAM.
+    /// Compute and staging allocations are outside that managed-buffer counter.
     pub struct WebGPUBackend<T: Float + std::fmt::Debug + Send + Sync + 'static> {
         /// WebGPU device handle
         device: wgpu::Device,
@@ -99,9 +62,14 @@ pub mod webgpu_impl {
         shader_manager: ShaderManager,
         /// Mutable state for GPU resources (thread-safe interior mutability)
         gpu_state: std::sync::RwLock<GpuState>,
+        /// Actual device-owned allocations for the MemoryManager API.
+        managed_buffers: std::sync::Mutex<BufferStorage>,
         /// Phantom data for type safety
         _phantom: std::marker::PhantomData<T>,
     }
+
+    include!("activation_dispatch.rs");
+    include!("buffer_storage.rs");
 
     /// Mutable GPU state managed through interior mutability
     struct GpuState {
@@ -171,7 +139,7 @@ pub mod webgpu_impl {
 
             // Step 2: Initialize WebGPU device using synchronous wrapper
             let (device, queue) = pollster::block_on(async {
-                let instance = wgpu::Instance::default();
+                let instance = crate::webgpu::device::compute_instance();
 
                 let adapter = instance
                     .request_adapter(&wgpu::RequestAdapterOptions {
@@ -230,6 +198,7 @@ pub mod webgpu_impl {
                     buffer_pool: HashMap::new(),
                     bind_group_layouts: HashMap::new(),
                 }),
+                managed_buffers: std::sync::Mutex::new(BufferStorage::default()),
                 _phantom: std::marker::PhantomData,
             })
         }
@@ -249,18 +218,28 @@ pub mod webgpu_impl {
         ///
         /// `true` if WebGPU is available and can be initialized
         pub fn is_available() -> bool {
+            // Match GpuDevice's explicit headless/CI mode before probing native
+            // drivers, which may panic while initializing a display connection.
+            if std::env::var("RUV_FANN_CI_TESTING").is_ok() {
+                return false;
+            }
             // Safe: Instance is cheap and can be dropped immediately
-            let instance = wgpu::Instance::default();
+            let instance = crate::webgpu::device::compute_instance();
             instance
-                .enumerate_adapters(wgpu::Backends::all())
+                .enumerate_adapters(
+                    wgpu::util::backend_bits_from_env().unwrap_or(wgpu::Backends::all()),
+                )
                 .into_iter()
-                .any(|a| a.get_info().device_type != wgpu::DeviceType::Cpu)
+                .any(|a| {
+                    a.get_info().device_type != wgpu::DeviceType::Cpu
+                        || std::env::var("RUV_FANN_ALLOW_SOFTWARE_GPU").as_deref() == Ok("1")
+                })
         }
 
         /// Detect actual device capabilities from a device object
         ///
-        /// This method queries the WebGPU device for its actual capabilities,
-        /// including memory limits, compute unit count, and supported features.
+        /// Query limits and enabled features. WebGPU does not expose physical
+        /// compute-unit counts or memory bandwidth; zero denotes unknown.
         fn detect_capabilities_from_device(device: &wgpu::Device) -> BackendCapabilities {
             let limits = device.limits();
             let features = device.features();
@@ -270,8 +249,8 @@ pub mod webgpu_impl {
                 supports_f64: false, // WebGPU doesn't support f64
                 supports_f32: true,  // All WebGPU implementations support f32
                 supports_f16: features.contains(wgpu::Features::SHADER_F16),
-                max_compute_units: limits.max_compute_workgroups_per_dimension as usize,
-                memory_bandwidth_gbps: 500.0, // Conservative estimate
+                max_compute_units: 0,       // Not exposed by WebGPU.
+                memory_bandwidth_gbps: 0.0, // Not measured or exposed.
                 shader_model: Some("WGSL 1.0".to_string()),
             }
         }
@@ -280,8 +259,6 @@ pub mod webgpu_impl {
         fn validate_capabilities(caps: &BackendCapabilities) -> Result<(), ComputeError> {
             // Minimum requirements for WebGPU backend
             const MIN_BUFFER_SIZE: usize = 64 * 1024 * 1024; // 64MB
-            const MIN_COMPUTE_UNITS: usize = 32;
-            const MIN_BANDWIDTH_GBPS: f32 = 50.0;
 
             if caps.max_buffer_size < MIN_BUFFER_SIZE {
                 return Err(ComputeError::InitializationError(format!(
@@ -294,20 +271,6 @@ pub mod webgpu_impl {
                 return Err(ComputeError::InitializationError(
                     "Device does not support f32 operations".to_string(),
                 ));
-            }
-
-            if caps.max_compute_units < MIN_COMPUTE_UNITS {
-                return Err(ComputeError::InitializationError(format!(
-                    "Insufficient compute units: {} < {}",
-                    caps.max_compute_units, MIN_COMPUTE_UNITS
-                )));
-            }
-
-            if caps.memory_bandwidth_gbps < MIN_BANDWIDTH_GBPS {
-                return Err(ComputeError::InitializationError(format!(
-                    "Insufficient memory bandwidth: {} < {} GB/s",
-                    caps.memory_bandwidth_gbps, MIN_BANDWIDTH_GBPS
-                )));
             }
 
             Ok(())
@@ -355,9 +318,9 @@ pub mod webgpu_impl {
         ///
         /// # Performance
         ///
-        /// - Small matrices (<100x100): May use CPU fallback for lower latency
-        /// - Large matrices (>1000x1000): GPU acceleration provides 10-100x speedup
-        /// - Memory transfer overhead is amortized for large operations
+        /// f32 matrices with more than 10,000 elements use GPU dispatch.
+        /// Smaller operations and wider types use the CPU. Throughput depends
+        /// on adapter, transfer costs and dimensions; no speedup is guaranteed.
         ///
         /// # Errors
         ///
@@ -369,13 +332,13 @@ pub mod webgpu_impl {
             rows: usize,
             cols: usize,
         ) -> Result<Vec<T>, ComputeError> {
-            // Input validation with detailed error messages
-            if matrix.len() != rows * cols {
+            let elements = checked_matrix_elements(rows, cols)?;
+            if matrix.len() != elements {
                 return Err(ComputeError::InvalidDimensions(format!(
                     "Matrix size mismatch: expected {}x{} = {} elements, got {}",
                     rows,
                     cols,
-                    rows * cols,
+                    elements,
                     matrix.len()
                 )));
             }
@@ -393,7 +356,9 @@ pub mod webgpu_impl {
             // Performance heuristic for GPU usage
             const GPU_THRESHOLD: usize = 10000; // Minimum problem size for GPU benefit
 
-            if rows * cols > GPU_THRESHOLD {
+            if elements > GPU_THRESHOLD
+                && std::any::TypeId::of::<T>() == std::any::TypeId::of::<f32>()
+            {
                 // Use GPU acceleration through interior mutability
                 self.gpu_matrix_vector_multiply(matrix, vector, rows, cols)
             } else {
@@ -432,8 +397,11 @@ pub mod webgpu_impl {
         ) -> Result<Vec<Vec<T>>, ComputeError> {
             let batch_size = vectors.len();
 
-            // Validate matrix dimensions
-            if matrix.len() != rows * cols {
+            let elements = checked_matrix_elements(rows, cols)?;
+            rows.checked_mul(batch_size).ok_or_else(|| {
+                ComputeError::InvalidDimensions("Batch output dimensions overflow".into())
+            })?;
+            if matrix.len() != elements {
                 return Err(ComputeError::InvalidDimensions(format!(
                     "Matrix dimensions {}x{} don't match data length {}",
                     rows,
@@ -457,7 +425,10 @@ pub mod webgpu_impl {
             // Performance heuristic for batch operations
             const BATCH_GPU_THRESHOLD: usize = 100; // Minimum batch size for GPU benefit
 
-            if batch_size >= BATCH_GPU_THRESHOLD && rows * cols > 10000 {
+            if batch_size >= BATCH_GPU_THRESHOLD
+                && elements > 10000
+                && std::any::TypeId::of::<T>() == std::any::TypeId::of::<f32>()
+            {
                 // Use GPU acceleration through interior mutability
                 self.gpu_batch_matrix_vector_multiply(matrix, vectors, rows, cols)
             } else {
@@ -476,15 +447,14 @@ pub mod webgpu_impl {
         ///
         /// - `Linear`: f(x) = x * steepness
         /// - `Sigmoid`: f(x) = 1 / (1 + exp(-x * steepness))
-        /// - `ReLU`: f(x) = max(0, x * steepness)
+        /// - `ReLU`: f(x) = max(0, x)
         /// - `Tanh`: f(x) = tanh(x * steepness)
         /// - And many more...
         ///
         /// # Performance
         ///
-        /// GPU acceleration provides significant benefits for large input arrays:
-        /// - >1000 elements: 5-10x speedup
-        /// - >10000 elements: 10-50x speedup
+        /// More than 1,000 f32 elements use WGSL. Other inputs use the scalar
+        /// definitions, including the historical unscaled ReLU/GELU/Swish.
         ///
         /// # Arguments
         ///
@@ -497,13 +467,8 @@ pub mod webgpu_impl {
             function: ActivationFunction,
             steepness: T,
         ) -> Result<Vec<T>, ComputeError> {
-            // Performance heuristic: Use GPU for larger arrays
-            const GPU_ACTIVATION_THRESHOLD: usize = 1000;
-
-            if inputs.len() > GPU_ACTIVATION_THRESHOLD {
-                // TODO: Implement GPU-accelerated activation functions
-                // self.gpu_apply_activation_function(inputs, function, steepness)
-                self.cpu_apply_activation_function_optimized(inputs, function, steepness)
+            if inputs.len() > 1000 && std::any::TypeId::of::<T>() == std::any::TypeId::of::<f32>() {
+                self.gpu_apply_activation_function(inputs, function, steepness)
             } else {
                 self.cpu_apply_activation_function_optimized(inputs, function, steepness)
             }
@@ -803,52 +768,10 @@ pub mod webgpu_impl {
             function: ActivationFunction,
             steepness: T,
         ) -> Result<Vec<T>, ComputeError> {
-            let mut result = Vec::with_capacity(inputs.len());
-
-            // Vectorized processing with function-specific optimizations
-            match function {
-                ActivationFunction::Linear => {
-                    // Simple scaling - highly optimizable
-                    for &input in inputs {
-                        result.push(input * steepness);
-                    }
-                }
-                ActivationFunction::ReLU => {
-                    // Branch-free ReLU implementation
-                    for &input in inputs {
-                        let x = input * steepness;
-                        result.push(if x > T::zero() { x } else { T::zero() });
-                    }
-                }
-                ActivationFunction::Sigmoid => {
-                    // Optimized sigmoid with numerical stability
-                    for &input in inputs {
-                        let x = input * steepness;
-                        let output = if x > T::zero() {
-                            let exp_neg_x = (-x).exp();
-                            T::one() / (T::one() + exp_neg_x)
-                        } else {
-                            let exp_x = x.exp();
-                            exp_x / (T::one() + exp_x)
-                        };
-                        result.push(output);
-                    }
-                }
-                ActivationFunction::Tanh => {
-                    // Use built-in tanh for best accuracy
-                    for &input in inputs {
-                        let x = input * steepness;
-                        result.push(x.tanh());
-                    }
-                }
-                _ => {
-                    return Err(ComputeError::UnsupportedOperation(format!(
-                        "Activation function {function:?} not yet implemented in WebGPU backend"
-                    )));
-                }
-            }
-
-            Ok(result)
+            Ok(inputs
+                .iter()
+                .map(|&value| function.apply(value, steepness))
+                .collect())
         }
 
         /// Align buffer size to Apple Silicon requirements (256-byte alignment)
@@ -901,6 +824,16 @@ pub mod webgpu_impl {
             // Create GPU buffers
             use wgpu::util::DeviceExt;
 
+            self.validate_storage_elements(matrix.len())?;
+            self.validate_storage_elements(vector.len())?;
+            self.validate_storage_elements(rows)?;
+            if (rows as u64).div_ceil(32)
+                > self.device.limits().max_compute_workgroups_per_dimension as u64
+            {
+                return Err(ComputeError::InvalidDimensions(
+                    "Matrix dispatch exceeds device limits".into(),
+                ));
+            }
             // Convert to f32 for GPU operations (WebGPU doesn't support f64)
             let matrix_f32: Vec<f32> = matrix.iter().map(|&x| x.to_f32().unwrap()).collect();
             let vector_f32: Vec<f32> = vector.iter().map(|&x| x.to_f32().unwrap()).collect();
@@ -1082,6 +1015,13 @@ pub mod webgpu_impl {
 
             use wgpu::util::DeviceExt;
 
+            self.validate_storage_elements(matrix.len())?;
+            self.validate_storage_elements(batch_size.checked_mul(cols).ok_or_else(|| {
+                ComputeError::InvalidDimensions("Batch input dimensions overflow".into())
+            })?)?;
+            self.validate_storage_elements(batch_size.checked_mul(rows).ok_or_else(|| {
+                ComputeError::InvalidDimensions("Batch output dimensions overflow".into())
+            })?)?;
             // Convert data to f32 for GPU
             let matrix_f32: Vec<f32> = matrix.iter().map(|&x| x.to_f32().unwrap()).collect();
             let mut vectors_f32 = Vec::with_capacity(batch_size * cols);
@@ -1210,60 +1150,22 @@ pub mod webgpu_impl {
                     label: Some("Batch Matrix Vector Multiply Encoder"),
                 });
 
-            // Tile the computation to avoid Metal watchdog timeout
-            // Process in tiles to keep each dispatch under 2ms
-            let rows_per_tile = TILE_SIZE.min(rows);
-            let batch_per_tile = MAX_BATCH_PER_DISPATCH.min(batch_size);
-
             {
-                let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                let workgroups_x = (rows as u32).div_ceil(32);
+                let workgroups_y = batch_size as u32;
+                let limit = self.device.limits().max_compute_workgroups_per_dimension;
+                if workgroups_x > limit || workgroups_y > limit {
+                    return Err(ComputeError::InvalidDimensions(
+                        "Batch dispatch exceeds device limits".into(),
+                    ));
+                }
+                let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
                     label: Some("Batch Matrix Vector Multiply Pass"),
                     timestamp_writes: None,
                 });
-
-                compute_pass.set_pipeline(pipeline);
-                compute_pass.set_bind_group(0, &bind_group, &[]);
-
-                // Process in tiles to avoid watchdog timeout
-                for batch_start in (0..batch_size).step_by(batch_per_tile) {
-                    let batch_end = (batch_start + batch_per_tile).min(batch_size);
-                    let tile_batch_size = batch_end - batch_start;
-
-                    for row_start in (0..rows).step_by(rows_per_tile) {
-                        let row_end = (row_start + rows_per_tile).min(rows);
-                        let tile_rows = row_end - row_start;
-
-                        // Dispatch workgroups for this tile (Apple Silicon optimized)
-                        // Use 32x1x1 workgroup size to match Apple Silicon 32-lane SIMD
-                        const WORKGROUP_SIZE_X: u32 = 32;
-                        const WORKGROUP_SIZE_Y: u32 = 1;
-
-                        let workgroups_x =
-                            ((tile_rows as u32 + WORKGROUP_SIZE_X - 1) / WORKGROUP_SIZE_X).max(1);
-                        let workgroups_y = ((tile_batch_size as u32 + WORKGROUP_SIZE_Y - 1)
-                            / WORKGROUP_SIZE_Y)
-                            .max(1);
-
-                        // Ensure dispatch stays under time limit
-                        let estimated_elements =
-                            (workgroups_x * workgroups_y * WORKGROUP_SIZE_X * WORKGROUP_SIZE_Y)
-                                as usize;
-                        if estimated_elements > MAX_ELEMENTS_PER_DISPATCH {
-                            // Skip this dispatch to avoid watchdog timeout
-                            continue;
-                        }
-
-                        compute_pass.dispatch_workgroups(workgroups_x, workgroups_y, 1);
-
-                        // CRITICAL: Insert memory barrier between tiles
-                        // This ensures previous dispatch completes before next one starts
-                        if row_start + rows_per_tile < rows
-                            || batch_start + batch_per_tile < batch_size
-                        {
-                            // Note: wgpu doesn't expose explicit barriers, but dispatch boundaries act as implicit barriers
-                        }
-                    }
-                }
+                pass.set_pipeline(pipeline);
+                pass.set_bind_group(0, &bind_group, &[]);
+                pass.dispatch_workgroups(workgroups_x, workgroups_y, 1);
             }
 
             // Copy output to staging buffer
@@ -1411,142 +1313,6 @@ pub mod webgpu_impl {
                 Ok(a.iter().zip(b.iter()).map(|(x, y)| *x - *y).collect())
             } else {
                 Ok(a.iter().zip(b.iter()).map(|(x, y)| *x - *y).collect())
-            }
-        }
-    }
-
-    impl<T: Float + std::fmt::Debug + Send + Sync + 'static> MemoryManager<T> for WebGPUBackend<T> {
-        /// Allocate GPU buffer with size validation and memory management
-        ///
-        /// This method allocates a buffer on the GPU with automatic memory
-        /// management, including garbage collection and defragmentation.
-        ///
-        /// # Memory Management Features
-        ///
-        /// - **Pool Allocation**: Reuses freed buffers when possible
-        /// - **Size Alignment**: Automatically aligns to GPU requirements
-        /// - **Memory Pressure**: Handles out-of-memory conditions gracefully
-        /// - **Fragmentation**: Automatic defragmentation when needed
-        ///
-        /// # Arguments
-        ///
-        /// * `size` - Buffer size in bytes
-        ///
-        /// # Errors
-        ///
-        /// - `AllocationError` if insufficient GPU memory
-        /// - `InvalidDimensions` if size exceeds device limits
-        fn allocate_buffer(&self, size: usize) -> Result<BufferHandle, ComputeError> {
-            // Validate against device capabilities
-            if size > self.capabilities.max_buffer_size {
-                return Err(ComputeError::AllocationError(format!(
-                    "Buffer size {} exceeds device limit {}",
-                    size, self.capabilities.max_buffer_size
-                )));
-            }
-
-            // Check for zero-size allocation
-            if size == 0 {
-                return Err(ComputeError::InvalidDimensions(
-                    "Cannot allocate zero-size buffer".to_string(),
-                ));
-            }
-
-            // TODO: Implement actual GPU buffer allocation
-            // For now, return a handle that tracks the requested size
-            Ok(BufferHandle::new(size as u64))
-        }
-
-        /// Upload data to GPU buffer with transfer optimization
-        ///
-        /// This method transfers data from CPU memory to GPU buffer,
-        /// with automatic optimization for transfer patterns and sizes.
-        ///
-        /// # Transfer Optimization
-        ///
-        /// - **Batching**: Small transfers are batched together
-        /// - **Async Transfer**: Large transfers use async DMA when available
-        /// - **Compression**: Sparse data may be compressed during transfer
-        /// - **Validation**: Data integrity is verified after transfer
-        fn upload_data(&self, handle: BufferHandle, data: &[T]) -> Result<(), ComputeError> {
-            // Validate buffer handle
-            if handle.id() == 0 {
-                return Err(ComputeError::InvalidDimensions(
-                    "Cannot upload to invalid buffer handle".to_string(),
-                ));
-            }
-
-            // Check data size compatibility
-            let expected_elements = handle.id() as usize / std::mem::size_of::<T>();
-            if data.len() > expected_elements {
-                return Err(ComputeError::InvalidDimensions(format!(
-                    "Data size {} exceeds buffer capacity {}",
-                    data.len(),
-                    expected_elements
-                )));
-            }
-
-            // TODO: Implement actual data upload to GPU
-            // For now, just validate the operation
-            Ok(())
-        }
-
-        /// Download data from GPU buffer with transfer optimization
-        ///
-        /// Transfers data from GPU memory back to CPU, with automatic
-        /// optimization for different transfer patterns and sizes.
-        fn download_data(&self, handle: BufferHandle) -> Result<Vec<T>, ComputeError> {
-            // Validate buffer handle
-            if handle.id() == 0 {
-                return Err(ComputeError::InvalidDimensions(
-                    "Cannot download from invalid buffer handle".to_string(),
-                ));
-            }
-
-            // Calculate expected data size
-            let expected_elements = handle.id() as usize / std::mem::size_of::<T>();
-
-            // TODO: Implement actual data download from GPU
-            // For now, return empty vector as placeholder
-            Ok(vec![T::zero(); expected_elements])
-        }
-
-        /// Deallocate GPU buffer with memory pool management
-        ///
-        /// Frees the GPU buffer and returns it to the memory pool for reuse.
-        /// The implementation includes automatic defragmentation when beneficial.
-        fn deallocate_buffer(&self, handle: BufferHandle) -> Result<(), ComputeError> {
-            // Validate buffer handle
-            if handle.id() == 0 {
-                return Err(ComputeError::InvalidDimensions(
-                    "Cannot deallocate invalid buffer handle".to_string(),
-                ));
-            }
-
-            // TODO: Implement actual GPU buffer deallocation
-            // For now, just validate the operation
-            Ok(())
-        }
-
-        /// Get current memory usage statistics
-        ///
-        /// Provides detailed information about GPU memory usage,
-        /// including fragmentation analysis and pool statistics.
-        ///
-        /// # Memory Statistics
-        ///
-        /// - **Total Allocated**: Sum of all active buffer sizes
-        /// - **Available**: Free memory available for allocation
-        /// - **Buffer Count**: Number of active buffers
-        /// - **Fragmentation**: Measure of memory fragmentation (0.0-1.0)
-        fn memory_usage(&self) -> MemoryStats {
-            // TODO: Implement actual memory usage tracking
-            // For now, return conservative estimates
-            MemoryStats {
-                total_allocated: 0,
-                available: self.capabilities.max_buffer_size,
-                buffer_count: 0,
-                fragmentation_ratio: 0.0, // Perfect defragmentation
             }
         }
     }

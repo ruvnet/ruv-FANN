@@ -1,139 +1,88 @@
-name: NPM Release Pipeline
+name: npm Release
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'ruv-swarm/npm/**'
-      - '.github/workflows/npm-release.yml'
   pull_request:
-    branches: [ main ]
-    paths:
-      - 'ruv-swarm/npm/**'
+    branches: [main]
+    paths: ['ruv-swarm/npm/**', '.github/workflows/npm-release.yml']
+  push:
+    branches: [main]
+    paths: ['ruv-swarm/npm/**', '.github/workflows/npm-release.yml']
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to publish (e.g., 1.0.6)'
+        description: Exact reviewed ruv-swarm version to publish
         required: true
         type: string
 
+permissions:
+  contents: read
+
+# Neither this workflow nor the WASM checks creates a version automatically.
+# A manual release must pass the complete repository gate and package checks.
 jobs:
+  acceptance:
+    uses: ./.github/workflows/ci.yml
+
   test:
-    name: Test NPM Package
+    name: npm package / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        node: [18, 20, 22]
-    
+    defaults:
+      run:
+        working-directory: ruv-swarm/npm
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node }}
-        
-    - name: Setup Python with distutils (macOS)
-      if: runner.os == 'macOS'
-      run: |
-        python -m pip install --upgrade pip
-        pip install setuptools wheel
-    
-    - name: Install dependencies
-      working-directory: ./ruv-swarm/npm
-      run: npm ci
-    
-    - name: Run tests
-      timeout-minutes: 15
-      working-directory: ./ruv-swarm/npm
-      run: npm test
-    
-    - name: Test NPX commands
-      # `ruv-swarm --version` used to print and then never exit (open SQLite
-      # handles), holding macOS runners for hours. Bound it.
-      timeout-minutes: 5
-      working-directory: ./ruv-swarm/npm
-      run: |
-        npm link
-        npx ruv-swarm --version
-        npx ruv-swarm --help
-        # One-shot commands that open the SQLite pool must exit too.
-        npx ruv-swarm status
-        npx ruv-swarm neural status
-
-  validate-wasm:
-    name: Validate WASM Loading
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-
-    - name: Install dependencies
-      working-directory: ./ruv-swarm/npm
-      run: npm ci
-
-    - name: Test WASM loading
-      timeout-minutes: 5
-      working-directory: ./ruv-swarm/npm
-      run: |
-        node test-wasm-loading.js
-        npm run test:wasm || true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm test
+      - run: npm audit --omit=dev --audit-level=moderate
+      - run: npm pack --dry-run
+      - name: Check one-shot commands exit
+        timeout-minutes: 2
+        run: |
+          node bin/ruv-swarm-secure.js --version
+          node bin/ruv-swarm-secure.js --help
+          node bin/ruv-swarm-secure.js status
 
   publish:
-    name: Publish to NPM
+    needs: [acceptance, test]
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [test, validate-wasm]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    env:
-      # Secrets cannot be referenced in step `if:` directly; expose via env.
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: ruv-swarm/npm
     steps:
-    - uses: actions/checkout@v4
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        registry-url: 'https://registry.npmjs.org'
-
-    - name: Decide whether to publish
-      id: gate
-      timeout-minutes: 2
-      working-directory: ./ruv-swarm/npm
-      run: |
-        VERSION=$(node -p "require('./package.json').version")
-        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-        if [ -z "$NPM_TOKEN" ]; then
-          echo "::notice::NPM_TOKEN secret is not configured; skipping publish of ruv-swarm@$VERSION (publish manually)."
-          echo "publish=false" >> "$GITHUB_OUTPUT"
-        elif [ -n "$(timeout 60 npm view "ruv-swarm@$VERSION" version 2>/dev/null)" ]; then
-          echo "::notice::ruv-swarm@$VERSION is already on the registry; nothing to publish."
-          echo "publish=false" >> "$GITHUB_OUTPUT"
-        else
-          echo "publish=true" >> "$GITHUB_OUTPUT"
-        fi
-
-    - name: Install dependencies
-      if: steps.gate.outputs.publish == 'true'
-      timeout-minutes: 10
-      working-directory: ./ruv-swarm/npm
-      run: npm ci
-
-    - name: Publish to NPM
-      if: steps.gate.outputs.publish == 'true'
-      timeout-minutes: 5
-      working-directory: ./ruv-swarm/npm
-      run: |
-        npm publish --access public
-      env:
-        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - name: Require the reviewed manifest version
+        env:
+          EXPECTED_VERSION: ${{ inputs.version }}
+        run: >-
+          node --input-type=module -e
+          'import fs from "node:fs";
+          const actual = JSON.parse(fs.readFileSync("package.json", "utf8")).version;
+          if (actual !== process.env.EXPECTED_VERSION) {
+          console.error("Requested version does not match package.json"); process.exit(1); }'
+      - run: npm ci
+      - run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

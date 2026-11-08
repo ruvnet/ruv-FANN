@@ -517,6 +517,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_webgpu_backend_creation() {
+        if !super::super::gpu_enabled() { return; }
         // This test may not work in all environments due to WebGPU requirements
         if let Ok(backend) = OptimizedWebGPUBackend::new().await {
             assert!(backend.cache_hit_ratio() == 0.0); // No cache hits initially

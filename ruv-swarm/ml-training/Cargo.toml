@@ -1,6 +1,17 @@
 [package]
+# Publish source and required assets, excluding session state and runtime databases.
+include = [
+    "/src/**",
+    "/tests/**",
+    "/examples/**",
+    "/benches/**",
+    "/build.rs",
+    "/Cargo.toml",
+    "/README.md",
+    "/LICENSE*",
+]
 name = "ruv-swarm-ml-training"
-version = "1.0.5"
+version = "1.0.6"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -9,6 +20,7 @@ rust-version.workspace = true
 description = "Advanced ML training pipeline for neuro-divergent models in RUV Swarm"
 
 [dependencies]
+fastrand = "2.0"
 # Core dependencies
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }

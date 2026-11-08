@@ -24,6 +24,7 @@ pub mod evaluation;
 pub mod loader;
 pub mod prompts;
 pub mod stream_parser;
+mod execution;
 
 pub use benchmarking::{BenchmarkMetrics, BenchmarkRunner, PerformanceReport};
 pub use evaluation::{EvaluationResult, PatchEvaluator};
@@ -90,7 +91,14 @@ impl SWEBenchAdapter {
         })
     }
 
-    /// Run evaluation on a specific SWE-Bench instance
+    /// Use an application-configured evaluator, including an explicit local repository.
+    pub fn with_patch_evaluator(mut self, evaluator: PatchEvaluator) -> Self {
+        self.evaluator = Arc::new(evaluator);
+        self
+    }
+
+    /// The legacy shared-agent API cannot invoke the mutable `Agent::process`.
+    /// Use `evaluate_instance_with_agent` with an application-owned handler.
     pub async fn evaluate_instance<A>(
         &self,
         instance_id: &str,
@@ -98,6 +106,20 @@ impl SWEBenchAdapter {
     ) -> Result<EvaluationReport>
     where
         A: AgentTrait,
+    {
+        anyhow::bail!("Use evaluate_instance_with_agent with a mutable agent returning ExecutionResult; mock execution has been removed")
+    }
+
+    /// Evaluate the actual patch returned by the supplied application agent.
+    /// Repository tests execute as local processes; use an external isolated
+    /// environment for untrusted repositories and patches.
+    pub async fn evaluate_instance_with_agent<A>(
+        &self,
+        instance_id: &str,
+        agent: &mut A,
+    ) -> Result<EvaluationReport>
+    where
+        A: AgentTrait<Input = Task, Output = ExecutionResult>,
     {
         info!("Starting evaluation for instance: {}", instance_id);
         let start_time = Instant::now();
@@ -118,7 +140,7 @@ impl SWEBenchAdapter {
             .context("Failed to generate prompt")?;
 
         // Create evaluation task
-        let _task = Task {
+        let task = Task {
             id: TaskId::new(format!("swe-bench-{}", instance_id)),
             task_type: "swe-bench-evaluation".to_string(),
             priority: match instance.difficulty.priority() {
@@ -142,13 +164,7 @@ impl SWEBenchAdapter {
             max_retries: 3,
         };
 
-        // Execute task through agent (mock for now)
-        let execution_result = ExecutionResult {
-            output: "Mock execution output".to_string(),
-            patch: "diff --git a/fix.py b/fix.py\n+fix".to_string(),
-            exit_code: 0,
-            duration: Duration::from_secs(10),
-        };
+        let execution_result = execution::execute(agent, task).await?;
 
         // Parse output stream and collect metrics
         let stream_metrics = {
@@ -162,11 +178,15 @@ impl SWEBenchAdapter {
             .evaluate_patch(&instance, &execution_result.patch)
             .await?;
 
-        // Run performance benchmarks
-        let benchmark_metrics = self
-            .benchmark_runner
-            .run_benchmark(&instance, &execution_result)
-            .await?;
+        // One measured application execution is not a repeated benchmark.
+        let benchmark_metrics = BenchmarkMetrics {
+            instance_id: instance.instance_id.clone(),
+            execution_time: execution_result.duration,
+            iterations: 1,
+            measurements: HashMap::new(),
+            memory_usage: None,
+            profile_data: None,
+        };
 
         // Store results in memory
         let report = EvaluationReport {

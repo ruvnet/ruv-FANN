@@ -1,3 +1,6 @@
+import { randomUUID } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
+import { buildUpdateFields } from './persistence-updates.js';
 /**
  * High-Availability SQLite Persistence Layer with Connection Pooling
  * 
@@ -17,7 +20,7 @@ import path from 'path';
 import fs from 'fs';
 
 class SwarmPersistencePooled {
-  constructor(dbPath = path.join(new URL('.', import.meta.url).pathname, '..', 'data', 'ruv-swarm.db'), options = {}) {
+  constructor(dbPath = fileURLToPath(new URL('../data/ruv-swarm.db', import.meta.url)), options = {}) {
     this.dbPath = dbPath;
     this.options = {
       // Pool configuration
@@ -400,19 +403,8 @@ class SwarmPersistencePooled {
     await this.ensureInitialized();
     
     return this.trackOperation(() => this.withRetry(() => {
-      const fields = [];
-      const values = [];
-      
-      Object.entries(updates).forEach(([key, value]) => {
-        if (key === 'assignedAgents' || key === 'result') {
-          fields.push(`${key} = ?`);
-          values.push(JSON.stringify(value));
-        } else {
-          fields.push(`${key} = ?`);
-          values.push(value);
-        }
-      });
-      
+      const { fields, values } = buildUpdateFields(updates, 'task');
+
       values.push(taskId);
       return this.pool.write(`UPDATE tasks SET ${fields.join(', ')} WHERE id = ?`, values);
     }));
@@ -461,7 +453,7 @@ class SwarmPersistencePooled {
     
     return this.trackOperation(() => this.withRetry(() => {
       const expiresAt = ttlSecs ? new Date(Date.now() + ttlSecs * 1000).toISOString() : null;
-      const id = `mem_${agentId}_${Date.now()}`;
+      const id = randomUUID();
       
       return this.pool.write(`
         INSERT OR REPLACE INTO agent_memory (id, agent_id, key, value, ttl_secs, expires_at, updated_at)
@@ -480,7 +472,7 @@ class SwarmPersistencePooled {
       const memories = await this.pool.read(`
         SELECT * FROM agent_memory 
         WHERE agent_id = ? AND key = ? 
-        AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+        AND (expires_at IS NULL OR julianday(expires_at) > julianday('now'))
       `, [agentId, key]);
       
       if (memories.length === 0) return null;
@@ -503,7 +495,7 @@ class SwarmPersistencePooled {
       const memories = await this.pool.read(`
         SELECT * FROM agent_memory 
         WHERE agent_id = ? 
-        AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+        AND (expires_at IS NULL OR julianday(expires_at) > julianday('now'))
         ORDER BY updated_at DESC
       `, [agentId]);
       
@@ -526,7 +518,7 @@ class SwarmPersistencePooled {
     await this.ensureInitialized();
     
     return this.trackOperation(() => this.withRetry(() => 
-      this.pool.write('DELETE FROM agent_memory WHERE expires_at IS NOT NULL AND expires_at <= CURRENT_TIMESTAMP')
+      this.pool.write("DELETE FROM agent_memory WHERE expires_at IS NOT NULL AND julianday(expires_at) <= julianday('now')")
     ));
   }
   
@@ -555,14 +547,8 @@ class SwarmPersistencePooled {
     await this.ensureInitialized();
     
     return this.trackOperation(() => this.withRetry(() => {
-      const fields = [];
-      const values = [];
-      
-      Object.entries(updates).forEach(([key, value]) => {
-        fields.push(`${key} = ?`);
-        values.push(JSON.stringify(value));
-      });
-      
+      const { fields, values } = buildUpdateFields(updates, 'neural');
+
       fields.push('updated_at = CURRENT_TIMESTAMP');
       values.push(id);
       

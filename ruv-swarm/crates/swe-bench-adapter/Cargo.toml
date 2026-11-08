@@ -1,19 +1,31 @@
 [package]
+# Publish source and required assets, excluding session state and runtime databases.
+include = [
+    "/src/**",
+    "/tests/**",
+    "/examples/**",
+    "/benches/**",
+    "/build.rs",
+    "/Cargo.toml",
+    "/README.md",
+    "/LICENSE*",
+]
 name = "swe-bench-adapter"
-version = "1.0.5"
+version = "1.0.6"
+rust-version.workspace = true
 edition = "2021"
 authors = ["ruv-swarm team"]
 description = "SWE-Bench adapter for ruv-swarm orchestration system"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/ruv-fann/ruv-swarm"
+repository = "https://github.com/ruvnet/ruv-FANN"
 keywords = ["swe-bench", "benchmarking", "evaluation", "swarm", "orchestration"]
 categories = ["development-tools", "science", "algorithms"]
 
 [dependencies]
 # Core dependencies
-ruv-swarm-core = { path = "../ruv-swarm-core", version = "1.0.6" }
-ruv-swarm-agents = { path = "../ruv-swarm-agents", version = "1.0.5" }
-ruv-swarm-persistence = { path = "../ruv-swarm-persistence", version = "1.0.5" }
+ruv-swarm-core = { path = "../ruv-swarm-core", version = "1.0.7" }
+ruv-swarm-agents = { path = "../ruv-swarm-agents", version = "1.0.6" }
+ruv-swarm-persistence = { path = "../ruv-swarm-persistence", version = "1.0.8" }
 
 # Async runtime
 tokio = { version = "1.42", features = ["full"] }

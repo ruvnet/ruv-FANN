@@ -1,125 +1,68 @@
-# Publishing OpenCV Rust to Crates.io
+# Validate and release the OpenCV packages
 
-This guide explains how to publish the OpenCV Rust crates to crates.io using the .env configuration.
+The staged packages are `opencv-core`, `opencv-wasm` and `opencv-sdk` 4.9.0,
+plus the real native `opencv-sys` bridge 0.2.0. Nothing in this guide publishes
+without an explicit publish command.
 
 ## Prerequisites
 
-1. **Crates.io Account**: Create an account at https://crates.io
-2. **API Token**: Generate an API token from https://crates.io/settings/tokens
-3. **Cargo installed**: Ensure you have Rust and Cargo installed
+Use a clean checkout and a current Cargo with workspace packaging support.
+Native validation needs OpenCV >= 4.4 development files, libclang, a C++17
+compiler and pkg-config. The SDK Python check needs Python development support.
+For the user-owned Debian 13 setup, follow `opencv-sys/README.md` and source
+`scripts/native-env.sh` with your prefix. The crate build scripts contain no
+session-specific absolute paths.
 
-## Step 1: Configure Environment
+Use Cargo's configured credential provider for authentication. Do not source
+executable `.env` files, print tokens, write tokens into scripts, or run an
+interactive login from a release script.
 
-Edit the `.env` file in the root directory and update these values:
-
-```bash
-# Replace with your actual crates.io API token
-CARGO_REGISTRY_TOKEN=your_actual_crates_io_token_here
-
-# Set to false for actual publishing
-PUBLISH_DRY_RUN=false
-```
-
-## Step 2: Verify Crate Readiness
-
-Run a dry-run first to ensure everything is configured correctly:
+## Review the candidates
 
 ```bash
-cd /workspaces/ruv-FANN/opencv-rust
-PUBLISH_DRY_RUN=true ./publish.sh
+cargo test --workspace --all-targets --locked
+cargo check --workspace --exclude opencv-sys --all-features --locked
+cargo check -p opencv-sys --locked
+cargo audit --file Cargo.lock
+cargo package --workspace --locked
 ```
 
-## Step 3: Publish to Crates.io
+The native package's optional `cuda` feature requires an OpenCV build with
+`cudafilters` and compatible hardware. A CPU-only OpenCV installation deliberately
+fails that feature's build with an actionable message. It is not part of the
+portable all-feature check and does not silently provide CPU stubs.
 
-Once the dry-run succeeds, publish the crates:
+Package the whole workspace together. Cargo stages its members so it can verify
+normalized dependencies before their new versions exist in the public registry.
+The SDK header generator reads its exported source directly and writes into
+`OUT_DIR`; it does not recursively invoke Cargo or modify packaged source files.
+Do not bypass archive verification with `--no-verify`.
+
+Inspect each `.crate` archive. In particular, `opencv-sys` must contain its C++
+sources, `bridge.hpp`, `wrapper.h`, build script, tests and Apache license text.
+All four archives were compiled by Cargo during this review; the review report
+records the exact command and native environment.
+
+Browser checks are separate from native compilation. Build `opencv-wasm` with
+wasm-pack, then run `tests/browser-smoke.cjs` in Chromium. It checks actual
+pixels, canvas operations, invalid inputs and exported pixel lifetimes.
+
+## Publish explicitly
+
+`bash publish.sh` or `bash publish.sh --dry-run` runs all gates and performs no
+registry writes. Only after reviewing candidate contents and results:
 
 ```bash
-# Load environment variables and publish
-cd /workspaces/ruv-FANN/opencv-rust
-source ../.env
-./publish.sh
+bash publish.sh --publish
 ```
 
-Alternatively, publish manually with proper token:
+The script validates and packages every workspace member before publishing any
+member. It publishes core, WASM, SDK, then the independent native bridge, keeping
+Cargo verification enabled and stopping on failure. `publish-simple.sh` delegates
+to the same implementation. Re-check registry state after an interrupted release
+before retrying; do not assume an operation failed merely because its response
+was interrupted.
 
-```bash
-# Set token
-export CARGO_REGISTRY_TOKEN="your_actual_token"
-
-# Navigate to opencv-rust directory
-cd /workspaces/ruv-FANN/opencv-rust
-
-# Login to cargo
-cargo login $CARGO_REGISTRY_TOKEN
-
-# Publish in dependency order
-cargo publish -p opencv-sys --allow-dirty
-sleep 30  # Wait to avoid rate limiting
-
-cargo publish -p opencv-core --allow-dirty
-sleep 30
-
-cargo publish -p opencv-imgproc --allow-dirty
-sleep 30
-
-cargo publish -p opencv-imgcodecs --allow-dirty
-sleep 30
-
-cargo publish -p opencv-ml --allow-dirty
-sleep 30
-
-cargo publish -p opencv-wasm --allow-dirty
-sleep 30
-
-cargo publish -p opencv-sdk --allow-dirty
-```
-
-## Step 4: Verify Publication
-
-After publishing, verify your crates are available:
-
-- Visit https://crates.io/crates/opencv-rust
-- Check https://docs.rs/opencv-rust for documentation
-- Test installation: `cargo add opencv-rust`
-
-## Important Notes
-
-1. **Rate Limiting**: Crates.io has rate limits. The script includes 30-second delays between publishes.
-2. **Version Conflicts**: If a version already exists, increment the version in Cargo.toml files.
-3. **Dependencies**: Ensure all workspace dependencies are published before dependent crates.
-4. **Naming**: The crate names must be unique on crates.io. You may need to use prefixed names like `ruv-opencv-core`.
-
-## Troubleshooting
-
-### "crate name already taken"
-The name `opencv-rust` or related names might already be taken. Consider using:
-- `ruv-opencv`
-- `ruv-opencv-rust`
-- `opencv-fann`
-
-Update all Cargo.toml files with the new names before publishing.
-
-### "failed to verify package tarball"
-Ensure all files are properly included in the package:
-```bash
-cargo package --list
-```
-
-### "missing required metadata"
-Verify all Cargo.toml files have:
-- name
-- version
-- authors
-- license
-- description
-- repository
-
-## Security Notes
-
-- **Never commit** your actual CARGO_REGISTRY_TOKEN to git
-- Use environment variables or CI/CD secrets for tokens
-- Consider using a dedicated publishing token with limited scope
-
----
-
-For questions or issues, please open an issue at https://github.com/ruvnet/ruv-FANN/issues
+The report at `../docs/review-cuda-cv.md` describes API migrations, dependency
+warnings, real tested capabilities and hardware limitations. The Rust package
+versions do not imply upstream OpenCV feature parity.

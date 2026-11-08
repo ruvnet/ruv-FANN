@@ -1,260 +1,39 @@
-# OpenCV WASM for Rust
+# opencv-wasm
 
-[![Crates.io](https://img.shields.io/crates/v/opencv-wasm.svg)](https://crates.io/crates/opencv-wasm)
-[![Documentation](https://docs.rs/opencv-wasm/badge.svg)](https://docs.rs/opencv-wasm)
-[![License](https://img.shields.io/crates/l/opencv-wasm.svg)](https://github.com/ruvnet/ruv-FANN/blob/main/LICENSE)
+![Package roles](../../docs/assets/package-map.svg)
 
-WebAssembly bindings for OpenCV in Rust, enabling computer vision in the browser. This crate provides a JavaScript-friendly API for OpenCV's core functionality.
+Experimental browser bindings for the single-channel `opencv-core` matrix type. This is a subset of OpenCV-style operations.
 
-## Features
+Implemented operations include matrix creation, dimensions, clone, copied regions, geometry wrappers and nearest-neighbor resize. Canvas import converts RGBA pixels to grayscale with integer luma weights `(77R + 150G + 29B + 128) / 256`, ignoring alpha. Canvas export expands each grayscale pixel to opaque RGBA.
 
-- **Browser-Ready**: Compiled to WebAssembly for web applications
-- **Canvas Integration**: Direct interaction with HTML5 Canvas
-- **Type Safety**: Rust's safety with JavaScript interop
-- **Small Size**: Optimized WASM output with wee_alloc
-- **Image Processing**: Basic filters and transformations
+`blur`, `gaussian_blur` and `canny` are not implemented and return errors. They no longer return an unchanged image that could be mistaken for a processed result.
 
-## Installation
-
-### Rust Project
-
-```toml
-[dependencies]
-opencv-wasm = "4.8.0"
-wasm-bindgen = "0.2"
-```
-
-### JavaScript/TypeScript
+## Build locally
 
 ```bash
-npm install opencv-wasm
-```
-
-## Building
-
-Build the WASM module:
-
-```bash
-wasm-pack build --target web --out-dir pkg
-```
-
-## Usage
-
-### Rust Side
-
-```rust
-use opencv_wasm::*;
-use wasm_bindgen::prelude::*;
-
-#[wasm_bindgen]
-pub fn process_image(input: &WasmMat) -> Result<WasmMat, JsValue> {
-    // Apply Gaussian blur
-    gaussian_blur(input, 5, 1.0)
-}
-```
-
-### JavaScript Side
-
-```javascript
-import init, { 
-    init_opencv_wasm, 
-    WasmMat, 
-    mat_from_canvas,
-    mat_to_canvas,
-    gaussian_blur 
-} from './pkg/opencv_wasm.js';
-
-async function main() {
-    // Initialize WASM module
-    await init();
-    init_opencv_wasm();
-    
-    // Get canvas element
-    const canvas = document.getElementById('canvas');
-    
-    // Convert canvas to Mat
-    const mat = await mat_from_canvas(canvas);
-    
-    // Apply blur
-    const blurred = await gaussian_blur(mat, 5, 1.0);
-    
-    // Draw result back to canvas
-    await mat_to_canvas(blurred, canvas);
-}
-
-main();
-```
-
-## API Overview
-
-### Core Types
-
-#### WasmMat
-WebAssembly-compatible matrix wrapper:
-
-```javascript
-// Create new matrix
-const mat = new WasmMat(640, 480);
-
-// Properties
-console.log(mat.width, mat.height, mat.channels);
-
-// Operations
-const roi = mat.roi(10, 10, 100, 100);
-const clone = mat.clone();
-```
-
-#### WasmPoint
-2D point for browser use:
-
-```javascript
-const pt1 = new WasmPoint(10, 20);
-const pt2 = new WasmPoint(30, 40);
-const distance = pt1.distance_to(pt2);
-```
-
-#### WasmSize
-Dimensions container:
-
-```javascript
-const size = new WasmSize(1920, 1080);
-console.log(size.area()); // 2073600
-```
-
-### Image Processing Functions
-
-```javascript
-// Blur operations
-const blurred = blur(src, 5);
-const gaussian = gaussian_blur(src, 5, 1.0);
-
-// Edge detection
-const edges = canny(src, 100, 200);
-
-// Resize
-const resized = resize(src, 320, 240);
-```
-
-### Canvas Integration
-
-```javascript
-// Load from canvas
-const mat = await mat_from_canvas(canvas);
-
-// Save to canvas
-await mat_to_canvas(mat, canvas);
-
-// Load from image element
-const img = document.getElementById('image');
-const canvas = document.createElement('canvas');
-const ctx = canvas.getContext('2d');
-ctx.drawImage(img, 0, 0);
-const mat = await mat_from_canvas(canvas);
-```
-
-## Complete Example
-
-```html
-<!DOCTYPE html>
-<html>
-<head>
-    <title>OpenCV WASM Demo</title>
-</head>
-<body>
-    <input type="file" id="fileInput" accept="image/*">
-    <canvas id="canvas"></canvas>
-    
-    <script type="module">
-        import init, { 
-            init_opencv_wasm,
-            mat_from_canvas,
-            mat_to_canvas,
-            gaussian_blur,
-            canny,
-            get_version
-        } from './pkg/opencv_wasm.js';
-        
-        async function processImage(file) {
-            const img = new Image();
-            img.src = URL.createObjectURL(file);
-            
-            await img.decode();
-            
-            const canvas = document.getElementById('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
-            
-            // Convert to Mat
-            const mat = await mat_from_canvas(canvas);
-            
-            // Apply edge detection
-            const edges = await canny(mat, 50, 150);
-            
-            // Display result
-            await mat_to_canvas(edges, canvas);
-        }
-        
-        async function init_app() {
-            await init();
-            init_opencv_wasm();
-            
-            console.log(get_version());
-            
-            document.getElementById('fileInput').addEventListener('change', (e) => {
-                if (e.target.files.length > 0) {
-                    processImage(e.target.files[0]);
-                }
-            });
-        }
-        
-        init_app();
-    </script>
-</body>
-</html>
-```
-
-## Performance Tips
-
-1. **Reuse Matrices**: Create once, reuse multiple times
-2. **Batch Operations**: Process multiple operations before canvas update
-3. **Use Web Workers**: Offload processing to background threads
-4. **Optimize Size**: Use appropriate matrix types (8-bit vs 32-bit)
-
-## Browser Compatibility
-
-- Chrome 57+
-- Firefox 52+
-- Safari 11+
-- Edge 79+
-
-WebAssembly SIMD support (when available) provides additional performance.
-
-## Building from Source
-
-```bash
-# Install dependencies
-cargo install wasm-pack
-
-# Build for web
+rustup target add wasm32-unknown-unknown
+cargo check --manifest-path opencv-rust/Cargo.toml -p opencv-wasm --target wasm32-unknown-unknown
+# With wasm-pack installed, from this package directory:
 wasm-pack build --target web
-
-# Build optimized for size
-wasm-pack build --target web --release -- --features wee_alloc
 ```
 
-## Limitations
+The generated `pkg` directory is a build artifact; do not assume an npm package contains it without inspecting the archive. The standard Rust allocator is used. SIMD capability reports whether this build has the `simd128` target feature; it does not claim every operation is vectorized.
 
-- Currently supports single-channel and 3-channel 8-bit images
-- Some advanced OpenCV features not yet implemented
-- Performance varies by browser and hardware
+A browser can import the generated module and call `mat_from_canvas`, `resize` and `mat_to_canvas`. Canvas reads can fail for cross-origin images or unavailable 2D contexts. Those failures return JavaScript errors.
 
-## Contributing
+Native tests cover pixel mapping arithmetic. The browser smoke test runs actual
+WASM in Chromium and checks RGBA conversion, canvas roundtrips, ROI, resize,
+invalid input, tall-image WASM32 arithmetic and exported pixel lifetimes.
+`to_image_data` copies pixels to JavaScript-owned storage, so later Rust frees or
+WASM memory growth cannot corrupt/detach the returned image.
 
-We welcome contributions! See [CONTRIBUTING.md](https://github.com/ruvnet/ruv-FANN/blob/main/CONTRIBUTING.md) for guidelines.
+```bash
+# From this package directory, after installing wasm-pack:
+wasm-pack build --dev --target web --out-name opencv_wasm --out-dir /path/to/pkg
+# From the repository root, with Playwright installed:
+node opencv-rust/tests/browser-smoke.cjs /path/to/pkg
+```
 
-## License
-
-Apache License 2.0 - see [LICENSE](https://github.com/ruvnet/ruv-FANN/blob/main/LICENSE) for details.
+The test uses Playwright-managed Chromium by default. Set `CHROMIUM_BIN` to
+explicitly select another executable, for example `/usr/bin/chromium`.
+Browser execution is tested separately from native target compilation. See the [workspace README](../README.md) and [review report](../../docs/review-cuda-cv.md).

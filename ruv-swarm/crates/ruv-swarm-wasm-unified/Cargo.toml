@@ -1,59 +1,38 @@
 [package]
+# Publish source and required assets, excluding session state and runtime databases.
+include = [
+    "/src/**",
+    "/tests/**",
+    "/examples/**",
+    "/benches/**",
+    "/build.rs",
+    "/Cargo.toml",
+    "/README.md",
+    "/LICENSE*",
+]
 name = "ruv-swarm-wasm-unified"
-version = "1.0.5"
+version = "2.0.0"
+rust-version.workspace = true
 edition = "2021"
 authors = ["The ruv-swarm Contributors"]
-description = "Unified WASM module exposing all ruv-FANN ecosystem capabilities"
+description = "WebAssembly facade for the validated ruv-swarm browser bindings"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/ruv-fann/ruv-swarm"
+repository = "https://github.com/ruvnet/ruv-FANN"
 keywords = ["wasm", "neural-network", "swarm", "ruv-fann", "forecasting"]
 categories = ["wasm", "science", "algorithms", "mathematics", "concurrency"]
 
+readme = "README.md"
+
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = { version = "1.0", features = ["alloc"] }
-serde-wasm-bindgen = "0.6"
-js-sys = "0.3"
-console_error_panic_hook = "0.1"
-wee_alloc = { version = "0.4", optional = true }
-rayon = { version = "1.8", optional = true }
-lazy_static = "1.4"
+wasm-bindgen = "0.2"
+ruv-swarm-wasm = { path = "../ruv-swarm-wasm", version = "1.0.6", default-features = false }
 
-# Internal crate dependencies with WASM features
-ruv-swarm-core = { path = "../ruv-swarm-core", features = ["wasm"], default-features = false }
-ruv-swarm-ml = { path = "../ruv-swarm-ml", features = ["wasm"], default-features = false }
-ruv-swarm-wasm = { path = "../ruv-swarm-wasm", default-features = false }
-ruv-swarm-persistence = { path = "../ruv-swarm-persistence", default-features = false }
-
-[dependencies.web-sys]
-version = "0.3"
-features = [
-  "console",
-  "Performance",
-  "WorkerGlobalScope",
-  "DedicatedWorkerGlobalScope",
-  "Navigator",
-  "Window",
-]
-
-# WASM optimization features
 [features]
-default = ["simd", "parallel", "optimize"]
-simd = []
-parallel = ["rayon"]
-optimize = []
-wee_alloc_feature = ["wee_alloc"]
-console_error_panic_hook = []
-ruv-fann = []
-neuro-divergent = []
-
-# WASM-specific optimizations
-[package.metadata.wasm-pack]
-"wasm-pack-plugin" = "wasm-pack-plugin"
+default = ["simd"]
+simd = ["ruv-swarm-wasm/simd"]
 
 [package.metadata.wasm-pack.profile.release]
-wasm-opt = ["-Oz", "--enable-simd"]
+wasm-opt = false

@@ -7,11 +7,45 @@ use parking_lot::Mutex;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+/// A private, exclusively created module file, removed on every exit path.
+struct ModuleFile(std::path::PathBuf);
+
+impl ModuleFile {
+    fn create(bytes: &[u8]) -> Result<Self> {
+        use std::io::Write;
+        for _ in 0..32 {
+            let path = std::env::temp_dir().join(format!(
+                "cuda_wasm_module_{}_{:016x}.wasm", std::process::id(), rand::random::<u64>()
+            ));
+            let mut options = std::fs::OpenOptions::new();
+            options.write(true).create_new(true);
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::OpenOptionsExt;
+                options.mode(0o600);
+            }
+            let mut file = match options.open(&path) {
+                Ok(file) => file,
+                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+                Err(error) => return Err(runtime_error!("Cannot create module file: {}", error)),
+            };
+            let owned = Self(path);
+            file.write_all(bytes).map_err(|e| runtime_error!("Cannot write module file: {}", e))?;
+            return Ok(owned);
+        }
+        Err(runtime_error!("Cannot create a unique module file"))
+    }
+}
+
+impl Drop for ModuleFile {
+    fn drop(&mut self) { let _ = std::fs::remove_file(&self.0); }
+}
+
 /// CPU-based runtime backend for WASM environments.
 ///
 /// Supports:
 /// - Heap-based memory allocation with tracking for proper deallocation
-/// - WASM module compilation (validates binary WASM and WAT text format)
+/// - WASM module handles (format prefixes checked; external runtime validates)
 /// - Kernel execution via external `wasmtime` or `wasmer` runtimes
 pub struct WasmRuntime {
     capabilities: BackendCapabilities,
@@ -121,7 +155,7 @@ impl BackendTrait for WasmRuntime {
         let bytes = source.as_bytes();
 
         if bytes.len() >= 4 && &bytes[0..4] == b"\0asm" {
-            // Valid WASM binary
+            // Binary format candidate; the external runtime validates the module.
             let mut modules = self.compiled_modules.lock();
             let index = modules.len();
             modules.push(bytes.to_vec());
@@ -147,14 +181,19 @@ impl BackendTrait for WasmRuntime {
     /// previously returned by `compile_kernel`. The module is written to a
     /// temporary file and executed via an external runtime (`wasmtime` or
     /// `wasmer`).
-    async fn launch_kernel(
+    async unsafe fn launch_kernel(
         &self,
         kernel: &[u8],
-        _grid: (u32, u32, u32),
-        _block: (u32, u32, u32),
-        _args: &[*const u8],
+        grid: (u32, u32, u32),
+        block: (u32, u32, u32),
+        args: &[*const u8],
     ) -> Result<()> {
-        if kernel.len() < 4 {
+        if grid != (1, 1, 1) || block != (1, 1, 1) || !args.is_empty() {
+            return Err(runtime_error!(
+                "External WASM runtime supports only a single invocation without kernel arguments"
+            ));
+        }
+        if kernel.len() != 4 {
             return Err(runtime_error!(
                 "Invalid kernel handle: expected 4-byte module index"
             ));
@@ -174,24 +213,13 @@ impl BackendTrait for WasmRuntime {
             runtime_error!("No WASM runtime found (install wasmtime or wasmer)")
         })?;
 
-        // Write module to a temporary file
-        let tmp_dir = std::env::temp_dir();
-        let tmp_path = tmp_dir.join(format!(
-            "cuda_wasm_module_{}_{}.wasm",
-            std::process::id(),
-            index
-        ));
-
-        std::fs::write(&tmp_path, &module_bytes)
-            .map_err(|e| runtime_error!("Failed to write temp WASM file: {}", e))?;
-
+        // Exclusive creation prevents following a pre-existing symlink. The
+        // owner also removes the file on write, process-spawn or runtime errors.
+        let module_file = ModuleFile::create(&module_bytes)?;
         let output = std::process::Command::new(runtime_name)
-            .arg(tmp_path.to_str().unwrap_or("module.wasm"))
+            .arg(&module_file.0)
             .output()
             .map_err(|e| runtime_error!("Failed to execute {}: {}", runtime_name, e))?;
-
-        // Clean up temp file (best-effort)
-        let _ = std::fs::remove_file(&tmp_path);
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -218,7 +246,7 @@ impl BackendTrait for WasmRuntime {
         let layout = std::alloc::Layout::from_size_align(size, ALLOC_ALIGN)
             .map_err(|e| runtime_error!("Invalid layout: {}", e))?;
 
-        let ptr = unsafe { std::alloc::alloc(layout) };
+        let ptr = unsafe { std::alloc::alloc_zeroed(layout) };
 
         if ptr.is_null() {
             return Err(runtime_error!("Failed to allocate {} bytes", size));
@@ -264,7 +292,7 @@ impl BackendTrait for WasmRuntime {
     ///
     /// Validates that neither pointer is null and that the size is non-zero
     /// before performing the copy.
-    fn copy_memory(
+    unsafe fn copy_memory(
         &self,
         dst: *mut u8,
         src: *const u8,
@@ -304,6 +332,22 @@ mod tests {
 
     fn make_runtime() -> WasmRuntime {
         WasmRuntime::new()
+    }
+
+    #[test]
+    fn module_files_are_private_unique_and_removed_on_drop() {
+        let first = ModuleFile::create(b"module-one").unwrap();
+        let second = ModuleFile::create(b"module-two").unwrap();
+        assert_ne!(first.0, second.0);
+        assert_eq!(std::fs::read(&first.0).unwrap(), b"module-one");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(std::fs::metadata(&first.0).unwrap().permissions().mode() & 0o777, 0o600);
+        }
+        let path = first.0.clone();
+        drop(first);
+        assert!(!path.exists());
     }
 
     // ── Capabilities ──────────────────────────────────────────────
@@ -374,7 +418,7 @@ mod tests {
             std::ptr::write_bytes(src, 0xAB, 4);
         }
 
-        rt.copy_memory(dst, src, 4, MemcpyKind::HostToHost)
+        unsafe { rt.copy_memory(dst, src, 4, MemcpyKind::HostToHost) }
             .expect("copy should succeed");
 
         unsafe {
@@ -391,8 +435,8 @@ mod tests {
     fn test_copy_memory_null_dst_fails() {
         let rt = make_runtime();
         let src = rt.allocate_memory(4).unwrap();
-        assert!(rt
-            .copy_memory(std::ptr::null_mut(), src, 4, MemcpyKind::HostToHost)
+        assert!(unsafe { rt
+            .copy_memory(std::ptr::null_mut(), src, 4, MemcpyKind::HostToHost) }
             .is_err());
         rt.free_memory(src).unwrap();
     }
@@ -401,8 +445,8 @@ mod tests {
     fn test_copy_memory_null_src_fails() {
         let rt = make_runtime();
         let dst = rt.allocate_memory(4).unwrap();
-        assert!(rt
-            .copy_memory(dst, std::ptr::null(), 4, MemcpyKind::HostToHost)
+        assert!(unsafe { rt
+            .copy_memory(dst, std::ptr::null(), 4, MemcpyKind::HostToHost) }
             .is_err());
         rt.free_memory(dst).unwrap();
     }
@@ -412,8 +456,8 @@ mod tests {
         let rt = make_runtime();
         let src = rt.allocate_memory(4).unwrap();
         let dst = rt.allocate_memory(4).unwrap();
-        assert!(rt
-            .copy_memory(dst, src, 0, MemcpyKind::HostToHost)
+        assert!(unsafe { rt
+            .copy_memory(dst, src, 0, MemcpyKind::HostToHost) }
             .is_err());
         rt.free_memory(src).unwrap();
         rt.free_memory(dst).unwrap();
@@ -465,11 +509,30 @@ mod tests {
     // ── Launch kernel (runtime detection) ─────────────────────────
 
     #[tokio::test]
+    async fn test_launch_rejects_unsupported_grid_and_arguments() {
+        let rt = WasmRuntime::new();
+        let handle = rt.compile_kernel("(module)").await.unwrap();
+        let argument = 7u8;
+        let arguments = [&argument as *const u8];
+        for (grid, block, args) in [
+            ((2, 1, 1), (1, 1, 1), &[][..]),
+            ((1, 1, 1), (2, 1, 1), &[][..]),
+            ((1, 1, 1), (1, 1, 1), &arguments[..]),
+        ] {
+            // SAFETY: handle is owned by rt, and argument storage is live.
+            // These unsupported shapes must fail before any execution.
+            let error = unsafe { rt.launch_kernel(&handle, grid, block, args) }
+                .await.unwrap_err();
+            assert!(error.to_string().contains("single invocation without kernel arguments"));
+        }
+    }
+
+    #[tokio::test]
     async fn test_launch_kernel_invalid_handle() {
         let rt = make_runtime();
         // Too-short handle
-        let result = rt
-            .launch_kernel(&[0u8, 1], (1, 1, 1), (1, 1, 1), &[])
+        let result = unsafe { rt
+            .launch_kernel(&[0u8, 1], (1, 1, 1), (1, 1, 1), &[]) }
             .await;
         assert!(result.is_err());
     }
@@ -479,8 +542,8 @@ mod tests {
         let rt = make_runtime();
         // Module index 99 was never compiled
         let handle = 99u32.to_le_bytes();
-        let result = rt
-            .launch_kernel(&handle, (1, 1, 1), (1, 1, 1), &[])
+        let result = unsafe { rt
+            .launch_kernel(&handle, (1, 1, 1), (1, 1, 1), &[]) }
             .await;
         assert!(result.is_err());
         let err_msg = format!("{}", result.unwrap_err());

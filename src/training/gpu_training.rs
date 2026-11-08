@@ -709,6 +709,9 @@ mod tests {
     #[test]
     #[cfg_attr(miri, ignore = "Miri cannot handle WebGPU FFI calls")]
     fn test_gpu_availability() {
+        if std::env::var("RUV_FANN_CI_TESTING").is_ok() {
+            assert!(!is_gpu_available(), "CI mode must avoid native GPU probes");
+        }
         println!("GPU available: {}", is_gpu_available());
         println!("GPU capabilities: {}", get_gpu_capabilities());
     }

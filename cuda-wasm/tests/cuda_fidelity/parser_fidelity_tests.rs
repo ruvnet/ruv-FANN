@@ -652,6 +652,7 @@ mod tests {
     // Test 21: AST serialization round-trip (serde)
     // ---------------------------------------------------------------
     #[test]
+    #[cfg(feature = "serde")]
     fn test_ast_serde_roundtrip() {
         let ast = Ast {
             items: vec![

@@ -72,12 +72,9 @@ class WasmModuleLoader {
       throw new Error(`Unknown module: ${name}`);
     }
 
-    /* optional module not built – silently alias to core when possible */
+    /* An absent optional module must not masquerade as a working model. */
     if (!info.exists && info.optional) {
-      await this.loadModule('core');
-      const coreMod = this.modules.get('core');
-      this.modules.set(name, coreMod);
-      return coreMod;
+      throw new Error(`Optional module '${name}' is not built or supported in this distribution`);
     }
 
     /* ensure deps first */
@@ -133,10 +130,7 @@ class WasmModuleLoader {
       }
       buffer = await resp.arrayBuffer();
     } else { // Node
-      buffer = await fs.readFile(wasmPath).catch(() => null);
-      if (!buffer) {
-        return this.#placeholder(name);
-      }
+      buffer = await fs.readFile(wasmPath);
     }
 
     const imports = this.#importsFor(name);
@@ -174,7 +168,6 @@ class WasmModuleLoader {
       throw new Error('All WASM loading strategies failed');
     } catch (error) {
       console.error('Failed to load core module via bindings loader:', error);
-      console.warn('⚠️ Falling back to placeholder WASM functionality');
 
       // Log specific import errors for debugging
       if (error.message && error.message.includes('import')) {
@@ -184,7 +177,7 @@ class WasmModuleLoader {
         });
       }
 
-      return this.#placeholder('core');
+      throw error;
     }
   }
 

@@ -1,5 +1,6 @@
 //! Streaming I/O for large datasets
 
+use super::limits;
 use crate::io::error::{IoError, IoResult};
 use std::io::{BufRead, BufReader, Read};
 
@@ -30,12 +31,13 @@ impl TrainingDataStreamReader {
         let mut line = String::new();
         let mut samples_processed = 0;
         let mut bytes_read = 0;
+        let mut remaining = limits::TRAINING_BYTES;
 
         // Read header line
-        let header_bytes = reader.read_line(&mut line)?;
+        let header_bytes = limits::read_line(reader, &mut line, &mut remaining)?;
         bytes_read += header_bytes;
 
-        let header_parts: Vec<&str> = line.split_whitespace().collect();
+        let header_parts: Vec<&str> = line.split_whitespace().take(4).collect();
 
         if header_parts.len() != 3 {
             return Err(IoError::InvalidFileFormat(
@@ -47,54 +49,36 @@ impl TrainingDataStreamReader {
         let num_input: usize = header_parts[1].parse()?;
         let num_output: usize = header_parts[2].parse()?;
 
-        const MAX_NUM_DATA: usize = 100_000_000;
-        if num_data > MAX_NUM_DATA {
-            return Err(IoError::InvalidTrainingData(format!(
-                "num_data ({}) exceeds maximum allowed ({})",
-                num_data, MAX_NUM_DATA
-            )));
-        }
+        limits::training_shape(num_data, num_input, num_output)?;
 
         let mut callback = callback;
+        let mut input_values = Vec::new();
+        let mut output_values = Vec::new();
 
         for i in 0..num_data {
             // Read input line
             line.clear();
-            bytes_read += reader.read_line(&mut line)?;
-
-            let input_values: Result<Vec<f32>, _> =
-                line.split_whitespace().map(|s| s.parse()).collect();
-
-            let input_values = input_values
-                .map_err(|e| IoError::ParseError(format!("Invalid input at sample {i}: {e}")))?;
-
-            if input_values.len() != num_input {
+            let bytes = limits::read_line(reader, &mut line, &mut remaining)?;
+            if bytes == 0 {
                 return Err(IoError::InvalidTrainingData(format!(
-                    "Expected {} inputs at sample {}, got {}",
-                    num_input,
-                    i,
-                    input_values.len()
+                    "Missing data at sample {i}"
                 )));
             }
+            bytes_read += bytes;
+
+            parse_values(&line, &mut input_values, num_input, i)?;
 
             // Read output line
             line.clear();
-            bytes_read += reader.read_line(&mut line)?;
-
-            let output_values: Result<Vec<f32>, _> =
-                line.split_whitespace().map(|s| s.parse()).collect();
-
-            let output_values = output_values
-                .map_err(|e| IoError::ParseError(format!("Invalid output at sample {i}: {e}")))?;
-
-            if output_values.len() != num_output {
+            let bytes = limits::read_line(reader, &mut line, &mut remaining)?;
+            if bytes == 0 {
                 return Err(IoError::InvalidTrainingData(format!(
-                    "Expected {} outputs at sample {}, got {}",
-                    num_output,
-                    i,
-                    output_values.len()
+                    "Missing data at sample {i}"
                 )));
             }
+            bytes_read += bytes;
+
+            parse_values(&line, &mut output_values, num_output, i)?;
 
             // Call callback with this sample
             callback(&input_values, &output_values)?;
@@ -120,96 +104,54 @@ impl TrainingDataStreamReader {
         R: BufRead,
         F: FnMut(&[Vec<f32>], &[Vec<f32>]) -> IoResult<()>,
     {
-        let mut line = String::new();
-        let mut samples_processed = 0;
-        let mut bytes_read = 0;
-
-        // Read header line
-        let header_bytes = reader.read_line(&mut line)?;
-        bytes_read += header_bytes;
-
-        let header_parts: Vec<&str> = line.split_whitespace().collect();
-
-        if header_parts.len() != 3 {
-            return Err(IoError::InvalidFileFormat(
-                "Header must contain exactly 3 numbers: num_data num_input num_output".to_string(),
+        if batch_size == 0 {
+            return Err(IoError::InvalidTrainingData(
+                "batch_size must be positive".into(),
             ));
         }
-
-        let num_data: usize = header_parts[0].parse()?;
-        let num_input: usize = header_parts[1].parse()?;
-        let num_output: usize = header_parts[2].parse()?;
-
-        const MAX_NUM_DATA: usize = 100_000_000;
-        if num_data > MAX_NUM_DATA {
-            return Err(IoError::InvalidTrainingData(format!(
-                "num_data ({}) exceeds maximum allowed ({})",
-                num_data, MAX_NUM_DATA
-            )));
-        }
-
-        let mut input_batch = Vec::with_capacity(batch_size);
-        let mut output_batch = Vec::with_capacity(batch_size);
-
-        for i in 0..num_data {
-            // Read input line
-            line.clear();
-            bytes_read += reader.read_line(&mut line)?;
-
-            let input_values: Result<Vec<f32>, _> =
-                line.split_whitespace().map(|s| s.parse()).collect();
-
-            let input_values = input_values
-                .map_err(|e| IoError::ParseError(format!("Invalid input at sample {i}: {e}")))?;
-
-            if input_values.len() != num_input {
-                return Err(IoError::InvalidTrainingData(format!(
-                    "Expected {} inputs at sample {}, got {}",
-                    num_input,
-                    i,
-                    input_values.len()
-                )));
-            }
-
-            // Read output line
-            line.clear();
-            bytes_read += reader.read_line(&mut line)?;
-
-            let output_values: Result<Vec<f32>, _> =
-                line.split_whitespace().map(|s| s.parse()).collect();
-
-            let output_values = output_values
-                .map_err(|e| IoError::ParseError(format!("Invalid output at sample {i}: {e}")))?;
-
-            if output_values.len() != num_output {
-                return Err(IoError::InvalidTrainingData(format!(
-                    "Expected {} outputs at sample {}, got {}",
-                    num_output,
-                    i,
-                    output_values.len()
-                )));
-            }
-
-            // Add to batch
-            input_batch.push(input_values);
-            output_batch.push(output_values);
-            samples_processed += 1;
-
-            // Process batch when full or at end
-            if input_batch.len() == batch_size || i == num_data - 1 {
+        // Do not reserve an untrusted caller's full batch size before reading.
+        let mut input_batch = Vec::with_capacity(batch_size.min(1024));
+        let mut output_batch = Vec::with_capacity(batch_size.min(1024));
+        let stats = self.read_stream(reader, |inputs, outputs| {
+            input_batch.push(inputs.to_vec());
+            output_batch.push(outputs.to_vec());
+            if input_batch.len() == batch_size {
                 callback(&input_batch, &output_batch)?;
                 input_batch.clear();
                 output_batch.clear();
             }
+            Ok(())
+        })?;
+        if !input_batch.is_empty() {
+            callback(&input_batch, &output_batch)?;
         }
-
-        Ok(StreamStats {
-            samples_processed,
-            bytes_read,
-            num_input,
-            num_output,
-        })
+        Ok(stats)
     }
+}
+
+fn parse_values(line: &str, values: &mut Vec<f32>, expected: usize, sample: usize) -> IoResult<()> {
+    values.clear();
+    for token in line.split_whitespace() {
+        if values.len() == expected {
+            return Err(IoError::InvalidTrainingData(format!(
+                "Too many values at sample {sample}"
+            )));
+        }
+        let value: f32 = token.parse()?;
+        if !value.is_finite() {
+            return Err(IoError::InvalidTrainingData(format!(
+                "Non-finite value at sample {sample}"
+            )));
+        }
+        values.push(value);
+    }
+    if values.len() != expected {
+        return Err(IoError::InvalidTrainingData(format!(
+            "Expected {expected} values at sample {sample}, got {}",
+            values.len()
+        )));
+    }
+    Ok(())
 }
 
 impl Default for TrainingDataStreamReader {
@@ -302,10 +244,18 @@ pub mod memory {
         let f32_size = std::mem::size_of::<f32>();
         let vec_overhead = std::mem::size_of::<Vec<f32>>();
 
-        let input_memory = batch_size * (num_input * f32_size + vec_overhead);
-        let output_memory = batch_size * (num_output * f32_size + vec_overhead);
+        let input_memory = batch_size.saturating_mul(
+            num_input
+                .saturating_mul(f32_size)
+                .saturating_add(vec_overhead),
+        );
+        let output_memory = batch_size.saturating_mul(
+            num_output
+                .saturating_mul(f32_size)
+                .saturating_add(vec_overhead),
+        );
 
-        input_memory + output_memory
+        input_memory.saturating_add(output_memory)
     }
 
     /// Calculate optimal batch size for given memory limit

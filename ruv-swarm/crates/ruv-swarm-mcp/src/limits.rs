@@ -33,14 +33,14 @@ pub struct ResourceLimits {
 impl Default for ResourceLimits {
     fn default() -> Self {
         Self {
-            max_agents_per_session: 10_000_000,                     // 10M agents for massive GPU swarms
-            max_memory_per_session: 1024 * 1024 * 1024 * 1024,     // 1TB memory
-            max_concurrent_tasks: 10_000_000,                       // 10M concurrent tasks
-            max_session_duration: Duration::from_secs(30 * 24 * 60 * 60), // 30 days
-            max_message_size: 1024 * 1024 * 1024,                  // 1GB messages
-            max_workflow_duration: Duration::from_secs(7 * 24 * 60 * 60), // 7 days
-            max_memory_entries: 100_000_000,                        // 100M entries
-            max_memory_value_size: 1024 * 1024 * 1024,             // 1GB per value
+            max_agents_per_session: 100,
+            max_memory_per_session: 64 * 1024 * 1024,
+            max_concurrent_tasks: 1000,
+            max_session_duration: Duration::from_secs(24 * 60 * 60),
+            max_message_size: 1024 * 1024,
+            max_workflow_duration: Duration::from_secs(300),
+            max_memory_entries: 10_000,
+            max_memory_value_size: 1024 * 1024,
         }
     }
 }
@@ -144,9 +144,26 @@ impl ResourceLimiter {
             .get_mut(session_id)
             .ok_or(LimitError::SessionNotFound)?;
 
+        if usage.agent_count >= self.limits.max_agents_per_session {
+            return Err(LimitError::AgentLimitExceeded {
+                current: usage.agent_count,
+                limit: self.limits.max_agents_per_session,
+            });
+        }
         usage.agent_count += 1;
         usage.touch();
 
+        Ok(())
+    }
+
+    /// Release a reserved agent slot after a failed spawn.
+    pub async fn decrement_agents(&self, session_id: &Uuid) -> Result<(), LimitError> {
+        let mut sessions = self.sessions.write().await;
+        let usage = sessions
+            .get_mut(session_id)
+            .ok_or(LimitError::SessionNotFound)?;
+        usage.agent_count = usage.agent_count.saturating_sub(1);
+        usage.touch();
         Ok(())
     }
 
@@ -176,6 +193,12 @@ impl ResourceLimiter {
             .get_mut(session_id)
             .ok_or(LimitError::SessionNotFound)?;
 
+        if usage.active_tasks >= self.limits.max_concurrent_tasks {
+            return Err(LimitError::TaskLimitExceeded {
+                current: usage.active_tasks,
+                limit: self.limits.max_concurrent_tasks,
+            });
+        }
         usage.active_tasks += 1;
         usage.touch();
 
@@ -219,7 +242,11 @@ impl ResourceLimiter {
         }
 
         // Check total memory usage
-        if usage.memory_usage + value_size > self.limits.max_memory_per_session {
+        if usage
+            .memory_usage
+            .checked_add(value_size)
+            .map_or(true, |total| total > self.limits.max_memory_per_session)
+        {
             return Err(LimitError::MemoryLimitExceeded {
                 current: usage.memory_usage,
                 requested: value_size,
@@ -251,6 +278,29 @@ impl ResourceLimiter {
             .ok_or(LimitError::SessionNotFound)?;
 
         if is_add {
+            if value_size > self.limits.max_memory_value_size {
+                return Err(LimitError::MemoryValueTooLarge {
+                    size: value_size,
+                    limit: self.limits.max_memory_value_size,
+                });
+            }
+            if usage
+                .memory_usage
+                .checked_add(value_size)
+                .map_or(true, |total| total > self.limits.max_memory_per_session)
+            {
+                return Err(LimitError::MemoryLimitExceeded {
+                    current: usage.memory_usage,
+                    requested: value_size,
+                    limit: self.limits.max_memory_per_session,
+                });
+            }
+            if usage.memory_entries >= self.limits.max_memory_entries {
+                return Err(LimitError::MemoryEntriesExceeded {
+                    current: usage.memory_entries,
+                    limit: self.limits.max_memory_entries,
+                });
+            }
             usage.memory_usage += value_size;
             usage.memory_entries += 1;
         } else {
@@ -370,10 +420,7 @@ pub enum LimitError {
     MemoryEntriesExceeded { current: usize, limit: usize },
 
     #[error("Session expired: age {age:?} > limit {limit:?}")]
-    SessionExpired {
-        age: Duration,
-        limit: Duration,
-    },
+    SessionExpired { age: Duration, limit: Duration },
 }
 
 #[cfg(test)]
@@ -384,19 +431,19 @@ mod tests {
     async fn test_agent_limits() {
         let mut limits = ResourceLimits::default();
         limits.max_agents_per_session = 2;
-        
+
         let limiter = ResourceLimiter::new(limits);
         let session_id = Uuid::new_v4();
-        
+
         limiter.init_session(session_id).await;
-        
+
         // Should allow first two agents
         assert!(limiter.check_agent_limit(&session_id).await.is_ok());
         assert!(limiter.increment_agents(&session_id).await.is_ok());
-        
+
         assert!(limiter.check_agent_limit(&session_id).await.is_ok());
         assert!(limiter.increment_agents(&session_id).await.is_ok());
-        
+
         // Should reject third agent
         assert!(limiter.check_agent_limit(&session_id).await.is_err());
     }
@@ -406,19 +453,22 @@ mod tests {
         let mut limits = ResourceLimits::default();
         limits.max_memory_per_session = 1000;
         limits.max_memory_value_size = 500;
-        
+
         let limiter = ResourceLimiter::new(limits);
         let session_id = Uuid::new_v4();
-        
+
         limiter.init_session(session_id).await;
-        
+
         // Should allow within limits
         assert!(limiter.check_memory_limit(&session_id, 400).await.is_ok());
-        assert!(limiter.update_memory_usage(&session_id, 400, true).await.is_ok());
-        
+        assert!(limiter
+            .update_memory_usage(&session_id, 400, true)
+            .await
+            .is_ok());
+
         // Should reject oversized value
         assert!(limiter.check_memory_limit(&session_id, 600).await.is_err());
-        
+
         // Should reject when total exceeds limit
         assert!(limiter.check_memory_limit(&session_id, 700).await.is_err());
     }
@@ -427,21 +477,21 @@ mod tests {
     async fn test_session_expiration() {
         let mut limits = ResourceLimits::default();
         limits.max_session_duration = Duration::from_millis(100);
-        
+
         let limiter = ResourceLimiter::new(limits);
         let session_id = Uuid::new_v4();
-        
+
         limiter.init_session(session_id).await;
-        
+
         // Should be valid initially
         assert!(limiter.check_session_expiration(&session_id).await.is_ok());
-        
+
         // Wait for expiration
         tokio::time::sleep(Duration::from_millis(150)).await;
-        
+
         // Should be expired
         assert!(limiter.check_session_expiration(&session_id).await.is_err());
-        
+
         // Cleanup should remove it
         let cleaned = limiter.cleanup_expired_sessions().await;
         assert_eq!(cleaned, 1);

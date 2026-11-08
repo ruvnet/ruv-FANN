@@ -99,33 +99,39 @@ impl<T: Float> Scaler<T> for StandardScaler<T> {
             });
         }
         
-        if self.with_mean {
-            let sum = data.iter().fold(T::zero(), |acc, &x| acc + x);
-            self.mean = Some(sum / T::from(data.len()).unwrap());
-        }
-        
-        if self.with_std {
-            let mean = if self.with_mean {
-                self.mean.unwrap()
-            } else {
-                T::zero()
-            };
-            
-            let variance = data.iter()
-                .map(|&x| {
-                    let diff = x - mean;
-                    diff * diff
-                })
-                .fold(T::zero(), |acc, x| acc + x) / T::from(data.len()).unwrap();
-            
-            self.std = Some(variance.sqrt());
-            
-            // Prevent division by zero
-            if self.std.unwrap() == T::zero() {
-                self.std = Some(T::one());
+        // Fit on training observations only. Welford's online variance avoids
+        // subtracting two large sums and also gives scale-only mode the true
+        // standard deviation rather than the root mean square around zero.
+        let mut mean = T::zero();
+        let mut second_moment = T::zero();
+        for (index, &value) in data.iter().enumerate() {
+            if !value.is_finite() {
+                return Err(DataPipelineError::InvalidFormat {
+                    message: "Scaler training data must be finite".to_string(),
+                });
             }
+            let count = T::from(index + 1).ok_or_else(|| DataPipelineError::ComputationError {
+                message: "Training data length is not representable".to_string(),
+            })?;
+            let difference = value - mean;
+            mean = mean + difference / count;
+            second_moment = second_moment + difference * (value - mean);
         }
-        
+        let count = T::from(data.len()).unwrap();
+        let standard_deviation = (second_moment / count).max(T::zero()).sqrt();
+        if !mean.is_finite() || !standard_deviation.is_finite() {
+            return Err(DataPipelineError::ComputationError {
+                message: "Scaler statistics overflowed".to_string(),
+            });
+        }
+        // Commit fitted state only after every observation and statistic passed.
+        self.mean = if self.with_mean { Some(mean) } else { None };
+        self.std = if self.with_std {
+            Some(if standard_deviation == T::zero() { T::one() } else { standard_deviation })
+        } else {
+            None
+        };
+
         Ok(())
     }
     
@@ -467,7 +473,9 @@ pub struct QuantileTransformer<T: Float> {
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "serde_support", derive(Serialize, Deserialize))]
 pub enum QuantileDistribution {
+    /// Map observations to a uniform distribution.
     Uniform,
+    /// Map observations to a normal distribution.
     Normal,
 }
 
@@ -688,129 +696,88 @@ impl<T: Float> DifferencingTransformer<T> {
         }
     }
     
-    /// Apply differencing to data
-    pub fn difference(&self, data: &[T]) -> Vec<T> {
-        if data.len() <= self.order {
-            return Vec::new();
-        }
-        
-        let mut result = data.to_vec();
-        
-        for _ in 0..self.order {
-            if let Some(periods) = self.seasonal_periods {
-                // Seasonal differencing
-                if result.len() <= periods {
-                    break;
-                }
-                let mut seasonal_diff = Vec::with_capacity(result.len() - periods);
-                for i in periods..result.len() {
-                    seasonal_diff.push(result[i] - result[i - periods]);
-                }
-                result = seasonal_diff;
-            } else {
-                // Regular differencing
-                if result.len() <= 1 {
-                    break;
-                }
-                let mut diff = Vec::with_capacity(result.len() - 1);
-                for i in 1..result.len() {
-                    diff.push(result[i] - result[i - 1]);
-                }
-                result = diff;
-            }
-        }
-        
-        result
+    fn extent(&self) -> Result<(usize, usize)> {
+        let period = self.seasonal_periods.unwrap_or(1);
+        if period == 0 { return Err(DataPipelineError::InvalidFormat { message: "Seasonal period must be positive".into() }); }
+        let extent = period.checked_mul(self.order).ok_or_else(|| DataPipelineError::InvalidFormat { message: "Differencing period times order overflowed".into() })?;
+        Ok((period, extent))
     }
-    
-    /// Integrate (inverse difference) the data
-    pub fn integrate(&self, diff_data: &[T], initial_values: &[T]) -> Result<Vec<T>> {
-        if initial_values.is_empty() {
-            return Err(DataPipelineError::InvalidFormat {
-                message: "Initial values required for integration".to_string(),
-            });
+
+    /// Difference finite values. Invalid parameters, overflow, or insufficient
+    /// history produce an empty vector; use `try_difference` for a diagnostic.
+    pub fn difference(&self, data: &[T]) -> Vec<T> { self.try_difference(data).unwrap_or_default() }
+
+    /// Apply `(1 - lag(period))^order` with checked dimensions and finite arithmetic.
+    pub fn try_difference(&self, data: &[T]) -> Result<Vec<T>> {
+        let (period, extent) = self.extent()?;
+        if data.len() < extent || data.iter().any(|value| !value.is_finite()) {
+            return Err(DataPipelineError::InvalidFormat { message: "Insufficient or non-finite differencing input".into() });
         }
-        
-        let mut result = initial_values.to_vec();
-        result.extend_from_slice(diff_data);
-        
+        let mut result = data.to_vec();
         for _ in 0..self.order {
-            if let Some(periods) = self.seasonal_periods {
-                // Seasonal integration
-                for i in periods..result.len() {
-                    result[i] = result[i] + result[i - periods];
-                }
-            } else {
-                // Regular integration
-                for i in 1..result.len() {
-                    result[i] = result[i] + result[i - 1];
-                }
+            result = Self::difference_once(&result, period)?;
+        }
+        Ok(result)
+    }
+
+    fn difference_once(data: &[T], period: usize) -> Result<Vec<T>> {
+        data[period..].iter().zip(data).map(|(value, previous)| {
+            let value = *value - *previous;
+            if value.is_finite() { Ok(value) } else { Err(DataPipelineError::InvalidFormat { message: "Differencing arithmetic overflowed".into() }) }
+        }).collect()
+    }
+
+    /// Restore the suffix from highest-order differences and exactly
+    /// `period * order` original prefix values. The seed prefix is not returned.
+    /// Each difference level uses its own lag seeds, including seasonal levels.
+    pub fn integrate(&self, diff_data: &[T], initial_values: &[T]) -> Result<Vec<T>> {
+        let (period, extent) = self.extent()?;
+        if initial_values.len() != extent || initial_values.iter().chain(diff_data).any(|value| !value.is_finite()) {
+            return Err(DataPipelineError::InvalidFormat { message: format!("Integration requires {extent} finite original prefix values and finite differences") });
+        }
+        diff_data.len().checked_add(extent).ok_or_else(|| DataPipelineError::InvalidFormat { message: "Integration output length overflowed".into() })?;
+        let mut prefix = initial_values.to_vec();
+        let mut seeds = Vec::with_capacity(self.order);
+        for _ in 0..self.order {
+            seeds.push(prefix[..period].to_vec());
+            prefix = Self::difference_once(&prefix, period)?;
+        }
+        let mut result = diff_data.to_vec();
+        for seed in seeds.into_iter().rev() {
+            let mut restored = seed;
+            for (index, difference) in result.into_iter().enumerate() {
+                let value = difference + restored[index];
+                if !value.is_finite() { return Err(DataPipelineError::InvalidFormat { message: "Integration arithmetic overflowed".into() }); }
+                restored.push(value);
             }
+            result = restored;
         }
-        
-        // Remove the prepended initial values
-        let start_idx = if let Some(periods) = self.seasonal_periods {
-            periods * self.order
-        } else {
-            self.order
-        };
-        
-        if start_idx < result.len() {
-            Ok(result[start_idx..].to_vec())
-        } else {
-            Ok(Vec::new())
-        }
+        Ok(result[extent..].to_vec())
     }
 }
 
 impl<T: Float> DataTransform<T> for DifferencingTransformer<T> {
     fn transform(&self, data: &TimeSeriesData<T>) -> Result<TimeSeriesData<T>> {
-        let values = data.values();
-        let differenced = self.difference(&values);
-        
-        if differenced.is_empty() {
-            return Err(DataPipelineError::InvalidFormat {
-                message: "Insufficient data for differencing".to_string(),
-            });
+        let (_, extent) = self.extent()?;
+        let differenced = self.try_difference(&data.values())?;
+        if differenced.is_empty() { return Err(DataPipelineError::InvalidFormat { message: "Insufficient data for differencing".into() }); }
+        let timestamps = data.timestamps();
+        let mut transformed = data.clone(); transformed.data_points.clear();
+        for (timestamp, value) in timestamps.into_iter().skip(extent).zip(differenced) {
+            transformed.add_point(crate::DataPoint::new(timestamp, value));
         }
-        
-        let mut transformed = data.clone();
-        transformed.data_points.clear();
-        
-        // Skip the first few timestamps based on differencing order
-        let skip_count = if let Some(periods) = self.seasonal_periods {
-            periods * self.order
-        } else {
-            self.order
-        };
-        
-        for (i, &value) in differenced.iter().enumerate() {
-            if skip_count + i < data.timestamps().len() {
-                let timestamp = data.timestamps()[skip_count + i];
-                transformed.add_point(crate::DataPoint::new(timestamp, value));
-            }
-        }
-        
         Ok(transformed)
     }
 }
 
 impl<T: Float> FittableTransform<T> for DifferencingTransformer<T> {
     fn fit(&mut self, data: &TimeSeriesData<T>) -> Result<()> {
-        // Store original values for inverse transformation
+        let (_, extent) = self.extent()?;
         let values = data.values();
-        let keep_count = if let Some(periods) = self.seasonal_periods {
-            periods * self.order
-        } else {
-            self.order
-        };
-        
-        if values.len() > keep_count {
-            self.original_values = Some(values[..keep_count].to_vec());
-        } else {
-            self.original_values = Some(values);
+        if values.len() < extent || values.iter().any(|value| !value.is_finite()) {
+            return Err(DataPipelineError::InvalidFormat { message: "Insufficient or non-finite data for differencing seeds".into() });
         }
-        
+        self.original_values = Some(values[..extent].to_vec());
         Ok(())
     }
 }
@@ -1181,3 +1148,11 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "scaler_tests.rs"]
+mod scaler_tests;
+
+#[cfg(test)]
+#[path = "differencing_regression_tests.rs"]
+mod differencing_regression_tests;

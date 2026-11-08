@@ -49,7 +49,7 @@ fn benchmark_data_loading(c: &mut Criterion) {
                 |events| {
                     let runtime = tokio::runtime::Runtime::new().unwrap();
                     runtime.block_on(async {
-                        let loader = StreamDataLoader::new(1000, 50);
+                        let loader = StreamDataLoader::new(events.len(), 50);
                         loader.load_from_stream(events.into_iter()).await.unwrap()
                     })
                 },
@@ -62,7 +62,7 @@ fn benchmark_data_loading(c: &mut Criterion) {
 }
 
 fn benchmark_model_prediction(c: &mut Criterion) {
-    let mut group = c.benchmark_group("model_prediction");
+    let mut group = c.benchmark_group("unavailable_backend_prediction_errors");
 
     // Setup test data
     let runtime = tokio::runtime::Runtime::new().unwrap();
@@ -77,19 +77,34 @@ fn benchmark_model_prediction(c: &mut Criterion) {
     // Benchmark LSTM
     group.bench_function("lstm_predict", |b| {
         let model = LSTMModel::new(128, 2);
-        b.iter(|| model.predict(test_sequence).unwrap())
+        b.iter(|| {
+            model
+                .predict(test_sequence)
+                .err()
+                .expect("No mock prediction may be returned")
+        })
     });
 
     // Benchmark TCN
     group.bench_function("tcn_predict", |b| {
         let model = TCNModel::new(vec![64, 64, 64], 3);
-        b.iter(|| model.predict(test_sequence).unwrap())
+        b.iter(|| {
+            model
+                .predict(test_sequence)
+                .err()
+                .expect("No mock prediction may be returned")
+        })
     });
 
     // Benchmark N-BEATS
     group.bench_function("nbeats_predict", |b| {
         let model = NBEATSModel::new(vec![StackType::Trend, StackType::Seasonality], 4);
-        b.iter(|| model.predict(test_sequence).unwrap())
+        b.iter(|| {
+            model
+                .predict(test_sequence)
+                .err()
+                .expect("No mock prediction may be returned")
+        })
     });
 
     group.finish();
@@ -147,14 +162,14 @@ fn benchmark_feature_extraction(c: &mut Criterion) {
 }
 
 fn benchmark_training_epoch(c: &mut Criterion) {
-    let mut group = c.benchmark_group("training_epoch");
+    let mut group = c.benchmark_group("unavailable_backend_training_errors");
     group.sample_size(10); // Reduce sample size for longer benchmarks
 
     // Setup small dataset
     let runtime = tokio::runtime::Runtime::new().unwrap();
     let events = generate_bench_events(500);
     let dataset = runtime.block_on(async {
-        let loader = StreamDataLoader::new(100, 20);
+        let loader = StreamDataLoader::new(500, 20);
         loader.load_from_stream(events.into_iter()).await.unwrap()
     });
 
@@ -171,21 +186,30 @@ fn benchmark_training_epoch(c: &mut Criterion) {
     group.bench_function("lstm_epoch", |b| {
         b.iter(|| {
             let mut model = LSTMModel::new(64, 1);
-            model.train(&dataset, &config).unwrap()
+            model
+                .train(&dataset, &config)
+                .err()
+                .expect("No mock training result may be returned")
         })
     });
 
     group.bench_function("tcn_epoch", |b| {
         b.iter(|| {
             let mut model = TCNModel::new(vec![32, 32], 3);
-            model.train(&dataset, &config).unwrap()
+            model
+                .train(&dataset, &config)
+                .err()
+                .expect("No mock training result may be returned")
         })
     });
 
     group.bench_function("nbeats_epoch", |b| {
         b.iter(|| {
             let mut model = NBEATSModel::new(vec![StackType::Generic], 2);
-            model.train(&dataset, &config).unwrap()
+            model
+                .train(&dataset, &config)
+                .err()
+                .expect("No mock training result may be returned")
         })
     });
 

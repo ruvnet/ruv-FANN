@@ -41,12 +41,47 @@ fn bench_forward_propagation(c: &mut Criterion) {
 
     for (layers, name) in configs {
         let mut network = Network::<f32>::new(&layers);
+        network
+            .set_weights(&vec![0.01; network.total_connections()])
+            .unwrap();
         let input = vec![0.5f32; layers[0]];
 
         group.bench_function(name, |b| {
             b.iter(|| {
                 let output = network.run(black_box(&input));
                 let _ = black_box(output);
+            });
+        });
+
+        let mut output = vec![0.0f32; network.num_outputs()];
+        group.bench_function(format!("{name}/run_into"), |b| {
+            b.iter(|| {
+                network
+                    .run_into(black_box(&input), black_box(&mut output))
+                    .unwrap();
+                black_box(&output);
+            });
+        });
+
+        // Same topology, weights and scalar operations as run(), retaining the
+        // pre-refactor per-layer copies as a reproducible comparison.
+        group.bench_function(format!("{name}/copying_reference"), |b| {
+            b.iter(|| {
+                network.layers[0].set_inputs(black_box(&input)).unwrap();
+                for index in 1..network.layers.len() {
+                    let previous = network.layers[index - 1].get_outputs();
+                    network.layers[index].calculate(&previous);
+                }
+                let output: Vec<_> = network
+                    .layers
+                    .last()
+                    .unwrap()
+                    .neurons
+                    .iter()
+                    .filter(|neuron| !neuron.is_bias)
+                    .map(|neuron| neuron.value)
+                    .collect();
+                black_box(output);
             });
         });
     }
@@ -117,12 +152,30 @@ fn bench_training_algorithms(c: &mut Criterion) {
 
     // Use the trait-based training algorithms for benchmarking
     let algorithm_factories: Vec<(&str, Box<dyn Fn() -> Box<dyn TrainingAlgorithmTrait<f32>>>)> = vec![
-        ("Adam", Box::new(|| Box::new(ruv_fann::training::Adam::new(0.01)))),
-        ("AdamW", Box::new(|| Box::new(ruv_fann::training::AdamW::new(0.01)))),
-        ("IncrementalBackprop", Box::new(|| Box::new(ruv_fann::training::IncrementalBackprop::new(0.1)))),
-        ("BatchBackprop", Box::new(|| Box::new(ruv_fann::training::BatchBackprop::new(0.1)))),
-        ("Rprop", Box::new(|| Box::new(ruv_fann::training::Rprop::new()))),
-        ("Quickprop", Box::new(|| Box::new(ruv_fann::training::Quickprop::new()))),
+        (
+            "Adam",
+            Box::new(|| Box::new(ruv_fann::training::Adam::new(0.01))),
+        ),
+        (
+            "AdamW",
+            Box::new(|| Box::new(ruv_fann::training::AdamW::new(0.01))),
+        ),
+        (
+            "IncrementalBackprop",
+            Box::new(|| Box::new(ruv_fann::training::IncrementalBackprop::new(0.1))),
+        ),
+        (
+            "BatchBackprop",
+            Box::new(|| Box::new(ruv_fann::training::BatchBackprop::new(0.1))),
+        ),
+        (
+            "Rprop",
+            Box::new(|| Box::new(ruv_fann::training::Rprop::new())),
+        ),
+        (
+            "Quickprop",
+            Box::new(|| Box::new(ruv_fann::training::Quickprop::new())),
+        ),
     ];
 
     for (name, factory) in &algorithm_factories {

@@ -10,10 +10,6 @@ use uuid::Uuid;
 use crate::config::Config;
 use crate::output::{OutputHandler, StatusLevel};
 
-// Import onboarding module for seamless initialization
-#[cfg(feature = "onboarding")]
-use ruv_swarm_cli::onboarding::{self, OnboardingConfig, OnboardingError};
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SwarmInit {
     pub swarm_id: String,
@@ -45,34 +41,9 @@ pub async fn execute(
     persistence: Option<String>,
     config_file: Option<String>,
     non_interactive: bool,
-    skip_onboarding: bool,
+    _skip_onboarding: bool,
 ) -> Result<()> {
     output.section("Initializing RUV Swarm");
-
-    // Run onboarding flow if not skipped
-    #[cfg(feature = "onboarding")]
-    if !skip_onboarding {
-        output.info("🚀 Running seamless onboarding...");
-
-        // Run the onboarding process with auto-accept for non-interactive mode
-        let onboarding_config = OnboardingConfig {
-            auto_accept: non_interactive,
-            ..OnboardingConfig::default()
-        };
-
-        match run_onboarding_flow(output, &onboarding_config).await {
-            Ok(()) => {
-                output.success("✨ Onboarding completed successfully!");
-            }
-            Err(OnboardingError::ClaudeCodeNotFound) => {
-                output.warning("Claude Code not found. Continuing with swarm initialization...");
-            }
-            Err(e) => {
-                output.warning(&format!("Onboarding encountered an issue: {}", e));
-                output.info("Continuing with swarm initialization...");
-            }
-        }
-    }
 
     // Validate topology
     let valid_topologies = vec!["mesh", "hierarchical", "ring", "star", "custom"];
@@ -511,27 +482,6 @@ fn configure_mcp_servers(swarm_init: &SwarmInit, output: &OutputHandler) -> Resu
 
     output.success("MCP configuration saved to .mcp.json");
     output.info("Claude Code will use these MCP servers on next launch");
-
-    Ok(())
-}
-
-/// Run the onboarding flow
-#[cfg(feature = "onboarding")]
-async fn run_onboarding_flow(
-    output: &OutputHandler,
-    config: &OnboardingConfig,
-) -> Result<(), OnboardingError> {
-    // This is a simplified integration point for the onboarding system
-    // In a full implementation, this would create platform-specific instances
-    // of the traits defined in the onboarding module
-
-    output.info("🔍 Checking Claude Code installation...");
-
-    // For now, this is a placeholder that indicates onboarding is integrated
-    // The actual implementation would use the traits from onboarding::mod.rs
-    output.info("ℹ️  Onboarding system integrated but full implementation pending");
-    output.info("ℹ️  This will automatically detect and configure Claude Code");
-    output.info("ℹ️  For now, continuing with manual MCP configuration...");
 
     Ok(())
 }

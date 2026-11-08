@@ -80,6 +80,7 @@ impl Device {
 
     /// Detect available backend
     fn detect_backend() -> BackendType {
+        if !crate::backend::gpu_enabled() { return BackendType::CPU; }
         #[cfg(target_arch = "wasm32")]
         {
             return BackendType::WebGPU;

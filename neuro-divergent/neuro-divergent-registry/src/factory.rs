@@ -12,7 +12,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use parking_lot::RwLock;
 use serde_json::Value;
-use instant::Instant;
+use std::time::Instant;
 
 /// Model creation function signature
 pub type ModelCreatorFn<T> = Box<dyn Fn(&ModelConfig) -> RegistryResult<Box<dyn BaseModel<T>>> + Send + Sync>;

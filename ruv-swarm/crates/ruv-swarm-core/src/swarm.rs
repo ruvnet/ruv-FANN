@@ -53,6 +53,7 @@ pub struct Swarm {
     agent_loads: HashMap<AgentId, usize>,
     /// Coordinator agent ID for star topology
     star_coordinator: Option<AgentId>,
+    last_round_robin_agent: Option<AgentId>,
 }
 
 impl Swarm {
@@ -66,15 +67,21 @@ impl Swarm {
             task_assignments: HashMap::new(),
             agent_loads: HashMap::new(),
             star_coordinator: None,
+            last_round_robin_agent: None,
         }
     }
 
     /// Register an agent with the swarm
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Returns an error if the maximum number of agents has been reached.
     pub fn register_agent(&mut self, agent: DynamicAgent) -> Result<()> {
+        if self.agents.contains_key(agent.id()) {
+            return Err(SwarmError::StrategyError {
+                reason: format!("Agent {} is already registered", agent.id()),
+            });
+        }
         if self.agents.len() >= self.config.max_agents {
             return Err(SwarmError::ResourceExhausted {
                 resource: "agent slots".into(),
@@ -115,9 +122,9 @@ impl Swarm {
     }
 
     /// Remove an agent from the swarm
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Returns an error if the agent is not found in the swarm.
     pub fn unregister_agent(&mut self, agent_id: &AgentId) -> Result<()> {
         self.agents
@@ -142,12 +149,13 @@ impl Swarm {
                 if coordinator == agent_id {
                     // If coordinator is removed, elect a new one and reconnect all agents
                     self.star_coordinator = self.agents.keys().next().cloned();
-                    
+
                     if let Some(new_coordinator) = &self.star_coordinator {
                         // Reconnect all agents to the new coordinator
                         for agent in self.agents.keys() {
                             if agent != new_coordinator {
-                                self.topology.add_connection(agent.clone(), new_coordinator.clone());
+                                self.topology
+                                    .add_connection(agent.clone(), new_coordinator.clone());
                             }
                         }
                     }
@@ -159,9 +167,9 @@ impl Swarm {
     }
 
     /// Submit a task to the swarm
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Currently does not return errors, but may in future implementations.
     pub fn submit_task(&mut self, task: Task) -> Result<()> {
         self.task_queue.push(task);
@@ -169,18 +177,17 @@ impl Swarm {
     }
 
     /// Assign tasks to agents based on distribution strategy
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Returns an error if task assignment fails.
     #[allow(clippy::unused_async)]
     pub async fn distribute_tasks(&mut self) -> Result<Vec<(TaskId, AgentId)>> {
         let mut assignments = Vec::new();
-        let mut tasks_to_assign = Vec::new();
-
-        // Collect tasks that can be assigned
-        while let Some(task) = self.task_queue.pop() {
-            tasks_to_assign.push(task);
+        // Move the batch without cloning payloads; preserve submission order.
+        let mut tasks_to_assign = core::mem::take(&mut self.task_queue);
+        if self.config.distribution_strategy == DistributionStrategy::Priority {
+            tasks_to_assign.sort_by(|a, b| b.priority.cmp(&a.priority));
         }
 
         for task in tasks_to_assign {
@@ -209,8 +216,8 @@ impl Swarm {
     }
 
     /// Select an agent for a task based on distribution strategy
-    fn select_agent_for_task(&self, task: &Task) -> Option<AgentId> {
-        let available_agents: Vec<&AgentId> = self
+    fn select_agent_for_task(&mut self, task: &Task) -> Option<AgentId> {
+        let mut available_agents: Vec<&AgentId> = self
             .agents
             .iter()
             .filter(|(_, agent)| agent.status() == AgentStatus::Running && agent.can_handle(task))
@@ -221,10 +228,20 @@ impl Swarm {
             return None;
         }
 
+        available_agents.sort_unstable();
         let selected = match self.config.distribution_strategy {
             DistributionStrategy::RoundRobin => {
-                // Simple round-robin (would need state to track last assigned)
-                available_agents.first().copied()
+                let next = available_agents
+                    .iter()
+                    .copied()
+                    .find(|id| {
+                        self.last_round_robin_agent
+                            .as_ref()
+                            .map_or(true, |last| *id > last)
+                    })
+                    .or_else(|| available_agents.first().copied());
+                self.last_round_robin_agent = next.cloned();
+                next
             }
             DistributionStrategy::LeastLoaded => {
                 // Select agent with lowest load
@@ -234,11 +251,11 @@ impl Swarm {
                     .copied()
             }
             DistributionStrategy::Random => {
-                // Random selection (simplified - would use proper RNG)
-                available_agents.first().copied()
+                use rand::seq::SliceRandom;
+                available_agents.choose(&mut rand::thread_rng()).copied()
             }
             DistributionStrategy::Priority => {
-                // Priority-based (would consider task priority)
+                // Tasks were stably sorted by priority before selecting capable agents.
                 available_agents.first().copied()
             }
             DistributionStrategy::CapabilityBased => {
@@ -279,29 +296,31 @@ impl Swarm {
     }
 
     /// Start all agents
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Returns an error if any agent fails to start.
     pub async fn start_all_agents(&mut self) -> Result<()> {
         for (id, agent) in &mut self.agents {
-            agent.start().await.map_err(|e| {
-                SwarmError::Custom(format!("Failed to start agent {id}: {e:?}"))
-            })?;
+            agent
+                .start()
+                .await
+                .map_err(|e| SwarmError::Custom(format!("Failed to start agent {id}: {e:?}")))?;
         }
         Ok(())
     }
 
     /// Shutdown all agents
-    /// 
+    ///
     /// # Errors
-    /// 
+    ///
     /// Returns an error if any agent fails to shutdown.
     pub async fn shutdown_all_agents(&mut self) -> Result<()> {
         for (id, agent) in &mut self.agents {
-            agent.shutdown().await.map_err(|e| {
-                SwarmError::Custom(format!("Failed to shutdown agent {id}: {e:?}"))
-            })?;
+            agent
+                .shutdown()
+                .await
+                .map_err(|e| SwarmError::Custom(format!("Failed to shutdown agent {id}: {e:?}")))?;
         }
         Ok(())
     }

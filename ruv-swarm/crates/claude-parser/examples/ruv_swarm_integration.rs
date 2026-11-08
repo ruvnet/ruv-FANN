@@ -214,6 +214,7 @@ impl ComparisonReport {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    println!("Synthetic fixtures only: parsing durations, token counts and heuristic scores below do not measure model performance or optimization savings.");
     // Example: Running comparison for a SWE-Bench instance
     let instance_id = "django__django-11099";
 

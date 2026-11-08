@@ -24,7 +24,7 @@ pub enum NetworkError {
     #[error("Not implemented: {0}")]
     NotImplemented(String),
 
-    #[error("Data size mismatch: expected {expected} samples for inputs and outputs, got {actual}")]
+    #[error("Data size mismatch: expected {expected}, got {actual}")]
     DataSizeMismatch { expected: usize, actual: usize },
 }
 
@@ -112,38 +112,65 @@ impl<T: Float> Network<T> {
     /// assert_eq!(outputs.len(), 1);
     /// ```
     pub fn run(&mut self, inputs: &[T]) -> Result<Vec<T>, NetworkError> {
-        if self.layers.is_empty() {
-            return Err(NetworkError::NoLayers);
-        }
-
-        // Set input layer values
-        let expected = self.layers[0].num_regular_neurons();
-        if self.layers[0].set_inputs(inputs).is_err() {
-            return Err(NetworkError::InputSizeMismatch {
-                expected,
-                actual: inputs.len(),
-            });
-        }
-
-        // Forward propagate through each layer
-        for i in 1..self.layers.len() {
-            let prev_outputs = self.layers[i - 1].get_outputs();
-            self.layers[i].calculate(&prev_outputs);
-        }
-
-        // Return output layer values (excluding bias if present)
+        self.forward(inputs)?;
         Ok(self
             .layers
             .last()
-            .map(|output_layer| {
-                output_layer
-                    .neurons
-                    .iter()
-                    .filter(|n| !n.is_bias)
-                    .map(|n| n.value)
-                    .collect()
-            })
-            .unwrap_or_default())
+            .unwrap()
+            .neurons
+            .iter()
+            .filter(|neuron| !neuron.is_bias)
+            .map(|neuron| neuron.value)
+            .collect())
+    }
+
+    /// Runs inference into a caller-owned output buffer without allocating.
+    ///
+    /// The buffer must contain exactly [`num_outputs`](Self::num_outputs) elements.
+    /// Invalid input or output lengths leave the network and output buffer unchanged.
+    /// Output length mismatches return [`NetworkError::DataSizeMismatch`].
+    pub fn run_into(&mut self, inputs: &[T], outputs: &mut [T]) -> Result<(), NetworkError> {
+        if self.layers.is_empty() {
+            return Err(NetworkError::NoLayers);
+        }
+        if outputs.len() != self.num_outputs() {
+            return Err(NetworkError::DataSizeMismatch {
+                expected: self.num_outputs(),
+                actual: outputs.len(),
+            });
+        }
+        self.forward(inputs)?;
+        for (output, neuron) in outputs.iter_mut().zip(
+            self.layers
+                .last()
+                .unwrap()
+                .neurons
+                .iter()
+                .filter(|neuron| !neuron.is_bias),
+        ) {
+            *output = neuron.value;
+        }
+        Ok(())
+    }
+
+    fn forward(&mut self, inputs: &[T]) -> Result<(), NetworkError> {
+        let input_layer = self.layers.first_mut().ok_or(NetworkError::NoLayers)?;
+        let expected = input_layer.num_regular_neurons();
+        input_layer
+            .set_inputs(inputs)
+            .map_err(|_| NetworkError::InputSizeMismatch {
+                expected,
+                actual: inputs.len(),
+            })?;
+        // Split adjacent layers so the previous values can be borrowed directly.
+        // This eliminates one temporary Vec allocation and copy per layer.
+        for index in 1..self.layers.len() {
+            let (previous, current) = self.layers.split_at_mut(index);
+            for neuron in &mut current[0].neurons {
+                neuron.calculate_from_neurons(&previous[index - 1].neurons);
+            }
+        }
+        Ok(())
     }
 
     /// Runs a forward pass without returning errors.
@@ -422,6 +449,48 @@ impl<T: Float> Network<T> {
         }
     }
 
+    /// Validates the feedforward topology and finite numeric state.
+    ///
+    /// Call after manually editing public fields or deserializing with Serde.
+    pub fn validate(&self) -> Result<(), NetworkError> {
+        if self.layers.is_empty() {
+            return Err(NetworkError::NoLayers);
+        }
+        if !self.connection_rate.is_finite()
+            || self.connection_rate < T::zero()
+            || self.connection_rate > T::one()
+        {
+            return Err(NetworkError::InvalidLayerConfiguration);
+        }
+        for (index, layer) in self.layers.iter().enumerate() {
+            if layer.num_regular_neurons() == 0 {
+                return Err(NetworkError::InvalidLayerConfiguration);
+            }
+            for (neuron_index, neuron) in layer.neurons.iter().enumerate() {
+                // The bias, when present, is the last neuron and has no inputs.
+                if !neuron.sum.is_finite()
+                    || !neuron.value.is_finite()
+                    || !neuron.activation_steepness.is_finite()
+                    || (neuron.is_bias
+                        && (neuron_index + 1 != layer.size()
+                            || !neuron.connections.is_empty()
+                            || neuron.value != T::one()))
+                {
+                    return Err(NetworkError::InvalidLayerConfiguration);
+                }
+                for connection in &neuron.connections {
+                    if index == 0
+                        || connection.from_neuron >= self.layers[index - 1].size()
+                        || !connection.weight.is_finite()
+                    {
+                        return Err(NetworkError::InvalidLayerConfiguration);
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
     /// Run batch inference on multiple inputs.
     ///
     /// Uses [`run_unchecked`](Self::run_unchecked) internally so that an
@@ -440,9 +509,7 @@ impl<T: Float> Network<T> {
         T: serde::Serialize,
         Network<T>: serde::Serialize,
     {
-        bincode::serialize(self).map_err(|e| {
-            NetworkError::InvalidLayerConfiguration
-        })
+        bincode::serialize(self).map_err(|e| NetworkError::InvalidLayerConfiguration)
     }
 
     #[cfg(feature = "binary")]
@@ -479,24 +546,7 @@ impl<T: Float> Network<T> {
             .deserialize(bytes)
             .map_err(|_| NetworkError::InvalidLayerConfiguration)?;
 
-        // Validate network structure post-deserialize
-        if network.layers.is_empty() {
-            return Err(NetworkError::NoLayers);
-        }
-        for layer in &network.layers {
-            if layer.size() == 0 {
-                return Err(NetworkError::InvalidLayerConfiguration);
-            }
-            // Validate connections reference valid neuron indices
-            for neuron in &layer.neurons {
-                for conn in &neuron.connections {
-                    if conn.from_neuron >= layer.size() + 1024 {
-                        // Allow some headroom but catch clearly invalid indices
-                        return Err(NetworkError::InvalidLayerConfiguration);
-                    }
-                }
-            }
-        }
+        network.validate()?;
 
         Ok(network)
     }
@@ -546,7 +596,7 @@ impl<T: Float> NetworkBuilder<T> {
             .push((sizes[0], ActivationFunction::Linear, T::one()));
 
         // Middle layers are hidden with sigmoid activation
-        for &size in &sizes[1..sizes.len() - 1] {
+        for &size in sizes.iter().skip(1).take(sizes.len().saturating_sub(2)) {
             self.layers
                 .push((size, ActivationFunction::Sigmoid, T::one()));
         }
@@ -632,7 +682,7 @@ impl<T: Float> NetworkBuilder<T> {
         }
 
         // Connect layers
-        for i in 0..network_layers.len() - 1 {
+        for i in 0..network_layers.len().saturating_sub(1) {
             let (before, after) = network_layers.split_at_mut(i + 1);
             before[i].connect_to(&mut after[0], self.connection_rate);
         }

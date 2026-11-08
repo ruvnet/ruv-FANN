@@ -1,12 +1,12 @@
 [package]
 name = "neuro-divergent"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Claude Code <noreply@anthropic.com>"]
-description = "High-performance neural forecasting library providing 100% compatibility with NeuralForecast Python API, built on ruv-FANN foundation"
+description = "Experimental neural forecasting library inspired by NeuralForecast and built on ruv-FANN"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/your-org/ruv-FANN"
-homepage = "https://github.com/your-org/ruv-FANN"
+repository = "https://github.com/ruvnet/ruv-FANN"
+homepage = "https://github.com/ruvnet/ruv-FANN"
 documentation = "https://docs.rs/neuro-divergent"
 keywords = ["neural-network", "forecasting", "time-series", "machine-learning", "rust"]
 categories = ["science", "algorithms", "mathematics"]
@@ -32,7 +32,7 @@ num-traits = "0.2"
 num-complex = "0.4"
 
 # Data structures and manipulation
-polars = { version = "0.35", features = ["lazy", "temporal", "csv", "parquet", "json"] }
+polars = { version = "0.45.1", features = ["lazy", "temporal", "csv", "parquet", "json"] }
 ndarray = "0.15"
 
 # Serialization and configuration
@@ -46,6 +46,7 @@ anyhow = "1.0"
 
 # Date and time handling
 chrono = { version = "0.4", features = ["serde"] }
+chrono-tz = "0.10.4"
 
 # Parallel processing
 rayon = "1.8"
@@ -55,63 +56,38 @@ tokio = { version = "1.0", features = ["full"], optional = true }
 futures = { version = "0.3", optional = true }
 
 # Optional GPU support
-candle-core = { version = "0.3", optional = true }
-candle-nn = { version = "0.3", optional = true }
 
 # Logging and monitoring
 log = "0.4"
 tracing = { version = "0.1", optional = true }
 
-# Internal neuro-divergent crates (using published versions)
-neuro-divergent-core = "0.1.0"
-neuro-divergent-models = { version = "0.1.0", optional = true }
-neuro-divergent-registry = { version = "0.1.0", optional = true }
+# Keep workspace builds and release dependency versions aligned.
+neuro-divergent-core = { version = "0.2.0", path = "neuro-divergent-core" }
+neuro-divergent-models = { version = "0.2.0", path = "neuro-divergent-models", optional = true }
+neuro-divergent-registry = { version = "0.2.0", path = "neuro-divergent-registry", optional = true }
 
 # ruv-FANN dependency
-ruv-fann = "0.1"
+ruv-fann = { version = "0.2.2", path = ".." }
 
 [dev-dependencies]
-approx = "0.5"
+neuro-divergent-data = { version = "0.2.0", path = "neuro-divergent-data" }
+neuro-divergent-training = { version = "0.2.0", path = "neuro-divergent-training" }
 tempfile = "3.8"
 criterion = { version = "0.5", features = ["html_reports"] }
 proptest = "1.4"
-rand = "0.8"
-rand_distr = "0.4"
-serde_json = "1.0"
-quickcheck = "1.0"
-arbitrary = { version = "1.3", features = ["derive"] }
-crossbeam = "0.8"
-plotly = "0.8"
-csv = "1.3"
-
-# For benchmarking
-pprof = { version = "0.13", features = ["flamegraph"] }
-
-# For memory profiling
-stats_alloc = "0.1"
-parking_lot = "0.12"
-dashmap = "5.5"
-once_cell = "1.19"
-sysinfo = "0.30"
-bincode = "1.3"
-jemalloc-ctl = "0.5"
 
 [features]
 default = ["std", "models", "registry"]
 std = []
 async = ["tokio", "futures"]
-gpu = ["candle-core", "candle-nn"]
+gpu = []  # Reserved: no GPU execution path is implemented in these crates.
 tracing = ["dep:tracing"]
 models = ["dep:neuro-divergent-models"]
 registry = ["dep:neuro-divergent-registry"]
 python-compat = []  # Enable Python-specific compatibility features
-# plotting = ["plotly"]  # Enable plotting support for examples (dev-dependency only)
 
-# WASM support
-# Marker only: nothing in this crate is gated on it. It cannot forward to
-# `ruv-fann/wasm` because the locked ruv-fann 0.1.2 (the last 0.1.x that the
-# published neuro-divergent-core/-models 0.1.0 build against) has no such
-# feature, and `dep:ruv-fann/wasm` was not a valid feature spec at all.
+# Compatibility markers only; these crates still require std and do not
+# provide a separately validated browser or freestanding forecasting build.
 wasm = []
 no_std = []
 
@@ -143,3 +119,30 @@ path = "tests/integration/mod.rs"
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
+
+[[bench]]
+name = "comparison_benchmarks"
+harness = false
+
+
+[[bench]]
+name = "data_processing_benchmarks"
+harness = false
+
+
+[[bench]]
+name = "inference_benchmarks"
+harness = false
+
+
+[[bench]]
+name = "model_benchmarks"
+harness = false
+
+
+[[bench]]
+name = "training_benchmarks"
+harness = false
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"

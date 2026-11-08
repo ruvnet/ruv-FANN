@@ -1,15 +1,18 @@
 //! Abstract Syntax Tree definitions for CUDA
 
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 /// Root AST node
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Ast {
     pub items: Vec<Item>,
 }
 
 /// Top-level items in CUDA code
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Item {
     /// Kernel function definition
     Kernel(KernelDef),
@@ -26,7 +29,8 @@ pub enum Item {
 }
 
 /// CUDA kernel definition
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct KernelDef {
     pub name: String,
     pub params: Vec<Parameter>,
@@ -35,14 +39,16 @@ pub struct KernelDef {
 }
 
 /// Kernel attributes (launch bounds, etc.)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum KernelAttribute {
     LaunchBounds { max_threads: u32, min_blocks: Option<u32> },
     MaxRegisters(u32),
 }
 
 /// Function definition
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct FunctionDef {
     pub name: String,
     pub return_type: Type,
@@ -52,7 +58,8 @@ pub struct FunctionDef {
 }
 
 /// Function qualifiers
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum FunctionQualifier {
     Device,
     Host,
@@ -62,7 +69,8 @@ pub enum FunctionQualifier {
 }
 
 /// Function parameter
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Parameter {
     pub name: String,
     pub ty: Type,
@@ -70,7 +78,8 @@ pub struct Parameter {
 }
 
 /// Parameter qualifiers
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum ParamQualifier {
     Const,
     Restrict,
@@ -78,7 +87,8 @@ pub enum ParamQualifier {
 }
 
 /// CUDA types
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Type {
     /// Primitive types
     Void,
@@ -98,7 +108,8 @@ pub enum Type {
 }
 
 /// Integer types
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum IntType {
     I8,
     I16,
@@ -111,7 +122,8 @@ pub enum IntType {
 }
 
 /// Floating-point types
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum FloatType {
     F16,
     F32,
@@ -119,21 +131,24 @@ pub enum FloatType {
 }
 
 /// Vector types
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct VectorType {
     pub element: Box<Type>,
     pub size: u8, // 1, 2, 3, or 4
 }
 
 /// Texture types
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct TextureType {
     pub dim: TextureDim,
     pub element: Box<Type>,
 }
 
 /// Texture dimensions
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum TextureDim {
     Tex1D,
     Tex2D,
@@ -142,7 +157,8 @@ pub enum TextureDim {
 }
 
 /// Statement types
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Statement {
     /// Variable declaration
     VarDecl {
@@ -184,7 +200,8 @@ pub enum Statement {
 }
 
 /// Storage classes
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum StorageClass {
     Auto,
     Register,
@@ -195,13 +212,15 @@ pub enum StorageClass {
 }
 
 /// Block of statements
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Block {
     pub statements: Vec<Statement>,
 }
 
 /// Expression types
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Expression {
     /// Literal values
     Literal(Literal),
@@ -254,7 +273,8 @@ pub enum Expression {
 }
 
 /// Dimensions for thread/block indexing
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Dimension {
     X,
     Y,
@@ -262,7 +282,8 @@ pub enum Dimension {
 }
 
 /// Literal values
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Literal {
     Bool(bool),
     Int(i64),
@@ -272,7 +293,8 @@ pub enum Literal {
 }
 
 /// Binary operators
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum BinaryOp {
     Add,
     Sub,
@@ -296,7 +318,8 @@ pub enum BinaryOp {
 }
 
 /// Unary operators
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum UnaryOp {
     Not,
     Neg,
@@ -310,7 +333,8 @@ pub enum UnaryOp {
 }
 
 /// Warp-level operations
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum WarpOp {
     Shuffle,
     ShuffleXor,
@@ -322,7 +346,8 @@ pub enum WarpOp {
 }
 
 /// Global variable definition
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct GlobalVar {
     pub name: String,
     pub ty: Type,
@@ -331,7 +356,8 @@ pub struct GlobalVar {
 }
 
 /// Type definition
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct TypeDef {
     pub name: String,
     pub ty: Type,

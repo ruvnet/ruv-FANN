@@ -238,20 +238,26 @@ class SwarmDemo {
 
     updateAgentList() {
         const listContainer = document.getElementById('agentList');
-        listContainer.innerHTML = '';
+        listContainer.replaceChildren();
 
         if (this.agents.size === 0) {
-            listContainer.innerHTML = '<p style="color: #666; text-align: center;">No agents spawned</p>';
+            const empty = document.createElement('p');
+            empty.style.color = '#666';
+            empty.style.textAlign = 'center';
+            empty.textContent = 'No agents spawned';
+            listContainer.appendChild(empty);
             return;
         }
 
         this.agents.forEach(agent => {
             const item = document.createElement('div');
             item.className = 'agent-item';
-            item.innerHTML = `
-                <span>Agent ${agent.id.substr(0, 8)}</span>
-                <span class="agent-type ${agent.type}">${agent.type}</span>
-            `;
+            const label = document.createElement('span');
+            label.textContent = `Agent ${String(agent.id).slice(0, 8)}`;
+            const type = document.createElement('span');
+            type.className = 'agent-type';
+            type.textContent = String(agent.type);
+            item.append(label, type);
             listContainer.appendChild(item);
         });
     }

@@ -37,7 +37,8 @@ impl Default for MemoryStorage {
     }
 }
 
-#[async_trait]
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl Storage for MemoryStorage {
     type Error = StorageError;
 
@@ -215,13 +216,10 @@ impl Storage for MemoryStorage {
             .filter(|e| e.timestamp.timestamp() >= timestamp)
             .cloned()
             .collect();
-        
+
         // Sort by timestamp (with full precision) then by id for deterministic ordering
-        since_events.sort_by(|a, b| {
-            a.timestamp.cmp(&b.timestamp)
-                .then_with(|| a.id.cmp(&b.id))
-        });
-        
+        since_events.sort_by(|a, b| a.timestamp.cmp(&b.timestamp).then_with(|| a.id.cmp(&b.id)));
+
         Ok(since_events)
     }
 
@@ -306,33 +304,32 @@ impl Storage for MemoryStorage {
     ) -> Result<Vec<MetricModel>, Self::Error> {
         let metrics = self.metrics.read();
 
-        // Group metrics by agent_id and unit
-        let mut grouped: HashMap<(Option<String>, String), Vec<f64>> = HashMap::new();
-
+        // Borrow keys while the read lock protects the records. Keep one
+        // running sum/count per group instead of cloning two keys and retaining
+        // another f64 for every matching sample.
+        let mut grouped: HashMap<(&Option<String>, &str), (f64, usize)> = HashMap::new();
         for metric in metrics.iter() {
             let timestamp = metric.timestamp.timestamp();
             if metric.metric_type == metric_type && timestamp >= start_time && timestamp <= end_time
             {
-                let key = (metric.agent_id.clone(), metric.unit.clone());
-                grouped
-                    .entry(key)
-                    .or_default()
-                    .push(metric.value);
+                let aggregate = grouped
+                    .entry((&metric.agent_id, metric.unit.as_str()))
+                    .or_default();
+                aggregate.0 += metric.value;
+                aggregate.1 += 1;
             }
         }
 
-        // Create aggregated metrics
-        let mut results = Vec::new();
-        for ((agent_id, unit), values) in grouped {
-            if !values.is_empty() {
-                let avg = values.iter().sum::<f64>() / values.len() as f64;
-                let mut metric = MetricModel::new(metric_type.to_string(), avg, unit);
-                metric.agent_id = agent_id;
-                metric
-                    .tags
-                    .insert("count".to_string(), values.len().to_string());
-                results.push(metric);
-            }
+        let mut results = Vec::with_capacity(grouped.len());
+        for ((agent_id, unit), (sum, count)) in grouped {
+            let mut metric = MetricModel::new(
+                metric_type.to_string(),
+                sum / count as f64,
+                unit.to_string(),
+            );
+            metric.agent_id = agent_id.clone();
+            metric.tags.insert("count".to_string(), count.to_string());
+            results.push(metric);
         }
 
         Ok(results)
@@ -380,7 +377,8 @@ impl MemoryTransaction {
     }
 }
 
-#[async_trait]
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl TransactionTrait for MemoryTransaction {
     async fn commit(self: Box<Self>) -> Result<(), StorageError> {
         // No-op for in-memory storage
@@ -396,6 +394,40 @@ impl TransactionTrait for MemoryTransaction {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn aggregation_preserves_groups_counts_and_time_bounds() {
+        let storage = MemoryStorage::new();
+        let now = chrono::Utc::now();
+        for (agent, unit, value, seconds) in [
+            (Some("a"), "percent", 2.0, 0),
+            (Some("a"), "percent", 4.0, 1),
+            (Some("a"), "bytes", 10.0, 0),
+            (None, "percent", 8.0, 0),
+            (Some("a"), "percent", 99.0, 5),
+        ] {
+            let mut metric = MetricModel::new("cpu".into(), value, unit.into());
+            metric.agent_id = agent.map(str::to_string);
+            metric.timestamp = now + chrono::Duration::seconds(seconds);
+            storage.store_metric(&metric).await.unwrap();
+        }
+        let result = storage
+            .get_aggregated_metrics("cpu", now.timestamp(), now.timestamp() + 1)
+            .await
+            .unwrap();
+        assert_eq!(result.len(), 3);
+        let mean = result
+            .iter()
+            .find(|metric| metric.agent_id.as_deref() == Some("a") && metric.unit == "percent")
+            .unwrap();
+        assert_eq!(mean.value, 3.0);
+        assert_eq!(mean.tags["count"], "2");
+        assert!(storage
+            .get_aggregated_metrics("missing", now.timestamp(), now.timestamp() + 1)
+            .await
+            .unwrap()
+            .is_empty());
+    }
 
     #[tokio::test]
     async fn test_memory_storage() {

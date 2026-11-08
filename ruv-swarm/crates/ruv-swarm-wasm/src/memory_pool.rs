@@ -13,6 +13,7 @@ pub struct MemoryPool {
     block_size: usize,
     max_blocks: usize,
     total_allocated: usize,
+    outstanding: usize,
     reuse_count: usize,
 }
 
@@ -20,23 +21,19 @@ pub struct MemoryPool {
 impl MemoryPool {
     /// Create a new memory pool with specified block size and maximum blocks
     #[wasm_bindgen(constructor)]
-    pub fn new(block_size: usize, max_blocks: usize) -> Self {
-        Self {
-            free_blocks: VecDeque::with_capacity(max_blocks),
-            block_size,
-            max_blocks,
-            total_allocated: 0,
-            reuse_count: 0,
-        }
+    pub fn new(block_size: usize, max_blocks: usize) -> Result<Self, JsValue> {
+        Self::checked_new(block_size, max_blocks).map_err(JsValue::from_str)
     }
 
     /// Allocate a memory block from the pool
     pub fn allocate(&mut self) -> Option<Vec<u8>> {
         if let Some(block) = self.free_blocks.pop_front() {
-            self.reuse_count += 1;
+            self.reuse_count = self.reuse_count.saturating_add(1);
+            self.outstanding += 1;
             Some(block)
         } else if self.total_allocated < self.max_blocks {
             self.total_allocated += 1;
+            self.outstanding += 1;
             Some(vec![0u8; self.block_size])
         } else {
             None
@@ -45,10 +42,11 @@ impl MemoryPool {
 
     /// Return a memory block to the pool for reuse
     pub fn deallocate(&mut self, mut block: Vec<u8>) {
-        if self.free_blocks.len() < self.max_blocks && block.len() == self.block_size {
+        if self.outstanding > 0 && block.len() == self.block_size {
             // Clear the block before returning to pool
             block.fill(0);
             self.free_blocks.push_back(block);
+            self.outstanding -= 1;
         }
     }
 
@@ -71,6 +69,28 @@ impl MemoryPool {
             reuse_count: self.reuse_count as u32,
             memory_usage_mb: (self.memory_usage() as f32) / (1024.0 * 1024.0),
         }
+    }
+}
+
+impl MemoryPool {
+    fn checked_new(block_size: usize, max_blocks: usize) -> Result<Self, &'static str> {
+        const MAX_POOL_BYTES: usize = 64 * 1024 * 1024;
+        if block_size == 0
+            || max_blocks == 0
+            || block_size
+                .checked_mul(max_blocks)
+                .is_none_or(|bytes| bytes > MAX_POOL_BYTES)
+        {
+            return Err("Pool dimensions must be positive and total at most 64 MiB");
+        }
+        Ok(Self {
+            free_blocks: VecDeque::new(),
+            block_size,
+            max_blocks,
+            total_allocated: 0,
+            outstanding: 0,
+            reuse_count: 0,
+        })
     }
 }
 
@@ -98,9 +118,9 @@ impl AgentMemoryPool {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
         Self {
-            small_pool: MemoryPool::new(64 * 1024, 50), // 50 x 64KB = 3.2MB max
-            medium_pool: MemoryPool::new(256 * 1024, 30), // 30 x 256KB = 7.5MB max
-            large_pool: MemoryPool::new(1024 * 1024, 10), // 10 x 1MB = 10MB max
+            small_pool: MemoryPool::checked_new(64 * 1024, 50).unwrap(),
+            medium_pool: MemoryPool::checked_new(256 * 1024, 30).unwrap(),
+            large_pool: MemoryPool::checked_new(1024 * 1024, 10).unwrap(),
         }
     }
 
@@ -144,7 +164,7 @@ mod tests {
 
     #[test]
     fn test_memory_pool_allocation() {
-        let mut pool = MemoryPool::new(1024, 5);
+        let mut pool = MemoryPool::checked_new(1024, 5).unwrap();
 
         // Allocate blocks
         let block1 = pool.allocate().unwrap();
@@ -180,5 +200,23 @@ mod tests {
         agent_pool.deallocate_agent_memory(complex);
 
         assert!(agent_pool.is_within_memory_target());
+    }
+
+    #[test]
+    fn rejects_unbounded_pools_and_unsolicited_returns() {
+        assert!(MemoryPool::checked_new(usize::MAX, 2).is_err());
+        assert!(MemoryPool::checked_new(1, usize::MAX).is_err());
+        assert!(MemoryPool::checked_new(0, 2).is_err());
+        let mut pool = MemoryPool::checked_new(8, 1).unwrap();
+        pool.deallocate(vec![1; 8]);
+        assert_eq!(pool.available_blocks(), 0);
+        let mut block = pool.allocate().unwrap();
+        assert!(pool.allocate().is_none());
+        block.fill(42);
+        pool.deallocate(block);
+        pool.deallocate(vec![1; 8]);
+        assert_eq!(pool.available_blocks(), 1);
+        assert_eq!(pool.allocate().unwrap(), vec![0; 8]);
+        assert!(pool.allocate().is_none());
     }
 }

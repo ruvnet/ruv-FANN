@@ -1,144 +1,60 @@
-# Neuro-Divergent Integration Tests
+# Forecasting checks
 
-This directory contains comprehensive integration tests for the neuro-divergent neural forecasting library.
+The registered tests call the shipped library. Data is deterministic; RNN fixtures
+use seed 42. Forecasts are checked against series ids, dates, requested horizons,
+observed holdout targets and independent numerical references.
 
-## Test Categories
-
-### 1. Workflow Tests (`workflow_tests.rs`)
-End-to-end tests for complete forecasting workflows including:
-- Loading CSV data
-- Creating multiple models (LSTM, NBEATS, MLP)
-- Model fitting
-- Forecast generation
-- Accuracy evaluation
-- Large dataset handling
-- Model persistence
-- Error handling
-
-### 2. Ensemble Tests (`ensemble_tests.rs`)
-Tests for multi-model ensemble scenarios:
-- Different model types working together
-- Model averaging and weighting
-- Ensemble prediction aggregation
-- Performance comparisons
-- Robustness to outliers
-- Dynamic model selection
-- Probabilistic ensembles
-
-### 3. Cross-Validation Tests (`cross_validation_tests.rs`)
-Tests for cross-validation workflows:
-- Time series cross-validation
-- Model selection via CV
-- Hyperparameter tuning
-- Different window strategies (expanding, sliding)
-- Seasonal splits
-- Stability testing
-
-### 4. Persistence Tests (`persistence_tests.rs`)
-Tests for model persistence and loading:
-- Saving and loading trained models
-- Model state serialization
-- Cross-version compatibility
-- Incremental learning from saved states
-- Checkpoint management
-- Model compression
-- Export to different formats
-
-### 5. Preprocessing Tests (`preprocessing_tests.rs`)
-Tests for data preprocessing pipelines:
-- Data scaling and normalization
-- Feature engineering
-- Missing value handling
-- Outlier detection and treatment
-- Data validation
-- Exogenous variable preprocessing
-
-### 6. API Compatibility Tests (`api_compatibility_tests.rs`)
-Tests ensuring compatibility with Python NeuralForecast:
-- Replicating Python examples
-- Identical API surface
-- All configuration options
-- Output format validation
-- Cross-validation compatibility
-- Save/load functionality
-
-## Running Tests
-
-### Run all integration tests:
-```bash
-cargo test --test integration
-```
-
-### Run specific test module:
-```bash
-cargo test --test integration workflow_tests
-```
-
-### Run with verbose output:
-```bash
-cargo test --test integration -- --nocapture
-```
-
-### Run ignored (slow) tests:
-```bash
-cargo test --test integration -- --ignored
-```
-
-### Run with specific features:
-```bash
-cargo test --test integration --features "gpu,async"
-```
-
-## Performance Benchmarks
-
-Some tests include performance benchmarks that are marked with `#[ignore]`. These can be run explicitly:
+Run from `neuro-divergent/` with Python-independent Rust tooling:
 
 ```bash
-cargo test --test integration bench_ -- --ignored --nocapture
+CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 \
+  cargo check --workspace --all-targets --all-features --locked
+CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 \
+  cargo test --workspace --all-targets --all-features --locked
+cargo run --example complete_workflow --locked
+cargo run --example ensemble_forecasting --locked
+cargo run --example advanced_features --locked
 ```
 
-## Test Data
+All existing registered test modules and five benchmark targets remain registered.
+The regular suites have no ignored tests. Model-specific checks require the
+`models` feature; registry checks require `registry`. Both are enabled by default.
+The `gpu` feature is a reserved marker and adds no GPU implementation.
 
-Tests generate synthetic data to ensure reproducibility. The data generation functions create:
-- Multiple time series with different patterns
-- Trend and seasonality components
-- Exogenous variables
-- Missing values and outliers (for preprocessing tests)
+| Category | What the current checks execute |
+| --- | --- |
+| Workflow | Baseline and actual trained RNN fit/predict/reset; replacement history; unsorted panels; exact future dates and per-series horizons |
+| Ensemble | Actual model columns joined by id and date, deliberately reversed custom-model output, explicit weighted arithmetic, heldout model selection |
+| Cross-validation | Expanding chronological windows, observed targets/cutoffs, overlapping windows, unequal series lengths, first-prefix refit that prevents future-fit leakage |
+| Persistence | Real baseline/RNN checkpoints, equivalent forecasts and timezone metadata across DST, continued independent use, malformed inputs, concurrent separate files, unsupported custom-state rejection |
+| Preprocessing | Shipped scalers, training-only fitted statistics, inverse forecast units, causal lag/rolling alignment, explicit caller-selected missing-value treatment |
+| Python-style contract | Roles of id/date/target columns, custom names, timestamp units, New York daily/month-end dates across DST, CSV/Parquet roundtrips and wide output; no Python-runtime or API-parity claim |
+| Core/data units | Shipped schemas, result extraction, inclusive temporal filters, typed storage, invertible transforms and property-based scaler checks |
+| Model units | Actual dense gradients, BPTT learning, recurrent state, batch equivalence and checkpoints; softmax gradients, normalization, Fourier features and quantile scores |
+| Training/registry units | Actual loss gradients and optimizer-state restoration; actual metadata registration/search/removal rather than test-local replicas |
+| Memory | Requested heap-byte deltas for actual RNN construction, repeated fitting, inference and ensemble drop, measured on an owning thread with monotonic counters |
+| Scaling | Input/forecast storage bounds, panel/horizon shapes, independent threaded equivalence and real RNN width/horizon sweeps |
+| Benchmarks | Actual seeded construction, BPTT training, batch inference, preprocessing and local baseline/RNN forecast operations |
 
-## Writing New Tests
+The previous fixtures referenced unexported architectures and used test-local
+implementations of registries, losses and models. Their duplicate assertions have
+been replaced by checks of the real components above. Missing LSTM/GRU forecasting
+and unregistered architecture creators are tested as explicit errors; they are
+never substituted for the working fit/predict/CV/persistence checks.
 
-When adding new integration tests:
+Criterion benchmarks report local measurements only. Their names state the work
+being measured; fitting and input preparation are outside inference timing.
+`cargo test --all-targets` executes their smoke mode. Use `cargo bench --bench
+inference_benchmarks` for measurements, recording CPU, compiler, features, thread
+count, sample size and distribution when sharing results. No synthetic Python
+measurements are supplied.
 
-1. Follow the existing naming convention
-2. Use descriptive test names that explain what is being tested
-3. Add appropriate documentation
-4. Mark slow tests with `#[ignore]`
-5. Clean up temporary files/directories
-6. Use `Result<(), Box<dyn std::error::Error>>` for better error handling
+The memory allocator counts requested bytes in one dedicated thread. It never
+resets shared counters, and computes signed differences between monotonic
+allocation/deallocation totals. Measured objects are created and freed on that
+thread. This detects retained allocations in those operations; it is not process
+RSS, a whole-program leak proof, or a claim about arbitrary worker-thread allocators.
 
-## Test Coverage Goals
-
-Our integration tests aim to cover:
-- ✅ Basic workflows (single and multi-model)
-- ✅ Advanced features (exogenous variables, probabilistic forecasting)
-- ✅ Performance at scale (large datasets)
-- ✅ Error conditions and edge cases
-- ✅ API compatibility with Python NeuralForecast
-- ✅ Model persistence and recovery
-- ✅ Cross-validation and hyperparameter tuning
-- ✅ Data preprocessing pipelines
-- ✅ Ensemble methods and strategies
-
-## Known Issues
-
-- GPU tests require CUDA/ROCm setup
-- Some probabilistic tests may have non-deterministic results
-- Large dataset tests require significant memory (mark with `#[ignore]`)
-
-## Contributing
-
-When contributing new integration tests:
-1. Ensure tests are deterministic (use fixed seeds)
-2. Mock external dependencies when possible
-3. Add comments explaining complex test scenarios
-4. Update this README with new test categories
+Files under `stress/` and `accuracy/` are historical, unregistered source fixtures.
+The all-target command covers Cargo's registered targets; these directories have
+not been silently added to or used as evidence for the current checks.

@@ -16,7 +16,7 @@ The simplest approach uses the GitHub CLI (`gh`) that you already have:
 npx ruv-swarm github-coordinate
 
 # Or use directly in your swarm
-const GHCoordinator = require('./gh-cli-coordinator');
+import GHCoordinator from './gh-cli-coordinator.js';
 const coordinator = new GHCoordinator({
   owner: 'ruvnet',
   repo: 'ruv-FANN'

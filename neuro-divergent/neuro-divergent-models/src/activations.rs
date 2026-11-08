@@ -2,8 +2,7 @@
 //!
 //! This module provides common activation functions used in neural forecasting models.
 
-use ndarray::{Array1, Array2};
-use num_traits::Float;
+use ndarray::Array1;
 
 /// Trait for activation functions
 pub trait ActivationFunction {
@@ -25,14 +24,15 @@ impl ActivationFunction for ReLU {
     fn forward(&self, input: &Array1<f64>) -> Array1<f64> {
         input.mapv(|x| x.max(0.0))
     }
-    
+
     fn backward(&self, input: &Array1<f64>, grad_output: &Array1<f64>) -> Array1<f64> {
-        input.iter()
+        input
+            .iter()
             .zip(grad_output.iter())
             .map(|(&x, &grad)| if x > 0.0 { grad } else { 0.0 })
             .collect()
     }
-    
+
     fn name(&self) -> &'static str {
         "ReLU"
     }
@@ -51,15 +51,16 @@ impl ActivationFunction for Sigmoid {
     fn forward(&self, input: &Array1<f64>) -> Array1<f64> {
         input.mapv(|x| 1.0 / (1.0 + (-x).exp()))
     }
-    
+
     fn backward(&self, input: &Array1<f64>, grad_output: &Array1<f64>) -> Array1<f64> {
         let output = self.forward(input);
-        output.iter()
+        output
+            .iter()
             .zip(grad_output.iter())
             .map(|(&s, &grad)| grad * s * (1.0 - s))
             .collect()
     }
-    
+
     fn name(&self) -> &'static str {
         "Sigmoid"
     }
@@ -78,15 +79,16 @@ impl ActivationFunction for Tanh {
     fn forward(&self, input: &Array1<f64>) -> Array1<f64> {
         input.mapv(|x| x.tanh())
     }
-    
+
     fn backward(&self, input: &Array1<f64>, grad_output: &Array1<f64>) -> Array1<f64> {
         let output = self.forward(input);
-        output.iter()
+        output
+            .iter()
             .zip(grad_output.iter())
             .map(|(&t, &grad)| grad * (1.0 - t * t))
             .collect()
     }
-    
+
     fn name(&self) -> &'static str {
         "Tanh"
     }
@@ -107,14 +109,15 @@ impl ActivationFunction for LeakyReLU {
     fn forward(&self, input: &Array1<f64>) -> Array1<f64> {
         input.mapv(|x| if x > 0.0 { x } else { self.alpha * x })
     }
-    
+
     fn backward(&self, input: &Array1<f64>, grad_output: &Array1<f64>) -> Array1<f64> {
-        input.iter()
+        input
+            .iter()
             .zip(grad_output.iter())
             .map(|(&x, &grad)| if x > 0.0 { grad } else { self.alpha * grad })
             .collect()
     }
-    
+
     fn name(&self) -> &'static str {
         "LeakyReLU"
     }
@@ -137,25 +140,28 @@ impl ActivationFunction for Softmax {
         let sum = exp_values.sum();
         exp_values / sum
     }
-    
+
     fn backward(&self, input: &Array1<f64>, grad_output: &Array1<f64>) -> Array1<f64> {
+        assert_eq!(
+            input.len(),
+            grad_output.len(),
+            "Softmax gradient dimension mismatch"
+        );
         let output = self.forward(input);
-        let n = output.len();
-        let mut result = Array1::zeros(n);
-        
-        for i in 0..n {
-            for j in 0..n {
-                if i == j {
-                    result[i] += grad_output[j] * output[i] * (1.0 - output[i]);
-                } else {
-                    result[i] -= grad_output[j] * output[i] * output[j];
-                }
-            }
-        }
-        
-        result
+        // J^T g = y * (g - dot(g, y)); the dense Jacobian is unnecessary.
+        // This takes O(n) time and O(n) output space instead of O(n^2) work.
+        let weighted_gradient = output
+            .iter()
+            .zip(grad_output.iter())
+            .map(|(&probability, &gradient)| probability * gradient)
+            .sum::<f64>();
+        output
+            .iter()
+            .zip(grad_output.iter())
+            .map(|(&probability, &gradient)| probability * (gradient - weighted_gradient))
+            .collect()
     }
-    
+
     fn name(&self) -> &'static str {
         "Softmax"
     }
@@ -178,19 +184,24 @@ impl ActivationFunction for LogSoftmax {
         let log_sum_exp = shifted.mapv(|x| x.exp()).sum().ln();
         shifted - log_sum_exp
     }
-    
+
     fn backward(&self, input: &Array1<f64>, grad_output: &Array1<f64>) -> Array1<f64> {
         let output = self.forward(input);
         let softmax = output.mapv(|x| x.exp());
         let sum_grad = grad_output.sum();
-        
-        grad_output.iter()
+
+        grad_output
+            .iter()
             .zip(softmax.iter())
             .map(|(&grad, &s)| grad - s * sum_grad)
             .collect()
     }
-    
+
     fn name(&self) -> &'static str {
         "LogSoftmax"
     }
 }
+
+#[cfg(test)]
+#[path = "activation_tests.rs"]
+mod tests;

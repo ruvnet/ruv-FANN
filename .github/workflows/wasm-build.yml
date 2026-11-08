@@ -1,186 +1,84 @@
-name: WASM Build Pipeline
+name: WASM Target Checks
 
 on:
   push:
-    branches: [ main, ruv-swarm ]
-    paths:
-      - 'ruv-swarm/crates/ruv-swarm-wasm-unified/**'
-      - 'ruv-swarm/crates/ruv-swarm-core/**'
-      - 'ruv-swarm/crates/ruv-swarm-persistence/**'
-      - '.github/workflows/wasm-build.yml'
+    branches: [main, develop]
+    paths: ['src/**', 'Cargo.*', 'ruv-swarm/**', '.github/workflows/wasm-build.yml']
   pull_request:
-    branches: [ main ]
-    paths:
-      - 'ruv-swarm/crates/ruv-swarm-wasm-unified/**'
-      - 'ruv-swarm/crates/ruv-swarm-core/**'
-      - 'ruv-swarm/crates/ruv-swarm-persistence/**'
+    branches: [main, develop]
+    paths: ['src/**', 'Cargo.*', 'ruv-swarm/**', '.github/workflows/wasm-build.yml']
+  workflow_dispatch: {}
+  workflow_call: {}
+
+permissions:
+  contents: read
 
 env:
-  CARGO_TERM_COLOR: always
+  CARGO_BUILD_JOBS: 2
+  CARGO_PROFILE_DEV_DEBUG: 0
 
 jobs:
-  build:
-    name: Build WASM Module
+  check:
+    name: wasm32 / ${{ matrix.package }} / ${{ matrix.features || 'minimal' }}
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package: ruv-fann
+            manifest: Cargo.toml
+            features: wasm
+          - package: ruv-fann
+            manifest: Cargo.toml
+            features: webgpu
+          - package: ruv-fann
+            manifest: Cargo.toml
+            features: wasm-gpu
+          - package: ruv-swarm-wasm
+            manifest: ruv-swarm/Cargo.toml
+            features: ''
+          - package: ruv-swarm-wasm
+            manifest: ruv-swarm/Cargo.toml
+            features: full
+          - package: ruv-swarm-wasm-unified
+            manifest: ruv-swarm/Cargo.toml
+            features: ''
+          - package: ruv-swarm-wasm-unified
+            manifest: ruv-swarm/Cargo.toml
+            features: simd
+          - package: ruv-swarm-core
+            manifest: ruv-swarm/Cargo.toml
+            features: wasm
+          - package: ruv-swarm-daa
+            manifest: ruv-swarm/Cargo.toml
+            features: wasm
+          - package: ruv-swarm-persistence
+            manifest: ruv-swarm/Cargo.toml
+            features: wasm
+          - package: ruv-swarm-transport
+            manifest: ruv-swarm/Cargo.toml
+            features: wasm
+          - package: cuda-rust-wasm
+            manifest: cuda-wasm/Cargo.toml
+            features: serde
+          - package: opencv-wasm
+            manifest: opencv-rust/Cargo.toml
+            features: ''
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup Rust
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        targets: wasm32-unknown-unknown
-        components: rustfmt, clippy
-    
-    - name: Cache cargo registry
-      uses: actions/cache@v4
-      with:
-        path: ~/.cargo/registry
-        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-    
-    - name: Cache cargo index
-      uses: actions/cache@v4
-      with:
-        path: ~/.cargo/git
-        key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-    
-    - name: Cache cargo build
-      uses: actions/cache@v4
-      with:
-        path: target
-        key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
-    
-    - name: Install wasm-pack
-      run: |
-        # Install latest wasm-pack version for better compatibility
-        curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-        wasm-pack --version
-        
-    - name: Install cargo-update
-      run: |
-        # Install cargo-update to manage dependency versions
-        cargo install cargo-update || true
-    
-    - name: Install wasm-opt
-      run: |
-        npm install -g wasm-opt
-    
-    - name: Verify Cargo.lock compatibility
-      working-directory: ./ruv-swarm
-      run: |
-        echo "Checking Cargo.lock version..."
-        head -n 5 Cargo.lock
-        # Ensure we can read the workspace metadata
-        cargo metadata --no-deps --format-version 1 > /dev/null
-    
-    - name: Build WASM module (unified)
-      working-directory: ./ruv-swarm/crates/ruv-swarm-wasm-unified
-      run: |
-        # Try building the fixed unified crate first
-        wasm-pack build --target web --release --scope ruv --features default || {
-          echo "Unified crate build failed, falling back to basic WASM crate"
-          cd ../ruv-swarm-wasm
-          wasm-pack build --target web --release --scope ruv --features default
-        }
-    
-    - name: Run WASM tests
-      working-directory: ./ruv-swarm/crates/ruv-swarm-wasm-unified
-      run: |
-        # Try testing unified crate, fall back to basic if needed
-        wasm-pack test --headless --chrome || {
-          echo "Unified crate tests failed, testing basic WASM crate"
-          cd ../ruv-swarm-wasm
-          wasm-pack test --headless --chrome
-        }
-    
-    - name: Check WASM size
-      working-directory: ./ruv-swarm/crates
-      run: |
-        # Check size of whichever crate was successfully built
-        if [ -f ruv-swarm-wasm-unified/pkg/*.wasm ]; then
-          WASM_FILE=$(ls ruv-swarm-wasm-unified/pkg/*.wasm | head -1)
-          echo "Checking unified crate WASM size"
-        else
-          WASM_FILE=$(ls ruv-swarm-wasm/pkg/*.wasm | head -1)
-          echo "Checking basic crate WASM size"
-        fi
-        
-        WASM_SIZE=$(stat -c%s "$WASM_FILE")
-        WASM_SIZE_MB=$((WASM_SIZE / 1024 / 1024))
-        echo "WASM module size: ${WASM_SIZE_MB}MB"
-        if [ $WASM_SIZE_MB -gt 5 ]; then
-          echo "Warning: WASM module exceeds 5MB target size"
-          exit 1
-        fi
-    
-    - name: Upload WASM artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: wasm-module
-        path: ruv-swarm/crates/ruv-swarm-wasm*/pkg/
-        retention-days: 7
-  
-  benchmark:
-    name: Performance Benchmarks
-    runs-on: ubuntu-latest
-    needs: build
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Download WASM artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: wasm-module
-        path: ruv-swarm/crates/ruv-swarm-wasm-unified/pkg/
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-    
-    - name: Run performance benchmarks
-      working-directory: ./ruv-swarm/npm
-      run: |
-        npm install
-        npm run benchmark:wasm
-    
-    - name: Upload benchmark results
-      uses: actions/upload-artifact@v4
-      with:
-        name: benchmark-results
-        path: ruv-swarm/npm/benchmark-results.json
-        retention-days: 7
-
-  publish:
-    name: Publish to NPM
-    runs-on: ubuntu-latest
-    needs: [build, benchmark]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Download WASM artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: wasm-module
-        path: ruv-swarm/npm/wasm-unified/
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        registry-url: 'https://registry.npmjs.org'
-    
-    - name: Update package version
-      working-directory: ./ruv-swarm/npm
-      run: |
-        npm version patch --no-git-tag-version
-    
-    - name: Publish to NPM
-      working-directory: ./ruv-swarm/npm
-      run: |
-        npm publish --access public
-      env:
-        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
+          targets: wasm32-unknown-unknown
+      - name: Compile the selected package without substituting another crate
+        env:
+          CHECK_MANIFEST: ${{ matrix.manifest }}
+          CHECK_PACKAGE: ${{ matrix.package }}
+          CHECK_FEATURES: ${{ matrix.features }}
+        run: >-
+          cargo check --locked --manifest-path "$CHECK_MANIFEST" -p "$CHECK_PACKAGE"
+          --lib --target wasm32-unknown-unknown --no-default-features
+          --features "$CHECK_FEATURES"

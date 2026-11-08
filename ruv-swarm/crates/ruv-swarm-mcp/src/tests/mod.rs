@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 #[test]
 fn test_version_info() {
-    assert_eq!(env!("CARGO_PKG_VERSION"), "1.0.5");
+    assert_eq!(env!("CARGO_PKG_VERSION"), "1.0.6");
 }
 
 #[tokio::test]
@@ -30,3 +30,4 @@ async fn test_basic_mcp_server_creation() {
 // Core unit tests for each module
 mod integration_tests;
 mod security_tests;
+mod quota_regressions;

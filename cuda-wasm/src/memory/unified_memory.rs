@@ -4,7 +4,7 @@
 
 use crate::{Result, memory_error};
 use std::sync::Arc;
-use std::alloc::{alloc, dealloc, Layout};
+use std::alloc::{alloc_zeroed, dealloc, Layout};
 use std::ptr::NonNull;
 
 /// Unified memory allocation
@@ -24,7 +24,7 @@ impl UnifiedMemory {
         let layout = Layout::from_size_align(size, 8)
             .map_err(|e| memory_error!("Invalid layout: {}", e))?;
 
-        let ptr = unsafe { alloc(layout) };
+        let ptr = unsafe { alloc_zeroed(layout) };
         
         let ptr = NonNull::new(ptr)
             .ok_or_else(|| memory_error!("Failed to allocate unified memory"))?;
@@ -118,7 +118,9 @@ impl ManagedMemory {
     /// Allocate managed memory (tries backend, falls back to host)
     pub fn new(size: usize) -> Result<Self> {
         let inner = UnifiedMemory::new(size)?;
-        let backend_registered = Self::try_register_with_backend(inner.as_ptr(), size);
+        // No registration API is invoked: capability support alone does not
+        // establish that this host allocation is registered with a GPU.
+        let backend_registered = false;
         Ok(Self {
             inner,
             backend_registered,
@@ -166,13 +168,7 @@ impl ManagedMemory {
         Ok(())
     }
 
-    /// Try to register the allocation with the active GPU backend
-    fn try_register_with_backend(_ptr: *const u8, _size: usize) -> bool {
-        // Check if a GPU backend is available
-        let backend = crate::backend::get_backend();
-        let caps = backend.capabilities();
-        caps.supports_unified_memory
-    }
+
 }
 
 #[cfg(test)]

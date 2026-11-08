@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::path::{Path, PathBuf};
 use tokio::fs;
+use tokio::io::AsyncReadExt;
 use tracing::{debug, info, warn};
 
 /// Difficulty levels for SWE-Bench instances
@@ -133,6 +134,7 @@ impl InstanceMetrics {
 pub struct InstanceLoader {
     instances_dir: PathBuf,
     cache: HashMap<String, SWEBenchInstance>,
+    cache_bytes: usize,
 }
 
 impl InstanceLoader {
@@ -147,11 +149,22 @@ impl InstanceLoader {
         Ok(Self {
             instances_dir,
             cache: HashMap::new(),
+            cache_bytes: 0,
         })
     }
 
     /// Load a specific instance by ID
     pub async fn load_instance(&mut self, instance_id: &str) -> Result<SWEBenchInstance> {
+        if instance_id.is_empty()
+            || instance_id.len() > 200
+            || !instance_id
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-'))
+        {
+            anyhow::bail!(
+                "Instance IDs must contain 1..=200 ASCII letters, digits, underscores or hyphens"
+            );
+        }
         // Check cache first
         if let Some(instance) = self.cache.get(instance_id) {
             debug!("Loaded instance {} from cache", instance_id);
@@ -168,12 +181,27 @@ impl InstanceLoader {
                 .context("Failed to download instance")?;
         }
 
-        let content = fs::read_to_string(&instance_path)
+        let metadata = fs::symlink_metadata(&instance_path).await?;
+        if !metadata.is_file() || metadata.file_type().is_symlink() {
+            anyhow::bail!("Instance path must be a regular file, not a symbolic link");
+        }
+        const MAX_INSTANCE_BYTES: u64 = 16 * 1024 * 1024;
+        let mut content = Vec::new();
+        fs::File::open(&instance_path)
+            .await?
+            .take(MAX_INSTANCE_BYTES + 1)
+            .read_to_end(&mut content)
             .await
             .context("Failed to read instance file")?;
+        if content.len() as u64 > MAX_INSTANCE_BYTES {
+            anyhow::bail!("Instance exceeds the 16 MiB limit");
+        }
 
         let mut instance: SWEBenchInstance =
-            serde_json::from_str(&content).context("Failed to parse instance JSON")?;
+            serde_json::from_slice(&content).context("Failed to parse instance JSON")?;
+        if instance.instance_id != instance_id {
+            anyhow::bail!("Instance document ID does not match the requested ID");
+        }
 
         // Calculate difficulty if not set
         if instance.metrics.calculate_difficulty_score() == 0 {
@@ -182,7 +210,12 @@ impl InstanceLoader {
         }
 
         // Cache the instance
-        self.cache.insert(instance_id.to_string(), instance.clone());
+        if self.cache.len() < 1000
+            && content.len() <= (64 * 1024 * 1024usize).saturating_sub(self.cache_bytes)
+        {
+            self.cache_bytes += content.len();
+            self.cache.insert(instance_id.to_string(), instance.clone());
+        }
 
         info!(
             "Loaded instance {} with difficulty: {}",
@@ -224,39 +257,9 @@ impl InstanceLoader {
         Ok(instances)
     }
 
-    /// Download instance from remote repository
+    /// Remote dataset fetching is not implemented. Never fabricate a dataset.
     async fn download_instance(&self, instance_id: &str) -> Result<()> {
-        // This would connect to the actual SWE-Bench repository
-        // For now, create a mock instance
-        info!("Downloading instance: {}", instance_id);
-
-        let mock_instance = SWEBenchInstance {
-            instance_id: instance_id.to_string(),
-            repo: "mock/repo".to_string(),
-            version: "1.0.0".to_string(),
-            issue_title: format!("Mock issue for {}", instance_id),
-            issue_description: "This is a mock instance for testing".to_string(),
-            hints: vec!["Check the main function".to_string()],
-            test_patch: "diff --git a/test.py b/test.py\n+test content".to_string(),
-            test_directives: vec!["pytest test.py".to_string()],
-            difficulty: DifficultyLevel::Medium,
-            metrics: InstanceMetrics {
-                files_changed: 2,
-                lines_changed: 50,
-                test_count: 5,
-                dependencies: 3,
-                complexity_score: 0.5,
-                domain_specific: false,
-                requires_external_api: false,
-            },
-            metadata: HashMap::new(),
-        };
-
-        let instance_path = self.instances_dir.join(format!("{}.json", instance_id));
-        let content = serde_json::to_string_pretty(&mock_instance)?;
-        fs::write(instance_path, content).await?;
-
-        Ok(())
+        anyhow::bail!("Instance {instance_id} is absent; place the official dataset JSON in the configured instances directory")
     }
 
     /// Analyze instance to determine metrics
@@ -426,6 +429,32 @@ pub struct LoaderStatistics {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn rejects_path_traversal_and_missing_instances_without_creating_data() {
+        let directory = tempfile::tempdir().unwrap();
+        let mut loader = InstanceLoader::new(directory.path()).unwrap();
+        for id in ["../escape", "a/b", "a\\b", "", "unknown-123"] {
+            assert!(loader.load_instance(id).await.is_err());
+        }
+        assert_eq!(std::fs::read_dir(directory.path()).unwrap().count(), 0);
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn rejects_symbolic_links_to_dataset_files() {
+        let directory = tempfile::tempdir().unwrap();
+        let target = directory.path().join("source");
+        std::fs::write(&target, b"{}").unwrap();
+        std::os::unix::fs::symlink(&target, directory.path().join("linked.json")).unwrap();
+        let mut loader = InstanceLoader::new(directory.path()).unwrap();
+        assert!(loader
+            .load_instance("linked")
+            .await
+            .unwrap_err()
+            .to_string()
+            .contains("regular file"));
+    }
 
     #[test]
     fn test_difficulty_level_priority() {

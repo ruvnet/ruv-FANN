@@ -22,8 +22,8 @@ use tokio::{
     time::timeout,
 };
 use tokio_tungstenite::{
-    accept_async, connect_async,
-    tungstenite::{Error as WsError, Message as WsMessage},
+    accept_async_with_config, connect_async_with_config,
+    tungstenite::{protocol::WebSocketConfig, Message as WsMessage},
     MaybeTlsStream, WebSocketStream,
 };
 use tracing::{debug, error, info, warn};
@@ -184,8 +184,16 @@ impl WebSocketTransport {
                         let is_running = is_running.clone();
 
                         tokio::spawn(async move {
-                            match accept_async(stream).await {
-                                Ok(ws_stream) => {
+                            match timeout(
+                                Duration::from_millis(config.connection_timeout_ms),
+                                accept_async_with_config(
+                                    stream,
+                                    Some(Self::socket_config(&config)),
+                                ),
+                            )
+                            .await
+                            {
+                                Ok(Ok(ws_stream)) => {
                                     info!("WebSocket connection established: {}", peer_addr);
 
                                     if let Err(e) = Self::handle_server_connection(
@@ -204,9 +212,10 @@ impl WebSocketTransport {
                                         error!("Server connection error: {}", e);
                                     }
                                 }
-                                Err(e) => {
+                                Ok(Err(e)) => {
                                     error!("WebSocket handshake failed: {}", e);
                                 }
+                                Err(_) => warn!("WebSocket handshake timed out: {}", peer_addr),
                             }
                         });
                     }
@@ -230,7 +239,12 @@ impl WebSocketTransport {
 
         let duration = Duration::from_millis(config.connection_timeout_ms);
 
-        match timeout(duration, connect_async(url.as_str())).await {
+        match timeout(
+            duration,
+            connect_async_with_config(url.as_str(), Some(Self::socket_config(config)), false),
+        )
+        .await
+        {
             Ok(Ok((ws_stream, _))) => Ok(ws_stream),
             Ok(Err(e)) => Err(TransportError::ConnectionError(format!(
                 "WebSocket error: {}",
@@ -279,7 +293,7 @@ impl WebSocketTransport {
         is_running: Arc<AtomicBool>,
     ) -> Result<(), TransportError> {
         // Handle the connection directly without type conversion
-        Self::handle_raw_connection(
+        Self::handle_connection(
             ws_stream,
             peer_addr,
             connections,
@@ -293,148 +307,9 @@ impl WebSocketTransport {
         .await
     }
 
-    /// Handle raw WebSocket connection (TcpStream)
-    async fn handle_raw_connection(
-        mut ws_stream: WebSocketStream<TcpStream>,
-        peer_addr: String,
-        connections: Arc<DashMap<String, mpsc::Sender<Message>>>,
-        incoming_tx: mpsc::Sender<(String, Message)>,
-        mut broadcast_rx: broadcast::Receiver<Message>,
-        codec: Arc<dyn MessageCodec>,
-        config: TransportConfig,
-        stats: Arc<RwLock<TransportStats>>,
-        is_running: Arc<AtomicBool>,
-    ) -> Result<(), TransportError> {
-        use futures_util::{SinkExt, StreamExt};
-
-        let (outgoing_tx, mut outgoing_rx) = mpsc::channel::<Message>(256);
-        connections.insert(peer_addr.clone(), outgoing_tx);
-
-        loop {
-            if !is_running.load(Ordering::SeqCst) {
-                break;
-            }
-
-            tokio::select! {
-                // Handle incoming messages
-                Some(result) = ws_stream.next() => {
-                    match result {
-                        Ok(WsMessage::Binary(data)) => {
-                            // Decompress if needed
-                            let data = if config.enable_compression && data.len() > config.compression_threshold {
-                                Self::decompress(&data)?
-                            } else {
-                                data
-                            };
-
-                            // Decode message
-                            match codec.decode(&data) {
-                                Ok(msg) => {
-                                    // Update stats
-                                    {
-                                        let mut stats = stats.write().await;
-                                        stats.messages_received += 1;
-                                        stats.bytes_received += data.len() as u64;
-                                        stats.last_activity = Some(chrono::Utc::now());
-                                    }
-
-                                    // Forward to incoming channel
-                                    if incoming_tx.send((peer_addr.clone(), msg)).await.is_err() {
-                                        error!("Failed to forward incoming message");
-                                        break;
-                                    }
-                                }
-                                Err(e) => {
-                                    error!("Failed to decode message: {}", e);
-                                    stats.write().await.errors += 1;
-                                }
-                            }
-                        }
-                        Ok(WsMessage::Close(_)) => {
-                            info!("Connection closed by peer: {}", peer_addr);
-                            break;
-                        }
-                        Ok(WsMessage::Ping(data)) => {
-                            if ws_stream.send(WsMessage::Pong(data)).await.is_err() {
-                                break;
-                            }
-                        }
-                        Ok(_) => {} // Ignore other message types
-                        Err(e) => {
-                            error!("WebSocket error: {}", e);
-                            break;
-                        }
-                    }
-                }
-
-                // Handle outgoing messages
-                Some(msg) = outgoing_rx.recv() => {
-                    // Encode message
-                    match codec.encode(&msg) {
-                        Ok(mut data) => {
-                            // Compress if needed
-                            if config.enable_compression && data.len() > config.compression_threshold {
-                                data = Self::compress(&data)?;
-                            }
-
-                            // Send message
-                            if ws_stream.send(WsMessage::Binary(data.clone())).await.is_err() {
-                                error!("Failed to send message");
-                                break;
-                            }
-
-                            // Update stats
-                            let mut stats = stats.write().await;
-                            stats.messages_sent += 1;
-                            stats.bytes_sent += data.len() as u64;
-                            stats.last_activity = Some(chrono::Utc::now());
-                        }
-                        Err(e) => {
-                            error!("Failed to encode message: {}", e);
-                            stats.write().await.errors += 1;
-                        }
-                    }
-                }
-
-                // Handle broadcast messages
-                Ok(msg) = broadcast_rx.recv() => {
-                    // Skip if this message is not for us
-                    if let Some(dest) = &msg.destination {
-                        if dest != &peer_addr {
-                            continue;
-                        }
-                    }
-
-                    // Send broadcast message
-                    match codec.encode(&msg) {
-                        Ok(mut data) => {
-                            if config.enable_compression && data.len() > config.compression_threshold {
-                                data = Self::compress(&data)?;
-                            }
-
-                            if ws_stream.send(WsMessage::Binary(data)).await.is_err() {
-                                error!("Failed to send broadcast");
-                                break;
-                            }
-                        }
-                        Err(e) => {
-                            error!("Failed to encode broadcast: {}", e);
-                        }
-                    }
-                }
-            }
-        }
-
-        // Clean up connection
-        connections.remove(&peer_addr);
-        info!("Connection closed: {}", peer_addr);
-
-        Ok(())
-    }
-
     /// Common connection handler
-    async fn handle_connection(
-        mut ws_stream: WsStream,
+    async fn handle_connection<S>(
+        mut ws_stream: WebSocketStream<S>,
         peer_addr: String,
         connections: Arc<DashMap<String, mpsc::Sender<Message>>>,
         incoming_tx: mpsc::Sender<(String, Message)>,
@@ -443,7 +318,10 @@ impl WebSocketTransport {
         config: TransportConfig,
         stats: Arc<RwLock<TransportStats>>,
         is_running: Arc<AtomicBool>,
-    ) -> Result<(), TransportError> {
+    ) -> Result<(), TransportError>
+    where
+        S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send,
+    {
         use futures_util::{SinkExt, StreamExt};
 
         let (outgoing_tx, mut outgoing_rx) = mpsc::channel::<Message>(256);
@@ -456,14 +334,17 @@ impl WebSocketTransport {
 
             tokio::select! {
                 // Handle incoming messages
-                Some(result) = ws_stream.next() => {
+                result = ws_stream.next() => {
+                    let Some(result) = result else { break; };
                     match result {
                         Ok(WsMessage::Binary(data)) => {
-                            // Decompress if needed
-                            let data = if config.enable_compression && data.len() > config.compression_threshold {
-                                Self::decompress(&data)?
-                            } else {
-                                data
+                            let data = match Self::decode_frame(data, &config) {
+                                Ok(data) => data,
+                                Err(error) => {
+                                    warn!("Rejected WebSocket frame: {}", error);
+                                    stats.write().await.errors += 1;
+                                    break;
+                                }
                             };
 
                             // Decode message
@@ -511,13 +392,18 @@ impl WebSocketTransport {
                     // Encode message
                     match codec.encode(&msg) {
                         Ok(mut data) => {
-                            // Compress if needed
+                            if let Err(error) = Self::check_message_size(data.len(), &config) {
+                                warn!("Rejected outgoing message: {}", error);
+                                stats.write().await.errors += 1;
+                                continue;
+                            }
                             if config.enable_compression && data.len() > config.compression_threshold {
                                 data = Self::compress(&data)?;
                             }
 
                             // Send message
-                            if ws_stream.send(WsMessage::Binary(data.clone())).await.is_err() {
+                            let wire_len = data.len();
+                            if ws_stream.send(WsMessage::Binary(data)).await.is_err() {
                                 error!("Failed to send message");
                                 break;
                             }
@@ -525,7 +411,7 @@ impl WebSocketTransport {
                             // Update stats
                             let mut stats = stats.write().await;
                             stats.messages_sent += 1;
-                            stats.bytes_sent += data.len() as u64;
+                            stats.bytes_sent += wire_len as u64;
                             stats.last_activity = Some(chrono::Utc::now());
                         }
                         Err(e) => {
@@ -547,6 +433,11 @@ impl WebSocketTransport {
                     // Send broadcast message
                     match codec.encode(&msg) {
                         Ok(mut data) => {
+                            if let Err(error) = Self::check_message_size(data.len(), &config) {
+                                warn!("Rejected broadcast: {}", error);
+                                stats.write().await.errors += 1;
+                                continue;
+                            }
                             if config.enable_compression && data.len() > config.compression_threshold {
                                 data = Self::compress(&data)?;
                             }
@@ -582,14 +473,56 @@ impl WebSocketTransport {
             .map_err(|e| TransportError::Other(anyhow::anyhow!("Compression error: {}", e)))
     }
 
-    /// Decompress data using gzip
+    /// Decompress gzip using the default transport message limit.
     pub fn decompress(data: &[u8]) -> Result<Vec<u8>, TransportError> {
-        let mut decoder = GzDecoder::new(data);
+        Self::decompress_with_limit(data, TransportConfig::default().max_message_size)
+    }
+
+    /// Decompress gzip with a bound on expanded bytes, including tiny gzip bombs.
+    pub fn decompress_with_limit(data: &[u8], max_size: usize) -> Result<Vec<u8>, TransportError> {
+        let mut decoder = GzDecoder::new(data).take((max_size as u64).saturating_add(1));
         let mut decompressed = Vec::new();
         decoder
             .read_to_end(&mut decompressed)
             .map_err(|e| TransportError::Other(anyhow::anyhow!("Decompression error: {}", e)))?;
+        if decompressed.len() > max_size {
+            return Err(TransportError::MessageTooLarge {
+                size: decompressed.len(),
+                max: max_size,
+            });
+        }
         Ok(decompressed)
+    }
+
+    fn socket_config(config: &TransportConfig) -> WebSocketConfig {
+        WebSocketConfig {
+            max_message_size: Some(config.max_message_size),
+            max_frame_size: Some(config.max_message_size),
+            ..Default::default()
+        }
+    }
+
+    fn check_message_size(size: usize, config: &TransportConfig) -> Result<(), TransportError> {
+        if size > config.max_message_size {
+            Err(TransportError::MessageTooLarge {
+                size,
+                max: config.max_message_size,
+            })
+        } else {
+            Ok(())
+        }
+    }
+
+    fn decode_frame(data: Vec<u8>, config: &TransportConfig) -> Result<Vec<u8>, TransportError> {
+        Self::check_message_size(data.len(), config)?;
+        // Compression thresholds describe the *original* payload. A large
+        // repetitive message can compress below that threshold, so identify
+        // gzip by its header instead of guessing from the compressed length.
+        if config.enable_compression && data.starts_with(&[0x1f, 0x8b]) {
+            Self::decompress_with_limit(&data, config.max_message_size)
+        } else {
+            Ok(data)
+        }
     }
 }
 
@@ -599,7 +532,10 @@ impl Transport for WebSocketTransport {
     type Error = TransportError;
 
     async fn send(&self, to: &str, msg: Self::Message) -> Result<(), Self::Error> {
-        if let Some(sender) = self.connections.get(to) {
+        Self::check_message_size(self.codec.encode(&msg)?.len(), &self.config)?;
+        // Never hold a DashMap shard guard while a full channel suspends us.
+        let sender = self.connections.get(to).map(|entry| entry.value().clone());
+        if let Some(sender) = sender {
             sender.send(msg).await.map_err(|_| {
                 TransportError::ConnectionError("Failed to send message".to_string())
             })?;
@@ -620,6 +556,7 @@ impl Transport for WebSocketTransport {
     }
 
     async fn broadcast(&self, msg: Self::Message) -> Result<(), Self::Error> {
+        Self::check_message_size(self.codec.encode(&msg)?.len(), &self.config)?;
         self.broadcast_tx
             .send(msg)
             .map_err(|_| TransportError::ConnectionError("Broadcast failed".to_string()))?;
@@ -653,6 +590,25 @@ impl Transport for WebSocketTransport {
 mod tests {
     use super::*;
 
+    #[test]
+    fn compressed_frames_below_threshold_still_decode() {
+        let config = TransportConfig {
+            max_message_size: 8192,
+            compression_threshold: 1024,
+            ..Default::default()
+        };
+        let original = vec![0; 4096];
+        let compressed = WebSocketTransport::compress(&original).unwrap();
+        assert!(compressed.len() < config.compression_threshold);
+        assert_eq!(
+            WebSocketTransport::decode_frame(compressed, &config).unwrap(),
+            original
+        );
+        assert!(WebSocketTransport::decode_frame(vec![0; 8193], &config).is_err());
+        let compressed = WebSocketTransport::compress(&vec![0; 8193]).unwrap();
+        assert!(WebSocketTransport::decode_frame(compressed, &config).is_err());
+    }
+
     #[tokio::test]
     async fn test_websocket_transport_creation() {
         let config = TransportConfig::default();
@@ -671,7 +627,6 @@ mod tests {
         let decompressed = WebSocketTransport::decompress(&compressed).unwrap();
 
         assert_eq!(data.as_slice(), decompressed.as_slice());
-        // Compressed should be smaller for repetitive data
-        assert!(compressed.len() <= data.len());
+        // Short messages can grow because gzip adds a header and checksum.
     }
 }

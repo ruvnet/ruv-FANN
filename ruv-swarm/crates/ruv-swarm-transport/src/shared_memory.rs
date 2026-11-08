@@ -1,4 +1,4 @@
-//! Shared memory transport with lock-free ring buffers and WASM support
+//! Shared memory transport with synchronized in-process ring buffers.
 
 use crate::{
     protocol::{BinaryCodec, Message, MessageCodec},
@@ -10,7 +10,7 @@ use dashmap::DashMap;
 use std::{
     mem::size_of,
     sync::{
-        atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
+        atomic::{AtomicBool, Ordering},
         Arc,
     },
 };
@@ -28,120 +28,97 @@ pub struct SharedMemoryInfo {
     pub ring_buffer_size: usize,
 }
 
-/// Lock-free ring buffer for message passing
+/// Bounded multi-producer, multi-consumer ring buffer.
+///
+/// Payload bytes and queue metadata share one mutex, so checking capacity,
+/// copying a frame and publishing it form a single atomic operation.
 pub struct RingBuffer {
-    buffer: Arc<parking_lot::Mutex<Vec<u8>>>,
-    capacity: usize,
-    head: AtomicUsize,
-    tail: AtomicUsize,
-    size: AtomicUsize,
+    state: parking_lot::Mutex<RingState>,
+}
+
+struct RingState {
+    buffer: Vec<u8>,
+    head: usize,
+    tail: usize,
+    size: usize,
 }
 
 impl RingBuffer {
-    /// Create a new ring buffer
+    /// Create a buffer with the given byte capacity, including frame prefixes.
     pub fn new(capacity: usize) -> Self {
         Self {
-            buffer: Arc::new(parking_lot::Mutex::new(vec![0; capacity])),
-            capacity,
-            head: AtomicUsize::new(0),
-            tail: AtomicUsize::new(0),
-            size: AtomicUsize::new(0),
+            state: parking_lot::Mutex::new(RingState {
+                buffer: vec![0; capacity],
+                head: 0,
+                tail: 0,
+                size: 0,
+            }),
         }
     }
 
-    /// Write data to the ring buffer
+    /// Write one complete frame, or leave the buffer unchanged when full.
     pub fn write(&self, data: &[u8]) -> Result<(), TransportError> {
-        let data_len = data.len();
-        let total_len = data_len + size_of::<u32>();
-
-        // Check if there's enough space
-        if total_len > self.capacity - self.size.load(Ordering::Acquire) {
+        let mut state = self.state.lock();
+        let capacity = state.buffer.len();
+        let available = capacity - state.size;
+        let total_len = data.len().checked_add(size_of::<u32>());
+        if data.len() > u32::MAX as usize || total_len.map_or(true, |len| len > available) {
             return Err(TransportError::MessageTooLarge {
-                size: total_len,
-                max: self.capacity - self.size.load(Ordering::Acquire),
+                size: total_len.unwrap_or(usize::MAX),
+                max: available,
             });
         }
 
-        // Write length prefix
-        let len_bytes = (data_len as u32).to_le_bytes();
-        let mut write_pos = self.tail.load(Ordering::Acquire);
-
-        // Write length and data
-        {
-            let mut buffer = self.buffer.lock();
-
-            // Write length
-            for &byte in &len_bytes {
-                buffer[write_pos] = byte;
-                write_pos = (write_pos + 1) % self.capacity;
-            }
-
-            // Write data
-            for &byte in data {
-                buffer[write_pos] = byte;
-                write_pos = (write_pos + 1) % self.capacity;
-            }
+        let mut position = state.tail;
+        // At most two bulk copies per slice, including when the frame wraps.
+        for bytes in [&(data.len() as u32).to_le_bytes()[..], data] {
+            let first = bytes.len().min(capacity - position);
+            state.buffer[position..position + first].copy_from_slice(&bytes[..first]);
+            state.buffer[..bytes.len() - first].copy_from_slice(&bytes[first..]);
+            position = (position + bytes.len()) % capacity;
         }
-
-        // Update tail and size
-        self.tail.store(write_pos, Ordering::Release);
-        self.size.fetch_add(total_len, Ordering::AcqRel);
-
+        state.tail = position;
+        state.size += total_len.unwrap();
         Ok(())
     }
 
-    /// Read data from the ring buffer
+    /// Read and remove one complete frame.
     pub fn read(&self) -> Option<Vec<u8>> {
-        let current_size = self.size.load(Ordering::Acquire);
-        if current_size < size_of::<u32>() {
+        let mut state = self.state.lock();
+        if state.size < size_of::<u32>() {
+            return None;
+        }
+        let capacity = state.buffer.len();
+        let mut position = state.head;
+        let mut len_bytes = [0; size_of::<u32>()];
+        for byte in &mut len_bytes {
+            *byte = state.buffer[position];
+            position = (position + 1) % capacity;
+        }
+        let data_len = u32::from_le_bytes(len_bytes) as usize;
+        let total_len = data_len.checked_add(size_of::<u32>())?;
+        if total_len > state.size {
             return None;
         }
 
-        // Read length prefix and data
-        let mut read_pos = self.head.load(Ordering::Acquire);
-        let (data_len, data) = {
-            let buffer = self.buffer.lock();
-            let mut len_bytes = [0u8; 4];
-
-            // Read length
-            for i in 0..4 {
-                len_bytes[i] = buffer[read_pos];
-                read_pos = (read_pos + 1) % self.capacity;
-            }
-
-            let data_len = u32::from_le_bytes(len_bytes) as usize;
-
-            // Check if we have enough data
-            if current_size < size_of::<u32>() + data_len {
-                return None;
-            }
-
-            // Read data
-            let mut data = vec![0u8; data_len];
-            for i in 0..data_len {
-                data[i] = buffer[read_pos];
-                read_pos = (read_pos + 1) % self.capacity;
-            }
-
-            (data_len, data)
-        };
-
-        // Update head and size
-        self.head.store(read_pos, Ordering::Release);
-        self.size
-            .fetch_sub(size_of::<u32>() + data_len, Ordering::AcqRel);
-
+        let mut data = vec![0; data_len];
+        let first = data_len.min(capacity - position);
+        data[..first].copy_from_slice(&state.buffer[position..position + first]);
+        data[first..].copy_from_slice(&state.buffer[..data_len - first]);
+        state.head = (position + data_len) % capacity;
+        state.size -= total_len;
         Some(data)
     }
 
-    /// Get available space in the buffer
+    /// Get the remaining byte capacity, including frame prefixes.
     pub fn available_space(&self) -> usize {
-        self.capacity - self.size.load(Ordering::Acquire)
+        let state = self.state.lock();
+        state.buffer.len() - state.size
     }
 
-    /// Check if buffer is empty
+    /// Check if buffer is empty.
     pub fn is_empty(&self) -> bool {
-        self.size.load(Ordering::Acquire) == 0
+        self.state.lock().size == 0
     }
 }
 
@@ -170,12 +147,12 @@ pub struct SharedMemoryTransport {
 // 3. The shared memory (Shmem) itself is a memory-mapped file descriptor that can be
 //    safely accessed from multiple threads when properly synchronized
 // 4. All shared memory operations go through the Mutex, preventing data races
-// 5. The ring buffers use atomic operations for lock-free concurrent access
+// 5. Ring buffer payloads and metadata are protected by one mutex
 //
 // SAFETY: SharedMemoryTransport is safe for shared access (Sync) because:
 // 1. All mutable state is protected by synchronization primitives (Mutex, RwLock, Atomic)
 // 2. The DashMap provides concurrent access to peer mappings
-// 3. Ring buffers use atomic operations for head/tail pointers
+// 3. Ring buffers synchronize head/tail pointers with their payload bytes
 // 4. No interior mutability is exposed without proper synchronization
 unsafe impl Send for SharedMemoryTransport {}
 unsafe impl Sync for SharedMemoryTransport {}
@@ -205,8 +182,6 @@ impl SharedMemoryTransport {
             stats: Arc::new(RwLock::new(TransportStats::default())),
             #[cfg(not(target_arch = "wasm32"))]
             shmem,
-            #[cfg(target_arch = "wasm32")]
-            shmem: None,
         };
 
         transport.start_polling();
@@ -237,6 +212,7 @@ impl SharedMemoryTransport {
         let is_running = Arc::clone(&self.is_running);
         let codec = Arc::clone(&self.codec);
         let stats = Arc::clone(&self.stats);
+        let max_message_size = self.config.max_message_size;
 
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(1));
@@ -244,12 +220,18 @@ impl SharedMemoryTransport {
             while is_running.load(Ordering::SeqCst) {
                 interval.tick().await;
 
-                // Poll all peer buffers
-                for peer in peers.iter() {
-                    let (peer_id, buffer) = peer.pair();
-
+                // Snapshot handles so no DashMap shard guard lives across an await.
+                let buffers: Vec<_> = peers
+                    .iter()
+                    .map(|peer| (peer.key().clone(), Arc::clone(peer.value())))
+                    .collect();
+                for (peer_id, buffer) in buffers {
                     // Read messages from buffer
                     while let Some(data) = buffer.read() {
+                        if data.len() > max_message_size {
+                            stats.write().await.errors += 1;
+                            continue;
+                        }
                         match codec.decode(&data) {
                             Ok(msg) => {
                                 // Update stats
@@ -333,9 +315,16 @@ impl Transport for SharedMemoryTransport {
     async fn send(&self, to: &str, msg: Self::Message) -> Result<(), Self::Error> {
         // Encode message
         let data = self.codec.encode(&msg)?;
+        if data.len() > self.config.max_message_size {
+            return Err(TransportError::MessageTooLarge {
+                size: data.len(),
+                max: self.config.max_message_size,
+            });
+        }
 
         // Find peer buffer
-        if let Some(buffer) = self.peers.get(to) {
+        let buffer = self.peers.get(to).map(|entry| Arc::clone(entry.value()));
+        if let Some(buffer) = buffer {
             // Write to buffer
             buffer.write(&data)?;
 
@@ -363,6 +352,12 @@ impl Transport for SharedMemoryTransport {
 
     async fn broadcast(&self, msg: Self::Message) -> Result<(), Self::Error> {
         let data = self.codec.encode(&msg)?;
+        if data.len() > self.config.max_message_size {
+            return Err(TransportError::MessageTooLarge {
+                size: data.len(),
+                max: self.config.max_message_size,
+            });
+        }
         let mut errors = Vec::new();
 
         // Send to all peers

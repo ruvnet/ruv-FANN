@@ -1,240 +1,68 @@
 #!/usr/bin/env node
+'use strict';
+const { parseArgs } = require('node:util');
+const fs = require('node:fs/promises');
+const path = require('node:path');
+const { transpileFile, getVersion } = require('../dist/index.js');
 
-const { Command } = require('commander');
-const chalk = require('chalk').default || require('chalk');
-const fs = require('fs').promises;
-const path = require('path');
-const semver = require('semver');
-const { transpileCuda, analyzeKernel, benchmark, getVersion } = require('../dist');
+const help = `cuda-wasm ${getVersion()} — generate Rust or WGSL source with cuda2rust
 
-// Simple spinner replacement for ora
-const createSpinner = (text) => ({
-  start() {
-    console.log(text);
-    return this;
-  },
-  succeed(text) {
-    console.log(chalk.green('✓'), text || 'Done!');
-  },
-  fail(text) {
-    console.log(chalk.red('✗'), text || 'Failed!');
-  }
-});
+Usage: cuda-wasm transpile <input.cu> [options]
 
-const program = new Command();
+  -t, --target <rust|wgsl>  Output language (default: rust)
+  -o, --output <path>      Write a new file instead of stdout
+  -b, --binary <path>      Trusted cuda2rust executable (or CUDA2RUST_BINARY)
+      --timeout <ms>       Per-process timeout, up to 120000 (default: 30000)
+      --force              Allow overwriting an output file
+  -v, --version            Print this npm version
+  -h, --help               Show this help
 
-program
-  .name('cuda-wasm')
-  .description('High-performance CUDA to WebAssembly/WebGPU transpiler')
-  .version('1.1.0');
-
-program
-  .command('transpile <input>')
-  .description('Transpile CUDA code to WebAssembly/WebGPU')
-  .option('-o, --output <path>', 'Output file path')
-  .option('-t, --target <target>', 'Target platform (wasm|webgpu)', 'wasm')
-  .option('-O, --optimize', 'Enable optimizations', false)
-  .option('--profile', 'Generate profiling data', false)
-  .action(async (input, options) => {
-    const spinner = createSpinner('🚀 Transpiling CUDA code...').start();
-    
-    try {
-      // Read input file
-      const cudaCode = await fs.readFile(input, 'utf8');
-      
-      // Transpile code
-      const result = transpileCuda(input, {
-        output: options.output,
-        target: options.target,
-        optimize: options.optimize,
-        profile: options.profile
-      });
-      
-      // Determine output path
-      const outputPath = options.output || input.replace(/\.(cu|cuh)$/, '.wasm');
-      
-      // Output path is handled by transpileCuda
-      
-      spinner.succeed(chalk.green(`✓ Transpiled successfully to ${outputPath}`));
-      
-      // Show results
-      console.log(chalk.blue('\nTranspilation Results:'));
-      console.log(`  Input: ${result.inputFile}`);
-      console.log(`  Output: ${result.outputFile}`);
-      console.log(`  Size: ${result.size} bytes`);
-      console.log(`  Optimizations: ${result.optimizations.join(', ')}`);
-      if (result.kernels) {
-        console.log(`  Kernels: ${result.kernels.join(', ')}`);
-      }
-      
-      if (result.warnings && result.warnings.length > 0) {
-        console.log(chalk.yellow('\nWarnings:'));
-        result.warnings.forEach(warning => console.log(`  - ${warning}`));
-      }
-    } catch (error) {
-      spinner.fail(chalk.red(`✗ Transpilation failed: ${error.message}`));
-      process.exit(1);
-    }
-  });
-
-program
-  .command('analyze <input>')
-  .description('Analyze CUDA kernel for optimization opportunities')
-  .action(async (input) => {
-    const spinner = createSpinner('🔍 Analyzing CUDA kernel...').start();
-    
-    try {
-      const cudaCode = await fs.readFile(input, 'utf8');
-      const analysis = analyzeKernel(input);
-      
-      spinner.succeed(chalk.green('✓ Analysis complete'));
-      
-      console.log(chalk.blue('\nKernel Analysis:'));
-      console.log(chalk.yellow('Kernel Name:'), analysis.kernelName);
-      console.log(chalk.yellow('Complexity:'), analysis.complexity);
-      console.log(chalk.yellow('Memory Access:'), analysis.memoryAccess);
-      
-      if (analysis.metrics) {
-        console.log(chalk.blue('\nPerformance Metrics:'));
-        console.log(chalk.yellow('Thread Utilization:'), analysis.metrics.threadUtilization);
-        console.log(chalk.yellow('Shared Memory Usage:'), analysis.metrics.sharedMemoryUsage);
-        console.log(chalk.yellow('Register Usage:'), analysis.metrics.estimatedRegisterUsage);
-      }
-      
-      if (analysis.optimization_suggestions.length > 0) {
-        console.log(chalk.blue('\nOptimization Suggestions:'));
-        analysis.optimization_suggestions.forEach((suggestion, i) => {
-          console.log(chalk.yellow(`${i + 1}.`), suggestion);
-        });
-      }
-    } catch (error) {
-      spinner.fail(chalk.red(`✗ Analysis failed: ${error.message}`));
-      process.exit(1);
-    }
-  });
-
-program
-  .command('benchmark <input>')
-  .description('Benchmark CUDA kernel performance')
-  .option('-i, --iterations <n>', 'Number of iterations', '100')
-  .action(async (input, options) => {
-    const spinner = createSpinner('⚡ Running benchmarks...').start();
-    
-    try {
-      const cudaCode = await fs.readFile(input, 'utf8');
-      const iterations = parseInt(options.iterations);
-      
-      // Run benchmarks
-      const results = await benchmark(input, { iterations });
-      
-      spinner.succeed(chalk.green('✓ Benchmarks complete'));
-      
-      console.log(chalk.blue('\nBenchmark Results:'));
-      console.log(chalk.yellow('Native execution time:'), `${results.nativeTime}ms`);
-      console.log(chalk.yellow('WASM execution time:'), `${results.wasmTime}ms`);
-      console.log(chalk.yellow('Speedup:'), `${results.speedup}x`);
-      console.log(chalk.yellow('Throughput:'), results.throughput);
-      console.log(chalk.yellow('Efficiency:'), results.efficiency);
-    } catch (error) {
-      spinner.fail(chalk.red(`✗ Benchmark failed: ${error.message}`));
-      process.exit(1);
-    }
-  });
-
-program
-  .command('init')
-  .description('Initialize a new CUDA-Rust-WASM project')
-  .option('-n, --name <name>', 'Project name', 'my-cuda-wasm-project')
-  .action(async (options) => {
-    const spinner = createSpinner('📦 Initializing project...').start();
-    
-    try {
-      const projectPath = path.join(process.cwd(), options.name);
-      
-      // Create project structure
-      await fs.mkdir(projectPath, { recursive: true });
-      await fs.mkdir(path.join(projectPath, 'src'), { recursive: true });
-      await fs.mkdir(path.join(projectPath, 'kernels'), { recursive: true });
-      
-      // Create package.json
-      const packageJson = {
-        name: options.name,
-        version: '1.0.0',
-        description: 'A CUDA-Rust-WASM project',
-        main: 'dist/index.js',
-        scripts: {
-          build: 'cuda-wasm transpile kernels/*.cu -o dist/',
-          test: 'jest',
-          benchmark: 'cuda-wasm benchmark kernels/*.cu'
-        },
-        dependencies: {
-          'cuda-wasm': '^1.0.1'
-        }
-      };
-      
-      await fs.writeFile(
-        path.join(projectPath, 'package.json'),
-        JSON.stringify(packageJson, null, 2)
-      );
-      
-      // Create example kernel
-      const exampleKernel = `// Example CUDA kernel
-__global__ void vectorAdd(float* a, float* b, float* c, int n) {
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    if (tid < n) {
-        c[tid] = a[tid] + b[tid];
-    }
-}`;
-      
-      await fs.writeFile(
-        path.join(projectPath, 'kernels', 'vector_add.cu'),
-        exampleKernel
-      );
-      
-      // Create README
-      const readme = `# ${options.name}
-
-A CUDA-Rust-WASM project for high-performance GPU computing in the browser.
-
-## Getting Started
-
-1. Install dependencies:
-   \`\`\`bash
-   npm install
-   \`\`\`
-
-2. Build the project:
-   \`\`\`bash
-   npm run build
-   \`\`\`
-
-3. Run benchmarks:
-   \`\`\`bash
-   npm run benchmark
-   \`\`\`
-
-## Project Structure
-
-- \`kernels/\` - CUDA kernel source files
-- \`src/\` - JavaScript/TypeScript source files
-- \`dist/\` - Transpiled WebAssembly output
-
-## Documentation
-
-For more information, visit: https://github.com/ruvnet/ruv-FANN/tree/main/cuda-wasm
+Requires cuda2rust >=0.2.0. Emits source text only; does not compile or run kernels.
 `;
-      
-      await fs.writeFile(path.join(projectPath, 'README.md'), readme);
-      
-      spinner.succeed(chalk.green(`✓ Project initialized at ${projectPath}`));
-      console.log(chalk.blue('\nNext steps:'));
-      console.log(chalk.yellow('1.'), `cd ${options.name}`);
-      console.log(chalk.yellow('2.'), 'npm install');
-      console.log(chalk.yellow('3.'), 'npm run build');
-    } catch (error) {
-      spinner.fail(chalk.red(`✗ Initialization failed: ${error.message}`));
-      process.exit(1);
-    }
-  });
 
-program.parse(process.argv);
+async function main() {
+  const { values, positionals } = parseArgs({
+    allowPositionals: true,
+    options: {
+      target: { type: 'string', short: 't' }, output: { type: 'string', short: 'o' },
+      binary: { type: 'string', short: 'b' }, timeout: { type: 'string' },
+      force: { type: 'boolean' }, version: { type: 'boolean', short: 'v' },
+      help: { type: 'boolean', short: 'h' },
+    },
+  });
+  if (values.help || positionals.length === 0 && !values.version) {
+    process.stdout.write(help);
+    return;
+  }
+  if (values.version) { process.stdout.write(`${getVersion()}\n`); return; }
+  if (positionals.length !== 2 || positionals[0] !== 'transpile') {
+    throw new Error('Expected: cuda-wasm transpile <input.cu>. Use --help for options.');
+  }
+  const input = positionals[1];
+  if (values.output && path.resolve(values.output) === path.resolve(input)) {
+    throw new Error('Output must differ from the input file.');
+  }
+  if (values.force && values.output) {
+    const inputStat = await fs.stat(input);
+    let outputStat;
+    try { outputStat = await fs.stat(values.output); }
+    catch (error) { if (error.code !== 'ENOENT') throw error; }
+    if (outputStat && inputStat.dev === outputStat.dev && inputStat.ino === outputStat.ino) {
+      throw new Error('Output must not alias the input file.');
+    }
+  }
+  const result = await transpileFile(input, {
+    target: values.target ?? 'rust', binary: values.binary,
+    timeoutMs: values.timeout === undefined ? 30_000 : Number(values.timeout),
+  });
+  if (values.output) {
+    // Exclusive creation protects an existing file unless the caller opts in.
+    await fs.writeFile(values.output, result.code, { flag: values.force ? 'w' : 'wx' });
+  } else process.stdout.write(result.code);
+}
+
+main().catch(error => {
+  process.stderr.write(`${error.code || 'E_CLI'}: ${error.message}\n`);
+  if (error.compilerStderr) process.stderr.write(`${error.compilerStderr}\n`);
+  process.exitCode = 1;
+});

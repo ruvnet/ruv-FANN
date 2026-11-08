@@ -1,17 +1,44 @@
 {
   "engines": {
-    "node": ">=18.20.8"
+    "node": ">=22.13.0"
   },
   "overrides": {
     "@types/node": "^18.19.115",
     "vite": "^6.0.0",
     "vitest": "^4.1.12",
     "@vitest/ui": "^4.1.12",
-    "better-sqlite3": "^11.6.0"
+    "better-sqlite3": "^11.6.0",
+    "minimatch@>=7.0.0 <11.0.1": "^11.0.1",
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.1"
+    },
+    "nyc": {
+      "minimatch": "^11.0.1",
+      "glob": "^14.0.2"
+    },
+    "glob@>=9.0.0 <=14.0.1": "^14.0.2",
+    "test-exclude": {
+      "glob": "^14.0.2"
+    },
+    "jest-config": {
+      "deepmerge": "npm:@stackline/deepmerge@1.1.2"
+    },
+    "@rollup/plugin-node-resolve": {
+      "deepmerge": "npm:@stackline/deepmerge@1.1.2"
+    }
   },
   "dependencies": {
     "better-sqlite3": "^11.6.0",
     "ruv-swarm": "file:ruv-swarm/npm",
-    "uuid": "^11.1.0"
-  }
+    "uuid": "^11.1.1"
+  },
+  "private": true,
+  "scripts": {
+    "test": "npm --prefix ruv-swarm/npm test",
+    "test:security": "npm --prefix ruv-swarm/npm run test:security",
+    "build": "npm --prefix ruv-swarm/npm run build"
+  },
+  "workspaces": [
+    "ruv-swarm/npm"
+  ]
 }

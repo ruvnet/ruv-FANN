@@ -1,7 +1,8 @@
 //! Basic example of using the ML training pipeline
 
 use ruv_swarm_ml_training::{
-    EventType, PerformanceMetrics, PromptData, StreamEvent, TrainingConfig, TrainingPipeline,
+    EventType, PerformanceMetrics, PromptData, StreamEvent, TrainingConfig, TrainingError,
+    TrainingPipeline,
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -44,8 +45,8 @@ fn generate_mock_events() -> Vec<StreamEvent> {
             prompt_data: if i % 2 == 0 {
                 Some(PromptData {
                     prompt_text: format!("Prompt {}", i),
-                    prompt_tokens: 50 + (i % 50),
-                    response_tokens: 100 + (i % 100),
+                    prompt_tokens: (50 + (i % 50)) as usize,
+                    response_tokens: (100 + (i % 100)) as usize,
                     quality_score: 0.8 + noise * 0.1,
                 })
             } else {
@@ -82,7 +83,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Run training pipeline
     println!("Starting training pipeline...\n");
-    let result = pipeline.run(events.into_iter()).await?;
+    let result = match pipeline.run(events.into_iter()).await {
+        Ok(result) => result,
+        Err(TrainingError::ModelError(message))
+            if message.contains("no implemented training backend") =>
+        {
+            println!("Backend unavailable: {message}");
+            return Ok(());
+        }
+        Err(error) => return Err(error.into()),
+    };
 
     // Display results
     println!("\n\nTraining Pipeline Results");

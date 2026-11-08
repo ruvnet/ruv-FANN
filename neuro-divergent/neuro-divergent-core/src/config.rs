@@ -19,7 +19,7 @@ use crate::{
 };
 
 /// Generic model configuration implementation
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GenericModelConfig<T: Float + Send + Sync + 'static> {
     /// Model type identifier
     pub model_type: String,
@@ -448,18 +448,24 @@ impl<T: Float + Send + Sync + 'static> GenericModelConfig<T> {
         }
     }
 
-    /// Save configuration to file
-    /// TODO: Implement serialization for generic configurations
-    #[allow(dead_code)]
-    pub fn save<P: AsRef<Path>>(&self, _path: P) -> NeuroDivergentResult<()> {
-        todo!("Configuration serialization needs to be implemented without generic type constraints")
+    /// Save a validated generic configuration as JSON.
+    pub fn save<P: AsRef<Path>>(&self, path: P) -> NeuroDivergentResult<()>
+    where T: Serialize {
+        self.validate()?;
+        let bytes = serde_json::to_vec_pretty(self)
+            .map_err(|e| ErrorBuilder::config(format!("Failed to serialize configuration: {e}")).build())?;
+        std::fs::write(path, bytes)?;
+        Ok(())
     }
 
-    /// Load configuration from file
-    /// TODO: Implement deserialization for generic configurations  
-    #[allow(dead_code)]
-    pub fn load<P: AsRef<Path>>(_path: P) -> NeuroDivergentResult<Self> {
-        todo!("Configuration deserialization needs to be implemented without generic type constraints")
+    /// Read a JSON configuration of at most 16 MiB and validate its parameters.
+    pub fn load<P: AsRef<Path>>(path: P) -> NeuroDivergentResult<Self>
+    where T: serde::de::DeserializeOwned {
+        let bytes = read_config_file(path.as_ref())?;
+        let config: Self = serde_json::from_slice(&bytes)
+            .map_err(|e| ErrorBuilder::config(format!("Invalid configuration JSON: {e}")).build())?;
+        config.validate()?;
+        Ok(config)
     }
 
     /// Merge with another configuration
@@ -496,6 +502,12 @@ impl<T: Float + Send + Sync + 'static> GenericModelConfig<T> {
 
 impl<T: Float + Send + Sync + 'static> ModelConfig<T> for GenericModelConfig<T> {
     fn validate(&self) -> NeuroDivergentResult<()> {
+        if self.model_type.trim().is_empty() { return Err(config_error!("Model type must be nonempty")); }
+        if self.parameters.values().any(|parameter| match parameter {
+            ConfigParameter::Float(value) => !value.is_finite(),
+            ConfigParameter::FloatVector(values) => values.iter().any(|value| !value.is_finite()),
+            _ => false,
+        }) { return Err(config_error!("Floating model parameters must be finite")); }
         if self.horizon == 0 {
             return Err(config_error!("Horizon must be greater than 0"));
         }
@@ -765,10 +777,8 @@ impl ConfigManager {
 
     /// Load configuration from specific file
     pub fn load_from_file<P: AsRef<Path>>(&self, path: P) -> NeuroDivergentResult<SystemConfig> {
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| ErrorBuilder::config(format!("Failed to read config file: {}", e)).build())?;
-
-        let config: SystemConfig = serde_json::from_str(&content)
+        let bytes = read_config_file(path.as_ref())?;
+        let config: SystemConfig = serde_json::from_slice(&bytes)
             .map_err(|e| ErrorBuilder::config(format!("Failed to parse config: {}", e)).build())?;
 
         Ok(config)
@@ -820,8 +830,18 @@ impl ConfigManager {
         result
     }
 
-    fn validate_system_config(&self, _config: &SystemConfig, _result: &mut ValidationResult) {
-        // TODO: Implement comprehensive configuration validation
+    fn validate_system_config(&self, config: &SystemConfig, result: &mut ValidationResult) {
+        let mut reject = |field: &str, message: &str| {
+            result.is_valid = false;
+            result.errors.push(ValidationError { field: field.into(), message: message.into(), code: Some("INVALID_CONFIG".into()) });
+        };
+        if config.parallel.num_threads == Some(0) { reject("parallel.num_threads", "Thread count must be positive"); }
+        if config.parallel.thread_pool.stack_size_kb == Some(0) { reject("parallel.thread_pool.stack_size_kb", "Stack size must be positive"); }
+        if config.io.buffer_size_kb == 0 { reject("io.buffer_size_kb", "I/O buffer size must be positive"); }
+        if config.io.compression_level.is_some_and(|level| !(1..=9).contains(&level)) { reject("io.compression_level", "Compression level must be in 1..=9"); }
+        if config.memory.warning_threshold.is_some_and(|value| !value.is_finite() || !(0.0..=100.0).contains(&value)) { reject("memory.warning_threshold", "Memory warning threshold must be finite and in 0..=100"); }
+        if config.memory.pool_size_mb == Some(0) { reject("memory.pool_size_mb", "Memory pool size must be positive"); }
+        if config.performance.enable_gpu || config.performance.enable_amp { reject("performance", "GPU and mixed-precision execution are unsupported in the forecasting core"); }
     }
 }
 
@@ -1033,7 +1053,7 @@ mod tests {
 
     #[test]
     fn test_config_validation() {
-        let valid_config = GenericModelConfig::<f64>::new("test")
+        let mut valid_config = GenericModelConfig::<f64>::new("test")
             .with_parameter("horizon".to_string(), ConfigParameter::Integer(12));
         
         valid_config.horizon = 12;
@@ -1094,4 +1114,25 @@ mod tests {
         assert_eq!(metadata.tags, vec!["test", "config"]);
         assert_eq!(metadata.custom_fields.get("custom_key"), Some(&"custom_value".to_string()));
     }
+}
+#[cfg(test)]
+#[path = "config_regression_tests.rs"]
+mod config_regression_tests;
+
+fn read_config_file(path: &Path) -> NeuroDivergentResult<Vec<u8>> {
+    use std::io::Read;
+    let metadata = std::fs::metadata(path)?;
+    if !metadata.is_file() || metadata.len() > 16 * 1024 * 1024 {
+        return Err(config_error!("Configuration must be a regular file no larger than 16 MiB"));
+    }
+    let mut options = std::fs::OpenOptions::new(); options.read(true);
+    #[cfg(unix)] { use std::os::unix::fs::OpenOptionsExt; options.custom_flags(libc::O_NONBLOCK); }
+    let file = options.open(path)?;
+    if !file.metadata()?.is_file() || file.metadata()?.len() > 16 * 1024 * 1024 {
+        return Err(config_error!("Configuration must be a regular file no larger than 16 MiB"));
+    }
+    let mut bytes = Vec::new();
+    file.take(16 * 1024 * 1024 + 1).read_to_end(&mut bytes)?;
+    if bytes.len() > 16 * 1024 * 1024 { return Err(config_error!("Configuration exceeds 16 MiB")); }
+    Ok(bytes)
 }

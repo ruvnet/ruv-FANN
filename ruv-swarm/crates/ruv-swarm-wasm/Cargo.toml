@@ -1,6 +1,18 @@
 [package]
+# Publish source and required assets, excluding session state and runtime databases.
+include = [
+    "/src/**",
+    "/tests/**",
+    "/examples/**",
+    "/benches/**",
+    "/build.rs",
+    "/Cargo.toml",
+    "/README.md",
+    "/LICENSE*",
+]
 name = "ruv-swarm-wasm"
-version = "1.0.5"
+version = "1.0.6"
+rust-version.workspace = true
 edition = "2021"
 authors = ["rUv Contributors"]
 description = "WebAssembly bindings for ruv-swarm neural network orchestration"
@@ -27,9 +39,9 @@ num-traits = "0.2"
 wide = { version = "0.7", features = ["serde"] }
 
 # Core dependencies with full functionality
-ruv-fann = { path = "../../../", version = "0.2.1", default-features = false, features = ["no_std", "serde", "logging"] }
-ruv-swarm-core = { path = "../ruv-swarm-core", version = "1.0.6", default-features = false, features = ["wasm"], optional = true }
-ruv-swarm-ml = { path = "../ruv-swarm-ml", version = "1.0.5", features = ["wasm"], optional = true }
+ruv-fann = { path = "../../../", version = "0.2.2", default-features = false, features = ["no_std", "serde", "logging"] }
+ruv-swarm-core = { path = "../ruv-swarm-core", version = "1.0.7", default-features = false, features = ["wasm"], optional = true }
+ruv-swarm-ml = { path = "../ruv-swarm-ml", version = "1.0.6", features = ["wasm"], optional = true }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"

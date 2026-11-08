@@ -20,7 +20,7 @@ resolver = "2"
 exclude = []  # No exclusions
 
 [workspace.package]
-version = "1.0.7"
+version = "1.0.8"
 edition = "2021"
 authors = ["rUv Contributors <noreply@ruvnet.com>"]
 license = "MIT OR Apache-2.0"
@@ -31,11 +31,11 @@ description = "High-performance neural network swarm orchestration framework wit
 readme = "README.md"
 keywords = ["neural-network", "wasm", "swarm", "ai", "mcp"]
 categories = ["algorithms", "science", "wasm", "web-programming"]
-rust-version = "1.85"
+rust-version = "1.88"
 
 [workspace.dependencies]
 # Async runtime (WASM-compatible subset)
-tokio = { version = "1.40", features = ["sync", "macros", "time", "rt", "rt-multi-thread"], default-features = false }
+tokio = { version = "1.40", features = ["sync", "macros", "time", "rt"], default-features = false }
 async-trait = "0.1"
 
 # Error handling
@@ -103,7 +103,7 @@ lto = "fat"      # Full LTO for maximum optimization
 codegen-units = 1
 strip = true
 panic = "abort"  # Reduce binary size by removing panic handling
-overflow-checks = false  # Disable overflow checks in release mode
+overflow-checks = true   # Reject arithmetic overflow in release builds too
 
 [profile.bench]
 inherits = "release"

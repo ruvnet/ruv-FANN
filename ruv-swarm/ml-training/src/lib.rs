@@ -1,11 +1,14 @@
 //! ML Training Pipeline for Neuro-Divergent Models
 //!
-//! This module provides a comprehensive training pipeline for LSTM, TCN, and NBEATS models
-//! with a focus on predicting performance and optimizing prompts for AI agents.
+//! Provides event feature extraction and experimental training interfaces.
+//! Built-in LSTM, TCN and N-BEATS backends are unavailable and return errors.
+//! Use `ruv-swarm-ml` for implemented dense neural forecasting.
 
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
+
+mod validation;
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -80,18 +83,21 @@ pub struct PromptData {
 }
 
 /// Training dataset containing time series data
+#[derive(Debug, Clone)]
 pub struct TrainingDataset {
     pub sequences: Vec<TimeSeriesSequence>,
     pub labels: Vec<Vec<f64>>,
     pub metadata: DatasetMetadata,
 }
 
+#[derive(Debug, Clone)]
 pub struct TimeSeriesSequence {
     pub timestamps: Vec<u64>,
     pub features: Vec<Vec<f64>>,
     pub agent_id: String,
 }
 
+#[derive(Debug, Clone)]
 pub struct DatasetMetadata {
     pub total_samples: usize,
     pub feature_count: usize,
@@ -132,12 +138,26 @@ impl StreamDataLoader {
         &self,
         event_stream: impl Iterator<Item = StreamEvent>,
     ) -> Result<TrainingDataset> {
+        if self.sequence_length == 0
+            || self.buffer_size == 0
+            || self.sequence_length > self.buffer_size
+            || self.buffer_size > 100_000
+        {
+            return Err(TrainingError::ConfigurationError(
+                "Require 0 < sequence_length <= buffer_size <= 100000".into(),
+            ));
+        }
         let mut sequences = Vec::new();
         let mut labels = Vec::new();
         let mut agent_events: HashMap<String, Vec<StreamEvent>> = HashMap::new();
 
         // Group events by agent
-        for event in event_stream {
+        for (index, event) in event_stream.enumerate() {
+            if index >= self.buffer_size {
+                return Err(TrainingError::DataLoadError(
+                    "Event buffer limit exceeded".into(),
+                ));
+            }
             agent_events
                 .entry(event.agent_id.clone())
                 .or_default()
@@ -158,6 +178,20 @@ impl StreamDataLoader {
                 let sequence_events = &events[i..i + self.sequence_length];
                 let next_event = &events[i + self.sequence_length];
 
+                let feature_count: usize = self
+                    .feature_extractors
+                    .iter()
+                    .map(|extractor| extractor.feature_names().len())
+                    .sum();
+                if (sequences.len() + 1)
+                    .checked_mul(self.sequence_length)
+                    .and_then(|size| size.checked_mul(feature_count))
+                    .is_none_or(|size| size > 10_000_000)
+                {
+                    return Err(TrainingError::DataLoadError(
+                        "Sequence feature budget exceeded".into(),
+                    ));
+                }
                 let mut features = Vec::new();
                 let mut timestamps = Vec::new();
 
@@ -333,56 +367,31 @@ impl NeuroDivergentModel for LSTMModel {
         dataset: &TrainingDataset,
         config: &TrainingConfig,
     ) -> Result<TrainingMetrics> {
-        // Simplified training implementation
-        // In production, this would interface with a proper ML framework
-
-        let mut metrics = TrainingMetrics::new();
-
-        for epoch in 0..config.epochs {
-            let mut epoch_loss = 0.0;
-
-            for (sequence, label) in dataset.sequences.iter().zip(&dataset.labels) {
-                // Forward pass simulation
-                let prediction = self.predict(sequence)?;
-                let loss = calculate_mse(&prediction, label);
-                epoch_loss += loss;
-            }
-
-            let avg_loss = epoch_loss / dataset.sequences.len() as f64;
-            metrics.add_epoch_loss(epoch, avg_loss);
-
-            if epoch % 10 == 0 {
-                println!("LSTM Epoch {}: Loss = {:.4}", epoch, avg_loss);
-            }
-        }
-
-        Ok(metrics)
+        Err(TrainingError::ModelError(
+            "LSTMModel has no implemented training backend; use ruv-swarm-ml for supported models"
+                .into(),
+        ))
     }
 
     fn predict(&self, sequence: &TimeSeriesSequence) -> Result<Vec<f64>> {
-        // Simplified prediction
-        // In production, this would use actual LSTM computation
-        let last_features = sequence
-            .features
-            .last()
-            .ok_or_else(|| TrainingError::ModelError("Empty sequence".to_string()))?;
-
-        // Mock prediction based on last features
-        Ok(vec![
-            last_features[0] * 0.95, // Predicted latency
-            last_features[1] * 1.05, // Predicted tokens/sec
-            last_features[4] * 0.98, // Predicted success rate
-        ])
+        Err(TrainingError::ModelError(
+            "LSTMModel has no implemented training backend; use ruv-swarm-ml for supported models"
+                .into(),
+        ))
     }
 
     fn save(&self, _path: &str) -> Result<()> {
-        // Save model weights
-        Ok(())
+        Err(TrainingError::ModelError(
+            "LSTMModel has no implemented training backend; use ruv-swarm-ml for supported models"
+                .into(),
+        ))
     }
 
     fn load(&mut self, _path: &str) -> Result<()> {
-        // Load model weights
-        Ok(())
+        Err(TrainingError::ModelError(
+            "LSTMModel has no implemented training backend; use ruv-swarm-ml for supported models"
+                .into(),
+        ))
     }
 
     fn get_hyperparameters(&self) -> HashMap<String, f64> {
@@ -441,49 +450,31 @@ impl NeuroDivergentModel for TCNModel {
         dataset: &TrainingDataset,
         config: &TrainingConfig,
     ) -> Result<TrainingMetrics> {
-        let mut metrics = TrainingMetrics::new();
-
-        for epoch in 0..config.epochs {
-            let mut epoch_loss = 0.0;
-
-            for (sequence, label) in dataset.sequences.iter().zip(&dataset.labels) {
-                let prediction = self.predict(sequence)?;
-                let loss = calculate_mse(&prediction, label);
-                epoch_loss += loss;
-            }
-
-            let avg_loss = epoch_loss / dataset.sequences.len() as f64;
-            metrics.add_epoch_loss(epoch, avg_loss);
-
-            if epoch % 10 == 0 {
-                println!("TCN Epoch {}: Loss = {:.4}", epoch, avg_loss);
-            }
-        }
-
-        Ok(metrics)
+        Err(TrainingError::ModelError(
+            "TCNModel has no implemented training backend; use ruv-swarm-ml for supported models"
+                .into(),
+        ))
     }
 
     fn predict(&self, sequence: &TimeSeriesSequence) -> Result<Vec<f64>> {
-        // Simplified TCN prediction
-        let avg_features: Vec<f64> = (0..sequence.features[0].len())
-            .map(|i| {
-                sequence.features.iter().map(|f| f[i]).sum::<f64>() / sequence.features.len() as f64
-            })
-            .collect();
-
-        Ok(vec![
-            avg_features[0] * 0.93,
-            avg_features[1] * 1.07,
-            avg_features[4] * 0.97,
-        ])
+        Err(TrainingError::ModelError(
+            "TCNModel has no implemented training backend; use ruv-swarm-ml for supported models"
+                .into(),
+        ))
     }
 
     fn save(&self, _path: &str) -> Result<()> {
-        Ok(())
+        Err(TrainingError::ModelError(
+            "TCNModel has no implemented training backend; use ruv-swarm-ml for supported models"
+                .into(),
+        ))
     }
 
     fn load(&mut self, _path: &str) -> Result<()> {
-        Ok(())
+        Err(TrainingError::ModelError(
+            "TCNModel has no implemented training backend; use ruv-swarm-ml for supported models"
+                .into(),
+        ))
     }
 
     fn get_hyperparameters(&self) -> HashMap<String, f64> {
@@ -550,46 +541,19 @@ impl NeuroDivergentModel for NBEATSModel {
         dataset: &TrainingDataset,
         config: &TrainingConfig,
     ) -> Result<TrainingMetrics> {
-        let mut metrics = TrainingMetrics::new();
-
-        for epoch in 0..config.epochs {
-            let mut epoch_loss = 0.0;
-
-            for (sequence, label) in dataset.sequences.iter().zip(&dataset.labels) {
-                let prediction = self.predict(sequence)?;
-                let loss = calculate_mse(&prediction, label);
-                epoch_loss += loss;
-            }
-
-            let avg_loss = epoch_loss / dataset.sequences.len() as f64;
-            metrics.add_epoch_loss(epoch, avg_loss);
-
-            if epoch % 10 == 0 {
-                println!("N-BEATS Epoch {}: Loss = {:.4}", epoch, avg_loss);
-            }
-        }
-
-        Ok(metrics)
+        Err(TrainingError::ModelError("NBEATSModel has no implemented training backend; use ruv-swarm-ml for supported models".into()))
     }
 
     fn predict(&self, sequence: &TimeSeriesSequence) -> Result<Vec<f64>> {
-        // Simplified N-BEATS prediction with trend and seasonality components
-        let trend = calculate_trend(&sequence.features);
-        let seasonality = calculate_seasonality(&sequence.features);
-
-        Ok(vec![
-            trend[0] + seasonality[0],
-            trend[1] + seasonality[1],
-            (trend[4] + seasonality[4]).min(1.0).max(0.0),
-        ])
+        Err(TrainingError::ModelError("NBEATSModel has no implemented training backend; use ruv-swarm-ml for supported models".into()))
     }
 
     fn save(&self, _path: &str) -> Result<()> {
-        Ok(())
+        Err(TrainingError::ModelError("NBEATSModel has no implemented training backend; use ruv-swarm-ml for supported models".into()))
     }
 
     fn load(&mut self, _path: &str) -> Result<()> {
-        Ok(())
+        Err(TrainingError::ModelError("NBEATSModel has no implemented training backend; use ruv-swarm-ml for supported models".into()))
     }
 
     fn get_hyperparameters(&self) -> HashMap<String, f64> {
@@ -636,6 +600,7 @@ pub enum ParameterRange {
     Categorical { values: Vec<String> },
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OptimizationMethod {
     RandomSearch,
     BayesianOptimization,
@@ -659,6 +624,34 @@ impl HyperparameterOptimizer {
         dataset: &TrainingDataset,
         config: &TrainingConfig,
     ) -> Result<OptimizationResult> {
+        if self.optimization_method != OptimizationMethod::RandomSearch {
+            return Err(TrainingError::OptimizationError(format!(
+                "{:?} is not implemented; use RandomSearch",
+                self.optimization_method
+            )));
+        }
+        if !(1..=10_000).contains(&self.num_trials) {
+            return Err(TrainingError::ConfigurationError(
+                "Require 1..=10000 optimization trials".into(),
+            ));
+        }
+        for range in self.search_space.parameters.values() {
+            let valid = match range {
+                ParameterRange::Continuous { min, max } => {
+                    min.is_finite() && max.is_finite() && min <= max && (max - min).is_finite()
+                }
+                ParameterRange::Discrete { values } => {
+                    !values.is_empty() && values.iter().all(|value| value.is_finite())
+                }
+                ParameterRange::Categorical { .. } => false,
+            };
+            if !valid {
+                return Err(TrainingError::ConfigurationError(
+                    "Search ranges must be finite, nonempty and numeric".into(),
+                ));
+            }
+        }
+        let (training_data, validation_data) = validation::split_dataset(dataset, config)?;
         let mut best_params = HashMap::new();
         let mut best_score = f64::INFINITY;
         let mut trial_results = Vec::new();
@@ -672,10 +665,10 @@ impl HyperparameterOptimizer {
             model.set_hyperparameters(params.clone());
 
             // Train model
-            let metrics = model.train(dataset, config)?;
+            let metrics = model.train(&training_data, config)?;
 
             // Evaluate model
-            let score = self.evaluate_model(&*model, dataset)?;
+            let score = self.evaluate_model(&*model, &validation_data)?;
 
             trial_results.push(TrialResult {
                 trial_id: trial,
@@ -720,19 +713,19 @@ impl HyperparameterOptimizer {
                             params.insert(name.clone(), values[idx.min(values.len() - 1)]);
                         }
                         ParameterRange::Categorical { .. } => {
-                            // Handle categorical parameters separately
+                            unreachable!("Search space was validated")
                         }
                     }
                 }
             }
             OptimizationMethod::GridSearch => {
-                // Implement grid search logic
+                unreachable!("Optimization method was validated")
             }
             OptimizationMethod::BayesianOptimization => {
-                // Implement Bayesian optimization logic
+                unreachable!("Optimization method was validated")
             }
             OptimizationMethod::Hyperband => {
-                // Implement Hyperband logic
+                unreachable!("Optimization method was validated")
             }
         }
 
@@ -747,12 +740,15 @@ impl HyperparameterOptimizer {
         let mut total_error = 0.0;
         let mut count = 0;
 
-        // Simple validation split (last 20% of data)
-        let split_idx = (dataset.sequences.len() as f64 * 0.8) as usize;
-
-        for i in split_idx..dataset.sequences.len() {
+        for i in 0..dataset.sequences.len() {
             let prediction = model.predict(&dataset.sequences[i])?;
+            validation::validate_prediction(&prediction, &dataset.labels[i])?;
             let error = calculate_mse(&prediction, &dataset.labels[i]);
+            if !error.is_finite() {
+                return Err(TrainingError::EvaluationError(
+                    "Validation error overflowed".into(),
+                ));
+            }
             total_error += error;
             count += 1;
         }
@@ -798,17 +794,20 @@ impl ModelEvaluator {
         models: Vec<Box<dyn NeuroDivergentModel>>,
         dataset: &TrainingDataset,
     ) -> Result<ModelSelectionResult> {
+        validation::validate_dataset(dataset)?;
+        if models.is_empty() {
+            return Err(TrainingError::EvaluationError("No models provided".into()));
+        }
         let mut model_scores = Vec::new();
 
         for model in models {
             let mut predictions = Vec::new();
             let mut labels = Vec::new();
 
-            // Generate predictions for validation set
-            let split_idx = (dataset.sequences.len() as f64 * 0.8) as usize;
-
-            for i in split_idx..dataset.sequences.len() {
+            // The caller supplies the held-out evaluation dataset.
+            for i in 0..dataset.sequences.len() {
                 let prediction = model.predict(&dataset.sequences[i])?;
+                validation::validate_prediction(&prediction, &dataset.labels[i])?;
                 predictions.push(prediction);
                 labels.push(dataset.labels[i].clone());
             }
@@ -817,6 +816,12 @@ impl ModelEvaluator {
             let mut scores = HashMap::new();
             for metric in &self.metrics {
                 let score = metric.calculate(&predictions, &labels);
+                if !score.is_finite() {
+                    return Err(TrainingError::EvaluationError(format!(
+                        "Metric {} is not finite",
+                        metric.name()
+                    )));
+                }
                 scores.insert(metric.name().to_string(), score);
             }
 
@@ -950,7 +955,15 @@ impl EvaluationMetric for R2Metric {
             }
         }
 
-        1.0 - (ss_res / ss_tot)
+        if ss_tot == 0.0 {
+            if ss_res == 0.0 {
+                1.0
+            } else {
+                0.0
+            }
+        } else {
+            1.0 - (ss_res / ss_tot)
+        }
     }
 }
 
@@ -1065,11 +1078,8 @@ impl TrainingPipeline {
             ]),
         };
 
-        let optimizer = HyperparameterOptimizer::new(
-            search_space,
-            OptimizationMethod::BayesianOptimization,
-            20,
-        );
+        let optimizer =
+            HyperparameterOptimizer::new(search_space, OptimizationMethod::RandomSearch, 20);
 
         let evaluator = ModelEvaluator::new();
 
@@ -1299,19 +1309,37 @@ fn calculate_seasonality(features: &[Vec<f64>]) -> Vec<f64> {
 }
 
 fn random_float() -> f64 {
-    // In production, use a proper random number generator
-    // For now, return a pseudo-random value
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .subsec_nanos();
-    (nanos % 1000) as f64 / 1000.0
+    fastrand::f64()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn unavailable_architectures_fail_instead_of_returning_mock_predictions() {
+        let mut models: Vec<Box<dyn NeuroDivergentModel>> = vec![
+            Box::new(LSTMModel::new(4, 1)),
+            Box::new(TCNModel::new(vec![4], 2)),
+            Box::new(NBEATSModel::new(vec![StackType::Trend], 1)),
+        ];
+        let sequence = TimeSeriesSequence {
+            timestamps: vec![],
+            features: vec![],
+            agent_id: "agent".into(),
+        };
+        for model in &mut models {
+            assert!(model.predict(&sequence).is_err());
+            assert!(model.save("unused-model-path").is_err());
+            assert!(model.load("unused-model-path").is_err());
+        }
+    }
+
+    #[tokio::test]
+    async fn data_loader_rejects_zero_sized_windows() {
+        let loader = StreamDataLoader::new(100, 0);
+        assert!(loader.load_from_stream(std::iter::empty()).await.is_err());
+    }
 
     #[test]
     fn test_feature_extraction() {

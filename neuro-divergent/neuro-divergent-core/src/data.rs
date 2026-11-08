@@ -482,14 +482,18 @@ impl<T: Float> TimeSeriesDataFrame<T> {
         })
     }
 
-    /// Create from CSV file
-    /// TODO: Fix polars CSV reading API compatibility
-    #[allow(dead_code)]
+    /// Read a CSV file and validate its columns against the supplied schema.
     pub fn from_csv<P: AsRef<Path>>(
-        _path: P,
-        _schema: TimeSeriesSchema,
+        path: P,
+        schema: TimeSeriesSchema,
     ) -> NeuroDivergentResult<Self> {
-        todo!("CSV reading needs to be updated for current polars version")
+        let dataframe = CsvReadOptions::default()
+            .with_has_header(true)
+            .map_parse_options(|options| options.with_try_parse_dates(true))
+            .try_into_reader_with_file_path(Some(path.as_ref().to_path_buf()))
+            .and_then(|reader| reader.finish())
+            .map_err(|error| ErrorBuilder::data(format!("Failed to read CSV: {error}")).build())?;
+        Self::from_polars(dataframe, schema)
     }
 
     /// Create from Parquet file
@@ -512,7 +516,7 @@ impl<T: Float> TimeSeriesDataFrame<T> {
             .map_err(|e| ErrorBuilder::data(format!("Failed to get unique IDs: {}", e)).build())?
             .unique()
             .map_err(|e| ErrorBuilder::data(format!("Failed to get unique values: {}", e)).build())?
-            .utf8()
+            .str()
             .map_err(|e| ErrorBuilder::data(format!("Unique ID column is not string type: {}", e)).build())?
             .into_iter()
             .filter_map(|opt| opt.map(|s| s.to_string()))
@@ -563,12 +567,18 @@ impl<T: Float> TimeSeriesDataFrame<T> {
 
     /// Convert to internal dataset format
     pub fn to_dataset(&self) -> NeuroDivergentResult<TimeSeriesDataset<T>> {
+        if self.data.height() == 0 { return Err(data_error!("Cannot convert an empty dataset")); }
+        let ids = self.data.column(&self.schema.unique_id_col).and_then(|column| column.str())
+            .map_err(|e| ErrorBuilder::data(e.to_string()).build())?;
+        if ids.into_iter().any(|id| id.is_none_or(|id| id.trim().is_empty())) { return Err(data_error!("Null or empty series identifier")); }
         let unique_ids = self.unique_ids()?;
         let mut series_data = HashMap::new();
         let mut static_features = HashMap::new();
 
         for id in &unique_ids {
-            let series_df = self.filter_by_id(id)?;
+            let mut series_df = self.filter_by_id(id)?;
+            series_df.data = series_df.data.sort([self.schema.ds_col.as_str()], SortMultipleOptions::default())
+                .map_err(|e| ErrorBuilder::data(e.to_string()).build())?;
             let series = self.extract_series_data(&series_df.data, id)?;
             series_data.insert(id.clone(), series);
 
@@ -592,40 +602,17 @@ impl<T: Float> TimeSeriesDataFrame<T> {
 
     /// Extract series data for a single time series
     fn extract_series_data(&self, df: &DataFrame, _id: &str) -> NeuroDivergentResult<SeriesData<T>> {
-        // Extract timestamps
-        let timestamps: Vec<DateTime<Utc>> = df
-            .column(&self.schema.ds_col)
-            .map_err(|e| ErrorBuilder::data(format!("Failed to get timestamp column: {}", e)).build())?
-            .datetime()
-            .map_err(|e| ErrorBuilder::data(format!("Timestamp column is not datetime type: {}", e)).build())?
-            .into_iter()
-            .filter_map(|opt| opt.map(|ts| Utc.timestamp_nanos(ts * 1000)))
-            .collect();
-
-        // Extract target values
-        let target_values: Vec<T> = df
-            .column(&self.schema.y_col)
-            .map_err(|e| ErrorBuilder::data(format!("Failed to get target column: {}", e)).build())?
-            .f64()
-            .map_err(|e| ErrorBuilder::data(format!("Target column is not numeric: {}", e)).build())?
-            .into_iter()
-            .filter_map(|opt| opt.and_then(|val| T::from(val)))
-            .collect();
-
-        if timestamps.len() != target_values.len() {
-            return Err(data_error!(
-                "Timestamp and target value lengths don't match"
-            ));
+        let timestamps = data_values::read_times(df.column(&self.schema.ds_col)
+            .map_err(|e| ErrorBuilder::data(e.to_string()).build())?)?;
+        if timestamps.windows(2).any(|pair| pair[0] >= pair[1]) {
+            return Err(data_error!("Series timestamps must be distinct and increasing"));
         }
-
+        let target_values = data_values::read_numeric(df.column(&self.schema.y_col)
+            .map_err(|e| ErrorBuilder::data(e.to_string()).build())?)?;
         let length = timestamps.len();
-
-        // TODO: Extract exogenous features
-        let historical_exogenous = None;
-        let future_exogenous = None;
-
-        // TODO: Infer frequency
-        let frequency = None;
+        let historical_exogenous = data_values::exogenous_matrix(df, &self.schema.historical_exogenous)?;
+        let future_exogenous = data_values::exogenous_matrix(df, &self.schema.future_exogenous)?;
+        let frequency = data_values::infer_frequency(&timestamps);
 
         Ok(SeriesData {
             timestamps,
@@ -639,37 +626,16 @@ impl<T: Float> TimeSeriesDataFrame<T> {
 
     /// Extract static features for a series
     fn extract_static_features(&self, df: &DataFrame, _id: &str) -> NeuroDivergentResult<Vec<T>> {
-        if self.schema.static_features.is_empty() {
-            return Ok(Vec::new());
+        let mut features = Vec::with_capacity(self.schema.static_features.len());
+        for name in &self.schema.static_features {
+            let column = df.column(name).map_err(|e| ErrorBuilder::data(e.to_string()).build())?;
+            let values = data_values::read_numeric::<T>(column)?;
+            let first = values.first().copied().ok_or_else(|| data_error!("Static feature column is empty"))?;
+            if values.iter().any(|value| *value != first) {
+                return Err(data_error!(format!("Static feature '{name}' changes within a series")));
+            }
+            features.push(first);
         }
-
-        let mut features = Vec::new();
-        for feature_name in &self.schema.static_features {
-            let column = df
-                .column(feature_name)
-                .map_err(|e| ErrorBuilder::data(format!("Failed to get static feature column '{}': {}", feature_name, e)).build())?;
-
-            // Get first value (static features should be constant within a series)
-            let value = match column.dtype() {
-                DataType::Float64 | DataType::Float32 => {
-                    let float_val = column.f64()
-                        .map_err(|e| ErrorBuilder::data(format!("Failed to convert static feature to float: {}", e)).build())?
-                        .get(0)
-                        .unwrap_or(0.0);
-                    T::from(float_val).unwrap_or_else(T::zero)
-                }
-                DataType::Int64 | DataType::Int32 => {
-                    let int_val = column.i64()
-                        .map_err(|e| ErrorBuilder::data(format!("Failed to convert static feature to int: {}", e)).build())?
-                        .get(0)
-                        .unwrap_or(0);
-                    T::from(int_val).unwrap_or_else(T::zero)
-                }
-                _ => T::zero(),
-            };
-            features.push(value);
-        }
-
         Ok(features)
     }
 
@@ -699,13 +665,24 @@ impl<T: Float> TimeSeriesDataFrame<T> {
             0.0
         };
 
-        // TODO: Compute missing value statistics
-        let missing_stats = MissingValueStats {
-            total_missing: 0,
-            missing_percentage: 0.0,
-            missing_per_column: HashMap::new(),
-            series_with_missing: Vec::new(),
-        };
+        let mut missing_per_column = HashMap::new();
+        let mut total_missing = 0;
+        let mut missing_rows = vec![false; self.data.height()];
+        for column in self.data.get_columns() {
+            let count = column.null_count(); total_missing += count;
+            missing_per_column.insert(column.name().to_string(), count);
+            for (index, missing) in column.is_null().into_iter().enumerate() {
+                if missing == Some(true) { missing_rows[index] = true; }
+            }
+        }
+        let ids = self.data.column(&self.schema.unique_id_col).and_then(|column| column.str())
+            .map_err(|e| ErrorBuilder::data(e.to_string()).build())?;
+        let series_with_missing = missing_rows.iter().zip(ids).filter_map(|(missing, id)| if *missing { id.map(str::to_owned) } else { None })
+            .collect::<std::collections::BTreeSet<_>>().into_iter().collect();
+        let cells = self.data.height().saturating_mul(self.data.width());
+        let missing_stats = MissingValueStats { total_missing, missing_percentage: if cells == 0 { 0.0 } else { 100.0 * total_missing as f64 / cells as f64 }, missing_per_column, series_with_missing };
+        let common_frequency = series_data.values().next().and_then(|series| series.frequency.clone())
+            .filter(|frequency| series_data.values().all(|series| series.frequency.as_ref() == Some(frequency)));
 
         Ok(DatasetMetadata {
             n_series,
@@ -713,7 +690,7 @@ impl<T: Float> TimeSeriesDataFrame<T> {
             avg_series_length,
             min_series_length: if min_length == usize::MAX { 0 } else { min_length },
             max_series_length: max_length,
-            frequency: None, // TODO: Infer common frequency
+            frequency: common_frequency,
             time_range: (min_time, max_time),
             missing_stats,
             created_at: Utc::now(),
@@ -774,10 +751,10 @@ impl<T: Float> TimeSeriesDataFrame<T> {
 
     /// Get time range
     pub fn time_range(&self) -> NeuroDivergentResult<(DateTime<Utc>, DateTime<Utc>)> {
-        // TODO: Fix timestamp extraction with proper polars API
-        let min_time = DateTime::<Utc>::MIN_UTC;
-        let max_time = DateTime::<Utc>::MAX_UTC;
-
+        let column = self.data.column(&self.schema.ds_col).map_err(|e| ErrorBuilder::data(e.to_string()).build())?;
+        let times = data_values::read_times(column)?;
+        let min_time = times.iter().min().copied().ok_or_else(|| data_error!("Cannot get the range of empty timestamps"))?;
+        let max_time = times.iter().max().copied().ok_or_else(|| data_error!("Cannot get the range of empty timestamps"))?;
         Ok((min_time, max_time))
     }
 
@@ -902,6 +879,7 @@ impl<T: Float> Default for TimeSeriesDatasetBuilder<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::NaiveDate;
     use polars::prelude::*;
 
     fn create_test_dataframe() -> DataFrame {
@@ -987,3 +965,9 @@ mod tests {
         assert!(result.is_err());
     }
 }
+#[cfg(test)]
+#[path = "dataframe_regression_tests.rs"]
+mod dataframe_regression_tests;
+
+#[path = "data_values.rs"]
+mod data_values;

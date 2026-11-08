@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="524" viewBox="0 0 1040 524" role="img" aria-labelledby="title desc">
+  <title id="title">Find the package family for your task</title>
+  <desc id="desc">The repository has five independent Cargo workspaces: the ruv-fann neural network core, the ruv-swarm agent stack, neuro-divergent forecasting, cuda-rust-wasm transpilation, and OpenCV experiments. The ruv-swarm and CUDA families also contain npm distributions. Build and test each workspace separately.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#101d35"/><stop offset="1" stop-color="#11172a"/>
+    </linearGradient>
+  </defs>
+  <style>
+    text { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
+    .trace { stroke-dasharray: 5 13; animation: travel 9s linear infinite; }
+    @keyframes travel { to { stroke-dashoffset: -144; } }
+    @media (prefers-reduced-motion: reduce) { .trace { animation: none; } }
+  </style>
+  <rect width="1040" height="524" rx="20" fill="url(#background)"/>
+  <rect x="1" y="1" width="1038" height="522" rx="19" fill="none" stroke="#2a3a55"/>
+  <text x="36" y="48" fill="#76e0d0" font-size="12" font-weight="700" letter-spacing="2">RUV-FANN / REPOSITORY MAP</text>
+  <text x="36" y="83" fill="#f0f5ff" font-size="27" font-weight="650">Pick the library that fits your job.</text>
+  <text x="36" y="112" fill="#b2c1d8" font-size="14">Five Cargo workspaces, with separate dependencies and checks.</text>
+  <g fill="#17243a" stroke="#3b506f">
+    <rect x="36" y="142" width="308" height="134" rx="12"/>
+    <rect x="366" y="142" width="308" height="134" rx="12"/>
+    <rect x="696" y="142" width="308" height="134" rx="12"/>
+    <rect x="36" y="302" width="308" height="134" rx="12"/>
+    <rect x="366" y="302" width="308" height="134" rx="12"/>
+  </g>
+  <g fill="#f0f5ff" font-size="18" font-weight="650">
+    <text x="58" y="177">ruv-fann</text>
+    <text x="388" y="177">ruv-swarm</text>
+    <text x="718" y="177">neuro-divergent</text>
+    <text x="58" y="337">cuda-rust-wasm</text>
+    <text x="388" y="337">OpenCV experiments</text>
+  </g>
+  <g fill="#c3d0e3" font-size="13">
+    <text x="58" y="205">Build, train and run feedforward</text>
+    <text x="58" y="225">neural networks in Rust.</text>
+    <text x="388" y="205">Coordinate agents and tasks;</text>
+    <text x="388" y="225">connect through a CLI or MCP.</text>
+    <text x="718" y="205">Work with time series, models</text>
+    <text x="718" y="225">and forecasting experiments.</text>
+    <text x="58" y="365">Parse a subset of CUDA and</text>
+    <text x="58" y="385">explore Rust / WebGPU output.</text>
+    <text x="388" y="365">Explore image processing and</text>
+    <text x="388" y="385">Rust / WASM bindings.</text>
+  </g>
+  <g fill="#76e0d0" font-size="11" font-weight="600" letter-spacing=".8">
+    <text x="58" y="254">ROOT CRATE</text>
+    <text x="388" y="254">RUST WORKSPACE + NPM</text>
+    <text x="718" y="254">RUST WORKSPACE</text>
+    <text x="58" y="414">RUST CRATE + NPM</text>
+    <text x="388" y="414">RUST WORKSPACE</text>
+  </g>
+  <path class="trace" d="M58 266H322 M388 266H652 M718 266H982 M58 426H322 M388 426H652" fill="none" stroke="#76e0d0" stroke-width="1.5" opacity=".55"/>
+  <text x="718" y="336" fill="#bbacff" font-size="15" font-weight="600">Start with the core example.</text>
+  <text x="718" y="362" fill="#b2c1d8" font-size="13">Then use each family's README</text>
+  <text x="718" y="383" fill="#b2c1d8" font-size="13">for its supported features and</text>
+  <text x="718" y="404" fill="#b2c1d8" font-size="13">environment requirements.</text>
+  <path d="M36 462H1004" stroke="#2a3a55"/>
+  <text x="36" y="494" fill="#b2c1d8" font-size="13">A shared repository does not imply that every package has the same API, maturity or release version.</text>
+</svg>

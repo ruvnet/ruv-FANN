@@ -15,8 +15,9 @@ fn generate_complex_events() -> Vec<StreamEvent> {
         .unwrap()
         .as_secs();
 
-    // Generate more complex patterns for hyperparameter tuning
-    for day in 0..30 {
+    // Keep this demonstration below the loader's sequence feature budget.
+    // Three days still provide daily variation and many complete windows.
+    for day in 0..3 {
         for hour in 0..24 {
             for minute in (0..60).step_by(5) {
                 let timestamp = base_time + (day * 86400) + (hour * 3600) + (minute * 60);
@@ -56,8 +57,8 @@ fn generate_complex_events() -> Vec<StreamEvent> {
                         prompt_data: if minute % 10 == 0 {
                             Some(PromptData {
                                 prompt_text: format!("Complex prompt for optimization"),
-                                prompt_tokens: 50 + (hour * 2),
-                                response_tokens: 100 + (hour * 3),
+                                prompt_tokens: (50 + (hour * 2)) as usize,
+                                response_tokens: (100 + (hour * 3)) as usize,
                                 quality_score: 0.9 - 0.1 * hour_factor,
                             })
                         } else {
@@ -111,8 +112,8 @@ async fn optimize_lstm() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // Load data
-    let data_loader = StreamDataLoader::new(1000, 50);
     let events = generate_complex_events();
+    let data_loader = StreamDataLoader::new(events.len(), 50);
     let dataset = data_loader.load_from_stream(events.into_iter()).await?;
 
     // Training config
@@ -165,13 +166,13 @@ async fn optimize_tcn() -> Result<(), Box<dyn std::error::Error>> {
 
     let search_space = SearchSpace { parameters };
 
-    // Create optimizer with Bayesian optimization
+    // Use the implemented numeric random search; other strategies return explicit errors.
     let optimizer =
-        HyperparameterOptimizer::new(search_space, OptimizationMethod::BayesianOptimization, 15);
+        HyperparameterOptimizer::new(search_space, OptimizationMethod::RandomSearch, 15);
 
     // Load data
-    let data_loader = StreamDataLoader::new(1000, 50);
     let events = generate_complex_events();
+    let data_loader = StreamDataLoader::new(events.len(), 50);
     let dataset = data_loader.load_from_stream(events.into_iter()).await?;
 
     // Training config
@@ -215,12 +216,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("==================================================");
 
     // Optimize LSTM model
-    optimize_lstm().await?;
+    if let Err(error) = optimize_lstm().await {
+        if matches!(error.downcast_ref::<ruv_swarm_ml_training::TrainingError>(),
+            Some(ruv_swarm_ml_training::TrainingError::ModelError(message)) if message.contains("no implemented training backend"))
+        {
+            println!("Backend unavailable: {error}");
+        } else {
+            return Err(error);
+        }
+    }
 
     // Optimize TCN model
-    optimize_tcn().await?;
+    if let Err(error) = optimize_tcn().await {
+        if matches!(error.downcast_ref::<ruv_swarm_ml_training::TrainingError>(),
+            Some(ruv_swarm_ml_training::TrainingError::ModelError(message)) if message.contains("no implemented training backend"))
+        {
+            println!("Backend unavailable: {error}");
+        } else {
+            return Err(error);
+        }
+    }
 
-    println!("\n\nAll optimizations completed successfully!");
+    println!("\n\nBackend availability checks complete; no unsupported model was trained.");
 
     Ok(())
 }

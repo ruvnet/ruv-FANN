@@ -1,5 +1,6 @@
 //! FANN native file format reader and writer
 
+use super::limits;
 use crate::io::error::{IoError, IoResult};
 use crate::{Network, NetworkBuilder};
 use num_traits::Float;
@@ -24,11 +25,25 @@ impl FannReader {
     where
         T::Err: std::fmt::Debug,
     {
+        self.read_network_with_limit(reader, limits::MODEL_BYTES)
+    }
+
+    /// Reads a text model with a maximum file size and estimated topology allocation.
+    /// Individual lines are also limited to 16 MiB, including ignored parameters.
+    pub fn read_network_with_limit<T: Float + std::str::FromStr, R: std::io::Read>(
+        &self,
+        reader: &mut R,
+        max_bytes: u64,
+    ) -> IoResult<Network<T>>
+    where
+        T::Err: std::fmt::Debug,
+    {
+        let mut remaining = max_bytes;
         let mut buf_reader = BufReader::new(reader);
         let mut line = String::new();
 
         // Read version line
-        buf_reader.read_line(&mut line)?;
+        limits::read_line(&mut buf_reader, &mut line, &mut remaining)?;
         if !line.starts_with("FANN_FLO") && !line.starts_with("FANN_FIX") {
             return Err(IoError::InvalidFileFormat(
                 "Missing FANN version header".to_string(),
@@ -43,7 +58,7 @@ impl FannReader {
         // Parse network parameters
         loop {
             line.clear();
-            let bytes_read = buf_reader.read_line(&mut line)?;
+            let bytes_read = limits::read_line(&mut buf_reader, &mut line, &mut remaining)?;
             if bytes_read == 0 {
                 break; // EOF
             }
@@ -76,7 +91,8 @@ impl FannReader {
                         // Guard: parse at most MAX_NUM_LAYERS tokens to prevent memory exhaustion
                         // from crafted FANN files before num_layers has been validated.
                         const MAX_NUM_LAYERS: usize = 10_000;
-                        let tokens: Vec<&str> = value.split_whitespace().collect();
+                        let tokens: Vec<&str> =
+                            value.split_whitespace().take(MAX_NUM_LAYERS + 1).collect();
                         if tokens.len() > MAX_NUM_LAYERS {
                             return Err(IoError::InvalidNetwork(format!(
                                 "layer_sizes contains {} entries, exceeding maximum ({})",
@@ -134,6 +150,18 @@ impl FannReader {
                 "layer_sizes length must match num_layers".to_string(),
             ));
         }
+
+        if !connection_rate.is_finite()
+            || connection_rate < T::zero()
+            || connection_rate > T::one()
+            || weights.iter().any(|weight: &T| !weight.is_finite())
+        {
+            return Err(IoError::InvalidNetwork(
+                "Model parameters must be finite and connection_rate between 0 and 1".into(),
+            ));
+        }
+        // Validate multiplication and the decoded allocation before invoking the builder.
+        limits::network_shape::<T>(&layer_sizes, max_bytes)?;
 
         // Build network using NetworkBuilder
         let mut builder = NetworkBuilder::<T>::new();

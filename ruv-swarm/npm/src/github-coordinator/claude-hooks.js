@@ -3,9 +3,9 @@
  * Automatically coordinates swarm activities with GitHub
  */
 
-const GHCoordinator = require('./gh-cli-coordinator');
+import GHCoordinator from './gh-cli-coordinator.js';
 // const fs = require('fs').promises; // Unused - will be used in future implementation
-const path = require('path');
+import path from 'path';
 
 class ClaudeGitHubHooks {
   constructor(options = {}) {
@@ -159,4 +159,4 @@ async function registerHooks() {
   };
 }
 
-module.exports = { ClaudeGitHubHooks, registerHooks };
+export { ClaudeGitHubHooks, registerHooks };

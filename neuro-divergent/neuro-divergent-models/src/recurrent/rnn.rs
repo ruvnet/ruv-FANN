@@ -1,225 +1,307 @@
-//! Basic Recurrent Neural Network (RNN) implementation
-//!
-//! This module provides a vanilla RNN implementation using ruv-FANN as the foundation,
-//! with support for multi-layer architectures, bidirectional processing, and time series forecasting.
+//! Trainable stacked vanilla RNN with a learned, multi-step FANN projection.
 
-use std::collections::HashMap;
-use num_traits::Float;
-use ruv_fann::{Network, NetworkBuilder, ActivationFunction, TrainingData, TrainingAlgorithm};
-use crate::errors::{NeuroDivergentError, NeuroDivergentResult};
-use crate::foundation::{
-    BaseModel, ModelConfig, NetworkAdapter, TimeSeriesInput, ForecastOutput,
-    TimeSeriesDataset, TrainingMetrics, ValidationMetrics, TrainingHistory,
-    RecurrentState, TimeSeriesSample
-};
+use super::bptt::{validate_projection, RecurrentNetwork};
+use super::layers::{BidirectionalMergeMode, RecurrentLayer};
 use crate::config::RNNConfig;
-use crate::recurrent::layers::{
-    RecurrentLayer, BasicRecurrentCell, MultiLayerRecurrent, BidirectionalRecurrent,
-    BidirectionalMergeMode
+use crate::errors::{NeuroDivergentError as Error, NeuroDivergentResult as Result};
+use crate::foundation::{
+    BaseModel, ForecastOutput, ModelConfig, NetworkAdapter, RecurrentState, TimeSeriesDataset,
+    TimeSeriesInput, TrainingHistory, TrainingMetrics, ValidationMetrics,
 };
-use crate::utils::{math, preprocessing::StandardScaler, validation};
+use crate::utils::math;
+use neuro_divergent_training::{Adam, Optimizer};
+use num_traits::Float;
+use rand::{Rng, SeedableRng};
+use rand_chacha::ChaCha8Rng;
+use ruv_fann::{ActivationFunction, Network, NetworkBuilder, TrainingData};
+use std::collections::HashMap;
 
-/// Basic RNN model for time series forecasting
+/// A stacked vanilla RNN trained jointly with a linear hidden-to-horizon projection.
+///
+/// `input_size` counts features per time step, not lookback length. Each step is
+/// `[target, static_features..., historical_features...]`. Windows are independent
+/// and start from the model's configured initial states (zero by default).
+/// Full BPTT is the default; [`Self::set_bptt_truncation`] can detach an earlier
+/// prefix. Adam optimizes weighted mean squared error, with optional global norm
+/// clipping and coupled L2 regularization. No automatic scaling is performed.
+#[derive(Clone)]
 pub struct RNN<T: Float + Send + Sync + std::fmt::Debug + std::iter::Sum + 'static> {
-    /// Model configuration
     config: RNNConfig<T>,
-    
-    /// Multi-layer recurrent network
-    recurrent_layers: Option<MultiLayerRecurrent<T>>,
-    
-    /// Output layer (ruv-FANN network)
-    output_layer: Option<Network<T>>,
-    
-    /// Bidirectional wrapper (if enabled)
-    bidirectional: Option<BidirectionalRecurrent<T>>,
-    
-    /// Training state
+    recurrent: RecurrentNetwork<T>,
+    output_layer: Network<T>,
     is_trained: bool,
     training_history: Option<TrainingHistory<T>>,
-    
-    /// Data preprocessing
-    input_scaler: Option<StandardScaler<T>>,
-    output_scaler: Option<StandardScaler<T>>,
-    
-    /// Cached model metrics
     model_metrics: HashMap<String, f64>,
+    seed: u64,
+    bptt_truncation: Option<usize>,
+}
+
+struct PreparedSample<T> {
+    sequence: Vec<Vec<T>>,
+    target: Vec<T>,
+    weight: T,
 }
 
 impl<T: Float + Send + Sync + std::fmt::Debug + std::iter::Sum + 'static> RNN<T> {
-    /// Create a new RNN model
-    pub fn new(config: RNNConfig<T>) -> NeuroDivergentResult<Self> {
+    /// Initialize an independently randomized model with validated dimensions.
+    pub fn new(config: RNNConfig<T>) -> Result<Self> {
+        Self::new_seeded(config, rand::random())
+    }
+
+    /// Initialize reproducibly, including recurrent weights and the output projection.
+    pub fn new_seeded(config: RNNConfig<T>, seed: u64) -> Result<Self> {
         config.validate()?;
-        
+        let mut rng = ChaCha8Rng::seed_from_u64(seed);
+        let recurrent = RecurrentNetwork::new(&config, &mut rng);
+        let mut output_layer = NetworkBuilder::new()
+            .input_layer(config.hidden_size)
+            .output_layer_with_activation(config.horizon, ActivationFunction::Linear, T::one())
+            .build();
+        let bound = (6.0 / (config.hidden_size as f64 + config.horizon as f64)).sqrt();
+        let weights: Vec<T> = (0..config.horizon)
+            .flat_map(|_| {
+                (0..config.hidden_size)
+                    .map(|_| T::from(rng.gen_range(-bound..bound)).unwrap())
+                    .chain(std::iter::once(T::zero()))
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+        output_layer.set_weights(&weights)?;
         Ok(Self {
             config,
-            recurrent_layers: None,
-            output_layer: None,
-            bidirectional: None,
+            recurrent,
+            output_layer,
             is_trained: false,
             training_history: None,
-            input_scaler: None,
-            output_scaler: None,
             model_metrics: HashMap::new(),
+            seed,
+            bptt_truncation: None,
         })
     }
-    
-    /// Initialize the model architecture
-    fn initialize_architecture(&mut self) -> NeuroDivergentResult<()> {
-        let input_size = self.config.input_size;
-        let hidden_size = self.config.hidden_size;
-        let num_layers = self.config.num_layers;
-        let horizon = self.config.horizon;
-        let activation = self.config.activation;
-        
-        // Create recurrent layers
-        let mut layers: Vec<Box<dyn RecurrentLayer<T> + Send + Sync>> = Vec::new();
-        
-        // First layer takes input_size, subsequent layers take hidden_size
-        for i in 0..num_layers {
-            let layer_input_size = if i == 0 { input_size } else { hidden_size };
-            let cell = BasicRecurrentCell::new(layer_input_size, hidden_size, activation);
-            layers.push(Box::new(cell));
+
+    /// An owned configuration for adapters and checkpoint descriptors.
+    pub fn config_owned(&self) -> RNNConfig<T> {
+        self.config.clone()
+    }
+
+    /// None differentiates the entire lookback; Some(K) differentiates its final K
+    /// steps and treats the states at the prefix boundary as constants.
+    pub fn set_bptt_truncation(&mut self, steps: Option<usize>) -> Result<()> {
+        if steps == Some(0) {
+            return Err(Error::config("BPTT truncation must be positive"));
         }
-        
-        self.recurrent_layers = Some(MultiLayerRecurrent::new(layers, self.config.dropout));
-        
-        // Create output layer using ruv-FANN
-        let output_input_size = hidden_size;
-        self.output_layer = Some(
-            NetworkBuilder::new()
-                .input_layer(output_input_size)
-                .output_layer_with_activation(horizon, ActivationFunction::Linear, T::one())
-                .build()
-        );
-        
-        // Initialize scalers
-        self.input_scaler = Some(StandardScaler::new());
-        self.output_scaler = Some(StandardScaler::new());
-        
+        self.bptt_truncation = steps;
         Ok(())
     }
-    
-    /// Prepare input sequence for the model
-    fn prepare_sequence(&self, ts_input: &TimeSeriesInput<T>) -> NeuroDivergentResult<Vec<Vec<T>>> {
-        let sequence_length = ts_input.historical_targets.len();
-        let mut sequence = Vec::with_capacity(sequence_length);
-        
-        // For basic RNN, we use sliding windows of size 1 (each time step is separate)
-        // In practice, you might want to use larger windows
-        for i in 0..sequence_length {
-            let mut input_vector = vec![ts_input.historical_targets[i]];
-            
-            // Add static features if available
-            if let Some(static_features) = &ts_input.static_features {
-                input_vector.extend_from_slice(static_features);
-            }
-            
-            // Add historical exogenous features if available
-            if let Some(hist_features) = &ts_input.historical_features {
-                if i < hist_features.len() {
-                    input_vector.extend_from_slice(&hist_features[i]);
-                }
-            }
-            
-            sequence.push(input_vector);
+
+    pub fn bptt_truncation(&self) -> Option<usize> {
+        self.bptt_truncation
+    }
+
+    fn prepare_sequence(&self, input: &TimeSeriesInput<T>) -> Result<Vec<Vec<T>>> {
+        input.validate()?;
+        if input
+            .future_features
+            .as_ref()
+            .is_some_and(|v| !v.is_empty())
+        {
+            return Err(Error::data(
+                "Vanilla RNN does not consume future exogenous features",
+            ));
         }
-        
+        let mut sequence = Vec::with_capacity(input.historical_targets.len());
+        for (step, &target) in input.historical_targets.iter().enumerate() {
+            let mut features = vec![target];
+            if let Some(values) = &input.static_features {
+                features.extend_from_slice(values);
+            }
+            if let Some(values) = &input.historical_features {
+                features.extend_from_slice(&values[step]);
+            }
+            if features.len() != self.config.input_size {
+                return Err(Error::dimension_mismatch(
+                    self.config.input_size,
+                    features.len(),
+                ));
+            }
+            if features.iter().any(|v| !v.is_finite()) {
+                return Err(Error::data("RNN inputs must be finite"));
+            }
+            sequence.push(features);
+        }
         Ok(sequence)
     }
-    
-    /// Create training data from dataset
-    fn create_training_data(&self, dataset: &TimeSeriesDataset<T>) -> NeuroDivergentResult<TrainingData<T>> {
-        let mut inputs = Vec::new();
-        let mut outputs = Vec::new();
-        
-        for sample in &dataset.samples {
-            // Prepare input sequence
-            let input_sequence = self.prepare_sequence(&sample.input)?;
-            
-            // For training, we need to flatten the sequence or use the last output
-            // Here we'll use the last time step's hidden state as input to output layer
-            if let Some(recurrent_layers) = &self.recurrent_layers {
-                let mut temp_layers = recurrent_layers.clone();
-                temp_layers.reset_states();
-                
-                // Process sequence and get final hidden state
-                let sequence_outputs = temp_layers.forward_sequence(&input_sequence)?;
-                if let Some(final_output) = sequence_outputs.last() {
-                    inputs.push(final_output.clone());
-                    outputs.push(sample.target.clone());
-                }
-            }
+
+    fn prepare_dataset(&self, dataset: &TimeSeriesDataset<T>) -> Result<Vec<PreparedSample<T>>> {
+        if dataset.samples.is_empty() {
+            return Err(Error::data("RNN dataset cannot be empty"));
         }
-        
-        Ok(TrainingData { inputs, outputs })
+        let mut total_weight = T::zero();
+        let mut prepared = Vec::with_capacity(dataset.samples.len());
+        for sample in &dataset.samples {
+            if sample.target.len() != self.config.horizon {
+                return Err(Error::dimension_mismatch(
+                    self.config.horizon,
+                    sample.target.len(),
+                ));
+            }
+            let weight = sample.weight.unwrap_or_else(T::one);
+            if !weight.is_finite()
+                || weight < T::zero()
+                || sample.target.iter().any(|v| !v.is_finite())
+            {
+                return Err(Error::data(
+                    "RNN targets and nonnegative sample weights must be finite",
+                ));
+            }
+            total_weight = total_weight + weight;
+            prepared.push(PreparedSample {
+                sequence: self.prepare_sequence(&sample.input)?,
+                target: sample.target.clone(),
+                weight,
+            });
+        }
+        if !total_weight.is_finite() || total_weight <= T::zero() {
+            return Err(Error::data(
+                "RNN requires a positive, finite total sample weight",
+            ));
+        }
+        for sample in &mut prepared {
+            sample.weight = sample.weight / total_weight;
+        }
+        Ok(prepared)
     }
-    
-    /// Train the recurrent layers using BPTT (simplified version)
-    fn train_recurrent_layers(&mut self, dataset: &TimeSeriesDataset<T>) -> NeuroDivergentResult<T> {
-        let mut total_loss = T::zero();
-        let mut num_samples = 0;
-        
-        for sample in &dataset.samples {
-            let input_sequence = self.prepare_sequence(&sample.input)?;
-            
-            if let Some(recurrent_layers) = &mut self.recurrent_layers {
-                recurrent_layers.reset_states();
-                
-                // Forward pass through sequence
-                let sequence_outputs = recurrent_layers.forward_sequence(&input_sequence)?;
-                
-                // Get final output and compute loss with target
-                if let Some(final_output) = sequence_outputs.last() {
-                    // Simple MSE loss for the final hidden state
-                    // In a full implementation, this would involve proper BPTT
-                    let sample_loss = math::mse(final_output, &sample.target)?;
-                    total_loss = total_loss + sample_loss;
-                    num_samples += 1;
+
+    fn encode(&self, sequence: &[Vec<T>]) -> Result<Vec<T>> {
+        let tape = self.recurrent.forward(sequence, None::<&mut ChaCha8Rng>)?;
+        Ok(self.recurrent.final_hidden(&tape).to_vec())
+    }
+
+    fn dataset_loss(&self, samples: &[PreparedSample<T>]) -> Result<T> {
+        let mut projection = self.output_layer.clone();
+        let mut loss = T::zero();
+        for sample in samples.iter().filter(|sample| sample.weight > T::zero()) {
+            let hidden = self.encode(&sample.sequence)?;
+            let prediction = projection.run(&hidden)?;
+            loss = loss + sample.weight * math::mse(&prediction, &sample.target)?;
+        }
+        if !loss.is_finite() {
+            return Err(Error::training("RNN loss overflowed; scale the data"));
+        }
+        Ok(loss)
+    }
+
+    fn fit_internal(&mut self, dataset: &TimeSeriesDataset<T>) -> Result<TrainingMetrics<T>> {
+        self.config.validate()?;
+        validate_projection(
+            &self.output_layer,
+            self.config.hidden_size,
+            self.config.horizon,
+        )?;
+        let samples = self.prepare_dataset(dataset)?;
+        let start = std::time::Instant::now();
+        let mut parameters = self.recurrent.parameters(&self.output_layer);
+        let mut best_parameters = parameters.clone();
+        let initial_loss = self.dataset_loss(&samples)?;
+        let mut best_loss = initial_loss;
+        let mut history = TrainingHistory::new();
+        let mut optimizer = Adam::new(
+            self.config.learning_rate,
+            T::from(0.9).unwrap(),
+            T::from(0.999).unwrap(),
+        );
+        let mut rng = ChaCha8Rng::seed_from_u64(self.seed);
+        for _ in 0..self.config.max_steps {
+            let epoch_start = std::time::Instant::now();
+            let mut gradients: Vec<Vec<T>> = parameters
+                .iter()
+                .map(|row| vec![T::zero(); row.len()])
+                .collect();
+            let mut projection = self.output_layer.clone();
+            for sample in samples.iter().filter(|sample| sample.weight > T::zero()) {
+                let tape = self.recurrent.forward(&sample.sequence, Some(&mut rng))?;
+                let prediction = projection.run(self.recurrent.final_hidden(&tape))?;
+                let (_, sample_gradients) = self.recurrent.gradients(
+                    &tape,
+                    &projection,
+                    &prediction,
+                    &sample.target,
+                    self.bptt_truncation,
+                )?;
+                for (gradient, sample_gradient) in gradients
+                    .iter_mut()
+                    .flatten()
+                    .zip(sample_gradients.iter().flatten())
+                {
+                    *gradient = *gradient + sample.weight * *sample_gradient;
                 }
             }
+            for (gradient, &parameter) in gradients
+                .iter_mut()
+                .flatten()
+                .zip(parameters.iter().flatten())
+            {
+                *gradient = *gradient + self.config.weight_decay * parameter;
+            }
+            if let Some(clip) = self.config.gradient_clip_val {
+                neuro_divergent_training::utils::clip_gradients_by_norm(&mut gradients, clip);
+            }
+            optimizer
+                .step(&mut parameters, &gradients)
+                .map_err(|error| Error::training(error.to_string()))?;
+            self.recurrent
+                .set_parameters(&mut self.output_layer, &parameters)?;
+            let loss = self.dataset_loss(&samples)?;
+            history.add_epoch(
+                loss,
+                None,
+                self.config.learning_rate,
+                epoch_start.elapsed().as_secs_f64(),
+            );
+            if loss < best_loss {
+                best_loss = loss;
+                best_parameters = parameters.clone();
+            }
         }
-        
-        Ok(if num_samples > 0 {
-            total_loss / T::from(num_samples).unwrap()
-        } else {
-            T::zero()
+        self.recurrent
+            .set_parameters(&mut self.output_layer, &best_parameters)?;
+        self.is_trained = true;
+        self.model_metrics
+            .insert("initial_loss".into(), initial_loss.to_f64().unwrap());
+        self.model_metrics
+            .insert("training_loss".into(), best_loss.to_f64().unwrap());
+        self.model_metrics.insert(
+            "num_parameters".into(),
+            parameters.iter().map(Vec::len).sum::<usize>() as f64,
+        );
+        self.model_metrics
+            .insert("hidden_size".into(), self.config.hidden_size as f64);
+        self.model_metrics
+            .insert("num_layers".into(), self.config.num_layers as f64);
+        let epochs_completed = history.num_epochs();
+        self.training_history = Some(history);
+        Ok(TrainingMetrics {
+            final_loss: best_loss,
+            epochs_completed,
+            training_time_seconds: start.elapsed().as_secs_f64(),
+            best_validation_loss: None,
+            early_stopped: false,
+            convergence_achieved: best_loss < T::from(1e-6).unwrap(),
         })
     }
-    
-    /// Update model metrics
-    fn update_metrics(&mut self, training_loss: T, validation_loss: Option<T>) {
-        self.model_metrics.insert("training_loss".to_string(), training_loss.to_f64().unwrap_or(0.0));
-        if let Some(val_loss) = validation_loss {
-            self.model_metrics.insert("validation_loss".to_string(), val_loss.to_f64().unwrap_or(0.0));
-        }
-        
-        // Add model-specific metrics
-        self.model_metrics.insert("num_parameters".to_string(), self.count_parameters() as f64);
-        self.model_metrics.insert("num_layers".to_string(), self.config.num_layers as f64);
-        self.model_metrics.insert("hidden_size".to_string(), self.config.hidden_size as f64);
+
+    /// Bidirectional training is not implemented; this never silently changes the model.
+    pub fn enable_bidirectional(&mut self, _merge_mode: BidirectionalMergeMode) -> Result<()> {
+        Err(Error::config("Bidirectional RNN training is unsupported"))
     }
-    
-    /// Count total number of parameters
-    fn count_parameters(&self) -> usize {
-        let mut params = 0;
-        
-        // Recurrent layer parameters
-        let input_size = self.config.input_size;
-        let hidden_size = self.config.hidden_size;
-        let num_layers = self.config.num_layers;
-        
-        // First layer: input_size * hidden_size + hidden_size * hidden_size + hidden_size (bias)
-        params += input_size * hidden_size + hidden_size * hidden_size + hidden_size;
-        
-        // Subsequent layers: hidden_size * hidden_size + hidden_size * hidden_size + hidden_size
-        for _ in 1..num_layers {
-            params += hidden_size * hidden_size + hidden_size * hidden_size + hidden_size;
-        }
-        
-        // Output layer parameters
-        params += hidden_size * self.config.horizon + self.config.horizon;
-        
-        params
+
+    /// The next fit validates the new dropout rate. Predictions always disable dropout.
+    pub fn set_dropout(&mut self, rate: T) {
+        self.config.dropout = rate;
+        self.recurrent.dropout = rate;
+    }
+    pub fn get_dropout(&self) -> T {
+        self.config.dropout
     }
 }
 
@@ -227,336 +309,174 @@ impl<T: Float + Send + Sync + std::fmt::Debug + std::iter::Sum + 'static> BaseMo
     fn name(&self) -> &str {
         "RNN"
     }
-    
     fn config(&self) -> &dyn ModelConfig<T> {
         &self.config
     }
-    
     fn is_trained(&self) -> bool {
         self.is_trained
     }
-    
-    fn fit(&mut self, dataset: &TimeSeriesDataset<T>) -> NeuroDivergentResult<TrainingMetrics<T>> {
-        let start_time = std::time::Instant::now();
-        
-        // Initialize architecture if not done
-        if self.recurrent_layers.is_none() {
-            self.initialize_architecture()?;
-        }
-        
-        // Initialize training history
-        let mut history = TrainingHistory::new();
-        
-        // Fit scalers on the data (simplified)
-        // In a full implementation, this would properly scale all features
-        
-        let mut best_loss = T::infinity();
-        let mut epochs_without_improvement = 0;
-        let patience = 10; // Early stopping patience
-        
-        // Training loop
-        for epoch in 0..self.config.max_steps {
-            let epoch_start = std::time::Instant::now();
-            
-            // Train recurrent layers
-            let recurrent_loss = self.train_recurrent_layers(dataset)?;
-            
-            // Create training data for output layer
-            let training_data = self.create_training_data(dataset)?;
-            
-            // Train output layer using ruv-FANN
-            let output_loss = if let Some(output_layer) = &mut self.output_layer {
-                // Use a simple training algorithm (this is simplified)
-                let mut trainer = ruv_fann::training::IncrementalBackprop::new(
-                    self.config.learning_rate
-                );
-                trainer.train_epoch(output_layer, &training_data)?
-            } else {
-                T::zero()
-            };
-            
-            // Combined loss
-            let total_loss = recurrent_loss + output_loss;
-            
-            // Update history
-            let epoch_time = epoch_start.elapsed().as_secs_f64();
-            history.add_epoch(total_loss, None, self.config.learning_rate, epoch_time);
-            
-            // Check for improvement
-            if total_loss < best_loss {
-                best_loss = total_loss;
-                epochs_without_improvement = 0;
-            } else {
-                epochs_without_improvement += 1;
-            }
-            
-            // Early stopping
-            if epochs_without_improvement >= patience {
-                break;
-            }
-            
-            // Log progress
-            if epoch % 100 == 0 {
-                log::info!("Epoch {}: Loss = {:?}", epoch, total_loss);
-            }
-        }
-        
-        self.is_trained = true;
-        self.training_history = Some(history.clone());
-        
-        let training_time = start_time.elapsed().as_secs_f64();
-        self.update_metrics(best_loss, None);
-        
-        Ok(TrainingMetrics {
-            final_loss: best_loss,
-            epochs_completed: history.num_epochs(),
-            training_time_seconds: training_time,
-            best_validation_loss: None,
-            early_stopped: epochs_without_improvement >= patience,
-            convergence_achieved: best_loss < T::from(1e-6).unwrap(),
-        })
+    fn fit(&mut self, dataset: &TimeSeriesDataset<T>) -> Result<TrainingMetrics<T>> {
+        // Failed validation or numerical updates preserve the original fitted model.
+        let mut candidate = self.clone();
+        let metrics = candidate.fit_internal(dataset)?;
+        *self = candidate;
+        Ok(metrics)
     }
-    
-    fn predict(&self, input: &TimeSeriesInput<T>) -> NeuroDivergentResult<ForecastOutput<T>> {
+    fn predict(&self, input: &TimeSeriesInput<T>) -> Result<ForecastOutput<T>> {
         if !self.is_trained {
-            return Err(NeuroDivergentError::prediction("Model has not been trained"));
+            return Err(Error::prediction("Model has not been trained"));
         }
-        
-        input.validate()?;
-        
-        let sequence = self.prepare_sequence(input)?;
-        
-        // Process through recurrent layers
-        let recurrent_output = if let Some(recurrent_layers) = &self.recurrent_layers {
-            let mut temp_layers = recurrent_layers.clone();
-            temp_layers.reset_states();
-            let sequence_outputs = temp_layers.forward_sequence(&sequence)?;
-            sequence_outputs.last().unwrap().clone()
-        } else {
-            return Err(NeuroDivergentError::prediction("Model not properly initialized"));
-        };
-        
-        // Process through output layer
-        let forecasts = if let Some(output_layer) = &self.output_layer {
-            // Clone the network to avoid borrowing issues
-            // TODO: Check if ruv-fann provides an immutable prediction method
-            let mut cloned_layer = output_layer.clone();
-            cloned_layer.run(&recurrent_output)
-        } else {
-            return Err(NeuroDivergentError::prediction("Output layer not initialized"));
-        };
-        
-        // Create forecast output
-        let mut forecast_output = ForecastOutput::new(forecasts);
-        
-        if let Some(id) = &input.unique_id {
-            forecast_output = forecast_output.with_id(id.clone());
+        validate_projection(
+            &self.output_layer,
+            self.config.hidden_size,
+            self.config.horizon,
+        )?;
+        let hidden = self.encode(&self.prepare_sequence(input)?)?;
+        let values = self.output_layer.clone().run(&hidden)?;
+        if values.iter().any(|v| !v.is_finite()) {
+            return Err(Error::prediction("RNN forecast overflowed"));
         }
-        
-        Ok(forecast_output)
+        let mut output = ForecastOutput::new(values);
+        output.unique_id = input.unique_id.clone();
+        Ok(output)
     }
-    
-    fn predict_batch(&self, inputs: &[TimeSeriesInput<T>]) -> NeuroDivergentResult<Vec<ForecastOutput<T>>> {
-        inputs.iter()
-            .map(|input| self.predict(input))
-            .collect()
+    fn predict_batch(&self, inputs: &[TimeSeriesInput<T>]) -> Result<Vec<ForecastOutput<T>>> {
+        inputs.iter().map(|input| self.predict(input)).collect()
     }
-    
-    fn validate(&self, dataset: &TimeSeriesDataset<T>) -> NeuroDivergentResult<ValidationMetrics<T>> {
+    fn validate(&self, dataset: &TimeSeriesDataset<T>) -> Result<ValidationMetrics<T>> {
         if !self.is_trained {
-            return Err(NeuroDivergentError::prediction("Model has not been trained"));
+            return Err(Error::prediction("Model has not been trained"));
         }
-        
-        let mut total_mse = T::zero();
-        let mut total_mae = T::zero();
-        let mut num_samples = 0;
-        
-        for sample in &dataset.samples {
-            let prediction = self.predict(&sample.input)?;
-            
-            // Calculate metrics
-            let mse = math::mse(&prediction.forecasts, &sample.target)?;
-            let mae = math::mae(&prediction.forecasts, &sample.target)?;
-            
-            total_mse = total_mse + mse;
-            total_mae = total_mae + mae;
-            num_samples += 1;
+        let samples = self.prepare_dataset(dataset)?;
+        let mse = self.dataset_loss(&samples)?;
+        let mut mae = T::zero();
+        for sample in &samples {
+            let values = self
+                .output_layer
+                .clone()
+                .run(&self.encode(&sample.sequence)?)?;
+            mae = mae + sample.weight * math::mae(&values, &sample.target)?;
         }
-        
-        let avg_mse = if num_samples > 0 {
-            total_mse / T::from(num_samples).unwrap()
-        } else {
-            T::zero()
-        };
-        
-        let avg_mae = if num_samples > 0 {
-            total_mae / T::from(num_samples).unwrap()
-        } else {
-            T::zero()
-        };
-        
         Ok(ValidationMetrics {
-            mse: avg_mse,
-            mae: avg_mae,
-            mape: None, // TODO: Implement MAPE
-            smape: None, // TODO: Implement SMAPE
-            r2_score: None, // TODO: Implement R²
-            directional_accuracy: None, // TODO: Implement directional accuracy
+            mse,
+            mae,
+            mape: None,
+            smape: None,
+            r2_score: None,
+            directional_accuracy: None,
             custom_metrics: HashMap::new(),
         })
     }
-    
-    fn save_state(&self) -> NeuroDivergentResult<Vec<u8>> {
-        // This is a simplified implementation
-        // In practice, you'd serialize the entire model state
-        if self.output_layer.is_some() {
-            // For now, return a placeholder implementation
-            // TODO: Implement proper serialization
-            Ok(vec![0u8; 64]) // Placeholder
-        } else {
-            Err(NeuroDivergentError::state("Model not initialized"))
-        }
+    fn save_state(&self) -> Result<Vec<u8>> {
+        self.encode_state()
     }
-    
-    fn load_state(&mut self, _state: &[u8]) -> NeuroDivergentResult<()> {
-        // This is a simplified implementation
-        if self.output_layer.is_some() {
-            // TODO: Implement proper deserialization
-            self.is_trained = true;
-            Ok(())
-        } else {
-            Err(NeuroDivergentError::state("Model not initialized"))
-        }
+    fn load_state(&mut self, bytes: &[u8]) -> Result<()> {
+        *self = Self::from_state(bytes)?;
+        Ok(())
     }
-    
     fn input_size(&self) -> usize {
         self.config.input_size
     }
-    
     fn horizon(&self) -> usize {
         self.config.horizon
     }
-    
     fn reset(&mut self) {
-        self.is_trained = false;
-        self.training_history = None;
-        self.recurrent_layers = None;
-        self.output_layer = None;
-        self.input_scaler = None;
-        self.output_scaler = None;
-        self.model_metrics.clear();
+        // Constructor already validated this stored configuration; retain allocation
+        // if a caller temporarily supplied an invalid dropout through the legacy setter.
+        if let Ok(mut fresh) = Self::new_seeded(self.config.clone(), self.seed) {
+            fresh.bptt_truncation = self.bptt_truncation;
+            *self = fresh;
+        } else {
+            self.is_trained = false;
+            self.training_history = None;
+            self.model_metrics.clear();
+        }
     }
-    
     fn training_history(&self) -> Option<&TrainingHistory<T>> {
         self.training_history.as_ref()
     }
-    
     fn model_metrics(&self) -> HashMap<String, f64> {
         self.model_metrics.clone()
     }
 }
 
-impl<T: Float + Send + Sync + std::fmt::Debug + std::iter::Sum + 'static> NetworkAdapter<T> for RNN<T> {
-    fn prepare_input(&self, ts_input: &TimeSeriesInput<T>) -> NeuroDivergentResult<Vec<T>> {
-        // For RNN, we need to process the sequence and return the final hidden state
-        let sequence = self.prepare_sequence(ts_input)?;
-        
-        if let Some(recurrent_layers) = &self.recurrent_layers {
-            let mut temp_layers = recurrent_layers.clone();
-            temp_layers.reset_states();
-            let sequence_outputs = temp_layers.forward_sequence(&sequence)?;
-            Ok(sequence_outputs.last().unwrap().clone())
-        } else {
-            Err(NeuroDivergentError::state("Recurrent layers not initialized"))
+impl<T: Float + Send + Sync + std::fmt::Debug + std::iter::Sum + 'static> NetworkAdapter<T>
+    for RNN<T>
+{
+    fn prepare_input(&self, input: &TimeSeriesInput<T>) -> Result<Vec<T>> {
+        self.encode(&self.prepare_sequence(input)?)
+    }
+    fn process_output(&self, output: Vec<T>) -> Result<ForecastOutput<T>> {
+        if output.len() != self.config.horizon || output.iter().any(|v| !v.is_finite()) {
+            return Err(Error::prediction(
+                "Invalid RNN output horizon or non-finite forecast",
+            ));
         }
+        Ok(ForecastOutput::new(output))
     }
-    
-    fn process_output(&self, network_output: Vec<T>) -> NeuroDivergentResult<ForecastOutput<T>> {
-        Ok(ForecastOutput::new(network_output))
+    fn create_training_data(&self, dataset: &TimeSeriesDataset<T>) -> Result<TrainingData<T>> {
+        let samples = self.prepare_dataset(dataset)?;
+        let inputs = samples
+            .iter()
+            .map(|sample| self.encode(&sample.sequence))
+            .collect::<Result<_>>()?;
+        Ok(TrainingData {
+            inputs,
+            outputs: samples.into_iter().map(|sample| sample.target).collect(),
+        })
     }
-    
-    fn create_training_data(&self, dataset: &TimeSeriesDataset<T>) -> NeuroDivergentResult<TrainingData<T>> {
-        self.create_training_data(dataset)
-    }
-    
     fn network(&self) -> &Network<T> {
-        self.output_layer.as_ref().unwrap()
+        &self.output_layer
     }
-    
     fn network_mut(&mut self) -> &mut Network<T> {
-        self.output_layer.as_mut().unwrap()
+        &mut self.output_layer
     }
 }
 
-impl<T: Float + Send + Sync + std::fmt::Debug + std::iter::Sum + 'static> RecurrentState<T> for RNN<T> {
+impl<T: Float + Send + Sync + std::fmt::Debug + std::iter::Sum + 'static> RecurrentState<T>
+    for RNN<T>
+{
     fn reset(&mut self) {
-        if let Some(recurrent_layers) = &mut self.recurrent_layers {
-            recurrent_layers.reset_states();
+        for layer in &mut self.recurrent.layers {
+            layer.reset_state();
         }
     }
-    
     fn get_state(&self) -> Vec<T> {
-        if let Some(recurrent_layers) = &self.recurrent_layers {
-            recurrent_layers.get_states().into_iter().flatten().collect()
-        } else {
-            Vec::new()
-        }
+        self.recurrent
+            .layers
+            .iter()
+            .flat_map(|layer| layer.get_state())
+            .collect()
     }
-    
-    fn set_state(&mut self, state: Vec<T>) -> NeuroDivergentResult<()> {
-        if let Some(recurrent_layers) = &mut self.recurrent_layers {
-            // This is simplified - in practice you'd need to split the state appropriately
-            let num_layers = self.config.num_layers;
-            let hidden_size = self.config.hidden_size;
-            let expected_size = num_layers * hidden_size;
-            
-            if state.len() != expected_size {
-                return Err(NeuroDivergentError::dimension_mismatch(expected_size, state.len()));
-            }
-            
-            let layer_states: Vec<Vec<T>> = state.chunks(hidden_size)
-                .map(|chunk| chunk.to_vec())
-                .collect();
-                
-            recurrent_layers.set_states(layer_states)?;
+    fn set_state(&mut self, state: Vec<T>) -> Result<()> {
+        if state.len() != self.state_dimension() || state.iter().any(|v| !v.is_finite()) {
+            return Err(Error::state(
+                "Invalid RNN initial-state dimensions or non-finite values",
+            ));
+        }
+        for (layer, state) in self
+            .recurrent
+            .layers
+            .iter_mut()
+            .zip(state.chunks(self.config.hidden_size))
+        {
+            layer.set_state(state.to_vec())?;
         }
         Ok(())
     }
-    
     fn state_dimension(&self) -> usize {
         self.config.num_layers * self.config.hidden_size
     }
-    
     fn clone_state(&self) -> Box<dyn RecurrentState<T>> {
-        // This would need a more sophisticated implementation in practice
-        Box::new(RNN::new(self.config.clone()).unwrap())
+        Box::new(self.clone())
     }
 }
 
-/// Helper trait for RNN-specific operations
-impl<T: Float + Send + Sync + std::fmt::Debug + std::iter::Sum + 'static> RNN<T> {
-    /// Enable bidirectional processing
-    pub fn enable_bidirectional(&mut self, merge_mode: BidirectionalMergeMode) -> NeuroDivergentResult<()> {
-        if self.recurrent_layers.is_none() {
-            self.initialize_architecture()?;
-        }
-        
-        // Create bidirectional wrapper
-        // This is a simplified implementation - you'd need to create separate forward/backward layers
-        todo!("Bidirectional implementation needs refinement")
-    }
-    
-    /// Set dropout rate
-    pub fn set_dropout(&mut self, dropout_rate: T) {
-        self.config.dropout = dropout_rate;
-        if let Some(recurrent_layers) = &mut self.recurrent_layers {
-            // Update dropout in the multi-layer recurrent network
-            // This would require exposing the dropout setting in MultiLayerRecurrent
-        }
-    }
-    
-    /// Get current dropout rate
-    pub fn get_dropout(&self) -> T {
-        self.config.dropout
-    }
-}
+#[path = "checkpoint.rs"]
+mod checkpoint;
+#[cfg(test)]
+#[path = "gradient_tests.rs"]
+mod gradient_tests;
+#[cfg(test)]
+#[path = "rnn_tests.rs"]
+mod tests;

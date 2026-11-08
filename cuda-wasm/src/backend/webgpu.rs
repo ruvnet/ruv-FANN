@@ -195,7 +195,7 @@ impl BackendTrait for WebGPUBackend {
         Ok(Self::pipeline_id_to_bytes(id))
     }
 
-    async fn launch_kernel(
+    async unsafe fn launch_kernel(
         &self,
         kernel: &[u8],
         grid: (u32, u32, u32),
@@ -309,7 +309,7 @@ impl BackendTrait for WebGPUBackend {
         Ok(())
     }
 
-    fn copy_memory(
+    unsafe fn copy_memory(
         &self,
         dst: *mut u8,
         src: *const u8,
@@ -439,6 +439,7 @@ mod tests {
 
     /// Try to create and initialize a backend. Returns None if no GPU adapter found.
     fn try_init_backend() -> Option<WebGPUBackend> {
+        if !super::super::gpu_enabled() { return None; }
         let mut backend = WebGPUBackend::new();
         pollster::block_on(backend.initialize()).ok()?;
         Some(backend)
@@ -502,8 +503,8 @@ mod tests {
     fn test_copy_zero_noop() {
         let backend = WebGPUBackend::new();
         let a = 1 as *mut u8;
-        backend
-            .copy_memory(a, a, 0, MemcpyKind::DeviceToDevice)
+        unsafe { backend
+            .copy_memory(a, a, 0, MemcpyKind::DeviceToDevice) }
             .unwrap();
     }
 
@@ -512,8 +513,8 @@ mod tests {
         let backend = WebGPUBackend::new();
         let src = vec![1u8, 2, 3, 4];
         let mut dst = vec![0u8; 4];
-        backend
-            .copy_memory(dst.as_mut_ptr(), src.as_ptr(), 4, MemcpyKind::HostToHost)
+        unsafe { backend
+            .copy_memory(dst.as_mut_ptr(), src.as_ptr(), 4, MemcpyKind::HostToHost) }
             .unwrap();
         assert_eq!(dst, vec![1, 2, 3, 4]);
     }
@@ -522,8 +523,8 @@ mod tests {
     fn test_host_to_host_null_fails() {
         let backend = WebGPUBackend::new();
         let ptr = vec![0u8; 64];
-        assert!(backend
-            .copy_memory(std::ptr::null_mut(), ptr.as_ptr(), 64, MemcpyKind::HostToHost)
+        assert!(unsafe { backend
+            .copy_memory(std::ptr::null_mut(), ptr.as_ptr(), 64, MemcpyKind::HostToHost) }
             .is_err());
     }
 
@@ -562,18 +563,18 @@ mod tests {
         let data: Vec<u8> = (0..256).map(|i| i as u8).collect();
         let gpu_buf = backend.allocate_memory(256).unwrap();
 
-        backend
-            .copy_memory(gpu_buf, data.as_ptr(), 256, MemcpyKind::HostToDevice)
+        unsafe { backend
+            .copy_memory(gpu_buf, data.as_ptr(), 256, MemcpyKind::HostToDevice) }
             .unwrap();
 
         let mut readback = vec![0u8; 256];
-        backend
+        unsafe { backend
             .copy_memory(
                 readback.as_mut_ptr(),
                 gpu_buf as *const u8,
                 256,
                 MemcpyKind::DeviceToHost,
-            )
+            ) }
             .unwrap();
 
         assert_eq!(readback, data);
@@ -593,21 +594,21 @@ mod tests {
         let buf_a = backend.allocate_memory(128).unwrap();
         let buf_b = backend.allocate_memory(128).unwrap();
 
-        backend
-            .copy_memory(buf_a, data.as_ptr(), 128, MemcpyKind::HostToDevice)
+        unsafe { backend
+            .copy_memory(buf_a, data.as_ptr(), 128, MemcpyKind::HostToDevice) }
             .unwrap();
-        backend
-            .copy_memory(buf_b, buf_a as *const u8, 128, MemcpyKind::DeviceToDevice)
+        unsafe { backend
+            .copy_memory(buf_b, buf_a as *const u8, 128, MemcpyKind::DeviceToDevice) }
             .unwrap();
 
         let mut readback = vec![0u8; 128];
-        backend
+        unsafe { backend
             .copy_memory(
                 readback.as_mut_ptr(),
                 buf_b as *const u8,
                 128,
                 MemcpyKind::DeviceToHost,
-            )
+            ) }
             .unwrap();
 
         assert_eq!(readback, data);
@@ -665,8 +666,8 @@ mod tests {
             }
         };
         let fake = WebGPUBackend::pipeline_id_to_bytes(999);
-        assert!(backend
-            .launch_kernel(&fake, (1, 1, 1), (64, 1, 1), &[])
+        assert!(unsafe { backend
+            .launch_kernel(&fake, (1, 1, 1), (64, 1, 1), &[]) }
             .await
             .is_err());
     }
@@ -684,8 +685,8 @@ mod tests {
             .compile_kernel("@compute @workgroup_size(64) fn main() {}")
             .await
             .unwrap();
-        backend
-            .launch_kernel(&kernel, (1, 1, 1), (64, 1, 1), &[])
+        unsafe { backend
+            .launch_kernel(&kernel, (1, 1, 1), (64, 1, 1), &[]) }
             .await
             .unwrap();
     }

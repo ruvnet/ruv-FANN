@@ -5,10 +5,9 @@
 //! - Vectorized activation functions
 //! - Parallel gradient computation
 //!
-//! Expected performance gains:
-//! - 3-8x speedup for CPU matrix operations
-//! - Better cache utilization through blocking
-//! - Multi-threading support with rayon
+//! Matrix kernels use checked dimensions and runtime CPU-feature dispatch.
+//! Benchmark representative shapes on the deployment CPU before choosing a path.
+//! Multi-threading is available with the `parallel` feature.
 
 pub use crate::ActivationFunction;
 use num_traits::Float;
@@ -54,14 +53,15 @@ impl Default for SimdConfig {
                 }
             },
             block_size: 64, // Good balance for most L1 cache sizes
-            num_threads: num_cpus::get(),
+            num_threads: std::thread::available_parallelism().map_or(1, usize::from),
         }
     }
 }
 
 /// Trait for SIMD-accelerated matrix operations
 pub trait SimdMatrixOps<T: Float + Send + Sync> {
-    /// Perform matrix multiplication: C = A * B
+    /// Perform matrix multiplication: C = A * B.
+    /// Panics on overflowing dimensions or insufficient buffers before executing SIMD.
     fn matmul(&self, a: &[T], b: &[T], c: &mut [T], m: usize, n: usize, k: usize);
 
     /// Perform matrix-vector multiplication: y = A * x
@@ -73,7 +73,9 @@ pub trait SimdMatrixOps<T: Float + Send + Sync> {
     /// Apply activation function element-wise
     fn apply_activation(&self, data: &mut [T], activation: ActivationFunction);
 
-    /// Compute activation derivatives
+    /// Compute activation derivatives.
+    /// Sigmoid and tanh variants expect activated outputs; other functions
+    /// expect pre-activation inputs, preserving the existing API convention.
     fn activation_derivatives(
         &self,
         data: &[T],
@@ -91,19 +93,36 @@ pub struct CpuSimdOps {
 }
 
 impl CpuSimdOps {
-    pub fn new(config: SimdConfig) -> Self {
+    pub fn new(mut config: SimdConfig) -> Self {
+        config.block_size = config.block_size.max(1);
+        #[cfg(target_arch = "x86_64")]
+        {
+            // Configuration is a preference, never evidence of CPU support.
+            config.use_avx2 &= is_x86_feature_detected!("avx2") && is_x86_feature_detected!("fma");
+            config.use_avx512 &= is_x86_feature_detected!("avx512f");
+        }
         Self { config }
     }
 
     pub fn new_with_defaults() -> Self {
-        Self {
-            config: SimdConfig::default(),
-        }
+        Self::new(SimdConfig::default())
     }
 }
 
 impl SimdMatrixOps<f32> for CpuSimdOps {
     fn matmul(&self, a: &[f32], b: &[f32], c: &mut [f32], m: usize, n: usize, k: usize) {
+        assert!(
+            a.len() >= checked_area(m, k),
+            "matmul: input A is too short"
+        );
+        assert!(
+            b.len() >= checked_area(k, n),
+            "matmul: input B is too short"
+        );
+        assert!(c.len() >= checked_area(m, n), "matmul: output is too short");
+        if m == 0 || n == 0 {
+            return;
+        }
         #[cfg(target_arch = "x86_64")]
         {
             if self.config.use_avx2 {
@@ -121,6 +140,9 @@ impl SimdMatrixOps<f32> for CpuSimdOps {
     }
 
     fn matvec(&self, a: &[f32], x: &[f32], y: &mut [f32], m: usize, n: usize) {
+        assert!(a.len() >= checked_area(m, n), "matvec: matrix is too short");
+        assert!(x.len() >= n, "matvec: input is too short");
+        assert!(y.len() >= m, "matvec: output is too short");
         #[cfg(target_arch = "x86_64")]
         {
             if self.config.use_avx2 {
@@ -138,6 +160,11 @@ impl SimdMatrixOps<f32> for CpuSimdOps {
     }
 
     fn add_bias(&self, matrix: &mut [f32], bias: &[f32], rows: usize, cols: usize) {
+        assert!(
+            matrix.len() >= checked_area(rows, cols),
+            "add_bias: matrix is too short"
+        );
+        assert!(bias.len() >= cols, "add_bias: bias is too short");
         #[cfg(target_arch = "x86_64")]
         {
             if self.config.use_avx2 {
@@ -177,6 +204,10 @@ impl SimdMatrixOps<f32> for CpuSimdOps {
         derivatives: &mut [f32],
         activation: ActivationFunction,
     ) {
+        assert!(
+            derivatives.len() >= data.len(),
+            "activation_derivatives: output is too short"
+        );
         #[cfg(target_arch = "x86_64")]
         {
             if self.config.use_avx2 {
@@ -200,20 +231,29 @@ impl CpuSimdOps {
         debug_assert!(
             a.len() >= m * k,
             "matmul_scalar: a.len() ({}) < m*k ({}*{}={})",
-            a.len(), m, k, m * k
+            a.len(),
+            m,
+            k,
+            m * k
         );
         debug_assert!(
             b.len() >= k * n,
             "matmul_scalar: b.len() ({}) < k*n ({}*{}={})",
-            b.len(), k, n, k * n
+            b.len(),
+            k,
+            n,
+            k * n
         );
         debug_assert!(
             c.len() >= m * n,
             "matmul_scalar: c.len() ({}) < m*n ({}*{}={})",
-            c.len(), m, n, m * n
+            c.len(),
+            m,
+            n,
+            m * n
         );
         // Initialize output to zero
-        c.fill(0.0);
+        c[..m * n].fill(0.0);
 
         // Use blocking for better cache performance
         let block_size = self.config.block_size;
@@ -221,9 +261,9 @@ impl CpuSimdOps {
         for i_block in (0..m).step_by(block_size) {
             for j_block in (0..n).step_by(block_size) {
                 for k_block in (0..k).step_by(block_size) {
-                    let i_end = (i_block + block_size).min(m);
-                    let j_end = (j_block + block_size).min(n);
-                    let k_end = (k_block + block_size).min(k);
+                    let i_end = i_block.saturating_add(block_size).min(m);
+                    let j_end = j_block.saturating_add(block_size).min(n);
+                    let k_end = k_block.saturating_add(block_size).min(k);
 
                     for i in i_block..i_end {
                         for j in j_block..j_end {
@@ -241,6 +281,7 @@ impl CpuSimdOps {
 
     /// AVX2 optimized matrix multiplication
     #[cfg(target_arch = "x86_64")]
+    #[target_feature(enable = "avx2,fma")]
     unsafe fn matmul_avx2(
         &self,
         a: &[f32],
@@ -254,7 +295,7 @@ impl CpuSimdOps {
         debug_assert!(b.len() >= k * n, "matmul_avx2: b.len() < k*n");
         debug_assert!(c.len() >= m * n, "matmul_avx2: c.len() < m*n");
         // Initialize output to zero
-        c.fill(0.0);
+        c[..m * n].fill(0.0);
 
         const SIMD_WIDTH: usize = 8; // AVX2 processes 8 f32 at once
         let block_size = self.config.block_size;
@@ -262,9 +303,9 @@ impl CpuSimdOps {
         for i_block in (0..m).step_by(block_size) {
             for j_block in (0..n).step_by(block_size) {
                 for k_block in (0..k).step_by(block_size) {
-                    let i_end = (i_block + block_size).min(m);
-                    let j_end = (j_block + block_size).min(n);
-                    let k_end = (k_block + block_size).min(k);
+                    let i_end = i_block.saturating_add(block_size).min(m);
+                    let j_end = j_block.saturating_add(block_size).min(n);
+                    let k_end = k_block.saturating_add(block_size).min(k);
 
                     for i in i_block..i_end {
                         for j in (j_block..j_end).step_by(SIMD_WIDTH) {
@@ -319,6 +360,7 @@ impl CpuSimdOps {
 
     /// AVX2 optimized matrix-vector multiplication
     #[cfg(target_arch = "x86_64")]
+    #[target_feature(enable = "avx2,fma")]
     unsafe fn matvec_avx2(&self, a: &[f32], x: &[f32], y: &mut [f32], m: usize, n: usize) {
         debug_assert!(a.len() >= m * n, "matvec_avx2: a.len() < m*n");
         debug_assert!(x.len() >= n, "matvec_avx2: x.len() < n");
@@ -356,7 +398,10 @@ impl CpuSimdOps {
 
     /// Scalar bias addition
     fn add_bias_scalar(&self, matrix: &mut [f32], bias: &[f32], rows: usize, cols: usize) {
-        debug_assert!(matrix.len() >= rows * cols, "add_bias_scalar: matrix.len() < rows*cols");
+        debug_assert!(
+            matrix.len() >= rows * cols,
+            "add_bias_scalar: matrix.len() < rows*cols"
+        );
         debug_assert!(bias.len() >= cols, "add_bias_scalar: bias.len() < cols");
         for i in 0..rows {
             for j in 0..cols {
@@ -367,8 +412,12 @@ impl CpuSimdOps {
 
     /// AVX2 optimized bias addition
     #[cfg(target_arch = "x86_64")]
+    #[target_feature(enable = "avx2")]
     unsafe fn add_bias_avx2(&self, matrix: &mut [f32], bias: &[f32], rows: usize, cols: usize) {
-        debug_assert!(matrix.len() >= rows * cols, "add_bias_avx2: matrix.len() < rows*cols");
+        debug_assert!(
+            matrix.len() >= rows * cols,
+            "add_bias_avx2: matrix.len() < rows*cols"
+        );
         debug_assert!(bias.len() >= cols, "add_bias_avx2: bias.len() < cols");
         const SIMD_WIDTH: usize = 8;
 
@@ -398,48 +447,14 @@ impl CpuSimdOps {
 
     /// Scalar activation function application
     fn apply_activation_scalar(&self, data: &mut [f32], activation: ActivationFunction) {
-        match activation {
-            ActivationFunction::Sigmoid | ActivationFunction::SigmoidSymmetric => {
-                for x in data.iter_mut() {
-                    *x = 1.0 / (1.0 + (-*x).exp());
-                }
-            }
-            ActivationFunction::Tanh => {
-                for x in data.iter_mut() {
-                    *x = x.tanh();
-                }
-            }
-            ActivationFunction::ReLU => {
-                for x in data.iter_mut() {
-                    *x = x.max(0.0);
-                }
-            }
-            ActivationFunction::LeakyRelu | ActivationFunction::ReLULeaky => {
-                let alpha = LEAKY_RELU_ALPHA;
-                for x in data.iter_mut() {
-                    *x = if *x > 0.0 { *x } else { alpha * *x };
-                }
-            }
-            ActivationFunction::Gelu => {
-                for x in data.iter_mut() {
-                    let sqrt_2_over_pi = (2.0f32 / std::f32::consts::PI).sqrt();
-                    *x = *x * 0.5 * (1.0 + (sqrt_2_over_pi * (*x + 0.044715 * x.powi(3))).tanh());
-                }
-            }
-            ActivationFunction::Swish => {
-                for x in data.iter_mut() {
-                    *x = *x / (1.0 + (-*x).exp());
-                }
-            }
-            // For activation functions without a specialized SIMD path, use a linear fallback
-            _ => {
-                // Linear / no-op for unsupported activations in the SIMD path
-            }
+        for value in data {
+            *value = activation.apply(*value, 1.0);
         }
     }
 
     /// AVX2 optimized activation function application
     #[cfg(target_arch = "x86_64")]
+    #[target_feature(enable = "avx2")]
     unsafe fn apply_activation_avx2(&self, data: &mut [f32], activation: ActivationFunction) {
         const SIMD_WIDTH: usize = 8;
         let len = data.len();
@@ -486,15 +501,16 @@ impl CpuSimdOps {
         debug_assert!(
             derivatives.len() >= data.len(),
             "activation_derivatives_scalar: derivatives.len() ({}) < data.len() ({})",
-            derivatives.len(), data.len()
+            derivatives.len(),
+            data.len()
         );
         match activation {
-            ActivationFunction::Sigmoid | ActivationFunction::SigmoidSymmetric => {
+            ActivationFunction::Sigmoid => {
                 for (i, &x) in data.iter().enumerate() {
                     derivatives[i] = x * (1.0 - x);
                 }
             }
-            ActivationFunction::Tanh => {
+            ActivationFunction::Tanh | ActivationFunction::SigmoidSymmetric => {
                 for (i, &x) in data.iter().enumerate() {
                     derivatives[i] = 1.0 - x * x;
                 }
@@ -510,29 +526,10 @@ impl CpuSimdOps {
                     derivatives[i] = if x > 0.0 { 1.0 } else { alpha };
                 }
             }
-            ActivationFunction::Gelu => {
-                for (i, &x) in data.iter().enumerate() {
-                    let sqrt_2_over_pi = (2.0f32 / std::f32::consts::PI).sqrt();
-                    let tanh_arg = sqrt_2_over_pi * (x + 0.044715 * x.powi(3));
-                    let tanh_val = tanh_arg.tanh();
-                    derivatives[i] = 0.5
-                        * (1.0
-                            + tanh_val
-                            + x * sqrt_2_over_pi
-                                * (1.0 - tanh_val * tanh_val)
-                                * (1.0 + 0.134145 * x * x));
-                }
-            }
-            ActivationFunction::Swish => {
-                for (i, &x) in data.iter().enumerate() {
-                    let sigmoid = 1.0 / (1.0 + (-x).exp());
-                    derivatives[i] = sigmoid * (1.0 + x * (1.0 - sigmoid));
-                }
-            }
-            // For activation functions without a specialized derivative, default to 1.0 (linear)
+            // Remaining functions use pre-activation inputs, like GELU and Swish.
             _ => {
-                for (i, _) in data.iter().enumerate() {
-                    derivatives[i] = 1.0;
+                for (derivative, &x) in derivatives.iter_mut().zip(data) {
+                    *derivative = activation.derivative(x, activation.apply(x, 1.0), 1.0);
                 }
             }
         }
@@ -540,6 +537,7 @@ impl CpuSimdOps {
 
     /// AVX2 optimized activation derivatives
     #[cfg(target_arch = "x86_64")]
+    #[target_feature(enable = "avx2")]
     unsafe fn activation_derivatives_avx2(
         &self,
         data: &[f32],
@@ -591,6 +589,11 @@ impl CpuSimdOps {
     }
 }
 
+fn checked_area(rows: usize, cols: usize) -> usize {
+    rows.checked_mul(cols)
+        .expect("matrix dimensions overflow usize")
+}
+
 /// Parallel training operations using rayon
 pub struct ParallelTraining {
     simd_ops: CpuSimdOps,
@@ -614,14 +617,20 @@ impl ParallelTraining {
     where
         F: Fn(&[f32], &[f32]) + Send + Sync,
     {
+        assert_eq!(
+            inputs.len(),
+            outputs.len(),
+            "batch inputs and outputs must match"
+        );
+        #[cfg(feature = "parallel")]
         use rayon::prelude::*;
-
-        inputs
-            .par_iter()
-            .zip(outputs.par_iter())
-            .for_each(|(input, output)| {
-                processor(input, output);
-            });
+        #[cfg(feature = "parallel")]
+        let pairs = inputs.par_iter().zip(outputs.par_iter());
+        #[cfg(not(feature = "parallel"))]
+        let pairs = inputs.iter().zip(outputs.iter());
+        pairs.for_each(|(input, output)| {
+            processor(input, output);
+        });
     }
 
     /// Parallel gradient computation
@@ -632,26 +641,27 @@ impl ParallelTraining {
         errors: &[Vec<f32>],
         gradients: &mut [Vec<f32>],
     ) {
+        #[cfg(feature = "parallel")]
         use rayon::prelude::*;
-
-        gradients
-            .par_iter_mut()
-            .enumerate()
-            .for_each(|(layer_idx, layer_gradients)| {
-                if layer_idx < network_weights.len()
-                    && layer_idx < activations.len()
-                    && layer_idx < errors.len()
-                {
-                    self.simd_ops.matmul(
-                        &errors[layer_idx],
-                        &activations[layer_idx],
-                        layer_gradients,
-                        errors[layer_idx].len(),
-                        1,
-                        activations[layer_idx].len(),
-                    );
-                }
-            });
+        #[cfg(feature = "parallel")]
+        let layers = gradients.par_iter_mut().enumerate();
+        #[cfg(not(feature = "parallel"))]
+        let layers = gradients.iter_mut().enumerate();
+        layers.for_each(|(layer_idx, layer_gradients)| {
+            if layer_idx < network_weights.len()
+                && layer_idx < activations.len()
+                && layer_idx < errors.len()
+            {
+                self.simd_ops.matmul(
+                    &errors[layer_idx],
+                    &activations[layer_idx],
+                    layer_gradients,
+                    errors[layer_idx].len(),
+                    activations[layer_idx].len(),
+                    1,
+                );
+            }
+        });
     }
 }
 

@@ -16,6 +16,10 @@ pub mod embedded {
     /// Gradient operations shader for backpropagation
     pub const GRADIENT_OPERATIONS_SHADER: &str = include_str!("shaders/gradient_operations.wgsl");
 
+    /// Stateful Adam/AdamW: bindings 0..3 are weights, gradients, first and
+    /// second moments; binding 4 holds the corresponding parameter struct.
+    pub const ADAM_OPTIMIZER_SHADER: &str = include_str!("shaders/adam_optimizer.wgsl");
+
     /// Advanced neural network operations shader
     pub const ADVANCED_OPERATIONS_SHADER: &str = include_str!("shaders/advanced_operations.wgsl");
 }
@@ -127,19 +131,17 @@ pub mod webgpu_shaders {
             })
         }
 
-        /// Get or compile a compute pipeline with automatic caching
+        /// Legacy device-less cache API. Returns UnsupportedOperation because
+        /// a real pipeline needs a device, bindings and an entry point. The
+        /// WebGPUBackend owns the actual device-bound pipeline cache.
         pub fn get_pipeline(&self, shader_type: &ShaderType) -> Result<Option<()>, ComputeError> {
-            // In actual implementation, this would:
-            // 1. Use pipeline_cache.get_or_compile_pipeline(shader_type)
-            // 2. Return the compiled pipeline for GPU execution
-            // For now, simulate successful pipeline retrieval
             match self.pipeline_cache.get_or_compile_pipeline(shader_type) {
                 Ok(_) => Ok(Some(())),
                 Err(e) => Err(e),
             }
         }
 
-        /// Get bind group layout with caching
+        /// Legacy device-less layout lookup; propagates UnsupportedOperation.
         pub fn get_bind_group_layout(
             &self,
             shader_type: &ShaderType,
@@ -189,7 +191,7 @@ pub mod webgpu_shaders {
 
             match function {
                 ActivationFunction::Sigmoid => Some(ShaderType::ActivationSigmoid),
-                ActivationFunction::SigmoidSymmetric => Some(ShaderType::ActivationSigmoid), // Use same shader
+                ActivationFunction::SigmoidSymmetric => Some(ShaderType::ActivationTanh),
                 ActivationFunction::ReLU => Some(ShaderType::ActivationReLU),
                 ActivationFunction::ReLULeaky => Some(ShaderType::ActivationLeakyReLU),
                 ActivationFunction::Tanh => Some(ShaderType::ActivationTanh),
@@ -213,8 +215,6 @@ pub mod webgpu_shaders {
                     Some(ShaderType::ActivationThresholdSymmetric)
                 }
                 // Modern activation functions: map to GELU/Swish GPU shaders.
-                // Fall back to the Sigmoid shader as a safe approximation for
-                // LeakyReLU until a dedicated WGSL kernel is added.
                 ActivationFunction::Gelu => Some(ShaderType::ActivationGELU),
                 ActivationFunction::Swish => Some(ShaderType::ActivationSwish),
                 ActivationFunction::LeakyRelu => Some(ShaderType::ActivationLeakyReLU),
@@ -262,8 +262,9 @@ pub mod webgpu_shaders {
                 | ShaderType::GradientClipping
                 | ShaderType::L2Regularization
                 | ShaderType::MomentumUpdate
-                | ShaderType::AdamUpdate
                 | ShaderType::BatchNormGradient => Some(embedded::GRADIENT_OPERATIONS_SHADER),
+
+                ShaderType::AdamUpdate => Some(embedded::ADAM_OPTIMIZER_SHADER),
 
                 // Advanced operations
                 ShaderType::Conv2D
@@ -273,16 +274,17 @@ pub mod webgpu_shaders {
                 | ShaderType::LayerNorm
                 | ShaderType::ScaledDotProductAttention
                 | ShaderType::ElementWiseAdd
-                | ShaderType::ElementWiseMultiply
-                | ShaderType::ActivationGELU
-                | ShaderType::ActivationSwish => Some(embedded::ADVANCED_OPERATIONS_SHADER),
+                | ShaderType::ElementWiseMultiply => Some(embedded::ADVANCED_OPERATIONS_SHADER),
+                ShaderType::ActivationGELU | ShaderType::ActivationSwish => {
+                    Some(embedded::ACTIVATION_FUNCTIONS_SHADER)
+                }
 
                 // Basic vector operations (would need separate shaders)
                 _ => None,
             }
         }
 
-        /// Precompile commonly used shaders for optimal performance
+        /// Legacy cache warmup; propagates UnsupportedOperation without a device.
         pub fn warmup_cache(&self) -> Result<(), ComputeError> {
             self.pipeline_cache.warmup_cache()
         }

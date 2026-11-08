@@ -184,10 +184,11 @@ impl WasmAutonomousAgent {
     pub fn make_decision(&mut self, context_json: &str) -> Promise {
         let agent_id = self.id.clone();
         let learning_rate = self.learning_rate;
+        let context_json = context_json.to_owned();
 
         let future = async move {
-            // Parse context from JSON
-            let context: DecisionContext = match serde_json::from_str(context_json) {
+            // The asynchronous JavaScript promise owns its input after this call returns.
+            let context: DecisionContext = match serde_json::from_str(&context_json) {
                 Ok(ctx) => ctx,
                 Err(_) => return Err(JsValue::from_str("Error: Invalid context JSON")),
             };
@@ -210,10 +211,10 @@ impl WasmAutonomousAgent {
     #[wasm_bindgen]
     pub fn adapt(&mut self, feedback_json: &str) -> Promise {
         let mut learning_rate = self.learning_rate;
+        let feedback_json = feedback_json.to_owned();
 
         let future = async move {
-            // Parse feedback from JSON
-            let feedback: AdaptationFeedback = match serde_json::from_str(feedback_json) {
+            let feedback: AdaptationFeedback = match serde_json::from_str(&feedback_json) {
                 Ok(fb) => fb,
                 Err(_) => return Err(JsValue::from_str("Error: Invalid feedback JSON")),
             };
@@ -421,8 +422,7 @@ impl WasmResourceManager {
     /// Allocate memory
     #[wasm_bindgen]
     pub fn allocate_memory(&mut self, size_mb: u32) -> bool {
-        if self.allocated_memory + size_mb <= self.max_memory {
-            self.allocated_memory += size_mb;
+        if self.reserve_memory_budget(size_mb) {
             console::log_1(
                 &format!(
                     "Allocated {}MB, total: {}MB",
@@ -594,16 +594,21 @@ impl WasmUtils {
     /// Get performance info
     #[wasm_bindgen]
     pub fn get_performance_info() -> String {
-        #[cfg(feature = "simd")]
+        #[cfg(target_feature = "simd128")]
         let simd_support = "enabled";
-        #[cfg(not(feature = "simd"))]
+        #[cfg(not(target_feature = "simd128"))]
         let simd_support = "disabled";
 
         let info = WasmPerformanceInfo {
             simd_support: simd_support.to_string(),
-            memory_management: "wee_alloc".to_string(),
-            optimization_level: "release".to_string(),
-            wasm_bindgen_version: env!("CARGO_PKG_VERSION").to_string(),
+            memory_management: "standard allocator".to_string(),
+            optimization_level: if cfg!(debug_assertions) {
+                "debug"
+            } else {
+                "release"
+            }
+            .to_string(),
+            wasm_bindgen_version: "not tracked".to_string(),
         };
 
         serde_json::to_string(&info).unwrap_or_else(|_| "{}".to_string())
@@ -681,13 +686,36 @@ pub fn handle_wasm_error(error: &str) -> JsValue {
 }
 
 /// Memory optimization for WASM
-#[cfg(all(feature = "wasm", feature = "wee_alloc"))]
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+impl WasmResourceManager {
+    fn reserve_memory_budget(&mut self, size_mb: u32) -> bool {
+        if let Some(total) = self.allocated_memory.checked_add(size_mb) {
+            if total <= self.max_memory {
+                self.allocated_memory = total;
+                return true;
+            }
+        }
+        false
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn resource_budget_rejects_integer_overflow_without_mutation() {
+        let mut resources = WasmResourceManager {
+            allocated_memory: u32::MAX - 1,
+            max_memory: u32::MAX,
+            cpu_usage: 0.0,
+            optimization_enabled: false,
+        };
+        assert!(!resources.reserve_memory_budget(2));
+        assert_eq!(resources.allocated_memory, u32::MAX - 1);
+        assert!(resources.reserve_memory_budget(1));
+        assert!(!resources.reserve_memory_budget(1));
+        assert_eq!(resources.allocated_memory, u32::MAX);
+    }
 
     #[test]
     fn test_wasm_agent_status_serialization() {

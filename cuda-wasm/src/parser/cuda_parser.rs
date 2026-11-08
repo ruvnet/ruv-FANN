@@ -1605,6 +1605,7 @@ impl CudaParser {
 
     /// Parse CUDA source code into AST
     pub fn parse(&self, source: &str) -> Result<Ast> {
+        super::limits::validate_source(source)?;
         let mut items = Vec::new();
         let mut rest = source;
 
@@ -1633,10 +1634,11 @@ impl CudaParser {
                         break;
                     }
                     // Try to find the next meaningful token
-                    if let Some(pos) = rest[1..].find(|c: char| {
+                    let first_len = rest.chars().next().unwrap().len_utf8();
+                    if let Some(pos) = rest[first_len..].find(|c: char| {
                         c == '#' || c == '_' || c.is_alphabetic()
                     }) {
-                        rest = &rest[pos + 1..];
+                        rest = &rest[pos + first_len..];
                     } else {
                         break;
                     }

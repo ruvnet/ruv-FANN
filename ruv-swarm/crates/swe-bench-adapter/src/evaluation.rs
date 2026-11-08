@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 use tempfile::TempDir;
 use tokio::fs;
+use tokio::io::AsyncWriteExt;
 use tokio::process::Command as TokioCommand;
 use tokio::time::timeout;
 use tracing::{debug, error, info, warn};
@@ -27,12 +28,26 @@ impl PatchEvaluator {
         }
     }
 
+    /// Select the local repository when temporary-clone mode is disabled.
+    /// This directory does not isolate repository commands from the host.
+    pub fn with_working_directory(mut self, path: impl AsRef<Path>) -> Result<Self> {
+        let path = std::fs::canonicalize(path)?;
+        if !path.is_dir() {
+            anyhow::bail!("Evaluation working directory must be a directory");
+        }
+        self.sandbox_dir = Some(path);
+        Ok(self)
+    }
+
     /// Evaluate a patch against test requirements
     pub async fn evaluate_patch(
         &self,
         instance: &SWEBenchInstance,
         patch_content: &str,
     ) -> Result<EvaluationResult> {
+        if patch_content.len() > 16 * 1024 * 1024 {
+            anyhow::bail!("Patch exceeds the 16 MiB limit");
+        }
         info!("Evaluating patch for instance: {}", instance.instance_id);
         let start_time = Instant::now();
 
@@ -129,6 +144,7 @@ impl PatchEvaluator {
                 "clone",
                 "--depth",
                 "1",
+                "--",
                 repo_url,
                 repo_path.to_str().unwrap(),
             ])
@@ -155,17 +171,28 @@ impl PatchEvaluator {
         let repo_path = if let Some(sandbox) = sandbox {
             sandbox.path().join("repo")
         } else {
-            PathBuf::from(".")
+            self.sandbox_dir
+                .clone()
+                .unwrap_or_else(|| PathBuf::from("."))
         };
 
         // Save patch to temporary file
-        let patch_file = repo_path.join(".swe_bench_patch.diff");
-        fs::write(&patch_file, patch_content).await?;
+        let patch_file = tempfile::NamedTempFile::new_in(&repo_path)?;
+        let mut patch_writer = fs::File::from_std(patch_file.reopen()?);
+        patch_writer.write_all(patch_content.as_bytes()).await?;
+        patch_writer.flush().await?;
 
         // Apply patch using git
         let output = TokioCommand::new("git")
             .current_dir(&repo_path)
-            .args(["apply", "--check", patch_file.to_str().unwrap()])
+            .args([
+                "apply",
+                "--check",
+                patch_file
+                    .path()
+                    .to_str()
+                    .context("Patch path is not UTF-8")?,
+            ])
             .output()
             .await?;
 
@@ -179,7 +206,13 @@ impl PatchEvaluator {
         // Actually apply the patch
         let output = TokioCommand::new("git")
             .current_dir(&repo_path)
-            .args(["apply", patch_file.to_str().unwrap()])
+            .args([
+                "apply",
+                patch_file
+                    .path()
+                    .to_str()
+                    .context("Patch path is not UTF-8")?,
+            ])
             .output()
             .await?;
 
@@ -192,9 +225,6 @@ impl PatchEvaluator {
 
         // Get list of modified files
         let modified_files = self.get_modified_files(&repo_path).await?;
-
-        // Clean up patch file
-        let _ = fs::remove_file(patch_file).await;
 
         Ok(modified_files)
     }
@@ -230,7 +260,9 @@ impl PatchEvaluator {
         let repo_path = if let Some(sandbox) = sandbox {
             sandbox.path().join("repo")
         } else {
-            PathBuf::from(".")
+            self.sandbox_dir
+                .clone()
+                .unwrap_or_else(|| PathBuf::from("."))
         };
 
         for (i, directive) in instance.test_directives.iter().enumerate() {
@@ -278,6 +310,7 @@ impl PatchEvaluator {
         }
 
         let mut cmd = TokioCommand::new(parts[0]);
+        cmd.kill_on_drop(true);
         cmd.current_dir(working_dir);
 
         if parts.len() > 1 {

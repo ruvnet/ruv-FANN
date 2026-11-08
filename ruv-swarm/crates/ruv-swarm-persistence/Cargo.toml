@@ -1,4 +1,17 @@
 [package]
+# Publish source and required assets, excluding session state and runtime databases.
+include = [
+    "/src/**",
+    "/tests/**",
+    "/proptest-regressions/**",
+    "/examples/**",
+    "/benches/**",
+    "/build.rs",
+    "/Cargo.toml",
+    "/README.md",
+    "/LICENSE*",
+    "/sql/**",
+]
 name = "ruv-swarm-persistence"
 version.workspace = true
 edition.workspace = true
@@ -13,18 +26,12 @@ description = "Persistence layer with SQLite and ORM for RUV-Swarm"
 async-trait = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
-serde = { workspace = true }
+serde = { workspace = true, features = ["std"] }
 serde_json = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 parking_lot = { workspace = true }
 futures = { workspace = true }
-
-# Database
-rusqlite = { workspace = true, features = ["backup", "modern_sqlite", "serde_json"] }
-r2d2 = { workspace = true }
-r2d2_sqlite = { workspace = true }
-# sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "migrate"], optional = true }
 
 # Time handling
 chrono = { version = "0.4", features = ["serde"] }
@@ -42,9 +49,19 @@ js-sys = { workspace = true }
 web-sys = { workspace = true, features = ["Window", "Storage", "console"] }
 wasm-bindgen-futures = "0.4"
 rexie = "0.6"  # IndexedDB wrapper
+uuid = { workspace = true, features = ["js"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+# Database
+rusqlite = { workspace = true, features = ["backup", "modern_sqlite", "serde_json"] }
+r2d2 = { workspace = true }
+r2d2_sqlite = { workspace = true }
+# sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "migrate"], optional = true }
+
 
 # Development dependencies
-[dev-dependencies]
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+tokio = { workspace = true, features = ["rt-multi-thread"] }
 criterion = { workspace = true }
 proptest = { workspace = true }
 tempfile = "3.12"
@@ -58,3 +75,6 @@ rusqlite-backend = []
 wasm = []
 migrations = []
 proptest = []
+[[example]]
+name = "indexeddb_browser_smoke"
+crate-type = ["cdylib"]

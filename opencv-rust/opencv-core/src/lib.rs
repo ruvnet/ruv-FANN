@@ -18,7 +18,7 @@ pub mod memory;
 pub mod traits;
 
 pub use error::{Error, Result};
-pub use mat::{Mat, MatTrait, MatType};
+pub use mat::{Mat, MatElement, MatTrait, MatType, MAX_MAT_BYTES};
 pub use point::{Point, Point2f, Point2d, Point3f, Point3d};
 pub use rect::{Rect, Rect2f, Rect2d};
 pub use size::{Size, Size2f, Size2d};
@@ -26,8 +26,8 @@ pub use scalar::{Scalar, VecN};
 pub use range::Range;
 pub use types::*;
 
-/// OpenCV Core module version
-pub const OPENCV_VERSION: &str = "4.8.0";
+/// This Rust package version; not a linked native OpenCV version.
+pub const OPENCV_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Initialize OpenCV core module
 pub fn init() -> Result<()> {
@@ -47,6 +47,6 @@ mod tests {
 
     #[test]
     fn test_version() {
-        assert_eq!(OPENCV_VERSION, "4.8.0");
+        assert_eq!(OPENCV_VERSION, env!("CARGO_PKG_VERSION"));
     }
 }

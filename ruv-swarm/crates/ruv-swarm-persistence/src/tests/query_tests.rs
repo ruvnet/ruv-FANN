@@ -278,12 +278,16 @@ mod property_tests {
             assert!(query_sql.contains(&format!("LIMIT {}", limit)));
             assert!(query_sql.contains(&format!("OFFSET {}", offset)));
             
-            // Verify parameters are properly set (should have ? placeholders instead of direct values)
-            assert!(!query_sql.contains(&value1), "SQL should use ? placeholders, not direct values");
-            assert!(!query_sql.contains(&value2), "SQL should use ? placeholders, not direct values");
-            assert_eq!(params.len(), 2, "Should have 2 parameter values");
-            assert!(params.contains(&value1), "Parameters should contain value1");
-            assert!(params.contains(&value2), "Parameters should contain value2");
+            // Values may legitimately equal SQL keywords/identifiers or LIMIT/OFFSET digits.
+            // The real invariant is that changing values cannot change SQL structure.
+            let (alternate_sql, alternate_params) = QueryBuilder::<AgentModel>::new(&table)
+                .where_eq(&field1, "different' OR 1=1 --")
+                .where_eq(&field2, "another value")
+                .order_by(&order_field, desc).limit(limit).offset(offset).build();
+            prop_assert_eq!(&query_sql, &alternate_sql);
+            prop_assert_eq!(query_sql.matches('?').count(), 2);
+            prop_assert_eq!(params, vec![value1, value2]);
+            prop_assert_eq!(alternate_params, vec!["different' OR 1=1 --", "another value"]);
         }
 
         #[test]

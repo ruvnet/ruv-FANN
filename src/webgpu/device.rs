@@ -8,6 +8,14 @@
 
 use crate::webgpu::error::{ComputeError, ComputeResult};
 
+/// Honor the standard wgpu backend selection, including headless Vulkan.
+pub(crate) fn compute_instance() -> ::wgpu::Instance {
+    ::wgpu::Instance::new(::wgpu::InstanceDescriptor {
+        backends: ::wgpu::util::backend_bits_from_env().unwrap_or(::wgpu::Backends::all()),
+        ..Default::default()
+    })
+}
+
 /// GPU device wrapper with advanced capabilities
 #[derive(Debug)]
 pub struct GpuDevice {
@@ -51,13 +59,7 @@ impl GpuDevice {
             return Err(ComputeError::GpuUnavailable);
         }
 
-        // Create WebGPU instance
-        let instance = ::wgpu::Instance::new(::wgpu::InstanceDescriptor {
-            backends: ::wgpu::Backends::all(),
-            flags: ::wgpu::InstanceFlags::default(),
-            dx12_shader_compiler: ::wgpu::Dx12Compiler::default(),
-            gles_minor_version: ::wgpu::Gles3MinorVersion::Automatic,
-        });
+        let instance = compute_instance();
 
         // Request adapter with high performance preference
         let adapter = instance
@@ -84,7 +86,7 @@ impl GpuDevice {
             max_compute_workgroup_size_x: 1024,
             max_compute_workgroup_size_y: 1024,
             max_compute_workgroup_size_z: 64,
-            ..::wgpu::Limits::downlevel_webgl2_defaults()
+            ..::wgpu::Limits::downlevel_defaults()
         };
 
         let (device, queue) = adapter

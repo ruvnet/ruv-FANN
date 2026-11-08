@@ -9,6 +9,7 @@ mod error;
 mod fann_format;
 #[cfg(feature = "serde")]
 mod json;
+mod limits;
 mod streaming;
 mod training_data;
 
@@ -19,13 +20,13 @@ pub use fann_format::{FannReader, FannWriter};
 pub use training_data::{TrainingDataReader, TrainingDataStreamReader, TrainingDataWriter};
 
 #[cfg(feature = "serde")]
-pub use json::{read_json, write_json};
+pub use json::{read_json, read_json_with_limit, write_json};
 
 #[cfg(feature = "binary")]
-pub use binary::{read_binary, write_binary};
+pub use binary::{read_binary, read_binary_with_limit, write_binary};
 
 #[cfg(feature = "compression")]
-pub use compression::{compress_data, decompress_data};
+pub use compression::{compress_data, decompress_data, decompress_data_with_limit};
 
 #[cfg(test)]
 mod tests;

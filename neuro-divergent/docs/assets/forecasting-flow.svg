@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 240" role="img" aria-labelledby="title desc">
+  <title id="title">Forecast with a chronological training cutoff</title>
+  <desc id="desc">Historical observations precede a fixed cutoff. Fit transformations and models on that past, forecast the future, then compare with future observations. Moving dots illustrate this sequence. All labels remain visible without animation.</desc>
+  <style>
+    text{font-family:system-ui,sans-serif;fill:#e7edf9}
+    .label{font-size:18px;font-weight:600}.detail{font-size:14px;fill:#bac9e3}
+    .dot{animation:flow 6s linear infinite}.second{animation-delay:-3s}
+    @keyframes flow{0%{transform:translateX(0);opacity:0}5%,90%{opacity:1}100%{transform:translateX(800px);opacity:0}}
+    @media(prefers-reduced-motion:reduce){.dot{animation:none;opacity:0}}
+  </style>
+  <rect width="1000" height="240" rx="16" fill="#101b31"/>
+  <text x="35" y="35" class="label">A forecast only sees what was available at its cutoff</text>
+  <path d="M55 163H945" fill="none" stroke="#5d739c" stroke-width="3"/>
+  <path d="M55 150L90 136L125 148L160 112L195 128L230 101L265 119L300 89" fill="none" stroke="#5ad8b6" stroke-width="4"/>
+  <path d="M354 57V191" stroke="#ffcf73" stroke-width="2" stroke-dasharray="5 5"/>
+  <rect x="399" y="76" width="186" height="61" rx="10" fill="#203856"/>
+  <rect x="630" y="76" width="140" height="61" rx="10" fill="#203856"/>
+  <rect x="810" y="76" width="148" height="61" rx="10" fill="#203856"/>
+  <text x="55" y="78" class="label">Observed past</text>
+  <text x="354" y="213" text-anchor="middle" class="label" fill="#ffcf73">Cutoff</text>
+  <text x="492" y="102" text-anchor="middle" class="label">Fit on the past</text>
+  <text x="492" y="124" text-anchor="middle" class="detail">scaler + model</text>
+  <text x="700" y="102" text-anchor="middle" class="label">Forecast</text>
+  <text x="700" y="124" text-anchor="middle" class="detail">future window</text>
+  <text x="884" y="102" text-anchor="middle" class="label">Evaluate</text>
+  <text x="884" y="124" text-anchor="middle" class="detail">future actuals</text>
+  <path d="M585 107H621M770 107H801" stroke="#5ad8b6" stroke-width="2"/>
+  <path d="M615 102L621 107L615 112M795 102L801 107L795 112" fill="none" stroke="#5ad8b6" stroke-width="2"/>
+  <circle cx="60" cy="163" r="5" fill="#5ad8b6" class="dot"/>
+  <circle cx="60" cy="163" r="5" fill="#5ad8b6" class="dot second"/>
+  <text x="55" y="213" class="detail">Choose settings here</text>
+  <text x="810" y="213" class="detail">Compare with baselines</text>
+</svg>

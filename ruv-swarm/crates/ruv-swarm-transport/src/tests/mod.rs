@@ -22,7 +22,7 @@ mod protocol_tests {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(target_arch = "wasm32")))]
 mod ring_buffer_tests {
     use crate::shared_memory::RingBuffer;
 
@@ -43,3 +43,9 @@ mod ring_buffer_tests {
         assert!(buffer.is_empty());
     }
 }
+
+#[cfg(not(target_arch = "wasm32"))]
+mod safety_tests;
+
+#[cfg(not(target_arch = "wasm32"))]
+mod registry_tests;

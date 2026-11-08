@@ -1,6 +1,7 @@
 //! Scalar and vector types for OpenCV
 
 use std::fmt;
+#[cfg(feature = "serde")]
 use serde::{Serialize, Deserialize};
 
 /// 4-element scalar value used throughout OpenCV

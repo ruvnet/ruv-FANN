@@ -1,12 +1,12 @@
 [package]
 name = "neuro-divergent-core"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Claude Code <noreply@anthropic.com>"]
 license = "MIT OR Apache-2.0"
 description = "Core foundation for neuro-divergent neural forecasting library"
-repository = "https://github.com/your-org/ruv-FANN"
-homepage = "https://github.com/your-org/ruv-FANN"
+repository = "https://github.com/ruvnet/ruv-FANN"
+homepage = "https://github.com/ruvnet/ruv-FANN"
 documentation = "https://docs.rs/neuro-divergent-core"
 keywords = ["neural-network", "forecasting", "time-series", "machine-learning", "rust"]
 categories = ["science", "algorithms", "mathematics"]
@@ -14,7 +14,6 @@ categories = ["science", "algorithms", "mathematics"]
 [dependencies]
 # Core numeric types and traits
 num-traits = "0.2"
-num-complex = "0.4"
 
 # Date and time handling
 chrono = { version = "0.4", features = ["serde"] }
@@ -25,30 +24,24 @@ serde_json = "1.0"
 
 # Error handling
 thiserror = "1.0"
-anyhow = "1.0"
 
 # Data structures and processing
 ndarray = "0.15"
-polars = { version = "0.35", features = ["lazy", "temporal", "csv", "parquet", "json"] }
+polars = { version = "0.45.1", features = ["lazy", "temporal", "csv", "parquet", "json"] }
 
 # Parallel processing
 rayon = "1.8"
 
 # Random number generation
 rand = "0.8"
-rand_distr = "0.4"
-
-# Mathematical operations
-nalgebra = "0.32"
 
 # ruv-FANN integration
-ruv-fann = "0.1"
+ruv-fann = { version = "0.2.2", path = "../.." }
 
 # Optional GPU acceleration
-candle-core = { version = "0.3", optional = true }
-candle-nn = { version = "0.3", optional = true }
 
 [dev-dependencies]
+tempfile = "3.8"
 criterion = { version = "0.5", features = ["html_reports"] }
 proptest = "1.4"
 approx = "0.5"
@@ -56,7 +49,7 @@ approx = "0.5"
 [features]
 default = ["std"]
 std = []
-gpu = ["candle-core", "candle-nn"]
+gpu = []  # Reserved: no GPU execution path is implemented in these crates.
 all = ["std", "gpu"]
 
 [lib]
@@ -64,3 +57,6 @@ name = "neuro_divergent_core"
 path = "src/lib.rs"
 doctest = true
 
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"

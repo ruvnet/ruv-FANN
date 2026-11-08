@@ -1,3 +1,4 @@
+import { unsupported } from './unsupported.js';
 /**
  * Enhanced RuvSwarm Main Class
  * Provides full WASM capabilities with progressive loading,
@@ -594,29 +595,8 @@ class Agent {
     this.swarm = swarm;
   }
 
-  async execute(_task) {
-    console.log(`🏃 Agent ${this.name} executing task`);
-    this.status = 'busy';
-
-    // Simulate task execution
-    const result = {
-      status: 'completed',
-      result: 'Task execution placeholder',
-      executionTime: 500,
-    };
-
-    this.status = 'idle';
-    return result;
-  }
-
-  async getMetrics() {
-    return {
-      tasksCompleted: 0,
-      averageExecutionTime: 0,
-      successRate: 1.0,
-      memoryUsage: 5.0,
-    };
-  }
+  async execute() { unsupported('External agent task execution'); }
+  async getMetrics() { unsupported('Agent execution metrics'); }
 
   async updateStatus(status) {
     this.status = status;
@@ -639,79 +619,11 @@ class Task {
 
     // Start task execution if agents are assigned
     if (this.assignedAgents.length > 0 && this.status === 'orchestrated') {
-      this.executeTask();
+      this.status = 'assigned';
     }
   }
 
-  async executeTask() {
-    this.status = 'in_progress';
-    this.startTime = Date.now();
-    this.progress = 0.1;
-
-    console.log(`🏃 Executing task: ${this.description} with ${this.assignedAgents.length} agents`);
-
-    try {
-      // Execute task with all assigned agents
-      const agentResults = [];
-
-      for (const agentId of this.assignedAgents) {
-        const agent = this.swarm.agents.get(agentId);
-        if (agent) {
-          const agentResult = await agent.execute(this);
-          agentResults.push({
-            agentId,
-            agentType: agent.type,
-            result: agentResult,
-          });
-        }
-        this.progress = Math.min(0.9, this.progress + (0.8 / this.assignedAgents.length));
-      }
-
-      // Aggregate results
-      this.result = {
-        task_id: this.id,
-        description: this.description,
-        agent_results: agentResults,
-        execution_summary: {
-          total_agents: this.assignedAgents.length,
-          successful_executions: agentResults.filter(r => r.result.status === 'completed').length,
-          execution_time_ms: Date.now() - this.startTime,
-          average_agent_time_ms: agentResults.reduce((sum, r) => sum + (r.result.executionTime || 0), 0) / agentResults.length,
-        },
-      };
-
-      this.status = 'completed';
-      this.progress = 1.0;
-      this.endTime = Date.now();
-
-      // Mark agents as idle again
-      for (const agentId of this.assignedAgents) {
-        const agent = this.swarm.agents.get(agentId);
-        if (agent) {
-          await agent.updateStatus('idle');
-        }
-      }
-
-      console.log(`✅ Task completed: ${this.description} (${this.endTime - this.startTime}ms)`);
-
-    } catch (error) {
-      this.status = 'failed';
-      this.result = {
-        error: error.message,
-        execution_time_ms: Date.now() - this.startTime,
-      };
-
-      // Mark agents as idle on failure too
-      for (const agentId of this.assignedAgents) {
-        const agent = this.swarm.agents.get(agentId);
-        if (agent) {
-          await agent.updateStatus('idle');
-        }
-      }
-
-      console.error(`❌ Task failed: ${this.description} - ${error.message}`);
-    }
-  }
+  async executeTask() { unsupported('External task execution'); }
 
   async getStatus() {
     return {

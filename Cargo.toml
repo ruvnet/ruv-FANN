@@ -1,6 +1,6 @@
 [package]
 name = "ruv-fann"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 rust-version = "1.81"
 authors = ["rUv Contributors"]
@@ -9,46 +9,27 @@ repository = "https://github.com/ruvnet/ruv-FANN"
 license = "MIT OR Apache-2.0"
 keywords = ["neural-network", "machine-learning", "fann", "ai", "deep-learning"]
 categories = ["science", "algorithms", "mathematics"]
-exclude = [
-    "node_modules/**",
-    ".git/**",
-    ".claude/**",
-    ".vscode/**",
-    "target/**",
-    "*.lock",
-    "*.log",
-    "tmp/**",
-    "claude-code-flow/**",
-    "ruv-swarm/npm/node_modules/**",
-    "ruv-swarm/npm/.nyc_output/**",
-    "ruv-swarm/npm/coverage/**",
-    "ruv-swarm/target/**",
-    "*.wasm",
-    "*.onnx",
-    "*.pt",
-    "*.pth",
-    "*.safetensors",
-    "*.bin",
-    ".claude.json",
-    "ruv-swarm/npm/**",
-    "*.o",
-    "*.a",
-    "*.so",
-    "*.dylib",
-    "*.dll",
-    "benchmarks/**",
-    "docs/**",
-    "examples/**",
-    "tests/**",
-    ".github/**",
-    ".gitignore",
-    ".gitmodules",
-    "ruv-swarm/**"
+# Ship the library and its examples, not the other workspaces or agent databases.
+include = [
+    "/src/**",
+    "/benches/**",
+    "/examples/*.rs",
+    "/tests/*.rs",
+    "/docs/assets/*.svg",
+    "/Cargo.toml",
+    "/README.md",
+    "/CHANGELOG.md",
+    "/LICENSE",
+    "/LICENSE-MIT",
+    "/LICENSE-APACHE",
 ]
 
 [workspace]
 # This makes this package a standalone workspace, not part of the parent workspace
 exclude = ["neuro-divergent"]
+
+[lib]
+crate-type = ["rlib", "cdylib"]
 
 [dependencies]
 # Core dependencies
@@ -81,7 +62,7 @@ wgpu = { version = "0.19", optional = true }
 futures = { version = "0.3", optional = true }
 pollster = { version = "0.3", optional = true }
 bytemuck = { version = "1.14", features = ["derive"], optional = true }
-tokio = { version = "1.44", features = ["rt", "sync", "time"], optional = true }
+tokio = { version = "1.53.3", features = ["rt", "sync", "time"], optional = true }
 async-trait = { version = "0.1", optional = true }
 
 # WASM dependencies
@@ -104,7 +85,7 @@ criterion = { version = "0.5", features = ["html_reports"] }
 proptest = "1.11"
 approx = "0.5"
 pretty_assertions = "1.4"
-tokio = { version = "1.44", features = ["macros", "rt", "rt-multi-thread", "time", "process", "sync", "fs"] }
+tokio = { version = "1.53.3", features = ["macros", "rt", "rt-multi-thread", "time", "process", "sync", "fs"] }
 futures = "0.3"
 uuid = { version = "1.0", features = ["v4"] }
 anyhow = "1.0"
@@ -127,8 +108,8 @@ no_std = []
 # WASM support
 wasm = ["no_std", "serde", "logging", "dep:wasm-bindgen", "dep:js-sys", "dep:web-sys", "dep:console_error_panic_hook", "dep:wasm-bindgen-futures"]
 
-# GPU acceleration support
-gpu = ["dep:wgpu", "dep:futures", "dep:pollster", "dep:bytemuck", "dep:tokio", "dep:async-trait", "std"]
+# Native GPU acceleration. Browser callers use the async `webgpu` bridge.
+gpu = ["dep:wgpu", "dep:futures", "dep:pollster", "dep:bytemuck", "dep:tokio", "dep:async-trait", "std", "serde", "logging"]
 webgpu = ["dep:wgpu", "dep:futures", "dep:bytemuck", "wasm", "logging"]
 wasm-gpu = ["webgpu", "wasm"]
 
@@ -151,15 +132,6 @@ harness = false
 name = "basic_usage"
 path = "examples/basic_usage.rs"
 
-# ---------------------------------------------------------------------------
-# Security patches for transitive dependencies with known CVEs.
-#
-# [patch.crates-io] cannot be used here since this package is itself on
-# crates.io. Instead, raise the minimum versions of tokio and futures so
-# that Cargo resolves the patched transitive deps automatically.
-#
-# RUSTSEC-2026-0007: bytes 1.10.1 - integer overflow in BytesMut::reserve
-#   → resolved by tokio >= 1.44.2 which requires bytes >= 1.11.1
-# RUSTSEC-2025-0047: slab 0.4.10 - out-of-bounds in get_disjoint_mut
-#   → resolved by upgrading slab minimum in the dependency tree
-# ---------------------------------------------------------------------------
+# Runtime advisory fixes are verified against all five lockfiles by
+# scripts/verify-packages.py --audit. A minimum tokio version alone cannot
+# constrain every transitive package (for example bytes); keep locks audited.

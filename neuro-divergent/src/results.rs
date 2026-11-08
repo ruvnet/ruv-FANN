@@ -12,7 +12,7 @@ use crate::config::Frequency;
 use crate::errors::{NeuroDivergentError, NeuroDivergentResult};
 
 /// Schema definition for time series data
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TimeSeriesSchema {
     /// Unique identifier column name
     pub unique_id_col: String,
@@ -69,8 +69,13 @@ impl TimeSeriesSchema {
     
     /// Validate schema against DataFrame
     pub fn validate_dataframe(&self, df: &DataFrame) -> NeuroDivergentResult<()> {
-        let df_columns: Vec<&str> = df.get_column_names();
-        
+        let names = self.all_columns();
+        let unique = names.iter().map(|name| name.as_str()).collect::<std::collections::HashSet<_>>();
+        if unique.len() != names.len() || names.iter().any(|name| name.trim().is_empty()) {
+            return Err(NeuroDivergentError::data("Schema column names must be nonempty and distinct"));
+        }
+        let df_columns = df.get_column_names_str();
+
         // Check required columns
         for col in self.required_columns() {
             if !df_columns.contains(&col.as_str()) {
@@ -145,9 +150,11 @@ impl<T: Float> TimeSeriesDataFrame<T> {
         schema: TimeSeriesSchema,
         frequency: Option<Frequency>,
     ) -> NeuroDivergentResult<Self> {
-        let df = CsvReader::from_path(path.as_ref())
-            .map_err(|e| NeuroDivergentError::data(format!("CSV reader error: {}", e)))?
-            .finish()
+        let df = CsvReadOptions::default()
+            .with_has_header(true)
+            .map_parse_options(|options| options.with_try_parse_dates(true))
+            .try_into_reader_with_file_path(Some(path.as_ref().to_path_buf()))
+            .and_then(|reader| reader.finish())
             .map_err(|e| NeuroDivergentError::data(format!("CSV read error: {}", e)))?;
             
         Self::from_polars(df, schema, frequency)
@@ -174,9 +181,9 @@ impl<T: Float> TimeSeriesDataFrame<T> {
             .map_err(|e| NeuroDivergentError::data(format!("Column error: {}", e)))?
             .unique()
             .map_err(|e| NeuroDivergentError::data(format!("Unique error: {}", e)))?
-            .cast(&DataType::Utf8)
+            .cast(&DataType::String)
             .map_err(|e| NeuroDivergentError::data(format!("Cast error: {}", e)))?
-            .utf8()
+            .str()
             .map_err(|_| NeuroDivergentError::data("Failed to convert to string iterator"))?
             .into_iter()
             .map(|s| s.unwrap_or_default().to_string())
@@ -191,23 +198,14 @@ impl<T: Float> TimeSeriesDataFrame<T> {
         start: DateTime<Utc>, 
         end: DateTime<Utc>
     ) -> NeuroDivergentResult<Self> {
-        let filtered = self.data
-            .clone()
-            .lazy()
-            .filter(
-                col(&self.schema.ds_col)
-                    .gt_eq(lit(start.timestamp_millis()))
-                    .and(
-                        col(&self.schema.ds_col)
-                            .lt_eq(lit(end.timestamp_millis()))
-                    )
-            )
-            .collect()
-            .map_err(|e| NeuroDivergentError::data(format!("Date filter error: {}", e)))?;
-            
+        if start > end { return Err(NeuroDivergentError::data("Date range start must not exceed its end")); }
+        let column = self.data.column(&self.schema.ds_col).map_err(|e| NeuroDivergentError::data(e.to_string()))?;
+        let mask = crate::timeline::timestamps(column)?.into_iter().map(|time| time >= start && time <= end).collect::<Vec<_>>();
+        let filtered = self.data.filter(&BooleanChunked::from_slice("range".into(), &mask))
+            .map_err(|e| NeuroDivergentError::data(e.to_string()))?;
         Self::from_polars(filtered, self.schema.clone(), self.frequency.clone())
     }
-    
+
     /// Filter by unique ID
     pub fn filter_by_id(&self, id: &str) -> NeuroDivergentResult<Self> {
         let filtered = self.data
@@ -251,19 +249,33 @@ impl<T: Float> TimeSeriesDataFrame<T> {
             .column(&self.schema.ds_col)
             .map_err(|e| NeuroDivergentError::data(format!("Column error: {}", e)))?;
             
-        let min_ts = ds_col
-            .min::<i64>()
-            .ok_or_else(|| NeuroDivergentError::data("Could not calculate min timestamp".to_string()))?;
-            
-        let max_ts = ds_col
-            .max::<i64>()
-            .ok_or_else(|| NeuroDivergentError::data("Could not calculate max timestamp".to_string()))?;
-            
-        let start = DateTime::from_timestamp_millis(min_ts)
+        let (normalized, unit) = match ds_col.dtype() {
+            DataType::Date => (
+                ds_col.cast(&DataType::Datetime(TimeUnit::Milliseconds, None)),
+                TimeUnit::Milliseconds,
+            ),
+            DataType::Datetime(unit, _) => (Ok(ds_col.clone()), *unit),
+            DataType::Int64 => (Ok(ds_col.clone()), TimeUnit::Milliseconds),
+            _ => return Err(NeuroDivergentError::data("Timestamp column must be Date, Datetime, or Int64 milliseconds")),
+        };
+        let physical = normalized.and_then(|column| column.cast(&DataType::Int64))
+            .map_err(|e| NeuroDivergentError::data(format!("Timestamp conversion error: {e}")))?;
+        let timestamps = physical.i64()
+            .map_err(|e| NeuroDivergentError::data(format!("Timestamp conversion error: {e}")))?;
+        let min_ts = timestamps.min()
+            .ok_or_else(|| NeuroDivergentError::data("Could not calculate min timestamp"))?;
+        let max_ts = timestamps.max()
+            .ok_or_else(|| NeuroDivergentError::data("Could not calculate max timestamp"))?;
+        let convert = |timestamp| match unit {
+            TimeUnit::Nanoseconds => Some(DateTime::<Utc>::from_timestamp_nanos(timestamp)),
+            TimeUnit::Microseconds => DateTime::<Utc>::from_timestamp_micros(timestamp),
+            TimeUnit::Milliseconds => DateTime::<Utc>::from_timestamp_millis(timestamp),
+        };
+        let start = convert(min_ts)
             .ok_or_else(|| NeuroDivergentError::data("Invalid start timestamp"))?;
-        let end = DateTime::from_timestamp_millis(max_ts)
+        let end = convert(max_ts)
             .ok_or_else(|| NeuroDivergentError::data("Invalid end timestamp"))?;
-            
+
         Ok((start, end))
     }
     
@@ -274,7 +286,7 @@ impl<T: Float> TimeSeriesDataFrame<T> {
     
     /// Get column names
     pub fn columns(&self) -> Vec<&str> {
-        self.data.get_column_names()
+        self.data.get_column_names_str()
     }
     
     /// Save to CSV
@@ -334,37 +346,13 @@ impl<T: Float> ForecastDataFrame<T> {
     
     /// Get forecasts for specific model
     pub fn get_model_forecasts(&self, model_name: &str) -> NeuroDivergentResult<DataFrame> {
-        // Filter for specific model columns
-        let model_cols: Vec<String> = self.data
-            .get_column_names()
-            .iter()
-            .filter(|col| col.contains(model_name))
-            .map(|s| s.to_string())
-            .collect();
-            
-        if model_cols.is_empty() {
-            return Err(NeuroDivergentError::prediction(
-                format!("No forecasts found for model '{}'", model_name)
-            ));
+        if !self.models.iter().any(|name| name == model_name) {
+            return Err(NeuroDivergentError::prediction("Unknown forecast model"));
         }
-        
-        // Include identifier columns
-        let mut select_cols = vec![
-            self.schema.unique_id_col.clone(),
-            self.schema.ds_col.clone(),
-        ];
-        select_cols.extend(model_cols);
-        
-        let filtered = self.data
-            .clone()
-            .lazy()
-            .select(select_cols.iter().map(|s| col(s)).collect::<Vec<_>>())
-            .collect()
-            .map_err(|e| NeuroDivergentError::prediction(format!("Model filter error: {}", e)))?;
-            
-        Ok(filtered)
+        self.data.select([self.schema.unique_id_col.as_str(), self.schema.ds_col.as_str(), model_name])
+            .map_err(|e| NeuroDivergentError::prediction(e.to_string()))
     }
-    
+
     /// Get all model forecasts as separate DataFrames
     pub fn get_all_forecasts(&self) -> Vec<(String, DataFrame)> {
         let mut results = Vec::new();
@@ -465,96 +453,7 @@ pub struct CrossValidationDataFrame<T: Float> {
     /// Schema for the CV data
     pub schema: TimeSeriesSchema,
     /// Phantom data for type parameter
-    phantom: PhantomData<T>,
-}
-
-impl<T: Float> CrossValidationDataFrame<T> {
-    /// Create new cross-validation dataframe
-    pub fn new(
-        data: DataFrame,
-        cutoffs: Vec<DateTime<Utc>>,
-        models: Vec<String>,
-        schema: TimeSeriesSchema,
-    ) -> Self {
-        Self {
-            data,
-            cutoffs,
-            models,
-            metrics: None,
-            schema,
-            phantom: PhantomData,
-        }
-    }
-    
-    /// Set accuracy metrics
-    pub fn with_metrics(mut self, metrics: AccuracyMetrics<T>) -> Self {
-        self.metrics = Some(metrics);
-        self
-    }
-    
-    /// Get results for specific cutoff
-    pub fn get_cutoff_results(&self, cutoff: DateTime<Utc>) -> NeuroDivergentResult<DataFrame> {
-        let cutoff_ts = cutoff.timestamp_millis();
-        
-        let filtered = self.data
-            .clone()
-            .lazy()
-            .filter(col("cutoff").eq(lit(cutoff_ts)))
-            .collect()
-            .map_err(|e| NeuroDivergentError::data(format!("Cutoff filter error: {}", e)))?;
-            
-        Ok(filtered)
-    }
-    
-    /// Get results for specific model
-    pub fn get_model_results(&self, model_name: &str) -> NeuroDivergentResult<DataFrame> {
-        // Filter for model-specific columns
-        let model_cols: Vec<String> = self.data
-            .get_column_names()
-            .iter()
-            .filter(|col| col.contains(model_name) || col == &&self.schema.unique_id_col || col == &&self.schema.ds_col || **col == "cutoff")
-            .map(|s| s.to_string())
-            .collect();
-            
-        let filtered = self.data
-            .clone()
-            .lazy()
-            .select(model_cols.iter().map(|s| col(s)).collect::<Vec<_>>())
-            .collect()
-            .map_err(|e| NeuroDivergentError::data(format!("Model filter error: {}", e)))?;
-            
-        Ok(filtered)
-    }
-    
-    /// Calculate summary statistics across CV windows
-    pub fn summary_stats(&self) -> NeuroDivergentResult<DataFrame> {
-        // Group by model and calculate mean/std of metrics
-        let summary = self.data
-            .clone()
-            .lazy()
-            .group_by([col("model")])
-            .agg([
-                col("mae").mean().alias("mean_mae"),
-                col("mae").std(1).alias("std_mae"),
-                col("mse").mean().alias("mean_mse"),
-                col("mse").std(1).alias("std_mse"),
-                col("mape").mean().alias("mean_mape"),
-                col("mape").std(1).alias("std_mape"),
-            ])
-            .collect()
-            .map_err(|e| NeuroDivergentError::data(format!("Summary stats error: {}", e)))?;
-            
-        Ok(summary)
-    }
-    
-    /// Export to CSV
-    pub fn to_csv<P: AsRef<Path>>(&self, path: P) -> NeuroDivergentResult<()> {
-        let mut file = std::fs::File::create(path)?;
-        CsvWriter::new(&mut file)
-            .finish(&mut self.data.clone())
-            .map_err(|e| NeuroDivergentError::data(format!("CSV write error: {}", e)))?;
-        Ok(())
-    }
+    pub(crate) phantom: PhantomData<T>,
 }
 
 /// Accuracy metrics for forecast evaluation
@@ -687,3 +586,6 @@ mod tests {
         assert_eq!(forecast_df.shape().0, 4);
     }
 }
+#[cfg(test)]
+#[path = "results_regression_tests.rs"]
+mod results_regression_tests;

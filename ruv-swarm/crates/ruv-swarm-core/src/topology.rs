@@ -4,7 +4,7 @@ use crate::agent::AgentId;
 
 #[cfg(not(feature = "std"))]
 use alloc::{
-    boxed::Box, collections::BTreeMap as HashMap, collections::BTreeSet as HashSet, string::String,
+    boxed::Box, collections::BTreeMap as HashMap, collections::BTreeSet as HashSet, string::{String, ToString},
     vec, vec::Vec,
 };
 #[cfg(feature = "std")]
@@ -173,7 +173,7 @@ impl Topology {
     pub fn connection_count(&self) -> usize {
         self.connections
             .values()
-            .map(std::collections::HashSet::len)
+            .map(|connections| connections.len())
             .sum::<usize>()
             / 2 // Divide by 2 for undirected graphs
     }

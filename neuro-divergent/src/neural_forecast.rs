@@ -1,93 +1,88 @@
-//! Main NeuralForecast class providing 100% Python API compatibility
+//! Fitted forecasting pipelines with checked chronological data and model outputs.
 
-use std::collections::HashMap;
-use std::path::Path;
-use std::marker::PhantomData;
 use num_traits::Float;
-use rayon::prelude::*;
-use serde::{Serialize, Deserialize};
 use polars::prelude::*;
+use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::marker::PhantomData;
+use std::path::Path;
 
-use crate::config::{
-    Frequency, ScalerType, PredictionIntervals, CrossValidationConfig, Device
-};
-use crate::results::{
-    TimeSeriesDataFrame, ForecastDataFrame, CrossValidationDataFrame, 
-    TimeSeriesSchema
-};
+use crate::config::{CrossValidationConfig, Device, Frequency, PredictionIntervals, ScalerType};
 use crate::errors::{NeuroDivergentError, NeuroDivergentResult};
+pub use crate::pipeline_config::{NeuralForecastBuilder, PredictionConfig, ValidationConfig};
+use crate::results::{
+    CrossValidationDataFrame, ForecastDataFrame, TimeSeriesDataFrame, TimeSeriesSchema,
+};
 
 // Forward declarations for core traits (will be implemented in core module)
 pub trait BaseModel<T: Float + Send + Sync>: Send + Sync + std::fmt::Debug {
     /// Fit the model to training data
     fn fit(&mut self, data: &TimeSeriesDataFrame<T>) -> NeuroDivergentResult<()>;
-    
+
     /// Generate predictions
     fn predict(&self, data: &TimeSeriesDataFrame<T>) -> NeuroDivergentResult<ForecastDataFrame<T>>;
-    
+
     /// Get model name
     fn name(&self) -> &str;
-    
+
+    /// Number of future observations returned for each series.
+    fn horizon(&self) -> usize;
+
     /// Check if model is fitted
     fn is_fitted(&self) -> bool;
-    
+
     /// Reset model to unfitted state
     fn reset(&mut self) -> NeuroDivergentResult<()>;
+
+    /// Stable implementation identifier used by supported checkpoint loaders.
+    fn model_type(&self) -> &str {
+        "custom"
+    }
+
+    /// Export a real implementation-specific checkpoint, or return an error.
+    fn save_state(&self) -> NeuroDivergentResult<Vec<u8>> {
+        Err(NeuroDivergentError::serialization(
+            "Persistence is unsupported for this custom model",
+        ))
+    }
 }
 
-/// Main NeuralForecast class - primary user interface
-/// 
-/// Provides 100% compatibility with the NeuralForecast Python library while
-/// leveraging Rust's performance and safety guarantees.
-/// 
+/// Facade for user-supplied implementations of this module's [`BaseModel`] trait.
+///
+/// The models crate's trait is separate and requires an explicit adapter.
+/// Predictions are aligned by series/time keys; backtests train on chronological prefixes.
+///
 /// # Examples
-/// 
+///
+/// A model is required before this facade can be built:
 /// ```rust
-/// use neuro_divergent::{NeuralForecast, models::LSTM, Frequency};
-/// 
-/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-/// // Create models
-/// let lstm = LSTM::builder()
-///     .hidden_size(128)
-///     .num_layers(2)
-///     .horizon(12)
-///     .build()?;
-/// 
-/// // Create NeuralForecast instance
-/// let mut nf = NeuralForecast::builder()
-///     .with_model(Box::new(lstm))
-///     .with_frequency(Frequency::Monthly)
-///     .build()?;
-/// 
-/// // Load and fit data
-/// let data = TimeSeriesDataFrame::from_csv("data.csv")?;
-/// nf.fit(data.clone())?;
-/// 
-/// // Generate forecasts
-/// let forecasts = nf.predict()?;
-/// # Ok(())
-/// # }
+/// use neuro_divergent::NeuralForecast;
+/// assert!(NeuralForecast::<f64>::builder().build().is_err());
 /// ```
 #[derive(Debug)]
 pub struct NeuralForecast<T: Float + Send + Sync> {
     /// Collection of forecasting models
-    models: Vec<Box<dyn BaseModel<T>>>,
+    pub(crate) models: Vec<Box<dyn BaseModel<T>>>,
     /// Time series frequency
-    frequency: Frequency,
+    pub(crate) frequency: Frequency,
     /// Local scaler type for preprocessing
-    local_scaler_type: Option<ScalerType>,
+    pub(crate) local_scaler_type: Option<ScalerType>,
     /// Number of threads for parallel processing
-    num_threads: Option<usize>,
+    pub(crate) num_threads: Option<usize>,
     /// Prediction intervals configuration
-    prediction_intervals: Option<PredictionIntervals>,
+    pub(crate) prediction_intervals: Option<PredictionIntervals>,
     /// Device for computation
-    device: Device,
+    pub(crate) device: Device,
     /// Whether models have been fitted
-    is_fitted: bool,
+    pub(crate) is_fitted: bool,
     /// Training data schema
-    training_schema: Option<TimeSeriesSchema>,
+    pub(crate) training_schema: Option<TimeSeriesSchema>,
     /// Model metadata
     model_metadata: HashMap<String, ModelInfo>,
+    /// Retained raw training context, committed only after a successful fit.
+    pub(crate) training_data: Option<TimeSeriesDataFrame<T>>,
+    pub(crate) scales: crate::scaling::Scales,
     /// Phantom data for type parameter
     phantom: PhantomData<T>,
 }
@@ -119,52 +114,67 @@ struct TrainingHistory<T: Float> {
 
 impl<T: Float + Send + Sync> NeuralForecast<T> {
     /// Create a new NeuralForecast builder
-    /// 
+    ///
     /// # Example
     /// ```rust
     /// use neuro_divergent::{NeuralForecast, Frequency};
-    /// 
+    ///
     /// let nf_builder = NeuralForecast::<f32>::builder();
     /// ```
     pub fn builder() -> NeuralForecastBuilder<T> {
         NeuralForecastBuilder::new()
     }
-    
+
     /// Create NeuralForecast with models and frequency (direct constructor)
-    /// 
+    ///
     /// # Arguments
     /// * `models` - Vector of boxed models implementing BaseModel trait
     /// * `frequency` - Time series frequency
-    /// 
+    ///
     /// # Example
     /// ```rust
-    /// use neuro_divergent::{NeuralForecast, models::LSTM, Frequency};
-    /// 
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// let lstm = LSTM::default();
-    /// let nf = NeuralForecast::new(vec![Box::new(lstm)], Frequency::Daily)?;
-    /// # Ok(())
-    /// # }
+    /// use neuro_divergent::{Frequency, NeuralForecast, NeuroDivergentResult};
+    /// use neuro_divergent::neural_forecast::BaseModel;
+    ///
+    /// fn configure(model: Box<dyn BaseModel<f64>>) -> NeuroDivergentResult<NeuralForecast<f64>> {
+    ///     NeuralForecast::new(vec![model], Frequency::Daily)
+    /// }
     /// ```
     pub fn new(
-        models: Vec<Box<dyn BaseModel<T>>>, 
-        frequency: Frequency
+        models: Vec<Box<dyn BaseModel<T>>>,
+        frequency: Frequency,
     ) -> NeuroDivergentResult<Self> {
         if models.is_empty() {
-            return Err(NeuroDivergentError::config("At least one model is required"));
+            return Err(NeuroDivergentError::config(
+                "At least one model is required",
+            ));
         }
-        
+
         // Check for duplicate model names
         let mut model_names = std::collections::HashSet::new();
+        let horizon = models[0].horizon();
+        if horizon == 0 || horizon > 1_000_000 {
+            return Err(NeuroDivergentError::config(
+                "Horizon must be in 1..=1000000",
+            ));
+        }
         for model in &models {
+            if model.name().trim().is_empty()
+                || model.name() == "cutoff"
+                || model.horizon() != horizon
+            {
+                return Err(NeuroDivergentError::config("Models need nonempty unique names and identical positive horizons; cutoff is reserved"));
+            }
             if !model_names.insert(model.name()) {
-                return Err(NeuroDivergentError::config(
-                    format!("Duplicate model name: {}", model.name())
-                ));
+                return Err(NeuroDivergentError::config(format!(
+                    "Duplicate model name: {}",
+                    model.name()
+                )));
             }
         }
-        
-        let model_metadata = models.iter()
+
+        let model_metadata = models
+            .iter()
             .map(|model| {
                 let info = ModelInfo {
                     name: model.name().to_string(),
@@ -175,7 +185,7 @@ impl<T: Float + Send + Sync> NeuralForecast<T> {
                 (model.name().to_string(), info)
             })
             .collect();
-        
+
         Ok(Self {
             models,
             frequency,
@@ -185,594 +195,286 @@ impl<T: Float + Send + Sync> NeuralForecast<T> {
             device: Device::default(),
             is_fitted: false,
             training_schema: None,
+            training_data: None,
+            scales: Default::default(),
             model_metadata,
             phantom: PhantomData,
         })
     }
-    
-    /// Fit models to the provided time series data
-    /// 
-    /// Equivalent to Python: `nf.fit(df)`
-    /// 
-    /// # Arguments
-    /// * `data` - Time series data for training
-    /// 
+
+    /// Fit each user-supplied model to the provided time series data.
+    ///
     /// # Example
     /// ```rust
-    /// # use neuro_divergent::*;
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// # let mut nf = NeuralForecast::<f32>::builder().build()?;
-    /// let data = TimeSeriesDataFrame::from_csv("train_data.csv")?;
-    /// nf.fit(data)?;
-    /// # Ok(())
-    /// # }
+    /// use neuro_divergent::{NeuralForecast, TimeSeriesDataFrame, NeuroDivergentResult};
+    ///
+    /// fn fit_existing_pipeline(
+    ///     pipeline: &mut NeuralForecast<f64>, data: TimeSeriesDataFrame<f64>,
+    /// ) -> NeuroDivergentResult<()> {
+    ///     pipeline.fit(data)
+    /// }
     /// ```
     pub fn fit(&mut self, data: TimeSeriesDataFrame<T>) -> NeuroDivergentResult<()> {
         self.fit_with_validation(data, ValidationConfig::default())
     }
-    
+
     /// Fit with custom validation configuration
     pub fn fit_with_validation(
-        &mut self, 
+        &mut self,
         data: TimeSeriesDataFrame<T>,
-        _validation_config: ValidationConfig
+        validation_config: ValidationConfig,
     ) -> NeuroDivergentResult<()> {
-        // Validate input data
-        if data.shape().0 == 0 {
-            return Err(NeuroDivergentError::data("Training data is empty"));
+        if validation_config.validation_split.is_some()
+            || validation_config.shuffle
+            || validation_config.random_seed.is_some()
+        {
+            return Err(NeuroDivergentError::config("Use chronological cross_validation for validation splits; facade shuffling and random seeding are unsupported"));
         }
-        
-        // Check frequency compatibility
-        if let Some(data_freq) = &data.frequency {
-            if data_freq != &self.frequency {
-                return Err(NeuroDivergentError::data(
-                    format!("Data frequency {:?} does not match NeuralForecast frequency {:?}", 
-                            data_freq, self.frequency)
+        if !matches!(self.device, Device::CPU) {
+            return Err(NeuroDivergentError::config(
+                "GPU forecasting is not implemented",
+            ));
+        }
+        if self.prediction_intervals.is_some() {
+            return Err(NeuroDivergentError::config(
+                "Prediction interval aggregation is not implemented",
+            ));
+        }
+        let timeline = crate::timeline::Timeline::read(&data, &self.frequency)?;
+        for model in &self.models {
+            if data
+                .schema
+                .all_columns()
+                .iter()
+                .any(|column| column.as_str() == model.name())
+            {
+                return Err(NeuroDivergentError::config(
+                    "Model names cannot collide with data columns",
                 ));
             }
         }
-        
-        // Store training schema
-        self.training_schema = Some(data.schema.clone());
-        
-        // Fit all models (can be parallelized)
-        let results: Vec<NeuroDivergentResult<()>> = if self.num_threads.unwrap_or(1) > 1 {
-            // Parallel fitting - Note: This is conceptual, actual implementation
-            // would need to handle the fact that models need to be mutable
-            self.models.par_iter_mut()
-                .map(|model| model.fit(&data))
-                .collect()
-        } else {
-            // Sequential fitting
-            self.models.iter_mut()
-                .map(|model| model.fit(&data))
-                .collect()
-        };
-        
-        // Check for errors
-        let mut errors = Vec::new();
-        for (i, result) in results.into_iter().enumerate() {
-            if let Err(e) = result {
-                errors.push(format!("Model {} ({}): {}", i, self.models[i].name(), e));
-            }
-        }
-        
-        if !errors.is_empty() {
-            return Err(NeuroDivergentError::training(
-                format!("Model fitting failed: {}", errors.join("; "))
+        let normalized = timeline.normalized(&data, &self.frequency)?;
+        let scales = crate::scaling::fit(&timeline, self.local_scaler_type)?;
+        let transformed = crate::scaling::transform(&normalized, &scales)?;
+        self.is_fitted = false;
+        self.training_data = None;
+        self.training_schema = None;
+        self.scales.clear();
+        let threads = self.num_threads.unwrap_or(1);
+        if threads == 0 || threads > 256 {
+            return Err(NeuroDivergentError::config(
+                "Thread count must be in 1..=256",
             ));
         }
-        
-        // Update model metadata
-        for model in &self.models {
+        let fit = |models: &mut [Box<dyn BaseModel<T>>]| {
+            models
+                .par_iter_mut()
+                .map(|model| model.fit(&transformed))
+                .collect::<Vec<_>>()
+        };
+        let results = if threads > 1 {
+            rayon::ThreadPoolBuilder::new()
+                .num_threads(threads)
+                .build()
+                .map_err(|e| NeuroDivergentError::config(e.to_string()))?
+                .install(|| fit(&mut self.models))
+        } else {
+            self.models
+                .iter_mut()
+                .map(|model| model.fit(&transformed))
+                .collect()
+        };
+        let mut errors = Vec::new();
+        for (model, result) in self.models.iter().zip(results) {
             if let Some(info) = self.model_metadata.get_mut(model.name()) {
                 info.fitted = model.is_fitted();
             }
+            if let Err(error) = result {
+                errors.push(format!("{}: {error}", model.name()));
+            } else if !model.is_fitted() {
+                errors.push(format!("{} did not enter a fitted state", model.name()));
+            }
         }
-        
+        if !errors.is_empty() {
+            return Err(NeuroDivergentError::training(errors.join("; ")));
+        }
+        self.training_schema = Some(normalized.schema.clone());
+        self.training_data = Some(normalized);
+        self.scales = scales;
         self.is_fitted = true;
         Ok(())
     }
-    
-    /// Generate forecasts for all fitted models
-    /// 
-    /// Equivalent to Python: `nf.predict()`
-    /// 
+
+    /// Forecast after the last observation of each retained training series.
+    ///
     /// # Example
     /// ```rust
-    /// # use neuro_divergent::*;
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// # let mut nf = NeuralForecast::<f32>::builder().build()?;
-    /// # let data = TimeSeriesDataFrame::from_csv("data.csv")?;
-    /// # nf.fit(data)?;
-    /// let forecasts = nf.predict()?;
-    /// # Ok(())
-    /// # }
+    /// use neuro_divergent::{ForecastDataFrame, NeuralForecast, NeuroDivergentResult};
+    ///
+    /// fn request_forecast(pipeline: &NeuralForecast<f64>) -> NeuroDivergentResult<ForecastDataFrame<f64>> {
+    ///     pipeline.predict()
+    /// }
     /// ```
     pub fn predict(&self) -> NeuroDivergentResult<ForecastDataFrame<T>> {
         self.predict_with_config(PredictionConfig::default())
     }
-    
+
     /// Generate forecasts with custom configuration
     pub fn predict_with_config(
-        &self, 
-        _config: PredictionConfig
+        &self,
+        config: PredictionConfig,
     ) -> NeuroDivergentResult<ForecastDataFrame<T>> {
-        if !self.is_fitted {
-            return Err(NeuroDivergentError::prediction("Models have not been fitted yet"));
+        if config.include_intervals || config.num_samples.is_some() || config.temperature.is_some()
+        {
+            return Err(NeuroDivergentError::config(
+                "Probabilistic sampling and interval aggregation are not implemented",
+            ));
         }
-        
-        // For now, return a placeholder forecast dataframe
-        // In the full implementation, this would generate actual forecasts
-        let schema = self.training_schema.as_ref()
-            .ok_or_else(|| NeuroDivergentError::prediction("No training schema available"))?
-            .clone();
-            
-        let model_names: Vec<String> = self.models.iter()
-            .map(|m| m.name().to_string())
-            .collect();
-            
-        // Create empty forecast dataframe (placeholder)
-        let data = df! {
-            "unique_id" => Vec::<String>::new(),
-            "ds" => Vec::<i64>::new(),
-        }.map_err(|e| NeuroDivergentError::prediction(format!("DataFrame creation error: {}", e)))?;
-        
-        Ok(ForecastDataFrame::new(
-            data,
-            model_names,
-            1, // placeholder horizon
-            self.prediction_intervals.as_ref().map(|pi| pi.confidence_levels.clone()),
-            schema,
-        ))
+        let history = self
+            .training_data
+            .as_ref()
+            .ok_or_else(|| NeuroDivergentError::prediction("Models have not been fitted yet"))?;
+        self.predict_on(history.clone())
     }
-    
+
     /// Predict on new data
-    /// 
+    ///
     /// Equivalent to Python: `nf.predict(df=new_data)`
     pub fn predict_on(
-        &self, 
-        data: TimeSeriesDataFrame<T>
+        &self,
+        data: TimeSeriesDataFrame<T>,
     ) -> NeuroDivergentResult<ForecastDataFrame<T>> {
-        if !self.is_fitted {
-            return Err(NeuroDivergentError::prediction("Models have not been fitted yet"));
+        if !self.is_fitted() {
+            return Err(NeuroDivergentError::prediction(
+                "Models have not been fitted yet",
+            ));
         }
-        
-        // Validate data compatibility
-        if let Some(training_schema) = &self.training_schema {
-            if data.schema.unique_id_col != training_schema.unique_id_col ||
-               data.schema.ds_col != training_schema.ds_col ||
-               data.schema.y_col != training_schema.y_col {
+        if self.training_schema.as_ref() != Some(&data.schema) {
+            return Err(NeuroDivergentError::data(
+                "Data schema does not match training data schema",
+            ));
+        }
+        let timeline = crate::timeline::Timeline::read(&data, &self.frequency)?;
+        let training = self
+            .training_data
+            .as_ref()
+            .ok_or_else(|| NeuroDivergentError::prediction("Missing training context"))?;
+        let training = crate::timeline::Timeline::read(training, &self.frequency)?;
+        for (id, series) in &timeline.series {
+            let previous = training.series.get(id).ok_or_else(|| {
+                NeuroDivergentError::data("Prediction contains an unknown series")
+            })?;
+            if series.times.last() < previous.times.last() {
                 return Err(NeuroDivergentError::data(
-                    "Data schema does not match training data schema"
+                    "Prediction context ends before this model's training cutoff",
                 ));
             }
         }
-        
-        // Generate predictions from all models
-        let model_names: Vec<String> = self.models.iter().map(|m| m.name().to_string()).collect();
-        
-        // Placeholder implementation
-        let data_df = df! {
-            "unique_id" => Vec::<String>::new(),
-            "ds" => Vec::<i64>::new(),
-        }.map_err(|e| NeuroDivergentError::prediction(format!("DataFrame creation error: {}", e)))?;
-        
-        Ok(ForecastDataFrame::new(
-            data_df,
-            model_names,
-            1,
-            self.prediction_intervals.as_ref().map(|pi| pi.confidence_levels.clone()),
-            data.schema,
-        ))
+        let normalized = timeline.normalized(&data, &self.frequency)?;
+        let transformed = crate::scaling::transform(&normalized, &self.scales)?;
+        let mut forecast = crate::forecast::assemble(&self.models, &transformed, &self.frequency)?;
+        crate::scaling::inverse(&mut forecast, &self.scales)?;
+        Ok(forecast)
     }
-    
+
     /// Cross-validation for model evaluation
-    /// 
+    ///
     /// Equivalent to Python: `nf.cross_validation(df, n_windows=3)`
     pub fn cross_validation(
         &mut self,
         data: TimeSeriesDataFrame<T>,
-        config: CrossValidationConfig
+        config: CrossValidationConfig,
     ) -> NeuroDivergentResult<CrossValidationDataFrame<T>> {
-        // Validate configuration
-        config.validate()?;
-        
-        // Validate data
-        if data.shape().0 == 0 {
-            return Err(NeuroDivergentError::data("Cross-validation data is empty"));
-        }
-        
-        // For now, return placeholder CV results
-        let cutoffs = vec![chrono::Utc::now(); config.n_windows];
-        let model_names: Vec<String> = self.models.iter().map(|m| m.name().to_string()).collect();
-        
-        let cv_data = polars::prelude::df! {
-            "unique_id" => Vec::<String>::new(),
-            "ds" => Vec::<i64>::new(),
-            "cutoff" => Vec::<i64>::new(),
-        }.map_err(|e| NeuroDivergentError::data(format!("DataFrame creation error: {}", e)))?;
-        
-        Ok(CrossValidationDataFrame::new(
-            cv_data,
-            cutoffs,
-            model_names,
-            data.schema,
-        ))
+        crate::backtest::cross_validate(self, data, config)
     }
-    
+
     /// Fit and predict in one step
     pub fn fit_predict(
         &mut self,
-        train_data: TimeSeriesDataFrame<T>
+        train_data: TimeSeriesDataFrame<T>,
     ) -> NeuroDivergentResult<ForecastDataFrame<T>> {
         self.fit(train_data)?;
         self.predict()
     }
-    
+
     /// Get model by name
     pub fn get_model(&self, name: &str) -> Option<&dyn BaseModel<T>> {
-        self.models.iter()
+        self.models
+            .iter()
             .find(|model| model.name() == name)
             .map(|model| model.as_ref())
     }
-    
+
     /// Get mutable model by name
     pub fn get_model_mut(&mut self, name: &str) -> Option<&mut dyn BaseModel<T>> {
-        for model in &mut self.models {
-            if model.name() == name {
-                return Some(model.as_mut());
-            }
-        }
-        None
+        let index = self.models.iter().position(|model| model.name() == name)?;
+        self.is_fitted = false;
+        self.training_data = None;
+        self.training_schema = None;
+        self.scales.clear();
+        Some(self.models[index].as_mut())
     }
-    
+
     /// List all model names
     pub fn model_names(&self) -> Vec<String> {
         self.models.iter().map(|m| m.name().to_string()).collect()
     }
-    
+
     /// Check if models are fitted
     pub fn is_fitted(&self) -> bool {
-        self.is_fitted
+        self.is_fitted && self.models.iter().all(|model| model.is_fitted())
     }
-    
+
+    /// Common forecast horizon enforced when the pipeline is constructed.
+    pub fn horizon(&self) -> usize {
+        self.models[0].horizon()
+    }
+
     /// Get frequency
     pub fn frequency(&self) -> Frequency {
         self.frequency.clone()
     }
-    
+
     /// Get number of models
     pub fn num_models(&self) -> usize {
         self.models.len()
     }
-    
+
     /// Reset all models to unfitted state
     pub fn reset(&mut self) -> NeuroDivergentResult<()> {
-        for model in &mut self.models {
-            model.reset()?;
-        }
-        
         self.is_fitted = false;
         self.training_schema = None;
-        
-        // Reset model metadata
+        self.training_data = None;
+        self.scales.clear();
+        let results = self
+            .models
+            .iter_mut()
+            .map(|model| model.reset())
+            .collect::<Vec<_>>();
         for info in self.model_metadata.values_mut() {
             info.fitted = false;
             info.training_history = None;
         }
-        
+        for result in results {
+            result?;
+        }
         Ok(())
     }
-    
-    /// Save models to file
-    pub fn save<P: AsRef<Path>>(&self, _path: P) -> NeuroDivergentResult<()> {
-        // Placeholder for model serialization
-        // In full implementation, would serialize all models and metadata
-        Ok(())
-    }
-    
-    /// Load models from file
-    pub fn load<P: AsRef<Path>>(_path: P) -> NeuroDivergentResult<Self> {
-        // Placeholder for model deserialization
-        // In full implementation, would load models and metadata from file
-        Err(NeuroDivergentError::generic("Load functionality not yet implemented"))
-    }
-}
 
-/// Builder for constructing NeuralForecast instances with fluent API
-#[derive(Debug)]
-pub struct NeuralForecastBuilder<T: Float + Send + Sync> {
-    models: Vec<Box<dyn BaseModel<T>>>,
-    frequency: Option<Frequency>,
-    local_scaler_type: Option<ScalerType>,
-    num_threads: Option<usize>,
-    prediction_intervals: Option<PredictionIntervals>,
-    device: Device,
-}
+    /// Atomically save supported fitted models, training history, and fitted scaler state.
+    pub fn save<P: AsRef<Path>>(&self, path: P) -> NeuroDivergentResult<()> {
+        crate::persistence::save(self, path.as_ref())
+    }
 
-impl<T: Float + Send + Sync> NeuralForecastBuilder<T> {
-    /// Create a new builder
-    pub fn new() -> Self {
-        Self {
-            models: Vec::new(),
-            frequency: None,
-            local_scaler_type: None,
-            num_threads: None,
-            prediction_intervals: None,
-            device: Device::default(),
-        }
-    }
-    
-    /// Add models to the forecasting ensemble
-    pub fn with_models(mut self, models: Vec<Box<dyn BaseModel<T>>>) -> Self {
-        self.models = models;
-        self
-    }
-    
-    /// Add a single model
-    pub fn with_model(mut self, model: Box<dyn BaseModel<T>>) -> Self {
-        self.models.push(model);
-        self
-    }
-    
-    /// Set the frequency of the time series
-    pub fn with_frequency(mut self, frequency: Frequency) -> Self {
-        self.frequency = Some(frequency);
-        self
-    }
-    
-    /// Set local scaler type for data preprocessing
-    pub fn with_local_scaler(mut self, scaler_type: ScalerType) -> Self {
-        self.local_scaler_type = Some(scaler_type);
-        self
-    }
-    
-    /// Set number of threads for parallel processing
-    pub fn with_num_threads(mut self, num_threads: usize) -> Self {
-        self.num_threads = Some(num_threads);
-        self
-    }
-    
-    /// Configure prediction intervals
-    pub fn with_prediction_intervals(mut self, intervals: PredictionIntervals) -> Self {
-        self.prediction_intervals = Some(intervals);
-        self
-    }
-    
-    /// Set computation device
-    pub fn with_device(mut self, device: Device) -> Self {
-        self.device = device;
-        self
-    }
-    
-    /// Build the NeuralForecast instance
-    pub fn build(self) -> NeuroDivergentResult<NeuralForecast<T>> {
-        let frequency = self.frequency
-            .ok_or_else(|| NeuroDivergentError::config("Frequency is required"))?;
-            
-        if self.models.is_empty() {
-            return Err(NeuroDivergentError::config("At least one model is required"));
-        }
-        
-        let mut nf = NeuralForecast::new(self.models, frequency)?;
-        nf.local_scaler_type = self.local_scaler_type;
-        nf.num_threads = self.num_threads;
-        nf.prediction_intervals = self.prediction_intervals;
-        nf.device = self.device;
-        
-        Ok(nf)
-    }
-}
-
-impl<T: Float + Send + Sync> Default for NeuralForecastBuilder<T> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-/// Configuration for model validation during training
-#[derive(Debug, Clone)]
-pub struct ValidationConfig {
-    /// Validation split ratio
-    pub validation_split: Option<f64>,
-    /// Whether to shuffle data
-    pub shuffle: bool,
-    /// Random seed for reproducibility
-    pub random_seed: Option<u64>,
-}
-
-impl ValidationConfig {
-    /// Create new validation configuration
-    pub fn new() -> Self {
-        Self {
-            validation_split: None,
-            shuffle: true,
-            random_seed: None,
-        }
-    }
-    
-    /// Set validation split ratio
-    pub fn with_validation_split(mut self, split: f64) -> Self {
-        if split > 0.0 && split < 1.0 {
-            self.validation_split = Some(split);
-        }
-        self
-    }
-    
-    /// Set whether to shuffle data
-    pub fn with_shuffle(mut self, shuffle: bool) -> Self {
-        self.shuffle = shuffle;
-        self
-    }
-    
-    /// Set random seed
-    pub fn with_random_seed(mut self, seed: u64) -> Self {
-        self.random_seed = Some(seed);
-        self
-    }
-}
-
-impl Default for ValidationConfig {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-/// Configuration for prediction generation
-#[derive(Debug, Clone)]
-pub struct PredictionConfig {
-    /// Whether to include prediction intervals
-    pub include_intervals: bool,
-    /// Number of samples for probabilistic models
-    pub num_samples: Option<usize>,
-    /// Temperature for sampling
-    pub temperature: Option<f64>,
-}
-
-impl PredictionConfig {
-    /// Create new prediction configuration
-    pub fn new() -> Self {
-        Self {
-            include_intervals: false,
-            num_samples: None,
-            temperature: None,
-        }
-    }
-    
-    /// Enable prediction intervals
-    pub fn with_intervals(mut self) -> Self {
-        self.include_intervals = true;
-        self
-    }
-    
-    /// Set number of samples for probabilistic prediction
-    pub fn with_num_samples(mut self, num_samples: usize) -> Self {
-        self.num_samples = Some(num_samples);
-        self
-    }
-    
-    /// Set sampling temperature
-    pub fn with_temperature(mut self, temperature: f64) -> Self {
-        self.temperature = Some(temperature);
-        self
-    }
-}
-
-impl Default for PredictionConfig {
-    fn default() -> Self {
-        Self::new()
+    /// Restore a versioned checkpoint of supported baseline/RNN models.
+    pub fn load<P: AsRef<Path>>(path: P) -> NeuroDivergentResult<Self>
+    where
+        T: std::fmt::Debug + std::iter::Sum + 'static,
+    {
+        crate::persistence::load(path.as_ref())
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    
-    // Mock model for testing
-    #[derive(Debug)]
-    struct MockModel {
-        name: String,
-        fitted: bool,
-    }
-    
-    impl MockModel {
-        fn new(name: &str) -> Self {
-            Self {
-                name: name.to_string(),
-                fitted: false,
-            }
-        }
-    }
-    
-    impl BaseModel<f32> for MockModel {
-        fn fit(&mut self, _data: &TimeSeriesDataFrame<f32>) -> NeuroDivergentResult<()> {
-            self.fitted = true;
-            Ok(())
-        }
-        
-        fn predict(&self, _data: &TimeSeriesDataFrame<f32>) -> NeuroDivergentResult<ForecastDataFrame<f32>> {
-            // Return placeholder forecast
-            let data = df! {
-                "unique_id" => Vec::<String>::new(),
-                "ds" => Vec::<i64>::new(),
-            }.unwrap();
-            
-            Ok(ForecastDataFrame::new(
-                data,
-                vec![self.name.clone()],
-                1,
-                None,
-                TimeSeriesSchema::default(),
-            ))
-        }
-        
-        fn name(&self) -> &str {
-            &self.name
-        }
-        
-        fn is_fitted(&self) -> bool {
-            self.fitted
-        }
-        
-        fn reset(&mut self) -> NeuroDivergentResult<()> {
-            self.fitted = false;
-            Ok(())
-        }
-    }
-    
-    #[test]
-    fn test_neural_forecast_creation() {
-        let model = MockModel::new("test_model");
-        let result = NeuralForecast::new(vec![Box::new(model)], Frequency::Daily);
-        assert!(result.is_ok());
-        
-        let nf = result.unwrap();
-        assert_eq!(nf.model_names(), vec!["test_model"]);
-        assert_eq!(nf.frequency(), Frequency::Daily);
-        assert!(!nf.is_fitted());
-    }
-    
-    #[test]
-    fn test_neural_forecast_builder() {
-        let model = MockModel::new("test_model");
-        let result = NeuralForecast::builder()
-            .with_model(Box::new(model))
-            .with_frequency(Frequency::Hourly)
-            .with_num_threads(4)
-            .build();
-            
-        assert!(result.is_ok());
-        let nf = result.unwrap();
-        assert_eq!(nf.frequency(), Frequency::Hourly);
-        assert_eq!(nf.num_threads, Some(4));
-    }
-    
-    #[test]
-    fn test_empty_models_error() {
-        let result = NeuralForecast::<f32>::new(vec![], Frequency::Daily);
-        assert!(result.is_err());
-        assert!(result.unwrap_err().is_config_error());
-    }
-    
-    #[test]
-    fn test_duplicate_model_names() {
-        let model1 = MockModel::new("duplicate");
-        let model2 = MockModel::new("duplicate");
-        let result = NeuralForecast::new(
-            vec![Box::new(model1), Box::new(model2)], 
-            Frequency::Daily
-        );
-        assert!(result.is_err());
-        assert!(result.unwrap_err().is_config_error());
-    }
-    
-    #[test]
-    fn test_prediction_before_fitting() {
-        let model = MockModel::new("test_model");
-        let nf = NeuralForecast::new(vec![Box::new(model)], Frequency::Daily).unwrap();
-        let result = nf.predict();
-        assert!(result.is_err());
-        assert!(result.unwrap_err().is_prediction_error());
-    }
-}
+#[path = "pipeline_tests.rs"]
+mod tests;

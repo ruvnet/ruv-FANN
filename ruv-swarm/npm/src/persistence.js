@@ -1,3 +1,6 @@
+import { randomUUID } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
+import { buildUpdateFields } from './persistence-updates.js';
 /**
  * SQLite Persistence Layer for ruv-swarm MCP
  */
@@ -7,7 +10,7 @@ import path from 'path';
 import fs from 'fs';
 
 class SwarmPersistence {
-  constructor(dbPath = path.join(new URL('.', import.meta.url).pathname, '..', 'data', 'ruv-swarm.db')) {
+  constructor(dbPath = fileURLToPath(new URL('../data/ruv-swarm.db', import.meta.url))) {
     // Ensure data directory exists
     const dataDir = path.dirname(dbPath);
     if (!fs.existsSync(dataDir)) {
@@ -223,18 +226,7 @@ class SwarmPersistence {
   }
 
   updateTask(taskId, updates) {
-    const fields = [];
-    const values = [];
-
-    Object.entries(updates).forEach(([key, value]) => {
-      if (key === 'assignedAgents' || key === 'result') {
-        fields.push(`${key} = ?`);
-        values.push(JSON.stringify(value));
-      } else {
-        fields.push(`${key} = ?`);
-        values.push(value);
-      }
-    });
+    const { fields, values } = buildUpdateFields(updates, 'task');
 
     values.push(taskId);
     const stmt = this.db.prepare(`UPDATE tasks SET ${fields.join(', ')} WHERE id = ?`);
@@ -319,13 +311,7 @@ class SwarmPersistence {
   }
 
   updateNeuralNetwork(id, updates) {
-    const fields = [];
-    const values = [];
-
-    Object.entries(updates).forEach(([key, value]) => {
-      fields.push(`${key} = ?`);
-      values.push(JSON.stringify(value));
-    });
+    const { fields, values } = buildUpdateFields(updates, 'neural');
 
     fields.push('updated_at = CURRENT_TIMESTAMP');
     values.push(id);
@@ -405,7 +391,7 @@ class SwarmPersistence {
       VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     `);
 
-    const id = `mem_${agentId}_${Date.now()}`;
+    const id = randomUUID();
     return stmt.run(id, agentId, key, JSON.stringify(value), ttlSecs, expiresAt);
   }
 
@@ -416,7 +402,7 @@ class SwarmPersistence {
     const stmt = this.db.prepare(`
       SELECT * FROM agent_memory 
       WHERE agent_id = ? AND key = ? 
-      AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+      AND (expires_at IS NULL OR julianday(expires_at) > julianday('now'))
     `);
 
     const memory = stmt.get(agentId, key);
@@ -433,7 +419,7 @@ class SwarmPersistence {
     const stmt = this.db.prepare(`
       SELECT * FROM agent_memory 
       WHERE agent_id = ? 
-      AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+      AND (expires_at IS NULL OR julianday(expires_at) > julianday('now'))
       ORDER BY updated_at DESC
     `);
 
@@ -450,7 +436,7 @@ class SwarmPersistence {
   }
 
   cleanupExpiredMemory() {
-    const stmt = this.db.prepare('DELETE FROM agent_memory WHERE expires_at IS NOT NULL AND expires_at <= CURRENT_TIMESTAMP');
+    const stmt = this.db.prepare("DELETE FROM agent_memory WHERE expires_at IS NOT NULL AND julianday(expires_at) <= julianday('now')");
     return stmt.run();
   }
 

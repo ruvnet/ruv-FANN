@@ -1,7 +1,7 @@
 //! Comprehensive SWE-Bench Evaluator
 //!
-//! Integrates all 5 trained models with SWE-Bench evaluation framework
-//! for comprehensive benchmarking of Claude Code CLI performance.
+//! Dataset/configuration scaffolding for an application-owned evaluation backend.
+//! The trained-model evaluation operation returns an explicit unsupported error.
 
 use anyhow::{anyhow, Context, Result};
 use chrono::{DateTime, Utc};
@@ -67,47 +67,7 @@ impl SWEBenchEvaluator {
 
     /// Execute comprehensive SWE-Bench evaluation across all models and difficulty levels
     pub async fn execute_comprehensive_evaluation(&self) -> Result<ComprehensiveEvaluationReport> {
-        info!("Starting comprehensive SWE-Bench evaluation");
-        let start_time = Instant::now();
-
-        let instances = self.instances.read().await;
-        let scenarios = self.create_benchmark_scenarios(&instances).await?;
-
-        // Execute evaluation for each model configuration
-        let mut model_results = HashMap::new();
-
-        for (model_name, model_config) in &self.model_configs {
-            info!("Evaluating model: {}", model_name);
-
-            let model_report = self
-                .evaluate_model_performance(model_name, model_config, &scenarios)
-                .await?;
-
-            model_results.insert(model_name.clone(), model_report);
-        }
-
-        // Generate comprehensive comparison report
-        let comparison = self.generate_model_comparison(&model_results).await?;
-        let baseline_comparison = self.generate_baseline_comparison(&model_results).await?;
-
-        let total_duration = start_time.elapsed();
-
-        let difficulty_breakdown = self.analyze_difficulty_performance(&model_results).await?;
-        let overall_metrics = self.calculate_overall_metrics(&model_results).await?;
-        let solve_rate_analysis = self.analyze_solve_rates(&model_results).await?;
-        let recommendations = self.generate_recommendations(&model_results).await?;
-
-        Ok(ComprehensiveEvaluationReport {
-            timestamp: Utc::now(),
-            total_duration,
-            model_results,
-            difficulty_breakdown,
-            model_comparison: comparison,
-            baseline_comparison,
-            overall_metrics,
-            solve_rate_analysis,
-            recommendations,
-        })
+        anyhow::bail!("Trained-model SWE-bench integration is not implemented; use an application-owned executor and the official evaluation harness. No solve rates or model comparisons were generated.")
     }
 
     /// Evaluate performance of a specific model across all scenarios

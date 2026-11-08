@@ -1,6 +1,7 @@
 //! Point structures for OpenCV
 
 use std::fmt;
+#[cfg(feature = "serde")]
 use serde::{Serialize, Deserialize};
 
 /// 2D point with integer coordinates

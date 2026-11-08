@@ -79,7 +79,9 @@ pub struct BackendCapabilities {
     pub supports_f64: bool,
     pub supports_f32: bool,
     pub supports_f16: bool,
+    /// Physical compute-unit count when known; zero if unavailable.
     pub max_compute_units: usize,
+    /// Measured or explicitly estimated bandwidth; zero if unavailable.
     pub memory_bandwidth_gbps: f32,
     pub shader_model: Option<String>,
 }
@@ -395,34 +397,7 @@ where
 
 impl<T: Float + std::fmt::Debug + Send + Sync + 'static> SimdBackend<T> {
     fn apply_activation_cpu(&self, x: T, function: ActivationFunction, steepness: T) -> T {
-        match function {
-            ActivationFunction::Sigmoid => {
-                let exp_val = (-steepness * x).exp();
-                T::one() / (T::one() + exp_val)
-            }
-            ActivationFunction::ReLU => {
-                if x > T::zero() {
-                    x
-                } else {
-                    T::zero()
-                }
-            }
-            ActivationFunction::ReLULeaky => {
-                let alpha = T::from(0.01).unwrap_or(T::zero());
-                if x > T::zero() {
-                    x
-                } else {
-                    alpha * x
-                }
-            }
-            ActivationFunction::Tanh => {
-                let exp_2x = (steepness * x + steepness * x).exp();
-                let exp_neg_2x = (-steepness * x - steepness * x).exp();
-                (exp_2x - exp_neg_2x) / (exp_2x + exp_neg_2x)
-            }
-            ActivationFunction::Linear => x * steepness,
-            _ => x, // Fallback for other functions
-        }
+        function.apply(x, steepness)
     }
 }
 
@@ -468,36 +443,33 @@ impl<T: Float + std::fmt::Debug + Send + Sync + 'static> VectorOps<T> for SimdBa
 
 impl<T: Float + std::fmt::Debug + Send + Sync + 'static> MemoryManager<T> for SimdBackend<T> {
     fn allocate_buffer(&self, _size: usize) -> Result<super::memory::BufferHandle, ComputeError> {
-        // CPU memory management is handled by Vec<T> allocations
-        // Return a placeholder handle since we don't need explicit buffer management
-        use rand::Rng;
-        let mut rng = rand::thread_rng();
-        Ok(super::memory::BufferHandle::new(rng.gen()))
+        Err(ComputeError::UnsupportedOperation(
+            "CPU vector backends do not own handle-based buffers; use CpuMemoryManager".into(),
+        ))
     }
-
     fn upload_data(
         &self,
         _handle: super::memory::BufferHandle,
         _data: &[T],
     ) -> Result<(), ComputeError> {
-        // No-op for CPU backend
-        Ok(())
+        Err(ComputeError::UnsupportedOperation(
+            "CPU vector backends do not own handle-based buffers".into(),
+        ))
     }
-
     fn download_data(&self, _handle: super::memory::BufferHandle) -> Result<Vec<T>, ComputeError> {
-        // No-op for CPU backend - data is already in CPU memory
-        Ok(Vec::new())
+        Err(ComputeError::UnsupportedOperation(
+            "CPU vector backends do not own handle-based buffers".into(),
+        ))
     }
-
     fn deallocate_buffer(&self, _handle: super::memory::BufferHandle) -> Result<(), ComputeError> {
-        // No-op for CPU backend
-        Ok(())
+        Err(ComputeError::UnsupportedOperation(
+            "CPU vector backends do not own handle-based buffers".into(),
+        ))
     }
-
     fn memory_usage(&self) -> super::memory::MemoryStats {
         super::memory::MemoryStats {
-            total_allocated: 0, // Would need to track actual allocations
-            available: usize::MAX,
+            total_allocated: 0,
+            available: 0,
             buffer_count: 0,
             fragmentation_ratio: 0.0,
         }
@@ -629,34 +601,7 @@ where
 
 impl<T: Float + std::fmt::Debug + Send + Sync + 'static> CpuBackend<T> {
     fn apply_activation_cpu(&self, x: T, function: ActivationFunction, steepness: T) -> T {
-        match function {
-            ActivationFunction::Sigmoid => {
-                let exp_val = (-steepness * x).exp();
-                T::one() / (T::one() + exp_val)
-            }
-            ActivationFunction::ReLU => {
-                if x > T::zero() {
-                    x
-                } else {
-                    T::zero()
-                }
-            }
-            ActivationFunction::ReLULeaky => {
-                let alpha = T::from(0.01).unwrap_or(T::zero());
-                if x > T::zero() {
-                    x
-                } else {
-                    alpha * x
-                }
-            }
-            ActivationFunction::Tanh => {
-                let exp_2x = (steepness * x + steepness * x).exp();
-                let exp_neg_2x = (-steepness * x - steepness * x).exp();
-                (exp_2x - exp_neg_2x) / (exp_2x + exp_neg_2x)
-            }
-            ActivationFunction::Linear => x * steepness,
-            _ => x, // Fallback for other functions
-        }
+        function.apply(x, steepness)
     }
 }
 
@@ -702,31 +647,33 @@ impl<T: Float + std::fmt::Debug + Send + Sync + 'static> VectorOps<T> for CpuBac
 
 impl<T: Float + std::fmt::Debug + Send + Sync + 'static> MemoryManager<T> for CpuBackend<T> {
     fn allocate_buffer(&self, _size: usize) -> Result<super::memory::BufferHandle, ComputeError> {
-        use rand::Rng;
-        let mut rng = rand::thread_rng();
-        Ok(super::memory::BufferHandle::new(rng.gen()))
+        Err(ComputeError::UnsupportedOperation(
+            "CPU vector backends do not own handle-based buffers; use CpuMemoryManager".into(),
+        ))
     }
-
     fn upload_data(
         &self,
         _handle: super::memory::BufferHandle,
         _data: &[T],
     ) -> Result<(), ComputeError> {
-        Ok(())
+        Err(ComputeError::UnsupportedOperation(
+            "CPU vector backends do not own handle-based buffers".into(),
+        ))
     }
-
     fn download_data(&self, _handle: super::memory::BufferHandle) -> Result<Vec<T>, ComputeError> {
-        Ok(Vec::new())
+        Err(ComputeError::UnsupportedOperation(
+            "CPU vector backends do not own handle-based buffers".into(),
+        ))
     }
-
     fn deallocate_buffer(&self, _handle: super::memory::BufferHandle) -> Result<(), ComputeError> {
-        Ok(())
+        Err(ComputeError::UnsupportedOperation(
+            "CPU vector backends do not own handle-based buffers".into(),
+        ))
     }
-
     fn memory_usage(&self) -> super::memory::MemoryStats {
         super::memory::MemoryStats {
             total_allocated: 0,
-            available: usize::MAX,
+            available: 0,
             buffer_count: 0,
             fragmentation_ratio: 0.0,
         }

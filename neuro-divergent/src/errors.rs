@@ -110,6 +110,11 @@ impl NeuroDivergentError {
         Self::MathError(message.into())
     }
     
+    /// Create a serialization or checkpoint error.
+    pub fn serialization<S: Into<String>>(message: S) -> Self {
+        Self::SerializationError(message.into())
+    }
+
     /// Create a generic error
     pub fn generic<S: Into<String>>(message: S) -> Self {
         Self::Generic { 

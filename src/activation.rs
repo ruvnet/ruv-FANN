@@ -21,7 +21,7 @@ pub enum ActivationFunction {
     /// Note: Cannot be used during training due to zero derivative
     ThresholdSymmetric,
 
-    /// Sigmoid activation function: f(x) = 1 / (1 + exp(-2 * steepness * x))
+    /// Sigmoid activation function: f(x) = 1 / (1 + exp(-steepness * x))
     /// Output range: (0, 1)
     #[default]
     Sigmoid,
@@ -96,6 +96,130 @@ pub enum ActivationFunction {
 }
 
 impl ActivationFunction {
+    /// Evaluates the activation. ReLU-family activations preserve their historical
+    /// unscaled input; GELU and Swish use the same convention as the SIMD API.
+    pub(crate) fn apply<T: num_traits::Float>(self, x: T, steepness: T) -> T {
+        let one = T::one();
+        let half = T::from(0.5).unwrap();
+        let scaled = x * steepness;
+        match self {
+            Self::Linear => scaled,
+            Self::Threshold => {
+                if x < T::zero() {
+                    T::zero()
+                } else {
+                    one
+                }
+            }
+            Self::ThresholdSymmetric => {
+                if x < T::zero() {
+                    -one
+                } else {
+                    one
+                }
+            }
+            Self::Sigmoid => sigmoid(scaled),
+            Self::SigmoidSymmetric | Self::Tanh => scaled.tanh(),
+            Self::Gaussian => (-scaled * scaled).exp(),
+            Self::GaussianSymmetric => (-scaled * scaled).exp() * (one + one) - one,
+            Self::Elliot => half * scaled / (one + scaled.abs()) + half,
+            Self::ElliotSymmetric => scaled / (one + scaled.abs()),
+            Self::LinearPiece => scaled.max(T::zero()).min(one),
+            Self::LinearPieceSymmetric => scaled.max(-one).min(one),
+            Self::ReLU => x.max(T::zero()),
+            Self::ReLULeaky | Self::LeakyRelu => {
+                if x > T::zero() {
+                    x
+                } else {
+                    T::from(0.01).unwrap() * x
+                }
+            }
+            Self::Sin => scaled.sin() * half + half,
+            Self::Cos => scaled.cos() * half + half,
+            Self::SinSymmetric => scaled.sin(),
+            Self::CosSymmetric => scaled.cos(),
+            Self::Gelu => {
+                // Tanh approximation from Hendrycks & Gimpel (2016).
+                let coefficient = T::from(0.044715).unwrap();
+                let scale = T::from(2.0 / std::f64::consts::PI).unwrap().sqrt();
+                x * half * (one + (scale * (x + coefficient * x * x * x)).tanh())
+            }
+            Self::Swish => x * sigmoid(x),
+        }
+    }
+
+    pub(crate) fn derivative<T: num_traits::Float>(self, x: T, value: T, steepness: T) -> T {
+        let one = T::one();
+        let two = one + one;
+        let scaled = x * steepness;
+        match self {
+            Self::Linear => steepness,
+            Self::Threshold | Self::ThresholdSymmetric => T::zero(),
+            Self::Sigmoid => value * (one - value) * steepness,
+            Self::SigmoidSymmetric | Self::Tanh => (one - value * value) * steepness,
+            Self::Gaussian => -two * steepness * scaled * value,
+            Self::GaussianSymmetric => -two * steepness * scaled * (value + one),
+            Self::Elliot | Self::ElliotSymmetric => {
+                let denominator = one + scaled.abs();
+                let derivative = steepness / (denominator * denominator);
+                if self == Self::Elliot {
+                    derivative / two
+                } else {
+                    derivative
+                }
+            }
+            Self::LinearPiece => {
+                if scaled > T::zero() && scaled < one {
+                    steepness
+                } else {
+                    T::zero()
+                }
+            }
+            Self::LinearPieceSymmetric => {
+                if scaled > -one && scaled < one {
+                    steepness
+                } else {
+                    T::zero()
+                }
+            }
+            Self::ReLU => {
+                if x > T::zero() {
+                    one
+                } else {
+                    T::zero()
+                }
+            }
+            Self::ReLULeaky | Self::LeakyRelu => {
+                if x > T::zero() {
+                    one
+                } else {
+                    T::from(0.01).unwrap()
+                }
+            }
+            Self::Sin => steepness * scaled.cos() / two,
+            Self::Cos => -steepness * scaled.sin() / two,
+            Self::SinSymmetric => steepness * scaled.cos(),
+            Self::CosSymmetric => -steepness * scaled.sin(),
+            Self::Gelu => {
+                let coefficient = T::from(0.044715).unwrap();
+                let scale = T::from(2.0 / std::f64::consts::PI).unwrap().sqrt();
+                let tanh = (scale * (x + coefficient * x * x * x)).tanh();
+                if tanh.abs() == one {
+                    return (one + tanh) / two;
+                }
+                (one + tanh
+                    + x * (one - tanh * tanh)
+                        * scale
+                        * (one + T::from(3.0).unwrap() * coefficient * x * x))
+                    / two
+            }
+            Self::Swish => {
+                let sigmoid = sigmoid(x);
+                sigmoid * (one + x * (one - sigmoid))
+            }
+        }
+    }
+
     /// Returns the string name of the activation function
     pub fn name(&self) -> &'static str {
         match self {
@@ -154,6 +278,16 @@ impl ActivationFunction {
             | ActivationFunction::Swish
             | ActivationFunction::LeakyRelu => ("-inf", "inf"),
         }
+    }
+}
+
+// Split evaluation avoids overflow in exp() for large negative inputs.
+fn sigmoid<T: num_traits::Float>(x: T) -> T {
+    if x >= T::zero() {
+        T::one() / (T::one() + (-x).exp())
+    } else {
+        let exp = x.exp();
+        exp / (T::one() + exp)
     }
 }
 

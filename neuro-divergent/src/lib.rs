@@ -1,61 +1,4 @@
-//! # Neuro-Divergent: High-Performance Neural Forecasting Library
-//!
-//! Neuro-Divergent provides 100% compatibility with the NeuralForecast Python library
-//! while delivering the performance and safety benefits of Rust. Built on the ruv-FANN
-//! neural network foundation, it offers high-performance neural forecasting capabilities
-//! with a user-friendly API.
-//!
-//! ## Features
-//!
-//! - **100% NeuralForecast API Compatibility**: Drop-in replacement for Python users
-//! - **High Performance**: Rust performance with SIMD optimization
-//! - **Memory Safety**: Zero-cost abstractions with compile-time guarantees
-//! - **Async Support**: Asynchronous training and prediction
-//! - **Multiple Model Support**: LSTM, NBEATS, DeepAR, Transformers, and more
-//! - **Extensible Architecture**: Easy to add custom models and components
-//!
-//! ## Quick Start
-//!
-//! ```rust
-//! use neuro_divergent::{NeuralForecast, models::LSTM, data::TimeSeriesDataFrame, Frequency};
-//!
-//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
-//! // Create LSTM model
-//! let lstm = LSTM::builder()
-//!     .hidden_size(128)
-//!     .num_layers(2)
-//!     .dropout(0.1)
-//!     .horizon(12)
-//!     .input_size(24)
-//!     .build()?;
-//!
-//! // Create NeuralForecast instance
-//! let mut nf = NeuralForecast::builder()
-//!     .with_model(Box::new(lstm))
-//!     .with_frequency(Frequency::Monthly)
-//!     .build()?;
-//!
-//! // Load your time series data
-//! let data = TimeSeriesDataFrame::from_csv("data.csv")?;
-//!
-//! // Fit the model
-//! nf.fit(data.clone())?;
-//!
-//! // Generate forecasts
-//! let forecasts = nf.predict()?;
-//! # Ok(())
-//! # }
-//! ```
-//!
-//! ## Architecture
-//!
-//! The library is structured in several layers:
-//!
-//! - **API Layer**: User-facing interface with NeuralForecast compatibility
-//! - **Model Layer**: Neural network model implementations
-//! - **Core Layer**: Base traits and abstractions
-//! - **Data Layer**: Time series data handling and preprocessing
-//! - **Foundation Layer**: Integration with ruv-FANN neural networks
+#![doc = include_str!("../README.md")]
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![warn(missing_docs)]
@@ -63,9 +6,12 @@
 #![allow(clippy::new_without_default)]
 
 // Re-export essential types at the crate root
-pub use neural_forecast::{NeuralForecast, NeuralForecastBuilder};
-pub use config::{Frequency, ScalerType, PredictionIntervals};
-pub use results::{ForecastDataFrame, CrossValidationDataFrame, TimeSeriesDataFrame};
+pub use neural_forecast::{BaseModel, NeuralForecast, NeuralForecastBuilder, PredictionConfig, ValidationConfig};
+pub use baseline::NaiveForecaster;
+#[cfg(feature = "models")]
+pub use model_adapter::ModelAdapter;
+pub use config::{Frequency, ScalerType, PredictionIntervals, CrossValidationConfig};
+pub use results::{AccuracyMetrics, ForecastDataFrame, CrossValidationDataFrame, TimeSeriesDataFrame, TimeSeriesSchema};
 pub use errors::{NeuroDivergentError, NeuroDivergentResult};
 
 // Core modules
@@ -75,6 +21,16 @@ pub mod config;
 pub mod results;
 pub mod utils;
 pub mod errors;
+pub mod baseline;
+#[cfg(feature = "models")]
+pub mod model_adapter;
+mod timeline;
+mod forecast;
+mod backtest;
+mod scaling;
+mod persistence;
+mod pipeline_config;
+mod evaluation;
 
 // Core abstractions
 // Re-export from external crates
@@ -135,18 +91,14 @@ pub mod info {
         super::DESCRIPTION
     }
     
-    /// Check if GPU support is available
-    #[cfg(feature = "gpu")]
-    pub fn has_gpu_support() -> bool {
-        true
-    }
-    
-    #[cfg(not(feature = "gpu"))]
+    /// Whether a GPU forecasting implementation is available (currently false).
+    /// The `gpu` Cargo feature is reserved and does not enable GPU execution.
     pub fn has_gpu_support() -> bool {
         false
     }
-    
-    /// Check if async support is available
+
+    /// Whether optional async runtime dependencies were enabled.
+    /// Forecasting methods themselves are synchronous.
     #[cfg(feature = "async")]
     pub fn has_async_support() -> bool {
         true
@@ -172,7 +124,9 @@ mod tests {
     #[test]
     fn test_feature_detection() {
         // These should not panic
-        let _ = info::has_gpu_support();
+        assert!(!info::has_gpu_support());
         let _ = info::has_async_support();
     }
 }
+#[cfg(test)]
+mod forecast_contract_tests;

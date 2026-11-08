@@ -75,8 +75,8 @@ fn generate_seasonal_events() -> Vec<StreamEvent> {
 async fn train_and_compare_models() -> Result<(), Box<dyn std::error::Error>> {
     // Load data
     println!("Loading seasonal data...");
-    let data_loader = StreamDataLoader::new(1000, 72); // 3-day sequences
     let events = generate_seasonal_events();
+    let data_loader = StreamDataLoader::new(events.len(), 72);
     println!("Generated {} events", events.len());
 
     let dataset = data_loader.load_from_stream(events.into_iter()).await?;
@@ -211,9 +211,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("RUV Swarm ML Training - Model Comparison");
     println!("=======================================\n");
 
-    train_and_compare_models().await?;
+    if let Err(error) = train_and_compare_models().await {
+        if matches!(error.downcast_ref::<ruv_swarm_ml_training::TrainingError>(),
+            Some(ruv_swarm_ml_training::TrainingError::ModelError(message)) if message.contains("no implemented training backend"))
+        {
+            println!("Backend unavailable: {error}");
+        } else {
+            return Err(error);
+        }
+    }
 
-    println!("\n\nComparison complete! The best model can now be used for:");
+    println!("\n\nBackend availability checks complete. A future application backend can support:");
     println!("  • Real-time performance prediction");
     println!("  • Prompt optimization");
     println!("  • Resource allocation");

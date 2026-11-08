@@ -1,17 +1,16 @@
-use std::env;
-use std::path::PathBuf;
+use std::{env, path::PathBuf};
 
 fn main() {
-    let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
-    let package_name = env::var("CARGO_PKG_NAME").unwrap();
-    let output_file = PathBuf::from(&crate_dir)
-        .join("target")
-        .join(format!("{}.h", package_name));
-
+    println!("cargo:rerun-if-changed=src/lib.rs");
+    // Parse the two exported C functions directly. Resolving this whole crate
+    // would recursively launch cargo metadata during packaged-source builds.
+    let output = PathBuf::from(env::var("OUT_DIR").expect("Cargo OUT_DIR")).join("opencv-sdk.h");
     cbindgen::Builder::new()
-        .with_crate(crate_dir)
+        .with_src("src/lib.rs")
         .with_language(cbindgen::Language::C)
+        .with_include_guard("RUV_OPENCV_SDK_H")
+        .exclude_item("SDK_VERSION")
         .generate()
-        .expect("Unable to generate bindings")
-        .write_to_file(output_file);
+        .expect("Generate SDK C exports from source")
+        .write_to_file(output);
 }

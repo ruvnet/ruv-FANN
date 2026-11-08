@@ -2,6 +2,7 @@
 
 use crate::{Point, Size};
 use std::fmt;
+#[cfg(feature = "serde")]
 use serde::{Serialize, Deserialize};
 
 /// Rectangle with integer coordinates

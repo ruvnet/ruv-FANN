@@ -60,50 +60,9 @@ class ClaudeIntegrationOrchestrator {
       console.log('\n🌐 Step 2: Remote Execution Setup');
       results.modules.remote = await this.remote.createAll();
 
-      // Step 3: Initialize core integration (if auto setup enabled)
-      if (this.options.autoSetup) {
-        console.log('\n🔧 Step 3: Core Integration Setup');
-        try {
-          results.modules.core = await this.core.initialize();
-        } catch (error) {
-          console.log('⚠️  Core integration setup failed (manual setup required)');
-          console.log('   Error:', error.message);
-          results.modules.core = {
-            success: false,
-            error: error.message,
-            manualSetup: true,
-          };
-        }
-      } else {
-        console.log('\n💡 Step 3: Manual Core Setup Required');
-        results.modules.core = {
-          success: true,
-          manualSetup: true,
-          instructions: [
-            'Run: claude mcp add ruv-swarm npx ruv-swarm mcp start',
-            'Test with: mcp__ruv-swarm__agent_spawn',
-          ],
-        };
-      }
-
-      // Summary
-      console.log('\n✅ Modular Claude Code integration setup complete!');
-      console.log('\n📋 What was created:');
-      console.log('   📄 claude.md - Main configuration guide');
-      console.log('   📁 .claude/commands/ - Command documentation');
-      console.log('   🔧 Cross-platform wrapper scripts');
-      console.log('   🤖 Claude helper scripts');
-      console.log('   🌐 Remote execution support');
-
-      console.log('\n🔗 Next steps:');
-      if (results.modules.core.manualSetup) {
-        console.log('   1. claude mcp add ruv-swarm npx ruv-swarm mcp start');
-        console.log('   2. Test with MCP tools: mcp__ruv-swarm__agent_spawn');
-      } else {
-        console.log('   1. Test with MCP tools: mcp__ruv-swarm__agent_spawn');
-      }
-      console.log('   3. Check .claude/commands/ for detailed usage guides');
-      console.log('   4. Use wrapper scripts for remote execution');
+      results.modules.core = { success: true, configuration: '.mcp.json', projectScoped: true };
+      console.log('Integration files written: CLAUDE.md, supported command docs, project .mcp.json and local wrappers.');
+      console.log('Existing permission rules, hooks and MCP servers are preserved.');
 
       return results;
 
@@ -116,8 +75,8 @@ class ClaudeIntegrationOrchestrator {
   /**
      * Invoke Claude with a prompt using the core module
      */
-  async invokeClaudeWithPrompt(prompt) {
-    return await this.core.invokeClaudeWithPrompt(prompt);
+  async invokeClaudeWithPrompt(prompt, options = {}) {
+    return await this.core.invokeClaudeWithPrompt(prompt, options);
   }
 
   /**
@@ -195,7 +154,7 @@ async function setupClaudeIntegration(options = {}) {
 // Convenience function for Claude invocation
 async function invokeClaudeWithSwarm(prompt, options = {}) {
   const orchestrator = new ClaudeIntegrationOrchestrator(options);
-  return await orchestrator.invokeClaudeWithPrompt(prompt);
+  return await orchestrator.invokeClaudeWithPrompt(prompt, options);
 }
 
 export {

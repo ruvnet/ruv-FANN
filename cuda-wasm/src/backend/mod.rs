@@ -31,3 +31,8 @@ pub fn get_backend() -> Box<dyn Backend> {
         Box::new(wasm_runtime::WasmRuntime::new())
     }
 }
+/// GPU runtime discovery is opt-in so CPU/parser users do not load drivers.
+pub(crate) fn gpu_enabled() -> bool {
+    cfg!(any(feature = "gpu", feature = "webgpu", feature = "webgpu-only",
+        feature = "native-gpu", feature = "cuda-backend", feature = "vulkan"))
+}

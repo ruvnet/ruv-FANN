@@ -96,13 +96,13 @@ pub enum ConfigValue<T: Float> {
     StringVec(Vec<String>),
 }
 
-/// LSTM model builder with fluent API
+/// Build an LSTM-shaped configuration. This does not implement an LSTM model.
 /// 
 /// # Example
 /// ```rust
-/// use neuro_divergent::builders::LSTMBuilder;
+/// use neuro_divergent::builders::{LSTMBuilder, ModelBuilder};
 /// 
-/// let lstm_config = LSTMBuilder::new()
+/// let lstm_config = LSTMBuilder::<f64>::new()
 ///     .horizon(12)
 ///     .input_size(24)
 ///     .hidden_size(128)
@@ -113,6 +113,7 @@ pub enum ConfigValue<T: Float> {
 ///     .max_steps(1000)
 ///     .early_stopping_patience(10)
 ///     .build()?;
+/// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
 #[derive(Debug, Clone)]
 pub struct LSTMBuilder<T: Float> {
@@ -461,19 +462,19 @@ pub struct LSTMConfig<T: Float> {
     pub device: Device,
 }
 
-/// NBEATS model builder with fluent API
+/// Build an N-BEATS-shaped configuration. The facade does not implement N-BEATS.
 /// 
 /// # Example
 /// ```rust
-/// use neuro_divergent::builders::NBEATSBuilder;
+/// use neuro_divergent::builders::{NBEATSBuilder, ModelBuilder};
 /// 
-/// let nbeats_config = NBEATSBuilder::new()
+/// let nbeats_config = NBEATSBuilder::<f64>::interpretable()
 ///     .horizon(12)
 ///     .input_size(24)
-///     .interpretable()
 ///     .n_blocks(vec![3, 3])
 ///     .learning_rate(0.001)
 ///     .build()?;
+/// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
 #[derive(Debug, Clone)]
 pub struct NBEATSBuilder<T: Float> {
