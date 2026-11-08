@@ -3,7 +3,23 @@ import { test } from 'node:test';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { recordWasmBuild, rustSourceDigest, verifyWasmBuild } from '../scripts/wasm-provenance.js';
+import { canonicalSourcePaths, recordWasmBuild, rustSourceDigest, verifyWasmBuild } from '../scripts/wasm-provenance.js';
+
+test('source paths normalize mixed Windows separators before deduplication and sorting', () => {
+  // Fixed recipe inputs use POSIX spelling; filesystem traversal uses native
+  // separators. This is the mixed collection encountered by Windows prepack.
+  const posix = ['ruv-swarm/Cargo.lock', 'ruv-swarm/crates/pkg/Cargo.toml',
+    'ruv-swarm/npm/package.json', 'ruv-swarm/npm/src/index.js', 'src/lib.rs'];
+  const mixed = ['src\\lib.rs', 'ruv-swarm/npm/package.json', 'ruv-swarm\\crates\\pkg\\Cargo.toml',
+    'ruv-swarm/Cargo.lock', 'ruv-swarm\\npm\\src\\index.js', 'ruv-swarm\\Cargo.lock'];
+  assert.deepEqual(canonicalSourcePaths(mixed, path.win32.sep), posix);
+  assert.deepEqual(canonicalSourcePaths(mixed, path.win32.sep), canonicalSourcePaths(posix, path.posix.sep));
+});
+
+test('source path canonicalization preserves literal POSIX backslashes', () => {
+  const paths = ['src/strange\\name.rs', 'src/strange/name.rs'];
+  assert.deepEqual(canonicalSourcePaths(paths, path.posix.sep), ['src/strange/name.rs', 'src/strange\\name.rs']);
+});
 
 async function fixture(t) {
   const repository = await fs.mkdtemp(path.join(os.tmpdir(), 'ruv-build-'));

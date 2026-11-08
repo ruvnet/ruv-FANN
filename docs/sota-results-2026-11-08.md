@@ -112,6 +112,15 @@ Node 22.13 and 24 consumers passed real SQLite, inference, forecasts, MCP and
 strict public type checks, with zero audit findings. Previous immutable
 archives/receipts were preserved.
 
+Hosted checks also exposed two portability defects: macOS reports a canonical
+`/private/var` path for a `/var` temporary directory, and Windows mixes native
+and POSIX separators before source hashing. Resolver checks now compare real
+file identities; source paths are normalized before deduplication and sorting.
+Both failures were reproduced before the fixes. The updated 57 security/API
+tests and four tooling tests pass, including an actual directory-alias case.
+Integrity checks remain enforced, and a fresh source-matching WASM receipt and
+archive were generated after changing the verifier.
+
 Cargo's ordinary package verification also passed for the core and all six
 forecasting crates: seven archives and 13 successful commands. The validation
 JSON records their exact SHA-256 values and the immutable source snapshot.

@@ -5,6 +5,13 @@ import { createHash } from 'node:crypto';
 const digest = data => createHash('sha256').update(data).digest('hex');
 const artifactName = file => typeof file === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(file);
 
+export function canonicalSourcePaths(files, separator = path.sep) {
+  // Normalize before both deduplication and ordering: fixed recipe paths and
+  // filesystem traversal can use different separators on Windows. On POSIX,
+  // backslashes are literal filename characters and must remain untouched.
+  return [...new Set(files.map(file => file.split(separator).join('/')))].sort();
+}
+
 // Read the filesystem rather than git's index: newly added source modules are
 // build inputs too. Generated outputs and runtime databases are excluded.
 export async function rustSourceDigest(repository) {
@@ -53,9 +60,9 @@ export async function rustSourceDigest(repository) {
     }
   }
   const hash = createHash('sha256');
-  for (const relative of [...new Set(files)].sort()) {
+  for (const relative of canonicalSourcePaths(files)) {
     const data = await fs.readFile(path.join(repository, relative));
-    hash.update(`${relative.split(path.sep).join('/') }\0${ data.length }\0`);
+    hash.update(`${relative}\0${ data.length }\0`);
     hash.update(data);
   }
   return hash.digest('hex');

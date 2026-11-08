@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "sourceSha256": "55b91811d9d9e0a4e45513c18de649280ff899bf9c181e94cf37c0ac6233cd22",
+  "sourceSha256": "24f9811d0b3e69d6c159f6abec86a01b9b382b742948fc434775540093fed140",
   "toolchain": {
     "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
     "wasmPack": "wasm-pack 0.15.1"

@@ -110,18 +110,18 @@
     "npm": {
       "name": "ruv-swarm",
       "version": "2.0.0",
-      "candidate_archive_sha256": "e4cd2e2810bfc7394a041e98620848876e9995993d183353d8902901251fa171",
-      "candidate_archive_bytes": 447621,
+      "candidate_archive_sha256": "cee7aa88a759ffbc690cf6668078435f91c99951c36dc484f114403342f84d15",
+      "candidate_archive_bytes": 447754,
       "archive_files": 97,
-      "source_sha256": "55b91811d9d9e0a4e45513c18de649280ff899bf9c181e94cf37c0ac6233cd22",
+      "source_sha256": "24f9811d0b3e69d6c159f6abec86a01b9b382b742948fc434775540093fed140",
       "compiled_variants": [
         "core",
         "simd"
       ],
       "binary_and_binding_bytes_reproduced": true,
       "new_tests": {
-        "security_runtime": 55,
-        "tooling": 3,
+        "security_runtime": 57,
+        "tooling": 4,
         "consumer_node_versions": [
           "22.13.0",
           "24.22.1"
@@ -135,7 +135,14 @@
         "audits": "zero findings in both clean consumers"
       },
       "changed_generated_file": "ruv-swarm/npm/wasm/build-info.json",
-      "receipt_sha256": "349be2eea8929f2186892b19324c926d3b76ccaaccb0076ba669a682a33c065b"
+      "receipt_sha256": "1a130ed488920788c3e633334d899433f23cf84c6bc825fdc396331ed7dbd3fa",
+      "portability": {
+        "source_paths": "Normalize native separators before deduplication, ordering, reading and hashing; preserve literal POSIX backslashes.",
+        "tooling": "Compare real file identities for Rollup watch dependencies; exercise directory aliases.",
+        "regressions": "Both failures reproduced before fixes;57security/API+4tooling tests and both clean Node consumers pass afterward.",
+        "initial_hosted_failure_run": "https://github.com/ruvnet/ruv-FANN/actions/runs/42512422934",
+        "hosted_status_scope": "Final hosted status is reported by GitHub Actions, not asserted by this local validation manifest."
+      }
     },
     "cargo": {
       "verified": true,

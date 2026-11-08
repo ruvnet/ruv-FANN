@@ -45,8 +45,7 @@ test('actual Jest preset normalization preserves nested globals and array concat
   assert.deepEqual(config.globals, { nested: { left: true, right: true }, list: ['preset', 'project'] });
 });
 
-test('actual Rollup resolver bundles a local package with the replacement merge dependency', async t => {
-  const directory = await fixture(t);
+async function verifyRollupResolver(directory) {
   const dependency = path.join(directory, 'node_modules/fixture-dependency');
   await fs.mkdir(dependency, { recursive: true });
   await fs.writeFile(path.join(dependency, 'package.json'), JSON.stringify({ name: 'fixture-dependency', version: '1.0.0', module: 'index.js' }));
@@ -58,10 +57,24 @@ test('actual Rollup resolver bundles a local package with the replacement merge 
   const bundle = await rollup({ input: entry, plugins: [nodeResolve({ moduleDirectories: ['node_modules'] })] });
   try {
     const { output } = await bundle.generate({ format: 'es' });
-    assert.ok(bundle.watchFiles.includes(path.join(dependency, 'index.js')));
+    const watchedFiles = await Promise.all(bundle.watchFiles.map(file => fs.realpath(file)));
+    assert.ok(watchedFiles.includes(await fs.realpath(path.join(dependency, 'index.js'))));
     const exports = await import(`data:text/javascript;base64,${Buffer.from(output[0].code).toString('base64')}`);
     assert.equal(exports.answer, 42);
   } finally {
     await bundle.close();
   }
+}
+
+test('actual Rollup resolver bundles a local package with the replacement merge dependency', async t => {
+  await verifyRollupResolver(await fixture(t));
+});
+
+test('actual Rollup resolver recognizes watched dependencies through a directory alias', async t => {
+  const directory = await fixture(t);
+  const target = path.join(directory, 'real');
+  const alias = path.join(directory, 'alias');
+  await fs.mkdir(target);
+  await fs.symlink(target, alias, process.platform === 'win32' ? 'junction' : 'dir');
+  await verifyRollupResolver(alias);
 });
