@@ -36,6 +36,8 @@ def consumer(directory, specs, compiler=None):
     (directory / 'package.json').write_text('{"private":true,"type":"module"}')
     # Consumer lifecycle code never inherits registry publishing credentials.
     env = {k: v for k, v in os.environ.items() if k not in ('NODE_AUTH_TOKEN', 'NPM_TOKEN', 'CARGO_REGISTRY_TOKEN', 'GH_TOKEN', 'GITHUB_TOKEN')}
+    (directory / '.npmrc').write_text('registry=https://registry.npmjs.org\n')
+    env['NPM_CONFIG_USERCONFIG'] = str(directory / '.npmrc')
     run(['npm', 'install', '--registry=https://registry.npmjs.org', '--no-audit', '--no-fund', *specs], directory, env)
     script = r'''
 import assert from 'node:assert/strict';

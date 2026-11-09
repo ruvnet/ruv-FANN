@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  issues: read
 
 concurrency:
   group: protected-registry-release

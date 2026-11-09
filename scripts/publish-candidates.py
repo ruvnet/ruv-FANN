@@ -158,7 +158,7 @@ def main():
     token = os.environ.get('CARGO_REGISTRY_TOKEN')
     if args.publish and not token:
         raise ValueError('Missing Cargo registry token')
-    report = {'sourceSha': head, 'published': args.publish, 'crates': []}
+    report = {'sourceSha': head, 'publicationRequested': args.publish, 'crates': []}
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open('x') as stream:
         for archive, data, digest in items:
