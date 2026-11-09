@@ -32,6 +32,9 @@ jobs:
   metaharness:
     uses: ./.github/workflows/metaharness.yml
 
+  ruv-fann-integrations:
+    uses: ./.github/workflows/ruv-fann-integrations.yml
+
   inventory-and-docs:
     runs-on: ubuntu-latest
     timeout-minutes: 10

@@ -17,11 +17,12 @@ Rust libraries for neural networks, time-series forecasting, agent coordination,
 | Repository root | `ruv-fann`: train feedforward networks, prepare immutable CPU inference snapshots, and use optional WebGPU operations | `0.2.2` · [Core example](examples/basic_usage.rs) · [API](https://docs.rs/ruv-fann) |
 | `ruv-swarm/` | Fourteen Rust packages for scheduling, persistence, transport, MCP, CLI, and WASM | `1.0.6`–`1.0.8`; unified WASM `2.0.0` · [Rust guide](ruv-swarm/README.md) |
 | `ruv-swarm/npm/` | Node CLI/MCP, SQLite state, prepared WASM inference, historical forecast intervals, and capability assignment | `ruv-swarm 2.0.0` · [npm guide](ruv-swarm/npm/README.md) |
+| `integrations/ruv-fann/` | Use ruv-FANN neural outputs in RuVector search and tune inference batches with MetaHarness | `@ruv-fann/integrations 0.1.0` · [Integration guide](integrations/ruv-fann/README.md) |
 | `neuro-divergent/` | Six Rust packages: RNN training, baselines, chronological evaluation, residual-calibrated intervals, and checkpoints | `0.2.0` · [Forecasting guide](neuro-divergent/README.md) |
 | `cuda-wasm/` | Translate a CUDA subset to Rust or WGSL source; Node wrapper requires the external `cuda2rust` compiler | Rust `0.2.0`; npm `2.0.0` · [Translator guide](cuda-wasm/README.md) |
 | `opencv-rust/` | Portable Rust matrices, browser image operations, a small SDK, and native OpenCV C++ bindings | Portable/SDK `4.9.0`; native `opencv-sys 0.2.0` · [Image-processing guide](opencv-rust/README.md) |
 
-These are five independent Cargo workspaces with 26 Rust packages and two public npm distributions. Running `cargo test` at the repository root tests the core crate; use the verification driver below to cover the other workspaces. Versions in this checkout are unpublished release candidates. The [release inventory](docs/release-inventory.json) records their exact identities and separate registry observations.
+These are five independent Cargo workspaces, plus the npm distributions and optional integration package. Running `cargo test` at the repository root tests the core crate; use the verification driver below to cover the other workspaces. Versions in this checkout are unpublished release candidates. The dated [release inventory](docs/release-inventory.json) records the earlier package identities and registry observations; `scripts/verify-packages.py --inventory` reports the current checkout.
 
 Each family has a defined scope. Forecasting currently implements a univariate RNN and simple baselines; LSTM/GRU forecasting architectures return unsupported errors. Agent assignment records scheduling decisions; external task execution depends on the integration you supply. CUDA translation emits source and does not execute a GPU kernel. The native OpenCV bridge calls an installed C++ library, while the portable packages implement a smaller set of operations.
 
@@ -238,6 +239,29 @@ correctness evidence; it does not measure a performance gain or provide an OS
 sandbox. The [setup guide](docs/claude-plugin.md#rune-build-verification) explains
 the commands and scope. The [Rune workflow](.github/workflows/rune.yml) runs on
 relevant pushes/PRs and is also part of the full release acceptance gate.
+
+## Connect ruv-FANN to other ruvnet packages
+
+The optional [integration package](integrations/ruv-fann/README.md) connects actual
+neural inference to RuVector and MetaHarness. Import a native Rust `Network<f64>`
+JSON export into the existing prepared WASM runtime, index its neural outputs
+with RuVector flat or HNSW search, and measure batch configurations with Darwin.
+The core library does not acquire these dependencies.
+
+```sh
+npm ci --prefix integrations/ruv-fann --ignore-scripts --omit=optional
+npm run example --prefix integrations/ruv-fann
+```
+
+![A native ruv-FANN model produces neural vectors for RuVector; MetaHarness measures batch choices, while Rune and CI verify builds and behavior.](docs/assets/ruvnet-integration.svg)
+
+The package exposes typed APIs for numerical feature search and reusable batch
+encoding. It uses fixed model weights, explicit local WASM bytes, bounded inputs
+and clear ownership. A trained model determines whether its vectors have useful
+semantic meaning; no text embedding model is supplied. The Node-only tuner
+recommends a setting only after fresh measurements and never applies it itself.
+The [validation and retrieval measurements](docs/ruvnet-integration-results-2026-11-09.md)
+include browser and extracted-package checks and the small-corpus tradeoff.
 
 ## Tune WASM batching with MetaHarness
 

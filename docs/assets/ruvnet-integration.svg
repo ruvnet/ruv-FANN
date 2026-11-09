@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 320" role="img" aria-labelledby="title desc">
+  <title id="title">ruv-FANN connects to RuVector and MetaHarness</title>
+  <desc id="desc">A native Rust model is imported into real prepared WASM inference. RuVector searches its neural outputs. MetaHarness measures batch capacities and confirms recommendations. Rune and CI independently verify builds and behavior.</desc>
+  <style>
+    .bg{fill:#0b1220}.box{fill:#152238;stroke:#40516e;stroke-width:1.4}
+    .h{font:600 23px system-ui,sans-serif;fill:#f0f6fc}.t{font:600 17px system-ui,sans-serif;fill:#f0f6fc}
+    .b{font:13px system-ui,sans-serif;fill:#c2cee0}.v{font:14px ui-monospace,monospace;fill:#90dfcb}
+    .flow{fill:none;stroke:#90dfcb;stroke-width:3;stroke-dasharray:6 6;animation:flow 2.5s linear infinite}
+    @keyframes flow{to{stroke-dashoffset:-48}}@media(prefers-reduced-motion:reduce){.flow{animation:none}}
+  </style>
+  <rect class="bg" width="1040" height="320" rx="16"/>
+  <text class="h" x="28" y="39">One model. Connected capabilities.</text>
+  <text class="b" x="28" y="64">Real neural inference, vector retrieval and measured configuration choices.</text>
+  <rect class="box" x="28" y="94" width="205" height="122" rx="10"/>
+  <text class="t" x="44" y="124">Your ruv-FANN model</text>
+  <text class="v" x="44" y="155">Network&lt;f64&gt; JSON</text>
+  <text class="b" x="44" y="181">Fixed weights and activations</text>
+  <text class="b" x="44" y="202">Dense or sparse connections</text>
+  <path class="flow" d="M238 155H274"/>
+  <rect class="box" x="280" y="94" width="220" height="122" rx="10"/>
+  <text class="t" x="296" y="124">Prepared WASM</text>
+  <text class="v" x="296" y="155">Float64 neural outputs</text>
+  <text class="b" x="296" y="181">Checked reusable batches</text>
+  <text class="b" x="296" y="202">Core or SIMD implementation</text>
+  <path class="flow" d="M505 155H541"/>
+  <rect class="box" x="547" y="94" width="215" height="122" rx="10"/>
+  <text class="t" x="563" y="124">RuVector search</text>
+  <text class="v" x="563" y="155">Float32 vector storage</text>
+  <text class="b" x="563" y="181">Exact flat or approximate HNSW</text>
+  <text class="b" x="563" y="202">Scores, IDs and metadata</text>
+  <rect class="box" x="800" y="94" width="212" height="122" rx="10"/>
+  <text class="t" x="816" y="124">MetaHarness / Darwin</text>
+  <text class="b" x="816" y="155">Measure batch capacities</text>
+  <text class="b" x="816" y="181">Fresh paired confirmation</text>
+  <text class="b" x="816" y="202">Return a recommendation</text>
+  <path class="flow" d="M906 224V242H390V224"/>
+  <text class="b" x="28" y="282">Rune + CI verify builds and behavior. No provider key, model download or automatic setting change.</text>
+</svg>

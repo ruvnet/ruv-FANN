@@ -3,7 +3,7 @@
 The [`ruv-fann` plugin](../plugins/ruv-fann/README.md) packages maintained
 repository workflows for Claude Code. It contains eight package-specific
 skills, three explicitly invoked commands, a read-only reviewer agent, and a
-Python standard-library helper. Its current version is `0.1.3`; installing it
+Python standard-library helper. Its current version is `0.1.4`; installing it
 does not change any Rust/npm package version.
 
 ## Start a local session
@@ -85,6 +85,32 @@ horizon groups, `as_of`/forecast-origin leakage guards, sample and memory limits
 and the statistical assumptions behind empirical coverage. This separate
 calibration API does not enable automatic prediction-interval builders,
 bootstrap/quantile methods, or probabilistic sampling.
+
+## Connect ruv-FANN to other ruvnet packages
+
+The core-inference skill includes an
+[integration procedure](../plugins/ruv-fann/skills/core-inference/references/ruvnet-integration.md)
+for the optional [`@ruv-fann/integrations` package](../integrations/ruv-fann/README.md).
+This is application interoperability: actual prepared FANN inference produces
+vectors searched by actual RuVector WASM, while actual MetaHarness/Darwin measures
+inference batch choices. Native `Network<f64>` JSON can supply the prepared model.
+
+```sh
+npm ci --prefix integrations/ruv-fann --ignore-scripts --omit=optional
+npm run build --prefix integrations/ruv-fann
+npm test --prefix integrations/ruv-fann
+npm run test:e2e --prefix integrations/ruv-fann
+npm run example --prefix integrations/ruv-fann
+```
+
+Keep caller ownership, fixed model identity, Float64-to-Float32 conversion and
+score direction explicit. Browser ESM supports inference and retrieval; the asset
+helper and public tuner are separate Node-only exports. No pretrained semantic
+model or text embedding download is included. A tuning recommendation requires
+fresh confirmation against the caller's actual baseline and is never auto-applied.
+The Rust core has no dependency on these adapters. The older private experiment
+tool below remains a separate workflow with source-aware artifact receipts and
+parent-process limits.
 
 ## MetaHarness optimization
 
@@ -268,7 +294,7 @@ and any claimed state-of-the-art capability.
 The historical **0.1.0** [end-to-end report](claude-plugin-e2e.md) and
 [machine-readable receipt](claude-plugin-e2e.json) record the actual host version,
 tested file hashes, executed workflows, command results, and remaining limits.
-They do not certify the changed **0.1.3** plugin payload. Use those records for the tested state; the procedure above is not itself proof
+They do not certify the changed **0.1.4** plugin payload. Use those records for the tested state; the procedure above is not itself proof
 that a future installation or changed package passes.
 
 ## Format references

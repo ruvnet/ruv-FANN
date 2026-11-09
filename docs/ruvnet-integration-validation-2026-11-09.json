@@ -1,0 +1,258 @@
+{
+  "schema_version": 1,
+  "date_utc": "2026-11-09",
+  "baseline_commit": "7e41f80d2e17f181528af5eaf71c13afba7ebd22",
+  "status": "passed",
+  "package": {
+    "name": "@ruv-fann/integrations",
+    "version": "0.1.0",
+    "registry_published": false
+  },
+  "scope": "Real ruv-FANN prepared WASM neural outputs -> actual RuVector retrieval; actual Darwin inference batch tuning; no core dependency/source/binary changes.",
+  "source_sha256": {
+    ".github/tests/test_integrations_workflows.py": "5d5c2404b24f6a7ae9d6964f7868bc5d4d1a86f9070babba934f97d599c78365",
+    ".github/workflows/ci.yml": "340cf2c6895c07328ca4cf03773cd3f27b9365a81364241dfc7f1338b5a9479f",
+    ".github/workflows/ruv-fann-integrations.yml": "bc764539ad76558709ea809bbcf094f42f516245b1574f26d5e04e62e92130de",
+    "integrations/ruv-fann/LICENSE-APACHE": "ae7e411922432e8c67ec5ff444b911e905bc0dc7a25342c2ff4845a4d2895807",
+    "integrations/ruv-fann/LICENSE-MIT": "50fefb93560af4421369c99c93cc214cd835b3181ab7f16323f9e6f2ded870e3",
+    "integrations/ruv-fann/README.md": "7aee3fe97a4105d2b0b3361c1af468171574f25cd7217528552d03d7add66ed7",
+    "integrations/ruv-fann/examples/neural-search.mjs": "bdb8efdb774e7b39779646f2ee4d2bc9f67547fb627beca6d61ba86086512ff3",
+    "integrations/ruv-fann/package-lock.json": "60fefabe58a1b544125a90fd1b4ae1c09965b06c129ff2a3d2ac2b9df2abb6b3",
+    "integrations/ruv-fann/package.json": "3ce6f3dd8bdeabc0641ae3b7e028d142ee6eb0db1dc1613fb0d1b58355401f60",
+    "integrations/ruv-fann/scripts/benchmark-search.mjs": "5b8a99e031744e7585d92f7017eb084dac19d13d3559d2690550a4ddf32793ec",
+    "integrations/ruv-fann/scripts/check-browser.cjs": "889f160dd6c03799a59be4590dd1b487aedf0b9d2c06bfd3027a2f4ee3045a6c",
+    "integrations/ruv-fann/scripts/check-package.mjs": "31cb7fe57a7d1682fc323e8c33971b9b97797521316cb759d3119d518057785a",
+    "integrations/ruv-fann/src/encoder.mjs": "1549227ee0c1d69ada5cdd270fbfda4a163148c2714c35c76ea8bb1836734b56",
+    "integrations/ruv-fann/src/index.d.ts": "4b9bb6b76a49ac4d04534467cc416ff06211a52502234c839c15e4c34d3b0c1a",
+    "integrations/ruv-fann/src/index.mjs": "1e7427b21ebcc874ed6b626421412422d58cdadaaacef77455bd134bc338e441",
+    "integrations/ruv-fann/src/metaharness.d.ts": "8bc6abae87cfe73dd4cc30a9cc33de0a188881e03015c53125a70a298c3c6a0b",
+    "integrations/ruv-fann/src/metaharness.mjs": "38a5009e90febfbd2cd31ce41e7e944f5c47260f262b73f4cd88425f0f9d3605",
+    "integrations/ruv-fann/src/neural-index.mjs": "629e54fe46c4b4246fbbe98a4299930f7d35991202b879fc3def8bc582169ee6",
+    "integrations/ruv-fann/src/node.d.ts": "0d34d05bdf67425c8b02055b5a532c841469df7db5db829bee4534988f7aa42d",
+    "integrations/ruv-fann/src/node.mjs": "c5fdcc2ee41b1a9bfb437ad3524eb6f18eac74a02f187bde44a6962f613d8bc6",
+    "integrations/ruv-fann/src/ruvector.d.ts": "f2437bb844e69af3573055b7ab34b3b08e2ea6cf8817d5837cf292daeee28b4f",
+    "integrations/ruv-fann/src/ruvector.mjs": "0ccf0206dc17f5fe3d59a1bb995f88e7cc64309fce9868fd16187f25ab372784",
+    "integrations/ruv-fann/src/timing.mjs": "f071a0568bc0513875ed377d9ac0161050d12c7c67d96028be8c8e8fd2c3e06b",
+    "integrations/ruv-fann/test/e2e/acceptance.mjs": "474700b006d14bfc61a446a98823ef04150707d6dec6bc6430cd0b7670c08b28",
+    "integrations/ruv-fann/test/e2e/actual.test.mjs": "2062e8901221b2cb4d3de2886204fbadef19bdc6c1b61e0217eb584e508c9468",
+    "integrations/ruv-fann/test/e2e/fixture.mjs": "7f07c79bc11615e220cbaac5dc6e53fc7bc2a2113496f6af11dad3d4ec14d73b",
+    "integrations/ruv-fann/test/encoder.test.mjs": "98e274f2655265be1dd2d15cba98fee62e219ea3d104efe7635125577be2366a",
+    "integrations/ruv-fann/test/metaharness.test.mjs": "6ad0c6a975848ed4868de3415b7fe27bed7710676ba68965ce4ea4771a3eeb81",
+    "integrations/ruv-fann/test/neural-index.test.mjs": "83a7a6f0b79c07891ac92d48908ff0e04c6750fe0c058041079221fad116ddbf",
+    "integrations/ruv-fann/test/paths.test.mjs": "f14a647dbc9e85abab35ee6982b130e40ac352d8b371744f3a2e522ad21c9ce2",
+    "integrations/ruv-fann/test/ruvector.test.mjs": "c394467e8fa6fce5d3890263cc306642a5563556488598a6443d1b82a6b20ffd",
+    "integrations/ruv-fann/test/types.test.mts": "efa8601bd713e4ea63db02ff0b9b84c1794fc43a233851bfce3a28b257c90abe",
+    "integrations/ruv-fann/tsconfig.json": "5154a5f4c22adfb8761180607aa522d8d28040e50367db360ee2c871e3d9bcc7"
+  },
+  "existing_locks_before_and_after": {
+    "Cargo.lock": "8b47266eb8835a4a18e658521b149507799cce30c1280bf2e7b6e9a15ecd4f8c",
+    "cuda-wasm/Cargo.lock": "ff4bb589d5b39585ac19858640a1a98389dcda0ce3b782d886312aa27f4d11e0",
+    "opencv-rust/Cargo.lock": "818a9e96facee00e9d00ace47e553d879e64e296929a28d37d91f735810b1b17",
+    "ruv-swarm/Cargo.lock": "bb0a255f31a0430806bfd8fc08353ecc7e9d0e7a252c9e76afe109a002555568",
+    "neuro-divergent/Cargo.lock": "50e70e307a2c5ffd17a43d5ce73320860ead04f8a07518f1400d9cd1b7beccdf",
+    "config/rune-probe/Cargo.lock": "ccf588ef761301b8eae1bf3c128466bea48b362b246ca813b63807fb34aa9462",
+    "package-lock.json": "088550774a049975671d2e0cc075b8be515c4c436f1fc543bee4256ebeba09a8",
+    "cuda-wasm/package-lock.json": "1cfc5ae406d55538289943a4c417e1d39aa0f7ee620d1bade20920e37886e138",
+    "tools/metaharness/package-lock.json": "8ae10f36ff4a90335407cec1343045a5c1a7c2de63cf4365b8d483d08db67273",
+    "ruv-swarm/npm/package-lock.json": "e80d214dfd4f6cd0068ca5beb43de8b028594fd4c52f133c82565c4c3996adf7",
+    "ruv-swarm/npm/test-npm-install-v106/package-lock.json": "4ce197425ee37207814a6a99f78349dbc0f33602c5eebb4e7699b147dd66a56c"
+  },
+  "new_lock": {
+    "path": "integrations/ruv-fann/package-lock.json",
+    "sha256": "60fefabe58a1b544125a90fd1b4ae1c09965b06c129ff2a3d2ac2b9df2abb6b3"
+  },
+  "suppliers": {
+    "@ruvector/wasm": {
+      "version": "0.2.1",
+      "npmIntegrity": "sha512-cZQUPI0zfc6ZOp7jeN8j/ZYE1k3eQgK1W4d4N4vgOU/na7E+kJJfxWsWB4Ia+Jr2xW6I/T2rJ8xsJwlLgr6JIg==",
+      "installedManifestSha256": "e53a3eb54ae56932bec9ae1f0bdf3db07b45ac597ae91a08cf4f19755253c934"
+    },
+    "@metaharness/darwin": {
+      "version": "0.13.0",
+      "npmIntegrity": "sha512-L3SrQii70erHVDmo1qx0875IRpVujk86zAO7sxtSVChWCgAjabEmmYRYt72D1VekfUCbSWCgZKIktqUxVAKCFA==",
+      "installedManifestSha256": "b0bd01c472fef25f194c6d09cc24d011ada1dde84274cf4bd11a791f74a2cb4d"
+    },
+    "typescript": {
+      "version": "5.9.3",
+      "npmIntegrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==",
+      "installedManifestSha256": "822ef7ca6452205657b6288b066481ecf508bfbf43455d715cf7d3ec457561e6"
+    },
+    "@ruvector/wasm/pkg/ruvector_wasm.js": {
+      "sha256": "b04d1a6d8f3fc826bc2e92e9afdb1460d294e6dff57664889494f0103a0acf71"
+    },
+    "@ruvector/wasm/pkg/ruvector_wasm_bg.wasm": {
+      "sha256": "0f2479dd974a8eef6d667166d3f40fb1dbdd80f3dc95ffc7b5921d24cffd99d1"
+    },
+    "@metaharness/darwin/dist/numeric-evolve.js": {
+      "sha256": "1f5ca549134977361a7fac058dfe4d66b37554bd083c8fb86b9aa573d4e0e7fa"
+    },
+    "@metaharness/darwin/dist/numeric-mutator.js": {
+      "sha256": "3fe28d47761228e2d60ba0295287fb7d51e32b124964d6d3be2eb38f9129f34f"
+    },
+    "@metaharness/darwin/dist/numeric-archive.js": {
+      "sha256": "b43245b2ec71298f433997b6a2ebd95f07edd2a32820cdc9e37bdfdcd7f09ee3"
+    }
+  },
+  "checks": {
+    "unit_tests": {
+      "node22": 40,
+      "node24": 40,
+      "failures": 0
+    },
+    "type_build": "passed, including actual generated FANN handle compatibility",
+    "workflow_tests": {
+      "all": 69,
+      "new_integration": 23,
+      "failures": 0
+    },
+    "portable_plugin_tests": {
+      "version": "0.1.4",
+      "passed": 39,
+      "new_host_certification": false
+    },
+    "existing_private_metaharness_tests": 27,
+    "actual_node_acceptance": {
+      "source-node22.json": {
+        "runtime": "v22.13.0",
+        "cases": 8,
+        "darwinLoops": 2,
+        "outputMaximumAbsoluteError": 0,
+        "sha256": "98510a3d88262db38e6d0880cad12509b0807eba70aa790d2b6333554ce8ea1a",
+        "recommendedBatchRows": [
+          128,
+          128
+        ]
+      },
+      "source-node24.json": {
+        "runtime": "v24.22.1",
+        "cases": 8,
+        "darwinLoops": 2,
+        "outputMaximumAbsoluteError": 0,
+        "sha256": "beb6e6acf14a75014546977353d6b9a69edec73ba761ece33136c0be88043ac6",
+        "recommendedBatchRows": [
+          128,
+          128
+        ]
+      },
+      "pack-node22": {
+        "runtime": "v22.13.0",
+        "cases": 8,
+        "darwinLoops": 2,
+        "sha256": "2ce16b9e5cd3c5323c23c1ca3b764e0f128cbf74f4fb8b87f55f243fe61617f7",
+        "tarballSha256": "21d94c1e3bf1fa2f832a56365c4dc98fdfb4b9bc714f31a5a76e4bdea4877bc1"
+      },
+      "pack-node24": {
+        "runtime": "v24.22.1",
+        "cases": 8,
+        "darwinLoops": 2,
+        "sha256": "b351eb902f278dc99341576acc87b9a13a57a93c40d361e960cd389000d1093b",
+        "tarballSha256": "21d94c1e3bf1fa2f832a56365c4dc98fdfb4b9bc714f31a5a76e4bdea4877bc1"
+      }
+    },
+    "actual_browser_acceptance": {
+      "chromium": "156.0.8078.79",
+      "cases": 4,
+      "status": "passed",
+      "scope": "FANN core/SIMD plus RuVector flat/HNSW; tuner separately Node-only"
+    },
+    "source_and_artifacts_unchanged": true,
+    "exact_ci_step_compatibility": {
+      "status": "passed",
+      "workflow_hashes": {
+        ".github/workflows/ruv-fann-integrations.yml": "bc764539ad76558709ea809bbcf094f42f516245b1574f26d5e04e62e92130de",
+        ".github/workflows/ci.yml": "340cf2c6895c07328ca4cf03773cd3f27b9365a81364241dfc7f1338b5a9479f",
+        ".github/tests/test_integrations_workflows.py": "5d5c2404b24f6a7ae9d6964f7868bc5d4d1a86f9070babba934f97d599c78365"
+      },
+      "originals_unchanged": true,
+      "steps": [
+        {
+          "step": "snapshot",
+          "exitCode": 0,
+          "programSha256": "dc37215bda45ca7fc67a1a4e8b4dbdde6e2b530ccf868669062665236e64f09d"
+        },
+        {
+          "step": "evidence",
+          "exitCode": 0,
+          "programSha256": "8b6c568c830bc7ec18403796aae0453e04df76e184938df5beb51452b3015716"
+        }
+      ]
+    },
+    "npm_audit": {
+      "known_vulnerabilities": 0,
+      "includes_dev": true,
+      "observed_at_utc": "2026-11-09T02:01:17.891474+00:00"
+    },
+    "supplementary_scan": {
+      "tool": "Ruflo",
+      "version": "3.25.6",
+      "reported_findings": 0,
+      "scope": "Deep code heuristic, not proof"
+    },
+    "independent_review": "No remaining blockers after validation/reentrancy/ownership/resource fixes.",
+    "diagram": "Rendered in Chromium; reduced-motion animation disabled correctly.",
+    "coordination_state": "Original files restored byte for byte; task-created state archived outside checkout."
+  },
+  "benchmark": {
+    "path": "docs/benchmarks/ruvnet-neural-search-2026-11-09.json",
+    "sha256": "9325db18c184da0a1311e25d398291e880940fbaf22352511d123de5e242d101",
+    "results": [
+      {
+        "records": 128,
+        "strictIdRecallAt10": 1,
+        "hnswVsFlatThroughput": {
+          "meanSpeedRatio": 0.7063851844182202,
+          "ci95": [
+            0.6103917339602642,
+            0.8199565271957037
+          ]
+        }
+      },
+      {
+        "records": 2048,
+        "strictIdRecallAt10": 1,
+        "hnswVsFlatThroughput": {
+          "meanSpeedRatio": 3.056684227939298,
+          "ci95": [
+            2.883392125662456,
+            3.237003092987006
+          ]
+        }
+      }
+    ]
+  },
+  "evidence_sha256": {
+    "final-unit-node22.log": "b266c635d4eef282187b33be0ff5312f07143554dce43542b96dd6ba75db041f",
+    "final-unit-node24.log": "3c28e722bc4300efe561ce15ae0f609be6d6525b2284cd03cadf0cb2b9abdbd9",
+    "final-build.log": "4cf2121ddfa0eede96570007908bf382b25d646c699ea050b020516fd580cdc9",
+    "workflow-tests.log": "90361fc4bd76875488e9d4c7895eea89d5e3986752973c37541b007797cb53d4",
+    "plugin-tests.log": "0874b1c9e84b88ab4b6aaabb82df90505fdeb07230dfaa2b171026072ba79c35",
+    "private-tool-regression.log": "f233638c4590603d9c05008aceec00c9656dedfa0d52d80500fcdb421c165f72",
+    "audit.json": "f75e090500e80d577fef5ed900561281776b5d7182298ed4c4187f8704fcf834",
+    "security-scan.log": "da283a617e74f37698a4f964fd670b053973b55dd49f448f184677c1852e8cce",
+    "ci-acceptance-real.json": "d05beeec41c8358c67a53fa56346e3e13ca1c9da49593f7259843b12c5c0cb87",
+    "ci-acceptance-real.log": "3808bdb8d01c16344a61904a88a871dd532c58167383b640fde7f88bc96753a5",
+    "browser.json": "3034a61019ca36b73fb08e0787b9951da77163a5ee211afff7cc6616f5b4aad1",
+    "example.log": "26fa7218f2229c9864c52cb727260ffae27433fdaf81726883782a85b58302fb",
+    "coordination-restored.json": "428379d902c8ea01a7ce2780cd8a68e80064ad2794da3537a3200dde38a46dc1",
+    "delivered-archives.json": "ee0fd830080c05ff1e1e78ac8f573ccbf09eac510e20b952861630891e64b28e",
+    "final-docs-check.log": "ce3ff235f9f5e0f2082cf66b6f448d1a098c2aeba4abcb9cda13ab3632cee11b",
+    "final-inventory.json": "77aec5435387128e07743af5e07ecf6f295ee58e116e416858515fa1475f598c"
+  },
+  "limits": [
+    "Neural-output similarity is numerical; semantic quality depends on the supplied trained model.",
+    "Float64 neural outputs convert to Float32 for retrieval; unsafe norms/overflow are rejected.",
+    "Explicit WASM bytes and model implementations are trusted caller code; no OS sandbox.",
+    "Caller modelId is a label, not a model/binary attestation.",
+    "Public tuner deadline is cooperative and recommendations are never auto-applied.",
+    "HNSW benchmark uses one small-output model/host and32 held-out numerical queries; no universal speed or recall claim.",
+    "Npm packaging reuses the reviewed dependency graph; no registry publication or fresh Claude host certification.",
+    "This is local evidence before commit; hosted CI status is recorded separately."
+  ],
+  "delivered_archives": {
+    "integration_tarball_sha256": "21d94c1e3bf1fa2f832a56365c4dc98fdfb4b9bc714f31a5a76e4bdea4877bc1",
+    "plugin_zip_version": "0.1.4",
+    "plugin_zip_sha256": "eb0feb079abd1d79d07ab317e8692fed1c55bb6733971c9d3b1112d1e8e53918",
+    "plugin_extracted_checks": "passed",
+    "registry_publication": false
+  }
+}

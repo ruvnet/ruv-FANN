@@ -1,6 +1,6 @@
 ---
 name: core-inference
-description: "Implement, debug, and measure ruv-fann feedforward inference, prepared immutable inference, training boundaries, model I/O, SIMD, or native/browser WebGPU primitives. Use for root-crate numerical, allocation, input-validation, or backend changes."
+description: "Implement, debug, and measure ruv-fann feedforward inference, prepared immutable inference, training boundaries, model I/O, SIMD, RuVector or MetaHarness adapters, or native/browser WebGPU primitives. Use for root-crate numerical, allocation, input-validation, integration, or backend changes."
 ---
 
 # Work on the neural-network core
@@ -97,6 +97,11 @@ warm inference separately; packing alone does not prove SIMD throughput.
 The `no_std` feature is a marker, not an implemented bare-metal build. The browser bridge does not implement canvas rendering, agent execution, persistent shared device storage, or an invented CPU fallback. Unavailable devices and unsupported storage APIs return errors.
 
 ## Verify the behavior
+
+For real neural outputs connected to RuVector search and MetaHarness tuning, use
+the selected checkout's `integrations/ruv-fann` package and follow the
+[integration procedure](references/ruvnet-integration.md). This adds application
+adapters without changing the Rust core's dependencies.
 
 Run from the checkout root with dependencies already available:
 
