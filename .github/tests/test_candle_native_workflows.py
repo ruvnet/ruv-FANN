@@ -22,6 +22,14 @@ CORE_TESTS = ('prepared_dense', 'prepared_dense_kernel', 'prepared_batch_equival
     'prepared_batch_work', 'prepared_allocations', 'autograd', 'autograd_allocations')
 SOURCE_NAMES = ('Cargo.lock', 'bindings/napi/Cargo.lock', 'src/prepared_dense.rs',
     'src/autograd/pass.rs', 'src/autograd/optim.rs', 'bindings/napi/src/gateway.rs', 'bindings/napi/src/training.rs')
+JOB_ENVIRONMENTS = {
+    'core': {'CARGO_TARGET_DIR': 'candle-native-core-target'},
+    'candle': {'CARGO_TARGET_DIR': 'candle-native-oracle-target'},
+    'native': {'RUV_FANN_CANDLE_FIXTURE': 'candle-native-oracle/candle-f64-fixture.json'},
+    'browser': {'NODE_PATH': 'candle-native-browser-tools/node_modules',
+        'PLAYWRIGHT_BROWSERS_PATH': 'candle-native-browser-binaries',
+        'RUV_FANN_CANDLE_FIXTURE': 'candle-native-oracle/candle-f64-fixture.json'},
+}
 
 
 def validate(workflow, ci):
@@ -49,11 +57,16 @@ def validate(workflow, ci):
     tasks = workflow.get('jobs', {})
     require(all(name in tasks for name in ('core', 'candle', 'native', 'browser')), 'required numerical/runtime job missing')
     for name, job in tasks.items():
+        require(not re.search(r'\b(?:runner|env|steps|job)\s*(?:\.|\[)', str(job.get('env', {}))),
+            'job environment uses unavailable context')
         require(1 <= job.get('timeout-minutes', 0) <= 30, 'job deadline missing')
         require(not job.get('if') and not job.get('continue-on-error'), 'required job can skip or ignore failure')
         require(job.get('defaults', {}).get('run', {}).get('shell') == 'bash', 'pipefail shell missing')
         require(not job.get('permissions') or job['permissions'] == {'contents': 'read'}, 'job permissions escalate')
         steps = job.get('steps', [])
+        environment = next((step.get('run', '') for step in steps if step.get('id') == 'environment'), '')
+        require('"$GITHUB_ENV"' in environment and all(key + '=' in environment and suffix in environment
+            for key, suffix in JOB_ENVIRONMENTS.get(name, {}).items()), 'runner environment initialization missing')
         uploads = []
         for step in steps:
             require(not step.get('continue-on-error'), 'required step failure ignored')
@@ -112,7 +125,7 @@ def validate(workflow, ci):
         require(native['build'].get('env', {}).get('CARGO_NET_OFFLINE') == 'true', 'native build is not offline after explicit fetch')
     require(tasks.get('native', {}).get('strategy', {}).get('matrix', {}).get('node') == ['22.13.0', '24'], 'Node compatibility matrix missing')
     require(tasks.get('native', {}).get('needs') == 'candle', 'native does not depend on actual Candle fixture')
-    require(tasks.get('native', {}).get('env', {}).get('RUV_FANN_CANDLE_FIXTURE') == '${{ runner.temp }}/candle-native-oracle/candle-f64-fixture.json', 'actual Candle fixture handoff missing')
+    require('RUV_FANN_CANDLE_FIXTURE=' in native.get('environment', {}).get('run', ''), 'actual Candle fixture handoff missing')
     require(any(step.get('uses') == DOWNLOAD and step.get('with', {}).get('name') == 'candle-native-oracle'
         for step in tasks.get('native', {}).get('steps', [])), 'pinned fixture download missing')
     browser = stages('browser')
@@ -220,10 +233,27 @@ class CandleNativeWorkflowTests(unittest.TestCase):
     def test_missing_matrix_fixture_or_development_audit_fails(self):
         self.workflow['jobs']['native']['strategy']['matrix']['node'] = ['24']
         self.invalid('Node compatibility matrix missing')
-        self.workflow['jobs']['native']['env'].pop('RUV_FANN_CANDLE_FIXTURE')
+        self.stage('native', 'environment')['run'] = self.stage('native', 'environment')['run'].replace('RUV_FANN_CANDLE_FIXTURE=', 'MISSING_FIXTURE=')
         self.invalid('actual Candle fixture handoff missing')
         self.stage('native', 'audit')['run'] += ' --omit=dev'
         self.invalid('installed development dependencies not audited')
+
+    def test_runner_and_step_contexts_are_rejected_at_job_environment_scope(self):
+        for context in ('runner', 'env', 'steps', 'job'):
+            self.workflow['jobs']['native']['env'] = {'BROKEN': '${{ ' + context + '.temp }}'}
+            self.invalid('job environment uses unavailable context')
+
+    def test_environment_initializers_materialize_external_paths(self):
+        with tempfile.TemporaryDirectory(prefix='candle native environment ') as directory:
+            root = pathlib.Path(directory)
+            for job, expected in JOB_ENVIRONMENTS.items():
+                destination = root / (job + '.env')
+                result = subprocess.run(['bash', '--noprofile', '--norc', '-eo', 'pipefail', '-c', self.stage(job, 'environment')['run']],
+                    env={**os.environ, 'RUNNER_TEMP': directory, 'GITHUB_ENV': str(destination)},
+                    text=True, capture_output=True, timeout=10)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                values = dict(line.split('=', 1) for line in destination.read_text().splitlines())
+                self.assertEqual(values, {key: str(root / suffix) for key, suffix in expected.items()})
 
     def test_browser_proof_cannot_be_removed_or_replaced_with_synthetic_test(self):
         self.stage('browser', 'training')['run'] = 'echo browser passed'

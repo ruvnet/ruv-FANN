@@ -259,12 +259,23 @@
     "scope": "Actual native-backed SDK execution; negative confirmation retained; no source promotion."
   },
   "ciAndReview": {
-    "workflowTestsPassed": 85,
+    "workflowTestsPassed": 87,
     "exactGenuineReceiptGuardsPassed": 3,
     "validationSha256": "71ca1ab4fa9caa5d46b157aedfa967ec9e1825704777bb13c9cef5c2121a3f69",
     "independentReviewSha256": "15423a53ecbe16166ac3679cf1a12874ec015a9b481547429d9efb2e6721e116",
-    "workflowSha256": "61f1e1b6c2444a7411d8e8f76db7d89baaca81bd92830e6534b02315ae6e6643",
-    "hostedExecution": "PR checks; local tests do not assert a hosted run."
+    "workflowSha256": "76a70d8f04283c10a780b796480cebc79e350343662cf4f44851dd2e407c95ec",
+    "hostedExecution": "PR checks; local tests do not assert a hosted run.",
+    "actionlint": {
+      "version": "1.7.12",
+      "workflowsPassed": 9,
+      "shellcheckAndPyflakes": "disabled; platform structure/expression validation performed"
+    },
+    "hostedValidationFix": {
+      "initialRun": 42636418854,
+      "cause": "runner context unavailable in job-level env; six paths moved to initialization via GITHUB_ENV",
+      "receiptSha256": "58240dd7a6590460ed0cf4f9dad2543723f1cc92a0ee38b2df74515a9ac8b7c9",
+      "runtimeOrEvidenceGuardChanges": false
+    }
   },
   "claudePlugin": {
     "version": "0.1.5",

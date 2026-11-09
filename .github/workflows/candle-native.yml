@@ -74,8 +74,6 @@ jobs:
     defaults:
       run:
         shell: bash
-    env:
-      CARGO_TARGET_DIR: ${{ runner.temp }}/candle-native-core-target
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -94,7 +92,10 @@ jobs:
       - name: Check workflow contracts and failure propagation
         run: python3 -m unittest discover -s .github/tests -p 'test_candle_native*.py' -v
       - name: Create external core evidence directory
-        run: mkdir -m 700 "$RUNNER_TEMP/candle-native-core"
+        id: environment
+        run: |
+          mkdir -m 700 "$RUNNER_TEMP/candle-native-core"
+          printf 'CARGO_TARGET_DIR=%s/candle-native-core-target\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
         with:
           toolchain: '1.88.0'
@@ -140,8 +141,6 @@ jobs:
     defaults:
       run:
         shell: bash
-    env:
-      CARGO_TARGET_DIR: ${{ runner.temp }}/candle-native-oracle-target
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -150,7 +149,10 @@ jobs:
         with:
           toolchain: '1.99.1'
       - name: Create external Candle evidence directory
-        run: mkdir -m 700 "$RUNNER_TEMP/candle-native-oracle"
+        id: environment
+        run: |
+          mkdir -m 700 "$RUNNER_TEMP/candle-native-oracle"
+          printf 'CARGO_TARGET_DIR=%s/candle-native-oracle-target\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Test actual pinned Candle linear tensors against FANN
         id: oracle
         run: >-
@@ -189,8 +191,6 @@ jobs:
     defaults:
       run:
         shell: bash
-    env:
-      RUV_FANN_CANDLE_FIXTURE: ${{ runner.temp }}/candle-native-oracle/candle-f64-fixture.json
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -207,7 +207,10 @@ jobs:
           name: candle-native-oracle
           path: ${{ runner.temp }}/candle-native-oracle
       - name: Create external native evidence directory
-        run: mkdir -m 700 "$RUNNER_TEMP/candle-native-napi"
+        id: environment
+        run: |
+          mkdir -m 700 "$RUNNER_TEMP/candle-native-napi"
+          printf 'RUV_FANN_CANDLE_FIXTURE=%s/candle-native-oracle/candle-f64-fixture.json\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Install only the locked native package
         id: install
         run: >-
@@ -390,10 +393,6 @@ jobs:
     defaults:
       run:
         shell: bash
-    env:
-      NODE_PATH: ${{ runner.temp }}/candle-native-browser-tools/node_modules
-      PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/candle-native-browser-binaries
-      RUV_FANN_CANDLE_FIXTURE: ${{ runner.temp }}/candle-native-oracle/candle-f64-fixture.json
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -407,7 +406,10 @@ jobs:
           name: candle-native-oracle
           path: ${{ runner.temp }}/candle-native-oracle
       - name: Create external browser evidence directory
-        run: mkdir -m 700 "$RUNNER_TEMP/candle-native-browser"
+        id: environment
+        run: |
+          mkdir -m 700 "$RUNNER_TEMP/candle-native-browser"
+          printf '%s\n' "NODE_PATH=$RUNNER_TEMP/candle-native-browser-tools/node_modules" "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TEMP/candle-native-browser-binaries" "RUV_FANN_CANDLE_FIXTURE=$RUNNER_TEMP/candle-native-oracle/candle-f64-fixture.json" >> "$GITHUB_ENV"
       - name: Install only the locked optional SDK dependencies
         id: sdk-install
         run: npm ci --ignore-scripts --omit=optional --prefix integrations/ruv-fann 2>&1 | tee "$RUNNER_TEMP/candle-native-browser/sdk-install.log"
