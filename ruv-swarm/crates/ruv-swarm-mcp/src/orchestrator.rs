@@ -63,20 +63,22 @@ struct TaskMetrics {
 impl SwarmOrchestrator {
     /// Create a new SwarmOrchestrator with persistence
     pub async fn new(config: SwarmConfig) -> Self {
-        let swarm = Swarm::new(config);
-        
-        // Initialize SQLite storage with persistent file
         let db_path = std::env::var("RUV_SWARM_DB_PATH")
             .unwrap_or_else(|_| "ruv-swarm-mcp.db".to_string());
-        let storage = SqliteStorage::new(&db_path).await
-            .expect("Failed to create storage");
+        Self::with_database(config, &db_path).await.expect("Failed to create storage")
+    }
+
+    /// Open explicitly selected persistent storage without process-wide environment mutation.
+    pub async fn with_database(config: SwarmConfig, db_path: &str) -> Result<Self, StorageError> {
+        let swarm = Swarm::new(config);
+        let storage = SqliteStorage::new(db_path).await?;
         
         tracing::info!("Using SQLite database at: {}", db_path);
         
         // Create event channel
         let (event_tx, _) = broadcast::channel(1000);
         
-        Self {
+        Ok(Self {
             swarm: Arc::new(RwLock::new(swarm)),
             storage: Arc::new(storage),
             session_data: Arc::new(RwLock::new(HashMap::new())),
@@ -88,7 +90,7 @@ impl SwarmOrchestrator {
                 last_task_metrics: HashMap::new(),
             })),
             event_tx,
-        }
+        })
     }
 
     /// Spawn a new agent with persistence

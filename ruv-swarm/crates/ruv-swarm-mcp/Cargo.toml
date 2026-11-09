@@ -75,6 +75,7 @@ ruv-swarm-core = { path = "../ruv-swarm-core", version = "1.0.7" }
 ruv-swarm-persistence = { path = "../ruv-swarm-persistence", version = "1.0.8" }
 
 [dev-dependencies]
+tempfile = "3"
 criterion = { workspace = true }
 proptest = { workspace = true }
 tokio-test = "0.4"

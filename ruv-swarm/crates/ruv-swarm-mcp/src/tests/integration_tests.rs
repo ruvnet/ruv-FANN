@@ -7,7 +7,6 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use ruv_swarm_core::SwarmConfig;
-use uuid::Uuid;
 use crate::{
     orchestrator::SwarmOrchestrator, McpConfig, McpRequest, McpResponse, McpServer,
 };
@@ -18,8 +17,9 @@ use tokio::time::timeout;
 #[tokio::test]
 async fn test_server_creation() {
     // Use unique database for this test
-    std::env::set_var("RUV_SWARM_DB_PATH", format!("test_server_creation_{}.db", Uuid::new_v4()));
-    let orchestrator = Arc::new(SwarmOrchestrator::new(SwarmConfig::default()).await);
+    let database = tempfile::tempdir().unwrap();
+    let database_path = database.path().join("state.sqlite");
+    let orchestrator = Arc::new(SwarmOrchestrator::with_database(SwarmConfig::default(), database_path.to_str().unwrap()).await.unwrap());
     let mcp_config = McpConfig::default();
 
     let server = McpServer::new(orchestrator, mcp_config);
@@ -88,9 +88,10 @@ async fn test_orchestrator_spawn_agent() {
     use crate::types::{AgentCapabilities, AgentType};
 
     // Use unique database for this test
-    std::env::set_var("RUV_SWARM_DB_PATH", format!("test_spawn_agent_{}.db", Uuid::new_v4()));
+    let database = tempfile::tempdir().unwrap();
+    let database_path = database.path().join("state.sqlite");
     let swarm_config = SwarmConfig::default();
-    let orchestrator = SwarmOrchestrator::new(swarm_config).await;
+    let orchestrator = SwarmOrchestrator::with_database(swarm_config, database_path.to_str().unwrap()).await.unwrap();
 
     let agent_id = orchestrator
         .spawn_agent(
@@ -113,9 +114,10 @@ async fn test_orchestrator_spawn_agent() {
 #[tokio::test]
 async fn test_orchestrator_task_creation() {
     // Use unique database for this test
-    std::env::set_var("RUV_SWARM_DB_PATH", format!("test_task_creation_{}.db", Uuid::new_v4()));
+    let database = tempfile::tempdir().unwrap();
+    let database_path = database.path().join("state.sqlite");
     let swarm_config = SwarmConfig::default();
-    let orchestrator = SwarmOrchestrator::new(swarm_config).await;
+    let orchestrator = SwarmOrchestrator::with_database(swarm_config, database_path.to_str().unwrap()).await.unwrap();
 
     let task_id = orchestrator
         .create_task(
@@ -136,9 +138,10 @@ async fn test_swarm_state_query() {
     use crate::types::{AgentCapabilities, AgentType};
 
     // Use unique database for this test
-    std::env::set_var("RUV_SWARM_DB_PATH", format!("test_swarm_state_{}.db", Uuid::new_v4()));
+    let database = tempfile::tempdir().unwrap();
+    let database_path = database.path().join("state.sqlite");
     let swarm_config = SwarmConfig::default();
-    let orchestrator = SwarmOrchestrator::new(swarm_config).await;
+    let orchestrator = SwarmOrchestrator::with_database(swarm_config, database_path.to_str().unwrap()).await.unwrap();
 
     // Spawn some agents
     for i in 0..3 {
@@ -161,9 +164,10 @@ async fn test_swarm_state_query() {
 #[tokio::test]
 async fn test_metrics() {
     // Use unique database for this test
-    std::env::set_var("RUV_SWARM_DB_PATH", format!("test_metrics_{}.db", Uuid::new_v4()));
+    let database = tempfile::tempdir().unwrap();
+    let database_path = database.path().join("state.sqlite");
     let swarm_config = SwarmConfig::default();
-    let orchestrator = SwarmOrchestrator::new(swarm_config).await;
+    let orchestrator = SwarmOrchestrator::with_database(swarm_config, database_path.to_str().unwrap()).await.unwrap();
 
     let metrics = orchestrator.get_performance_metrics().await.unwrap();
     assert_eq!(metrics.success_rate, 1.0);
@@ -174,9 +178,10 @@ async fn test_metrics() {
 #[tokio::test]
 async fn test_optimization_recommendations() {
     // Use unique database for this test
-    std::env::set_var("RUV_SWARM_DB_PATH", format!("test_optimization_{}.db", Uuid::new_v4()));
+    let database = tempfile::tempdir().unwrap();
+    let database_path = database.path().join("state.sqlite");
     let swarm_config = SwarmConfig::default();
-    let orchestrator = SwarmOrchestrator::new(swarm_config).await;
+    let orchestrator = SwarmOrchestrator::with_database(swarm_config, database_path.to_str().unwrap()).await.unwrap();
 
     let recommendations = orchestrator.optimize_performance("throughput".to_string(), 0.8).await.unwrap();
 
