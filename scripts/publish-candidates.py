@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Publish verified, immutable Cargo archives through the documented registry API.
 
-Only the protected-release Actions workflow may upload. --check is read-only.
+Only the protected-release Actions workflow may upload. Default mode is read-only.
 https://doc.rust-lang.org/cargo/reference/registry-web-api.html#publish
 """
 import argparse
