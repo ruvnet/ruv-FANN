@@ -110,6 +110,7 @@ impl<T: Float> PreparedNetwork<T> {
             outputs: layers.last().expect("nonempty layers").outputs,
             width,
             input_bias: first.bias.is_some(),
+            direct_first: false,
             estimated_bytes: estimated,
         };
         for (index, layer) in layers.iter().enumerate() {
@@ -140,6 +141,7 @@ impl<T: Float> PreparedNetwork<T> {
                     .is_some_and(|next| next.bias.is_some()),
             });
         }
+        prepared.direct_first = prepared.first_layer_is_dense();
         Ok(prepared)
     }
 }

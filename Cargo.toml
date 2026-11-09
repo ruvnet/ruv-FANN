@@ -133,6 +133,17 @@ harness = false
 name = "basic_usage"
 path = "examples/basic_usage.rs"
 
+# Uses the GPU training API; without this a plain `cargo test` or
+# `cargo check --examples` on default features fails to compile.
+[[example]]
+name = "gpu_sweet_spot_benchmark"
+path = "examples/gpu_sweet_spot_benchmark.rs"
+required-features = ["gpu"]
+
 # Runtime advisory fixes are verified against all five lockfiles by
 # scripts/verify-packages.py --audit. A minimum tokio version alone cannot
 # constrain every transitive package (for example bytes); keep locks audited.
+
+[[bench]]
+name = "prepared_single_row"
+harness = false

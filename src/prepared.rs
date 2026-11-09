@@ -98,6 +98,9 @@ pub struct PreparedNetwork<T: Float> {
     outputs: usize,
     width: usize,
     input_bias: bool,
+    /// Every first-layer row is dense, so single-row inference can read the
+    /// caller's inputs in place instead of copying them into the workspace.
+    direct_first: bool,
     estimated_bytes: usize,
 }
 
@@ -243,6 +246,7 @@ impl<T: Float> PreparedNetwork<T> {
             outputs: network.num_outputs(),
             width,
             input_bias: network.layers[0].has_bias(),
+            direct_first: false,
             estimated_bytes: estimated,
         };
         for (index, layer) in network.layers.iter().enumerate().skip(1) {
@@ -282,6 +286,7 @@ impl<T: Float> PreparedNetwork<T> {
                 bias: layer.has_bias(),
             });
         }
+        prepared.direct_first = prepared.first_layer_is_dense();
         Ok(prepared)
     }
 
@@ -332,6 +337,16 @@ impl<T: Float> PreparedNetwork<T> {
         Ok(InferenceWorkspace { front, back })
     }
 
+    /// True when every row of the first layer reads the whole input row (and
+    /// the input bias, when present) in canonical order.
+    pub(crate) fn first_layer_is_dense(&self) -> bool {
+        self.layers.first().is_some_and(|layer| {
+            self.rows[layer.row_start..layer.row_start + layer.row_count]
+                .iter()
+                .all(|row| row.index_start == usize::MAX && row.len == layer.source_width)
+        })
+    }
+
     /// No steady-state allocations. Outputs are committed only after all layers
     /// succeed. Non-finite inputs, weighted sums or activation outputs are errors;
     /// stable saturation inside an activation follows the normal scalar API.
@@ -364,11 +379,53 @@ impl<T: Float> PreparedNetwork<T> {
             return Err(PreparedError::NonFiniteInput { index });
         }
         let (mut source, mut target) = (&mut workspace.front, &mut workspace.back);
-        source[..self.inputs].copy_from_slice(inputs);
-        if self.input_bias {
-            source[self.inputs] = T::one();
+        // Copying the inputs into the workspace and reading them straight back
+        // one scalar at a time defeats store-to-load forwarding and dominates
+        // the cost of small networks. A dense first layer reads the caller's
+        // slice in place instead; the bias source is exactly one, so its term
+        // is the bias weight itself, added last as before (bit-identical).
+        let mut first = 0;
+        if self.direct_first {
+            let layer = &self.layers[0];
+            for (index, row) in self.rows[layer.row_start..layer.row_start + layer.row_count]
+                .iter()
+                .enumerate()
+            {
+                let weights = &self.weights[row.start..row.start + row.len];
+                let mut sum = inputs
+                    .iter()
+                    .zip(weights)
+                    .fold(T::zero(), |sum, (&value, &weight)| sum + value * weight);
+                if self.input_bias {
+                    sum = sum + weights[self.inputs];
+                }
+                if !sum.is_finite() {
+                    return Err(PreparedError::NumericOverflow {
+                        layer: 1,
+                        neuron: index,
+                    });
+                }
+                let value = row.activation.apply(sum, row.steepness);
+                if !value.is_finite() {
+                    return Err(PreparedError::NumericOverflow {
+                        layer: 1,
+                        neuron: index,
+                    });
+                }
+                target[index] = value;
+            }
+            if layer.bias {
+                target[layer.row_count] = T::one();
+            }
+            std::mem::swap(&mut source, &mut target);
+            first = 1;
+        } else {
+            source[..self.inputs].copy_from_slice(inputs);
+            if self.input_bias {
+                source[self.inputs] = T::one();
+            }
         }
-        for (layer_index, layer) in self.layers.iter().enumerate() {
+        for (layer_index, layer) in self.layers.iter().enumerate().skip(first) {
             let previous = &source[..layer.source_width];
             for (index, row) in self.rows[layer.row_start..layer.row_start + layer.row_count]
                 .iter()

@@ -98,6 +98,7 @@ pub enum ActivationFunction {
 impl ActivationFunction {
     /// Evaluates the activation. ReLU-family activations preserve their historical
     /// unscaled input; GELU and Swish use the same convention as the SIMD API.
+    #[inline]
     pub(crate) fn apply<T: num_traits::Float>(self, x: T, steepness: T) -> T {
         let one = T::one();
         let half = T::from(0.5).unwrap();
@@ -282,6 +283,7 @@ impl ActivationFunction {
 }
 
 // Split evaluation avoids overflow in exp() for large negative inputs.
+#[inline]
 fn sigmoid<T: num_traits::Float>(x: T) -> T {
     if x >= T::zero() {
         T::one() / (T::one() + (-x).exp())
