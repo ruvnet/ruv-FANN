@@ -1,6 +1,6 @@
 /** Supported Node.js facade for the generated WASM APIs. */
-import type { WasmNeuralNetwork, WasmForecastingModel, WasmPreparedNetwork } from '../wasm/ruv_swarm_wasm.js';
-export type { WasmPreparedNetwork, WasmPreparedBatch } from '../wasm/ruv_swarm_wasm.js';
+import type { WasmNeuralNetwork, WasmForecastingModel, WasmPreparedNetwork, WasmTrainableNetwork } from '../wasm/ruv_swarm_wasm.js';
+export type { WasmPreparedNetwork, WasmPreparedBatch, WasmTrainableNetwork } from '../wasm/ruv_swarm_wasm.js';
 export { DAAService, daaService } from './daa-service.js';
 
 export interface InitOptions {
@@ -141,6 +141,10 @@ export declare class RuvSwarm {
   createForecastingModel(modelType: 'linear' | 'mean' | 'naive'): WasmForecastingModel;
   /** Import actual ruv_fann::Network<f64> serde JSON, limited to 4 MiB UTF-8. */
   createPreparedNetwork(networkJson: string): WasmPreparedNetwork;
+  /** Canonical [outputs, inputs] dense-layer schema; 4 MiB UTF-8 maximum. */
+  createDensePreparedNetwork(denseJson: string): WasmPreparedNetwork;
+  /** Actual MSE/autograd, SGD/AdamW. maxRows must be an integer in 1..4096. */
+  createTrainableNetwork(denseJson: string, maxRows?: number): WasmTrainableNetwork;
   createConformalCalibrator(config: ConformalConfig): ConformalCalibrator;
 }
 export declare function consoleLog(message: string): void;

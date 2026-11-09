@@ -12,7 +12,7 @@ include = [
 ]
 name = "ruv-swarm-wasm"
 version = "1.0.6"
-rust-version.workspace = true
+rust-version = "1.88"
 edition = "2021"
 authors = ["rUv Contributors"]
 description = "WebAssembly bindings for ruv-swarm neural network orchestration"

@@ -302,6 +302,7 @@ export class WasmPreparedNetwork {
      * Share this immutable snapshot with a bounded, reusable row batch.
      */
     create_batch(max_rows: number): WasmPreparedBatch;
+    static from_dense_layers_json(json: string): WasmPreparedNetwork;
     /**
      * Import a native serde Network<f64> export (at most 4 MiB UTF-8 JSON).
      * All native activations and sparse connection ordering are retained.
@@ -353,6 +354,48 @@ export class WasmTaskResult {
     readonly priority: string;
     readonly status: string;
     readonly task_id: string;
+}
+
+export class WasmTrainableNetwork {
+    private constructor();
+    free(): void;
+    [Symbol.dispose](): void;
+    adamw_step(): void;
+    /**
+     * Reset AdamW's moments. Existing optimizer remains intact on validation or
+     * allocation failure. The temporary old and new states share the byte cap.
+     */
+    configure_adamw(learning_rate: number, beta1: number, beta2: number, epsilon: number, weight_decay: number): void;
+    /**
+     * Fixed-capacity f64 training. Combined requested model, workspace, staging
+     * and one AdamW state are capped at 64 MiB, excluding caller JS arrays.
+     */
+    static from_dense_layers_json(json: string, max_rows: number): WasmTrainableNetwork;
+    input_gradients(): Float64Array;
+    /**
+     * Mean squared error over all rows and outputs. Gradients replace the
+     * previous pass and weights change only after an explicit optimizer step.
+     */
+    mse_backward(inputs: Float64Array, targets: Float64Array, rows: number): number;
+    /**
+     * Owned copies; no returned array aliases live training buffers.
+     */
+    parameter_gradients(): Float64Array;
+    predictions(): Float64Array;
+    /**
+     * Freeze independent owned weights for the existing inference/SDK API.
+     */
+    prepare(): WasmPreparedNetwork;
+    sgd_step(learning_rate: number): void;
+    /**
+     * Topology/weight checkpoint; optimizer moments are not serialized.
+     */
+    to_dense_layers_json(): string;
+    readonly estimated_bytes: number;
+    readonly input_size: number;
+    readonly max_rows: number;
+    readonly output_size: number;
+    readonly parameter_count: number;
 }
 
 export function console_error(message: string): void;
@@ -428,6 +471,7 @@ export interface InitOutput {
     readonly __wbg_wasmpreparednetwork_free: (a: number, b: number) => void;
     readonly __wbg_wasmswarmorchestrator_free: (a: number, b: number) => void;
     readonly __wbg_wasmtaskresult_free: (a: number, b: number) => void;
+    readonly __wbg_wasmtrainablenetwork_free: (a: number, b: number) => void;
     readonly agentmemorypool_allocate_for_agent: (a: number, b: number, c: number, d: number) => void;
     readonly agentmemorypool_deallocate_agent_memory: (a: number, b: number, c: number) => void;
     readonly agentmemorypool_is_within_memory_target: (a: number) => number;
@@ -515,6 +559,7 @@ export interface InitOutput {
     readonly wasmpreparedbatch_run_into: (a: number, b: number, c: any, d: any, e: any) => void;
     readonly wasmpreparednetwork_create_batch: (a: number, b: number, c: any) => void;
     readonly wasmpreparednetwork_estimated_bytes: (a: number) => number;
+    readonly wasmpreparednetwork_from_dense_layers_json: (a: number, b: any) => void;
     readonly wasmpreparednetwork_from_network_json: (a: number, b: any) => void;
     readonly wasmpreparednetwork_input_size: (a: number) => number;
     readonly wasmpreparednetwork_output_size: (a: number) => number;
@@ -533,6 +578,21 @@ export interface InitOutput {
     readonly wasmtaskresult_priority: (a: number, b: number) => void;
     readonly wasmtaskresult_status: (a: number, b: number) => void;
     readonly wasmtaskresult_task_id: (a: number, b: number) => void;
+    readonly wasmtrainablenetwork_adamw_step: (a: number, b: number) => void;
+    readonly wasmtrainablenetwork_configure_adamw: (a: number, b: number, c: any, d: any, e: any, f: any, g: any) => void;
+    readonly wasmtrainablenetwork_estimated_bytes: (a: number) => number;
+    readonly wasmtrainablenetwork_from_dense_layers_json: (a: number, b: any, c: any) => void;
+    readonly wasmtrainablenetwork_input_gradients: (a: number, b: number) => void;
+    readonly wasmtrainablenetwork_input_size: (a: number) => number;
+    readonly wasmtrainablenetwork_max_rows: (a: number) => number;
+    readonly wasmtrainablenetwork_mse_backward: (a: number, b: number, c: any, d: any, e: any) => void;
+    readonly wasmtrainablenetwork_output_size: (a: number) => number;
+    readonly wasmtrainablenetwork_parameter_count: (a: number) => number;
+    readonly wasmtrainablenetwork_parameter_gradients: (a: number, b: number) => void;
+    readonly wasmtrainablenetwork_predictions: (a: number, b: number) => void;
+    readonly wasmtrainablenetwork_prepare: (a: number, b: number) => void;
+    readonly wasmtrainablenetwork_sgd_step: (a: number, b: number, c: any) => void;
+    readonly wasmtrainablenetwork_to_dense_layers_json: (a: number, b: number) => void;
     readonly __wbindgen_export: (a: number, b: number) => number;
     readonly __wbindgen_export2: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_export3: (a: number, b: number, c: number) => void;

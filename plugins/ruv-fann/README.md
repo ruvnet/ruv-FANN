@@ -2,7 +2,7 @@
 
 A focused Claude Code plugin for working on this repository. It provides eight
 detailed skills, three explicit commands, a read-only reviewer, and a bounded
-Python verification helper. Version `0.1.4` describes the plugin, independently
+Python verification helper. Version `0.1.5` describes the plugin, independently
 of the Rust and npm package versions.
 
 ## Load it
@@ -52,7 +52,7 @@ only by the corresponding selected checks.
 | Skill | Use it for |
 | --- | --- |
 | [repo-map](skills/repo-map/SKILL.md) | Locate package families, choose a workflow, and inspect prerequisites |
-| [core-inference](skills/core-inference/SKILL.md) | CPU/prepared inference, independent workspaces, checked I/O, and compute boundaries |
+| [core-inference](skills/core-inference/SKILL.md) | Dense autograd, SGD/AdamW, Candle/napi-rs, CPU/prepared inference, checked I/O and compute boundaries |
 | [forecasting](skills/forecasting/SKILL.md) | Supported RNN/baseline training, past-only evaluation, conformal calibration, and checkpoints |
 | [swarm-mcp](skills/swarm-mcp/SKILL.md) | Implemented swarm metadata, dense WASM inference, and the supported MCP surface |
 | [cuda-translation](skills/cuda-translation/SKILL.md) | Translate the supported CUDA subset into Rust/WGSL with a real compiler |
@@ -64,13 +64,15 @@ The skill bodies load when needed; supporting references add package-specific
 commands and acceptance criteria. The plugin keeps these instructions separate
 from this repository's older generic Claude templates.
 
-Version `0.1.4` adds the ruv-FANN/RuVector/MetaHarness integration procedure. It
-retains bounded optimization, pinned Rune build verification, and prepared
+Version `0.1.5` adds the dense autograd, Candle and napi-rs training procedure,
+including actual CPU oracle, Node/browser, allocation and frozen-model checks.
+It retains the ruv-FANN/RuVector/MetaHarness integration procedure,
+bounded optimization, pinned Rune build verification, and prepared
 inference instructions for native f32/f64 batches and checked Float64 WASM SIMD
 batches. Calibrated interval coverage still depends on residual
 assumptions and held-out evaluation. Automatic interval builders remain unsupported.
 The repository's dated `docs/claude-plugin-e2e.*` receipts establish the historical
-`0.1.0` host run; they do not certify the changed `0.1.4` payload.
+`0.1.0` host run; they do not certify the changed `0.1.5` payload.
 
 ## Commands and reviewer
 

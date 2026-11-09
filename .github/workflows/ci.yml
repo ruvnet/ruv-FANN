@@ -35,6 +35,12 @@ jobs:
   ruv-fann-integrations:
     uses: ./.github/workflows/ruv-fann-integrations.yml
 
+  candle-native:
+    uses: ./.github/workflows/candle-native.yml
+
+  sqlite-security:
+    uses: ./.github/workflows/sqlite-security.yml
+
   inventory-and-docs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -127,7 +133,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {workspace: 'ruv-swarm', toolchain: '1.88.0'}
+          - {workspace: 'ruv-swarm', toolchain: '1.89.0'}
           - {workspace: 'neuro-divergent', toolchain: 'stable'}
           - {workspace: 'cuda-wasm', toolchain: 'stable'}
           - {workspace: 'opencv-rust', toolchain: 'stable'}

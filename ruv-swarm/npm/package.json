@@ -28,11 +28,18 @@
     "README.md",
     "scripts/validate-package.js",
     "scripts/wasm-provenance.js",
+    "scripts/sqlite-build.mjs",
+    "scripts/sqlite-build-contract.mjs",
+    "scripts/sqlite-build-source.mjs",
+    "scripts/sqlite-build-process.mjs",
+    "scripts/sqlite-source.json",
     "LICENSE-MIT",
     "LICENSE-APACHE",
     "CHANGELOG.md"
   ],
   "scripts": {
+    "build:sqlite": "node scripts/sqlite-build.mjs",
+    "postinstall": "node scripts/sqlite-build.mjs",
     "test": "npm run test:security && npm run test:tooling && node test/test.js",
     "test:all": "node test/run-all-tests.js",
     "test:jest": "NODE_OPTIONS='--experimental-vm-modules --experimental-wasm-modules' jest --config jest.config.cjs",
@@ -48,7 +55,7 @@
     "test:watch": "nodemon --watch test --exec 'npm run test:all'",
     "test:performance": "node test/comprehensive-performance-validation.test.js",
     "test:load": "node test/load-testing-suite.test.js",
-    "test:security": "node --test test/security-boundaries.test.js test/mcp-framing.test.js test/wasm-provenance.test.js test/wasm-api.test.js test/mcp-runtime.test.js test/wasm-batch.test.js",
+    "test:security": "node --test test/security-boundaries.test.js test/mcp-framing.test.js test/wasm-provenance.test.js test/wasm-api.test.js test/mcp-runtime.test.js test/wasm-batch.test.js test/wasm-dense-import.test.js test/wasm-autograd.test.js test/sqlite-engine.test.js",
     "test:regression": "node test/regression-testing-pipeline.test.js",
     "test:comprehensive": "node test/run-comprehensive-validation.js",
     "test:orchestrator": "node test/comprehensive-test-orchestrator.js",
@@ -103,7 +110,7 @@
     "validate:package": "node scripts/validate-package.js --artifact-only",
     "test:tooling": "node --test test/tooling-security.test.js",
     "test:installation": "node scripts/test-installation.js",
-    "lint:maintained": "eslint src/index.js src/claude-integration/docs.js src/claude-integration/core.js src/claude-integration/index.js src/stdio-rpc.js src/mcp-tools-enhanced.js src/mcp-daa-tools.js src/daa-service.js src/neural.js src/neural-runtime.js src/unsupported.js src/benchmark.js src/performance.js scripts/wasm-provenance.js scripts/validate-package.js scripts/test-installation.js test/mcp-runtime.test.js test/mcp-framing.test.js test/tooling-security.test.js test/security-boundaries.test.js test/wasm-provenance.test.js test/wasm-batch.test.js --max-warnings 0"
+    "lint:maintained": "eslint src/index.js src/claude-integration/docs.js src/claude-integration/core.js src/claude-integration/index.js src/stdio-rpc.js src/mcp-tools-enhanced.js src/mcp-daa-tools.js src/daa-service.js src/neural.js src/neural-runtime.js src/unsupported.js src/benchmark.js src/performance.js scripts/wasm-provenance.js scripts/validate-package.js scripts/test-installation.js test/mcp-runtime.test.js test/mcp-framing.test.js test/tooling-security.test.js test/security-boundaries.test.js test/wasm-provenance.test.js test/wasm-batch.test.js scripts/sqlite-build.mjs scripts/sqlite-build-contract.mjs scripts/sqlite-build-source.mjs scripts/sqlite-build-process.mjs src/sqlite-engine.js test/sqlite-engine.test.js --max-warnings 0"
   },
   "engines": {
     "node": ">=22.13.0"
@@ -123,6 +130,7 @@
     },
     "glob@>=9.0.0 <=14.0.1": "^14.0.2",
     "test-exclude": {
+      "minimatch": "^11.0.1",
       "glob": "^14.0.2"
     },
     "jest-config": {
@@ -160,7 +168,8 @@
   },
   "homepage": "https://github.com/ruvnet/ruv-FANN#readme",
   "dependencies": {
-    "better-sqlite3": "^11.6.0",
+    "better-sqlite3": "12.11.1",
+    "node-gyp": "12.4.0",
     "uuid": "^11.1.1",
     "ws": "^8.21.0"
   },

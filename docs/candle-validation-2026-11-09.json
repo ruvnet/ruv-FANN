@@ -1,0 +1,354 @@
+{
+  "schema": "ruv-fann.candle-validation/1",
+  "dateUtc": "2026-11-09T16:16:37.461735+00:00",
+  "status": "passed_local_release_gates",
+  "baselineCommit": "d182eb42ae23a48560528c1d9284ee19b9bc510a",
+  "scope": "Fixed sequential dense reverse-mode AD and SGD/AdamW, actual Candle CPU adapter, native napi-rs and WASM training, independently frozen inference; local measurements and PR-oriented CI. No registry release. Includes patched SQLite/MCP suppliers and normal Node source-build installation.",
+  "capabilities": {
+    "rustPrecisions": [
+      "f32",
+      "f64"
+    ],
+    "jsPrecision": "f64",
+    "activations": [
+      "Linear",
+      "Sigmoid",
+      "Tanh",
+      "SigmoidSymmetric",
+      "ReLU"
+    ],
+    "loss": "mean squared error over rows*outputs",
+    "parameterOrder": "each layer row-major weights[out,in], then optional bias",
+    "wireSchema": "ruv-fann.dense-layers/1",
+    "checkpoint": "topology and weights; optimizer moments excluded",
+    "gpuBackward": false,
+    "generalTensorAutograd": false
+  },
+  "limits": {
+    "jsonUtf8Bytes": 4194304,
+    "jsonLayers": 64,
+    "jsRows": 4096,
+    "jsRequestedTrainingBytes": 67108864,
+    "jsWorkPolicyUnits": 100000000,
+    "memoryScope": "Requested logical storage; excludes caller data, allocator slack and process-wide runtime memory."
+  },
+  "source": {
+    "runeCoreTreeSha256": "153eb465d48dee641455bbd6ca213fd2c5f33817daa2bb87fec75f96f2f3d723",
+    "runeSnapshotSha256": "4977c0b6ee90200a80255bfcb28387b446cca663606c5866cf78508b6208bab0",
+    "wasmSourceSha256": "9513ca66cfc1a616b94f07ab123d3524cddf995a15a3f05e075b66ccfe9411b6",
+    "nativeInputMapSha256": "e2018f38fda1b303e4b0bbee8510743c15f1024d3339aeccaacf059bc6f92424",
+    "existingLocksUnchanged": 9,
+    "existingLockSha256": {
+      "package-lock.json": "408a8a5ce0294f775e7281bd6c8d0f2e14cc90af6e03763df53c228df2da5e26",
+      "Cargo.lock": "8b47266eb8835a4a18e658521b149507799cce30c1280bf2e7b6e9a15ecd4f8c",
+      "cuda-wasm/package-lock.json": "1cfc5ae406d55538289943a4c417e1d39aa0f7ee620d1bade20920e37886e138",
+      "cuda-wasm/Cargo.lock": "ff4bb589d5b39585ac19858640a1a98389dcda0ce3b782d886312aa27f4d11e0",
+      "opencv-rust/Cargo.lock": "818a9e96facee00e9d00ace47e553d879e64e296929a28d37d91f735810b1b17",
+      "ruv-swarm/Cargo.lock": "a0116b1612809a96889d7c127678e698991f045bd77d879a7a0f4be7e7dee281",
+      "neuro-divergent/Cargo.lock": "50e70e307a2c5ffd17a43d5ce73320860ead04f8a07518f1400d9cd1b7beccdf",
+      "config/rune-probe/Cargo.lock": "ccf588ef761301b8eae1bf3c128466bea48b362b246ca813b63807fb34aa9462",
+      "tools/metaharness/package-lock.json": "8ae10f36ff4a90335407cec1343045a5c1a7c2de63cf4365b8d483d08db67273",
+      "integrations/ruv-fann/package-lock.json": "60fefabe58a1b544125a90fd1b4ae1c09965b06c129ff2a3d2ac2b9df2abb6b3",
+      "ruv-swarm/npm/package-lock.json": "ba1636531263951427ad8d1e933964726b3a5c934c808535fd6d740e6fe7b837",
+      "ruv-swarm/npm/test-npm-install-v106/package-lock.json": "4ce197425ee37207814a6a99f78349dbc0f33602c5eebb4e7699b147dd66a56c"
+    },
+    "newLocks": {
+      "bindings/napi/Cargo.lock": "b80db062343a65892707575a84c3e1df334be59a0f66ed73c09810401b105230",
+      "bindings/napi/package-lock.json": "4a14c4d8da0a4ec2d185f75a8ab64054f44dbb170b9b0aa06425d3aca9881f90",
+      "integrations/candle/Cargo.lock": "d9093ad4cf4fba77fb877fddeda523245666458a36ce551365e0896f2c0abde4"
+    },
+    "existingLocksChanged": [
+      "package-lock.json",
+      "ruv-swarm/Cargo.lock",
+      "ruv-swarm/npm/package-lock.json"
+    ]
+  },
+  "rust": {
+    "compiler": "1.88.0",
+    "releaseTestsPassed": 262,
+    "minimalAndSerdeMsrv": "1.81.0 checks passed",
+    "zeroHotAllocations": [
+      "forward",
+      "backward_mse",
+      "sgd_step",
+      "adamw_step",
+      "prepared scalar",
+      "prepared batch"
+    ],
+    "logSha256": "d45a8e1a7cb5b6e3e522c7815eb764db0a177fbd97da1f27c5ab23ef0d166da6",
+    "msrvLogs": {
+      "msrv-minimal-release.log": "8c6d799da22a3a79333693953b7bcc5bbe1b5e27d40092231142170f286b6fe8",
+      "msrv-serde-release.log": "b9cf053ccbbd65589cd627665545023fc93994945184f3b812c6d0b701ebf3d0"
+    }
+  },
+  "candle": {
+    "sourceCommit": "cfcbd7186d13271843ce7eb41d25659bd0835850",
+    "version": "0.11.1",
+    "license": "MIT OR Apache-2.0",
+    "compiler": "1.99.1",
+    "defaultFeatures": false,
+    "acceleratorFeatures": [],
+    "testFunctionsPassed": 18,
+    "backwardComparisons": 280,
+    "optimizerUpdates": 240,
+    "numericalMismatches": 0,
+    "tolerances": {
+      "inference_f32": {
+        "absolute": 5e-06,
+        "relative": 2e-05
+      },
+      "training_f32": {
+        "absolute": 5e-06,
+        "relative": 3e-05
+      },
+      "f64": {
+        "absolute": 1e-12,
+        "relative": 1e-12
+      }
+    },
+    "fixtureSha256": "07c413cc3a0e8c839275284e644da93fc7727105f822482e082678e0a5bec80f",
+    "releaseTestLogSha256": "fd8956f9178be4032d843ad52b60cec4fdd69999018b421b6f5e4b0b182ebf30"
+  },
+  "native": {
+    "compiler": "1.88.0",
+    "nodeApi": 8,
+    "pins": {
+      "napi": "3.16.1",
+      "derive": "3.7.0",
+      "build": "2.6.0"
+    },
+    "binarySha256": "6d0ca669876225d5bbd81135e4bc96160bca235655e4a84f1d5207da05788bff",
+    "buildReceiptSha256": "52d7f4c2995668ce41496ec23611ed08a71d1035651c29425efeff6b5f14ddb8",
+    "sourceTestsPerNode": 21,
+    "nodes": [
+      "22.13.0",
+      "24.22.1"
+    ],
+    "consumers": {
+      "22": {
+        "status": "passed",
+        "receiptSha256": "1e339474c1bf63e6fc24c7cc7288264e121b01539c99339c902433cf72d6afab",
+        "nativeLoaded": true,
+        "threeStepCandleProof": true
+      },
+      "24": {
+        "status": "passed",
+        "receiptSha256": "8b14f1eba2ab62ae36acf571d69ea683299317b8bc439abbb199610b512ef49c",
+        "nativeLoaded": true,
+        "threeStepCandleProof": true
+      }
+    },
+    "isolatedTargetRebuildMatchesMeasuredBinary": true
+  },
+  "wasm": {
+    "compiler": "1.88.0",
+    "toolchain": {
+      "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)",
+      "wasmPack": "wasm-pack 0.15.1"
+    },
+    "buildReceiptSha256": "02795a598ad251c4a1379b5e29143e93304242340249a20a95efa015fc71dc1e",
+    "artifacts": {
+      "ruv_swarm_wasm_bg.wasm": "c27354d248f4369a5f3843094fbfba04203f1f784504c279fdf4f34161eea9a0",
+      "ruv_swarm_simd.wasm": "2f0ea5c3483c47d55943f34fe90c2dbf0eb9ca526570b7b3db965eb96cdf5127",
+      "ruv_swarm_wasm.js": "1d1d834f2d114e4ccfdb30286b06f9c10d7bbb13af6e34159c5618e2e31f4c1a",
+      "ruv_swarm_wasm.d.ts": "d4075989bd5c677878436c22f1aa36472540af1c1c151e628998f579424bed0f",
+      "ruv_swarm_wasm_bg.wasm.d.ts": "c72c5517098b6717aac53873cddb926d0cf83baedf8f48c552dd9eb71adbc5d1",
+      "package.json": "31a11a6fee35db46b7a6a996689d519e93083f6e055138bfa65cc7e13f37ebef",
+      "wasm-bindings-loader.mjs": "b2bc4abd1997b1d01d32ef4dba60f1e633a6503529752898f0c346e2b5de7158"
+    },
+    "focusedTrainingImportTestsPerNode": 14,
+    "fullSecurityRuntimeTestsPerNode": 108,
+    "node22FullRuntimeScope": "Direct Node22 execution with package-owned ABI127 SQLite3.54.1 binding; no loader override. Both ABIs coexist and are checked before user database access.",
+    "nativeAndWasmTrainingProofsUseSqliteLoader": false,
+    "extractedConsumers": {
+      "22": {
+        "receiptSha256": "ff8a08edc148a41b700e7dcb40ff917dfab70c21f9372ee5ddc59ad47bbcaa51",
+        "cases": 4,
+        "dependencyScope": "Only Node builtins and extracted package files; no dependency graph installed or linked. CLI/SQLite are outside this check.",
+        "tarballSha256": "96122ff90a427db25863830844da539f33d49986e06f4bc09bb17c2160da9268"
+      },
+      "24": {
+        "receiptSha256": "33619f2b60c2b71d5c531ed146d0b0acf71bf6033e52ac3ec7262fc678d0ee1a",
+        "cases": 4,
+        "dependencyScope": "Only Node builtins and extracted package files; no dependency graph installed or linked. CLI/SQLite are outside this check.",
+        "tarballSha256": "96122ff90a427db25863830844da539f33d49986e06f4bc09bb17c2160da9268"
+      }
+    }
+  },
+  "browser": {
+    "playwright": "1.62.1",
+    "chromium": "156.0.8078.79",
+    "coreAndSimd": true,
+    "actualCandle": true,
+    "threeStepsEachOptimizer": true,
+    "trainedHnswChecks": 4,
+    "boundaryRejections": 112,
+    "maximumAbsoluteError": 2.220446049250313e-16,
+    "externalRequests": 0,
+    "sourceUnchanged": true,
+    "receiptSha256": "5f915f640c1751fadd98c40c3d6b856d634a5b2016ed5dfdec8abfb3d12828fe",
+    "expectedChromiumVersion": "156.0.8078.79",
+    "versionSource": "explicit-environment"
+  },
+  "rune": {
+    "upstream": {
+      "repository": "https://github.com/ruvnet/rune",
+      "commit": "92425512f0f742e21b747f58f7555104446fc9de",
+      "package": "rune-toolchain",
+      "version": "0.2.0",
+      "binary": "rune",
+      "cargo_lock_sha256": "6509be23921039376d94f688822cd624167f42a5886b2f067c89ad97a6ecde28"
+    },
+    "tool": {
+      "receipt_sha256": "39d0f7a894e60f139b316c8b0b0a8fb38e51d8c0a81bcd6c46574735ade275b6",
+      "binary_sha256": "6ccd12f58543167612f8af5c274bd40ef141bdf38baa9ff5b291cb9a336bd7e0",
+      "source_commit": "92425512f0f742e21b747f58f7555104446fc9de"
+    },
+    "product": {
+      "name": "ruv-fann-rune-probe",
+      "sha256": "e95a130621385ed6c0a452688612cdd26fc48e047474a00edd0c6c665176cdaa",
+      "stored_object_verified": true
+    },
+    "planId": "a5f011b637cf0a9c29c3277b87c300ac7be191ff0083227ab3b11143139769f0",
+    "runtimeProbe": {
+      "status": "passed",
+      "probe": "ruv-fann-core",
+      "activations": 21,
+      "float32_rows": 1302,
+      "float64_rows": 1302,
+      "dense_sparse_duplicate_connections": true,
+      "late_error_atomicity": true,
+      "storage_budget_rejection": true,
+      "dense_autograd": true,
+      "mse_mean_all": true,
+      "sgd_adamw_learning": true,
+      "frozen_training_isolation": true,
+      "calibration_groups": 2,
+      "intervals": 4,
+      "partial_selection_samples": 2048,
+      "past_only_guards": true
+    },
+    "correctness": {
+      "status": "passed",
+      "tests": [
+        "prepared_batch_equivalence",
+        "prepared_batch_work",
+        "prepared_allocations",
+        "prepared_dense",
+        "prepared_dense_kernel",
+        "autograd",
+        "autograd_allocations"
+      ],
+      "scope": "Release tests of same actual core source; separate from selected product digest."
+    },
+    "negativeChecks": {
+      "stale_source": {
+        "status": "passed",
+        "checked_by": "rune build"
+      },
+      "plan_tamper": {
+        "status": "passed",
+        "checked_by": "rune build"
+      },
+      "object_tamper": {
+        "status": "passed",
+        "checked_by": "adapter SHA-256"
+      }
+    },
+    "offline": true,
+    "modelCalls": 0,
+    "receiptSha256": "2be448c26234f95b0582243f3ec7cb8b397454f93f65ca701ac39aa702fa1890"
+  },
+  "metaHarness": {
+    "actualDarwin": true,
+    "confirmation": "not_improved",
+    "receiptSha256": "a8717ec48e3a4dda3b4655ab05d24c587e1e5bb5fa6ced0a9f3cb37474f897bd",
+    "scope": "Actual native-backed SDK execution; negative confirmation retained; no source promotion."
+  },
+  "ciAndReview": {
+    "workflowTestsPassed": 103,
+    "exactGenuineReceiptGuardsPassed": 7,
+    "independentReviewSha256": "15423a53ecbe16166ac3679cf1a12874ec015a9b481547429d9efb2e6721e116",
+    "workflowSha256": "b99818d3bdb4236646abc7cb3c23df5505f4b85e312af855f5c85850a3051295",
+    "hostedExecution": "Training/Candle/native/browser, Rune, MetaHarness and RuVector workflows passed on 12b0b05. Security migration awaiting new-head hosted checks at record time.",
+    "actionlint": {
+      "version": "1.7.12",
+      "workflowsPassed": 10,
+      "shellcheckAndPyflakes": "disabled; platform structure/expression validation performed"
+    },
+    "hostedValidationFix": {
+      "initialRun": 42636418854,
+      "cause": "runner context unavailable in job-level env; six paths moved to initialization via GITHUB_ENV",
+      "receiptSha256": "58240dd7a6590460ed0cf4f9dad2543723f1cc92a0ee38b2df74515a9ac8b7c9",
+      "runtimeOrEvidenceGuardChanges": false
+    },
+    "chromiumMetadataFix": {
+      "pinnedPlaywright": "1.62.1",
+      "bundledChromium": "151.0.7922.34",
+      "localSystemChromium": "156.0.8078.79",
+      "exactVersionAndSourceRequiredInCi": true,
+      "receiptSha256": "fb2d9b7c18531fe8ee6da662963b910f6cd4fb603ac771a6725fa6340269d166",
+      "versionRegressionCases": 13,
+      "hostedRerunPending": false,
+      "hostedRun": 42641255116
+    },
+    "originalTrainingGuardValidationSha256": "71ca1ab4fa9caa5d46b157aedfa967ec9e1825704777bb13c9cef5c2121a3f69",
+    "securityGuardValidationSha256": "7d983b66dd02cd7e7f47c2266b34fbca86cd4d6e4a89199baf84b62d91932e73",
+    "independentSecuritySourceReviewSha256": "3b8325b0963b4ee827682893b4a452940690dbff2404e25d52218f57aacd0251"
+  },
+  "claudePlugin": {
+    "version": "0.1.5",
+    "skills": 8,
+    "unitTestsPassed": 39,
+    "structuralValidation": "passed",
+    "currentHostExecutionClaimed": false
+  },
+  "security": {
+    "cargoAuditedLocks": [
+      "Cargo.lock",
+      "ruv-swarm/Cargo.lock",
+      "neuro-divergent/Cargo.lock",
+      "cuda-wasm/Cargo.lock",
+      "opencv-rust/Cargo.lock",
+      "integrations/candle/Cargo.lock",
+      "bindings/napi/Cargo.lock"
+    ],
+    "vulnerabilities": 0,
+    "napiNpmAudit": "passed, zero vulnerabilities",
+    "newRuntimeRufloScans": {
+      "version": "3.25.6",
+      "findings": 0,
+      "scope": [
+        "src/autograd",
+        "bindings/napi/src",
+        "integrations/candle/src",
+        "ruv-swarm/crates/ruv-swarm-wasm/src"
+      ]
+    },
+    "broadScan": "44 pattern hits, including10high, outside the new-runtime review; no repository-wide clean claim.",
+    "privateCoordinationRestored": true,
+    "privateRestoreReceiptSha256": "c2ce542addefacd6517d3167cab4d32fa8fb6fc2b137885951720efde91729e5",
+    "finalPackageCheckerRufloFindings": 0,
+    "rootAndSwarmNpmAudit": "passed, zero vulnerabilities",
+    "securityMigration": {
+      "record": "sqlite-security-validation-2026-11-09.json",
+      "scope": "Actual SQLite 3.54.1 and rmcp 3.9.0; 144 Rust library tests, two SQLite runtime gates, real stdio, 11 focused and 108 full tests per Node, and normal external lifecycle consumers.",
+      "sha256": "f07bca9aad3947f9d75608de515de09b11b4cf47b4bc4400effdba897db3c15f"
+    }
+  },
+  "performance": {
+    "summary": "benchmarks/candle-summary-2026-11-09.json",
+    "nativeCases": 60,
+    "nodeCasesEach": {
+      "inference": 150,
+      "training": 24
+    },
+    "matchedWasmBaselineCompiler": "1.88.0",
+    "baselineReceiptSha256": "33cc22abefa7e10c8322af0fe22de0ef2034fdd0616229584ab902ef5bf1cc90",
+    "baselineGitBlobsVerified": 1292,
+    "prototypeAndConfoundedPilotRetained": true,
+    "benchmarkJsHarnessSha256": "b1ebdb5c0f8b746bfa171ae72dee2d13f466b3280945660936b6c321668eaee2",
+    "universalSpeedClaim": false,
+    "securityRebuildMatchesMeasuredWasmArtifacts": true
+  }
+}

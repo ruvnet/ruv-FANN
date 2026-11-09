@@ -1469,6 +1469,25 @@ export class WasmPreparedNetwork {
         return ret >>> 0;
     }
     /**
+     * @param {string} json
+     * @returns {WasmPreparedNetwork}
+     */
+    static from_dense_layers_json(json) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
+            wasm.wasmpreparednetwork_from_dense_layers_json(retptr, json);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+            if (r2) {
+                throw takeFromExternrefTable0(r1);
+            }
+            return WasmPreparedNetwork.__wrap(r0);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
      * Import a native serde Network<f64> export (at most 4 MiB UTF-8 JSON).
      * All native activations and sparse connection ordering are retained.
      * @param {string} json
@@ -1848,6 +1867,253 @@ export class WasmTaskResult {
     }
 }
 if (Symbol.dispose) WasmTaskResult.prototype[Symbol.dispose] = WasmTaskResult.prototype.free;
+
+export class WasmTrainableNetwork {
+    static __wrap(ptr) {
+        const obj = Object.create(WasmTrainableNetwork.prototype);
+        obj.__wbg_ptr = ptr;
+        WasmTrainableNetworkFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        WasmTrainableNetworkFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_wasmtrainablenetwork_free(ptr, 0);
+    }
+    adamw_step() {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
+            wasm.wasmtrainablenetwork_adamw_step(retptr, this.__wbg_ptr);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            if (r1) {
+                throw takeFromExternrefTable0(r0);
+            }
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+     * Reset AdamW's moments. Existing optimizer remains intact on validation or
+     * allocation failure. The temporary old and new states share the byte cap.
+     * @param {number} learning_rate
+     * @param {number} beta1
+     * @param {number} beta2
+     * @param {number} epsilon
+     * @param {number} weight_decay
+     */
+    configure_adamw(learning_rate, beta1, beta2, epsilon, weight_decay) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
+            wasm.wasmtrainablenetwork_configure_adamw(retptr, this.__wbg_ptr, learning_rate, beta1, beta2, epsilon, weight_decay);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            if (r1) {
+                throw takeFromExternrefTable0(r0);
+            }
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+     * @returns {number}
+     */
+    get estimated_bytes() {
+        const ret = wasm.wasmtrainablenetwork_estimated_bytes(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Fixed-capacity f64 training. Combined requested model, workspace, staging
+     * and one AdamW state are capped at 64 MiB, excluding caller JS arrays.
+     * @param {string} json
+     * @param {number} max_rows
+     * @returns {WasmTrainableNetwork}
+     */
+    static from_dense_layers_json(json, max_rows) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
+            wasm.wasmtrainablenetwork_from_dense_layers_json(retptr, json, max_rows);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+            if (r2) {
+                throw takeFromExternrefTable0(r1);
+            }
+            return WasmTrainableNetwork.__wrap(r0);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+     * @returns {Float64Array}
+     */
+    input_gradients() {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
+            wasm.wasmtrainablenetwork_input_gradients(retptr, this.__wbg_ptr);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var v1 = getArrayF64FromWasm0(r0, r1).slice();
+            wasm.__wbindgen_export3(r0, r1 * 8, 8);
+            return v1;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+     * @returns {number}
+     */
+    get input_size() {
+        const ret = wasm.wasmtrainablenetwork_input_size(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    get max_rows() {
+        const ret = wasm.wasmtrainablenetwork_max_rows(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Mean squared error over all rows and outputs. Gradients replace the
+     * previous pass and weights change only after an explicit optimizer step.
+     * @param {Float64Array} inputs
+     * @param {Float64Array} targets
+     * @param {number} rows
+     * @returns {number}
+     */
+    mse_backward(inputs, targets, rows) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
+            wasm.wasmtrainablenetwork_mse_backward(retptr, this.__wbg_ptr, inputs, targets, rows);
+            var r0 = getDataViewMemory0().getFloat64(retptr + 8 * 0, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+            var r3 = getDataViewMemory0().getInt32(retptr + 4 * 3, true);
+            if (r3) {
+                throw takeFromExternrefTable0(r2);
+            }
+            return r0;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+     * @returns {number}
+     */
+    get output_size() {
+        const ret = wasm.wasmtrainablenetwork_output_size(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    get parameter_count() {
+        const ret = wasm.wasmtrainablenetwork_parameter_count(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Owned copies; no returned array aliases live training buffers.
+     * @returns {Float64Array}
+     */
+    parameter_gradients() {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
+            wasm.wasmtrainablenetwork_parameter_gradients(retptr, this.__wbg_ptr);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var v1 = getArrayF64FromWasm0(r0, r1).slice();
+            wasm.__wbindgen_export3(r0, r1 * 8, 8);
+            return v1;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+     * @returns {Float64Array}
+     */
+    predictions() {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
+            wasm.wasmtrainablenetwork_predictions(retptr, this.__wbg_ptr);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var v1 = getArrayF64FromWasm0(r0, r1).slice();
+            wasm.__wbindgen_export3(r0, r1 * 8, 8);
+            return v1;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+     * Freeze independent owned weights for the existing inference/SDK API.
+     * @returns {WasmPreparedNetwork}
+     */
+    prepare() {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
+            wasm.wasmtrainablenetwork_prepare(retptr, this.__wbg_ptr);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+            if (r2) {
+                throw takeFromExternrefTable0(r1);
+            }
+            return WasmPreparedNetwork.__wrap(r0);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+     * @param {number} learning_rate
+     */
+    sgd_step(learning_rate) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
+            wasm.wasmtrainablenetwork_sgd_step(retptr, this.__wbg_ptr, learning_rate);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            if (r1) {
+                throw takeFromExternrefTable0(r0);
+            }
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
+     * Topology/weight checkpoint; optimizer moments are not serialized.
+     * @returns {string}
+     */
+    to_dense_layers_json() {
+        let deferred2_0;
+        let deferred2_1;
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
+            wasm.wasmtrainablenetwork_to_dense_layers_json(retptr, this.__wbg_ptr);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+            var r3 = getDataViewMemory0().getInt32(retptr + 4 * 3, true);
+            var ptr1 = r0;
+            var len1 = r1;
+            if (r3) {
+                ptr1 = 0; len1 = 0;
+                throw takeFromExternrefTable0(r2);
+            }
+            deferred2_0 = ptr1;
+            deferred2_1 = len1;
+            return getStringFromWasm0(ptr1, len1);
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+            wasm.__wbindgen_export3(deferred2_0, deferred2_1, 1);
+        }
+    }
+}
+if (Symbol.dispose) WasmTrainableNetwork.prototype[Symbol.dispose] = WasmTrainableNetwork.prototype.free;
 
 /**
  * @param {string} message
@@ -2398,6 +2664,9 @@ const WasmSwarmOrchestratorFinalization = (typeof FinalizationRegistry === 'unde
 const WasmTaskResultFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_wasmtaskresult_free(ptr, 1));
+const WasmTrainableNetworkFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_wasmtrainablenetwork_free(ptr, 1));
 
 function addToExternrefTable0(obj) {
     const idx = wasm.__wbindgen_export5();

@@ -1,8 +1,8 @@
 {
   "schemaVersion": 2,
-  "sourceSha256": "6c4af0e744a8a5c8514cfddd586ebc7aa609038863f7c1ea6dc4c83b688939f9",
+  "sourceSha256": "df5d675a58e96b15dd6caf82b26f590e6d3612e9a614f029ad32a21688ff8cb0",
   "toolchain": {
-    "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+    "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)",
     "wasmPack": "wasm-pack 0.15.1"
   },
   "configurations": [
@@ -32,12 +32,12 @@
     }
   ],
   "artifacts": {
-    "ruv_swarm_wasm_bg.wasm": "913cd614e0fbfe30e18ab400d1a9b71311a88318f0d018f68701259677808c5c",
-    "ruv_swarm_simd.wasm": "404c4c3caed7a9f1e00bb6f3a2b4720302cfd2f090dcd1ce8b976fc96044b110",
-    "ruv_swarm_wasm.js": "85d0209e09cc4c9b7a226ac2cf39af8deabc987697d4abb2050e737a5422ddbd",
-    "ruv_swarm_wasm.d.ts": "880692277920273fa76f4899247ef3124c810f566e91fd41cddcbae25adee1a7",
-    "ruv_swarm_wasm_bg.wasm.d.ts": "2e6ec867550d66d2d2fe1befd9bc78bcbcd223e3b15052aa9a19eaf343438cd7",
-    "package.json": "31a11a6fee35db46b7a6a996689d519e93083f6e055138bfa65cc7e13f37ebef",
+    "ruv_swarm_wasm_bg.wasm": "a46f30ba9f7abafa7e77fbd8b686ab8b4785dd325f3e792b5a0fb39628a894f9",
+    "ruv_swarm_simd.wasm": "4aec422bae909a8e3b765af396834522520c1432c61b6c37aac72e093d27ee01",
+    "ruv_swarm_wasm.js": "1d1d834f2d114e4ccfdb30286b06f9c10d7bbb13af6e34159c5618e2e31f4c1a",
+    "ruv_swarm_wasm.d.ts": "d4075989bd5c677878436c22f1aa36472540af1c1c151e628998f579424bed0f",
+    "ruv_swarm_wasm_bg.wasm.d.ts": "c72c5517098b6717aac53873cddb926d0cf83baedf8f48c552dd9eb71adbc5d1",
+    "package.json": "92a38dec5b952376555e0204396ea126a5757e870737ec10342dca1aad00a498",
     "wasm-bindings-loader.mjs": "b2bc4abd1997b1d01d32ef4dba60f1e633a6503529752898f0c346e2b5de7158"
   }
 }

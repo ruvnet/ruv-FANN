@@ -14,9 +14,9 @@ The native environment is required for `opencv-sys`: install/bootstrap OpenCV an
 
 ## What is verified
 
-The default run covers all 26 candidates: root (1), swarm (14), forecasting (6), CUDA/WASM (1), and OpenCV (4). It copies tracked and non-ignored untracked source files into the output directory, excluding target/node caches, agent state, databases, and generated crate artifacts. Internal symlinks are rebased into that copy and external symlinks are rejected. Cargo commands run only in that isolated snapshot. Existing workspace target caches may be reused; live source and locks are not edited.
+The default run covers all 27 candidates: root (1), swarm (14), forecasting (6), CUDA/WASM (1), OpenCV (4), and Candle (1). It copies tracked and non-ignored untracked source files into the output directory, excluding target/node caches, agent state, databases, and generated crate artifacts. Internal symlinks are rebased into that copy and external symlinks are rejected. Cargo commands run only in that isolated snapshot. Existing workspace target caches may be reused; live source and locks are not edited.
 
-The root archive is packaged and verified first. For swarm and forecasting, its exact verified archive is extracted into an isolated Cargo directory-source catalog. Existing cached registry payloads are linked into that catalog, with file hashes derived from the reviewed `.crate` bytes. Only the external root dependency is redirected from a checkout path to that verified registry identity. The root's development dependencies therefore do not alter a dependent workspace's reviewed dependency graph.
+The root archive is packaged and verified first. For swarm, forecasting, and Candle, its exact verified archive is extracted into an isolated Cargo directory-source catalog. Existing cached registry payloads are linked into that catalog, with file hashes derived from the reviewed `.crate` bytes. Only the external root dependency is redirected from a checkout path to that verified registry identity. The root's development dependencies therefore do not alter a dependent workspace's reviewed dependency graph.
 
 Cargo's automatic multi-package staging does not support a directory-source upstream. Dependent families are consequently packaged **one candidate at a time in dependency order**, using normal Cargo verification; each successful immutable archive is then added to the isolated catalog before verifying its consumers. The real offline regression covers a root archive and two internally dependent candidates. Independent root/CUDA/OpenCV workspaces retain normal `cargo package --workspace` staging. Source replacement is passed on Cargo's command line, so temporary configuration cannot leak into an archive.
 
@@ -31,7 +31,7 @@ python3 scripts/verify-release.py --output /workspace/scratch/forecast-candidate
 python3 scripts/verify-release.py --output /workspace/scratch/native-candidates --workspace cuda-wasm --workspace opencv-rust --target-root /workspace/scratch/release-cache
 ```
 
-`--workspace` accepts `.`, `ruv-swarm`, `neuro-divergent`, `cuda-wasm`, and `opencv-rust`, plus the short aliases shown by `--help`. Selecting swarm or forecasting automatically selects the root first. Use a new empty output directory for each run so an existing immutable receipt/archive cannot be overwritten. Without a cache option, targets are isolated under the output directory; that uses more disk. The driver does not clean caches or run concurrently with their owners.
+`--workspace` accepts `.`, `ruv-swarm`, `neuro-divergent`, `cuda-wasm`, `opencv-rust`, and `integrations/candle`, plus the short aliases shown by `--help`. Selecting swarm, forecasting, or Candle automatically selects the root first. Use a new empty output directory for each run so an existing immutable receipt/archive cannot be overwritten. Without a cache option, targets are isolated under the output directory; that uses more disk. The driver does not clean caches or run concurrently with their owners.
 
 ## Receipts and publication
 

@@ -15,7 +15,7 @@
  * - Graceful degradation under pressure
  */
 
-import Database from 'better-sqlite3';
+import Database from './sqlite-engine.js';
 import { Worker } from 'worker_threads';
 import { EventEmitter } from 'events';
 import path from 'path';

@@ -98,34 +98,20 @@ impl MigrationManager {
         ]
     }
 
-    /// Run pending migrations
+    /// Serialize schema discovery and all pending changes in one write transaction.
+    /// Concurrent processes must read the migration version only after acquiring
+    /// the write reservation, so they cannot apply the same version twice.
     pub fn migrate(&self, conn: &Connection) -> Result<(), StorageError> {
-        // Ensure migrations table exists
-        self.ensure_migrations_table(conn)?;
-
-        // Get current version
-        let current_version = self.get_current_version(conn)?;
+        let tx = rusqlite::Transaction::new_unchecked(
+            conn, rusqlite::TransactionBehavior::Immediate,
+        ).map_err(|e| StorageError::Transaction(e.to_string()))?;
+        self.ensure_migrations_table(&tx)?;
+        let current_version = self.get_current_version(&tx)?;
         info!("Current schema version: {}", current_version);
-
-        // Run pending migrations
-        let pending_migrations: Vec<_> = self
-            .migrations
-            .iter()
-            .filter(|m| m.version > current_version)
-            .collect();
-
-        if pending_migrations.is_empty() {
-            info!("No pending migrations");
-            return Ok(());
+        for migration in self.migrations.iter().filter(|m| m.version > current_version) {
+            self.run_migration(&tx, migration)?;
         }
-
-        info!("Found {} pending migrations", pending_migrations.len());
-
-        for migration in pending_migrations {
-            self.run_migration(conn, migration)?;
-        }
-
-        Ok(())
+        tx.commit().map_err(|e| StorageError::Transaction(e.to_string()))
     }
 
     /// Rollback to specific version
@@ -213,13 +199,9 @@ impl MigrationManager {
             migration.version, migration.name
         );
 
-        // Start transaction
-        let tx = conn
-            .unchecked_transaction()
-            .map_err(|e| StorageError::Transaction(e.to_string()))?;
-
+        // migrate() owns the write transaction, including version discovery.
         // Run migration
-        tx.execute_batch(migration.up).map_err(|e| {
+        conn.execute_batch(migration.up).map_err(|e| {
             StorageError::Migration(format!(
                 "Failed to run migration {}: {}",
                 migration.version, e
@@ -227,7 +209,7 @@ impl MigrationManager {
         })?;
 
         // Record migration
-        tx.execute(
+        conn.execute(
             "INSERT INTO schema_migrations (version, name, applied_at) VALUES (?1, ?2, ?3)",
             rusqlite::params![
                 migration.version,
@@ -236,10 +218,6 @@ impl MigrationManager {
             ],
         )
         .map_err(|e| StorageError::Database(e.to_string()))?;
-
-        // Commit transaction
-        tx.commit()
-            .map_err(|e| StorageError::Transaction(e.to_string()))?;
 
         debug!("Completed migration {}", migration.version);
         Ok(())
@@ -339,4 +317,76 @@ mod tests {
         assert_eq!(status.current_version, version);
         assert!(status.pending.is_empty());
     }
+    #[test]
+    fn concurrent_first_open_applies_each_migration_once() {
+        use std::sync::{Arc, Barrier};
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("shared.sqlite");
+        let barrier = Arc::new(Barrier::new(8));
+        std::thread::scope(|scope| {
+            let mut workers = Vec::new();
+            for _ in 0..8 {
+                let path = path.clone();
+                let barrier = Arc::clone(&barrier);
+                workers.push(scope.spawn(move || {
+                    let conn = Connection::open(path).unwrap();
+                    conn.busy_timeout(std::time::Duration::from_secs(10)).unwrap();
+                    barrier.wait();
+                    MigrationManager::new().migrate(&conn)
+                }));
+            }
+            for worker in workers {
+                worker.join().unwrap().unwrap();
+            }
+        });
+        let conn = Connection::open(path).unwrap();
+        let manager = MigrationManager::new();
+        let count: i64 = conn.query_row("SELECT COUNT(*) FROM schema_migrations", [], |r| r.get(0)).unwrap();
+        assert_eq!(count, manager.migrations.len() as i64);
+        assert!(manager.get_status(&conn).unwrap().pending.is_empty());
+    }
+
+    #[test]
+    fn failed_migration_rolls_back_schema_and_version_together() {
+        let conn = Connection::open_in_memory().unwrap();
+        let manager = MigrationManager { migrations: vec![
+            Migration { version: 1, name: "first", up: "CREATE TABLE first(value INTEGER);", down: None },
+            Migration { version: 2, name: "broken", up: "INSERT INTO absent VALUES(1);", down: None },
+        ] };
+        assert!(manager.migrate(&conn).is_err());
+        assert!(conn.is_autocommit());
+        let count: i64 = conn.query_row("SELECT COUNT(*) FROM sqlite_master WHERE name IN ('first','schema_migrations')", [], |r| r.get(0)).unwrap();
+        assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn concurrent_migration_planning_reserves_writer_before_reading_version() {
+        use std::sync::{Arc, Barrier};
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("planning.sqlite");
+        MigrationManager::new().ensure_migrations_table(&Connection::open(&path).unwrap()).unwrap();
+        let barrier = Arc::new(Barrier::new(2));
+        std::thread::scope(|scope| {
+            let mut workers = Vec::new();
+            for _ in 0..2 {
+                let path = path.clone();
+                let barrier = Arc::clone(&barrier);
+                workers.push(scope.spawn(move || {
+                    let conn = Connection::open(path).unwrap();
+                    conn.busy_timeout(std::time::Duration::from_secs(10)).unwrap();
+                    let manager = MigrationManager { migrations: vec![Migration {
+                        version: 1, name: "slow_read_then_write", down: None,
+                        up: "WITH RECURSIVE n(x) AS (VALUES(0) UNION ALL SELECT x+1 FROM n WHERE x<100000) SELECT sum(x) FROM n; CREATE TABLE IF NOT EXISTS data(value INTEGER);",
+                    }] };
+                    barrier.wait();
+                    manager.migrate(&conn)
+                }));
+            }
+            for worker in workers { worker.join().unwrap().unwrap(); }
+        });
+        let conn = Connection::open(path).unwrap();
+        let count: i64 = conn.query_row("SELECT COUNT(*) FROM schema_migrations", [], |r| r.get(0)).unwrap();
+        assert_eq!(count, 1);
+    }
+
 }

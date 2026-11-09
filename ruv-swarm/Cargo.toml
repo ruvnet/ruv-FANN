@@ -31,7 +31,7 @@ description = "High-performance neural network swarm orchestration framework wit
 readme = "README.md"
 keywords = ["neural-network", "wasm", "swarm", "ai", "mcp"]
 categories = ["algorithms", "science", "wasm", "web-programming"]
-rust-version = "1.88"
+rust-version = "1.89"
 
 [workspace.dependencies]
 # Async runtime (WASM-compatible subset)
@@ -89,9 +89,8 @@ tungstenite = "0.23"
 shared_memory = "0.12"
 
 # Persistence dependencies
-rusqlite = { version = "0.32", features = ["bundled"] }
+rusqlite = { version = "=0.41.1", default-features = false, features = ["bundled", "cache"] }
 r2d2 = "0.8"
-r2d2_sqlite = "0.25"
 
 [profile.dev]
 opt-level = 0

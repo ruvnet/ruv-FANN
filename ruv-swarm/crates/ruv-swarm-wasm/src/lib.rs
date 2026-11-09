@@ -29,7 +29,7 @@ pub fn init() {
 }
 
 pub use network::{ActivationFunction, WasmNeuralNetwork};
-pub use prepared::{WasmPreparedBatch, WasmPreparedNetwork};
+pub use prepared::{WasmPreparedBatch, WasmPreparedNetwork, WasmTrainableNetwork};
 
 pub use orchestration::{WasmAgent, WasmSwarmOrchestrator, WasmTaskResult};
 
@@ -67,6 +67,9 @@ pub fn get_features() -> String {
         "neural_networks": true,
         "prepared_inference": true,
         "prepared_batching": true,
+        "dense_layers_import": true,
+        "dense_autograd": true,
+        "dense_optimizers": ["sgd", "adamw"],
         "prepared_batch_simd": cfg!(all(target_arch = "wasm32", target_feature = "simd128")),
         "forecasting": true,
         "conformal_intervals": true,

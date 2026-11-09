@@ -55,7 +55,6 @@ uuid = { workspace = true, features = ["js"] }
 # Database
 rusqlite = { workspace = true, features = ["backup", "modern_sqlite", "serde_json"] }
 r2d2 = { workspace = true }
-r2d2_sqlite = { workspace = true }
 # sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "migrate"], optional = true }
 
 

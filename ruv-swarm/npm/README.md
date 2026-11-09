@@ -8,7 +8,7 @@ A JavaScript API and command-line tool for coordinating agents, storing task sta
 
 ## Install
 
-Use Node.js **22.13 or newer**. SQLite uses a native addon; npm may need a C++ build toolchain when a matching prebuilt addon is unavailable. The maintained development tools also require this minimum.
+Use Node.js **22.13 or newer**, Python 3 and a **C++20 build toolchain**. The checkout builds its SQLite addon from verified source: published Node wrappers still bundle an older affected SQLite. Installation pins the compatible `better-sqlite3` 12.11.1 wrapper and builds SQLite 3.54.1 from an archive and file hashes recorded in `scripts/sqlite-source.json`. It honors the host proxy and CA settings; unverified/default prebuilt binaries cannot open application databases.
 
 ```sh
 npm install ruv-swarm
@@ -17,6 +17,22 @@ npx ruv-swarm --version
 ```
 
 Pin the version you have tested in applications and MCP client configurations. The npm package and Rust crates have separate version numbers.
+
+The package installs one binding per platform, architecture and Node ABI under
+`native/sqlite/`. Database construction checks its receipt, source/binary hashes,
+ABI and actual `sqlite_version()`/`sqlite_source_id()` using a private memory DB
+before opening a user file. Rebuild after changing Node ABI:
+
+```sh
+npm run build:sqlite
+node scripts/sqlite-build.mjs --verify
+```
+
+`--ignore-scripts` installations can use the independent WASM exports and help
+commands. Database-backed commands report an actionable error until the patched
+source build succeeds. The builder never substitutes a vulnerable prebuilt addon
+after a build failure. Root workspace installation builds the workspace package,
+then verifies the result from its root lifecycle hook.
 
 ## Start the MCP server
 
@@ -39,9 +55,49 @@ Configure your client to launch that command using stdio. For example:
 
 Use `ruv-swarm mcp tools` to list tools. The WebSocket server is not implemented in this distribution.
 
-The server exposes 17 supported tools for persisted local metadata, dense inference, statistical forecasts, memory observations, and measured local benchmarks. Missing tasks return errors. Training, autonomous DAA execution, learned-pattern analysis, and external model execution are unavailable and return explicit errors.
+The server exposes 17 supported tools for persisted local metadata, dense inference, statistical forecasts, memory observations, and measured local benchmarks. Missing tasks return errors. MCP training tools, autonomous DAA execution, learned-pattern analysis, and external model execution are unavailable and return explicit errors. The JavaScript API below separately exposes dense autograd training.
 
 The server accepts newline-delimited JSON-RPC. Each frame is limited to 1 MiB of UTF-8 data, and each process accepts up to 32 pending requests. Outgoing frames have the same limit; slow clients have a bounded 4 MiB reply queue. Closing stdin drains pending replies before shutdown. Oversized frames are discarded through the next newline so subsequent requests can still be handled. Local metadata is limited to 64 swarms, 1,000 agents, and 10,000 tasks per database; exceeding a limit fails explicitly. Monitoring records at most 100 aggregate snapshots per call. Keep access to the process and its SQLite files limited to the users who should control those agents.
+
+## Train a small network through WASM
+
+The checkout's JavaScript API runs the shared Rust reverse-mode engine:
+
+```js
+import { RuvSwarm } from 'ruv-swarm';
+const runtime = await RuvSwarm.initialize({ useSIMD: true });
+const json = JSON.stringify({ schema: 'ruv-fann.dense-layers/1', layers: [
+  { inputs: 1, outputs: 1, weights: [0], bias: [0], activation: 'Linear', steepness: 1 },
+] });
+const model = runtime.createTrainableNetwork(json, 2);
+const loss = model.mse_backward(Float64Array.of(1, 2), Float64Array.of(2, 4), 2);
+console.log(loss, model.parameter_gradients()); // 10; [-10, -6]
+model.sgd_step(0.1);
+const prepared = model.prepare();
+model.free();
+console.log(prepared.run(Float64Array.of(2))); // [2.6]
+prepared.free();
+```
+
+For AdamW, call `configure_adamw(lr, beta1, beta2, epsilon, weightDecay)` once,
+then alternate `mse_backward` and `adamw_step`. Each step consumes its gradients.
+Changing parameters through SGD requires resetting AdamW. Returned predictions
+and parameter/input gradient arrays are owned copies. `to_dense_layers_json()`
+checkpoints topology and weights; it does not serialize optimizer moments.
+
+Training supports Linear, Sigmoid, Tanh, SigmoidSymmetric and ReLU in Float64.
+JSON is limited to 4 MiB UTF-8 and 64 layers. Capacity is 1–4096 rows, combined
+requested training storage is at most 64 MiB, and conservative per-call work
+counts are capped. Pass ordinary JS-owned Float64Arrays; shared, detached and
+WASM-memory views are rejected. Setup, returned array copies and JSON export
+allocate; repeated backward and optimizer calls reuse Rust numerical buffers.
+
+For inference-only Candle exports, use `runtime.createDensePreparedNetwork(json)`.
+Browsers import `WasmTrainableNetwork` and `WasmPreparedNetwork` directly from the
+generated bindings. The optional [native Node package](../../bindings/napi/README.md)
+uses napi-rs to run the same core. See the
+[Candle adapter](../../integrations/candle/README.md) for actual tensor export
+and independent CPU gradient tests.
 
 ## Run commands
 

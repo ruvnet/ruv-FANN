@@ -2,7 +2,14 @@
 
 Expose swarm operations to MCP clients over stdio, or use the separate local JSON-RPC/WebSocket server. These transports have different resource-management paths.
 
-**Rust 1.88 or later is required** for this package and the updated MCP SDK dependency.
+**Rust 1.89 or later is required** by this package's patched native SQLite
+persistence dependency. The MCP SDK itself supports Rust 1.88.
+
+The stdio SDK is pinned to `rmcp 3.9.0`, which fixes RUSTSEC-2026-0462 by
+bounding nonstreaming HTTP responses. This crate enables only the SDK's server,
+macros and stdio features; its HTTP client is not enabled. Incoming stdio lines
+are separately capped at 1 MiB before buffering. Oversized lines are discarded,
+and subsequent valid requests can continue on the same connection.
 
 ## Start a local server
 
@@ -34,6 +41,8 @@ These protections do not cover all stdio service paths. The service has no compl
 cargo test --locked -p ruv-swarm-mcp --lib
 cargo check --locked -p ruv-swarm-mcp --bins
 cargo test --locked -p ruv-swarm-mcp --bin ruv-swarm-mcp
+# After building the actual stdio binary, run a bounded protocol round trip.
+python3 crates/ruv-swarm-mcp/test_stdio.py --binary /absolute/target/debug/ruv-swarm-mcp-stdio
 ```
 
 New regressions test concurrent quota reservations, memory arithmetic and bounded defaults. Several older security tests only validate request construction; their names do not establish end-to-end protection.

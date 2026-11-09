@@ -40,6 +40,7 @@ def fixture(root: Path) -> None:
         write(root / name, "Fixture data\n")
     for directory in ("src", "tests", "examples", "benches"):
         write(root / directory / "fixture.rs", "// Real-process boundary fixture, not an E2E substitute.\n")
+    write(root / "tests/autograd/validation.rs", "// Nested training regression helper.\n")
     write(root / "src/lib.rs", "pub fn fixture() {}\n")
     write(root / "config/rune-probe/Cargo.toml",
           '[package]\nname="ruv-fann-rune-probe"\nversion="0.0.0"\npublish=false\n'
@@ -70,6 +71,7 @@ class SnapshotTests(unittest.TestCase):
         names = {item["path"] for item in result["source"]["files"]}
         self.assertIn("core/src/lib.rs", names)
         self.assertIn("core/Cargo.lock", names)
+        self.assertIn("core/tests/autograd/validation.rs", names)
         self.assertIn("Cargo.lock", names)
         self.assertFalse(any(".swarm" in name or ".claude" in name for name in names))
         self.assertEqual((output / "workspace/core/src/lib.rs").read_bytes(),
@@ -85,6 +87,13 @@ class SnapshotTests(unittest.TestCase):
         moved = {**files, "src/renamed.rs": files["src/lib.rs"]}
         del moved["src/lib.rs"]
         self.assertNotEqual(tree_digest(moved), unchanged)
+
+    def test_nested_autograd_helper_is_bound_to_the_source_digest(self) -> None:
+        files = source_files(self.repo, self.config)
+        self.assertIn("tests/autograd/validation.rs", files)
+        before = tree_digest(files)
+        write(self.repo / "tests/autograd/validation.rs", "// Changed validation helper.\n")
+        self.assertNotEqual(tree_digest(files), before)
 
     def test_digest_uses_rust_pathbuf_component_order(self) -> None:
         # Oracle order was executed with Rust std::path::PathBuf::sort:

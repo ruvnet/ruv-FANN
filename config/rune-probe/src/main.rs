@@ -3,7 +3,9 @@
 use ruv_fann::calibration::{
     CalibrationConfig, CalibrationLimits, CalibrationRecord, ForecastRecord, ResidualCalibrator,
 };
-use ruv_fann::{ActivationFunction as A, BatchFloat, Network};
+use ruv_fann::{
+    ActivationFunction as A, AdamW, AdamWConfig, AutogradNetwork, BatchFloat, DenseLayer, Network,
+};
 use std::fmt::Debug;
 
 const ACTIVATIONS: [A; 21] = [
@@ -156,9 +158,74 @@ fn calibration() {
     assert_eq!(engine.groups().next().unwrap().radii, [1025., 1845.]);
 }
 
+fn training<T: BatchFloat + Debug>() {
+    let weights = [T::zero()];
+    let bias = [T::zero()];
+    let layer = DenseLayer {
+        inputs: 1,
+        outputs: 1,
+        weights: &weights,
+        bias: Some(&bias),
+        activation: A::Linear,
+        steepness: T::one(),
+    };
+    let inputs = [-1., 0., 1.].map(|n| T::from(n).unwrap());
+    let targets = [-1., 1., 3.].map(|n| T::from(n).unwrap());
+    for adamw in [false, true] {
+        let mut model = AutogradNetwork::from_dense_layers(&[layer]).unwrap();
+        let bytes = model.workspace_bytes(3).unwrap();
+        assert!(model.workspace(3, bytes - 1).is_err());
+        let mut workspace = model.workspace(3, bytes).unwrap();
+        let frozen = model.prepare().unwrap();
+        let mut frozen_workspace = frozen.workspace().unwrap();
+        let mut optimizer = AdamW::new(
+            &model,
+            AdamWConfig {
+                learning_rate: T::from(0.05).unwrap(),
+                weight_decay: T::zero(),
+                ..AdamWConfig::default()
+            },
+            usize::MAX,
+        )
+        .unwrap();
+        let first = model
+            .backward_mse(&inputs, &targets, 3, &mut workspace)
+            .unwrap();
+        assert!((first.to_f64().unwrap() - 11. / 3.).abs() < 1e-6);
+        for _ in 0..300 {
+            if adamw {
+                model.adamw_step(&mut workspace, &mut optimizer).unwrap();
+            } else {
+                model
+                    .sgd_step(&mut workspace, T::from(0.05).unwrap())
+                    .unwrap();
+            }
+            model
+                .backward_mse(&inputs, &targets, 3, &mut workspace)
+                .unwrap();
+        }
+        let loss = model
+            .backward_mse(&inputs, &targets, 3, &mut workspace)
+            .unwrap();
+        assert!(loss < T::from(1e-6).unwrap());
+        assert_eq!(workspace.parameter_gradients().len(), 2);
+        assert_eq!(workspace.input_gradients().len(), 3);
+        let mut frozen_output = [T::nan()];
+        frozen
+            .run_into(&[T::one()], &mut frozen_output, &mut frozen_workspace)
+            .unwrap();
+        assert_eq!(frozen_output, [T::zero()]);
+        let before = model.parameters().to_vec();
+        assert!(model.sgd_step(&mut workspace, T::nan()).is_err());
+        assert_eq!(model.parameters(), before);
+    }
+}
+
 fn main() {
     let f32_rows = inference::<f32>();
     let f64_rows = inference::<f64>();
     calibration();
-    println!("{{\"status\":\"passed\",\"probe\":\"ruv-fann-core\",\"activations\":21,\"float32_rows\":{f32_rows},\"float64_rows\":{f64_rows},\"dense_sparse_duplicate_connections\":true,\"late_error_atomicity\":true,\"storage_budget_rejection\":true,\"calibration_groups\":2,\"intervals\":4,\"partial_selection_samples\":2048,\"past_only_guards\":true}}");
+    training::<f32>();
+    training::<f64>();
+    println!("{{\"status\":\"passed\",\"probe\":\"ruv-fann-core\",\"activations\":21,\"float32_rows\":{f32_rows},\"float64_rows\":{f64_rows},\"dense_sparse_duplicate_connections\":true,\"late_error_atomicity\":true,\"storage_budget_rejection\":true,\"dense_autograd\":true,\"mse_mean_all\":true,\"sgd_adamw_learning\":true,\"frozen_training_isolation\":true,\"calibration_groups\":2,\"intervals\":4,\"partial_selection_samples\":2048,\"past_only_guards\":true}}");
 }

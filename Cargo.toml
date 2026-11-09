@@ -15,6 +15,7 @@ include = [
     "/benches/**",
     "/examples/*.rs",
     "/tests/*.rs",
+    "/tests/autograd/**",
     "/docs/assets/*.svg",
     "/Cargo.toml",
     "/README.md",
@@ -34,7 +35,7 @@ crate-type = ["rlib", "cdylib"]
 [dependencies]
 # Core dependencies
 serde = { version = "1.0", features = ["derive"], optional = true }
-serde_json = { version = "1.0", optional = true }
+serde_json = { version = "1.0", optional = true, features = ["float_roundtrip"] }
 thiserror = "1.0"
 num-traits = "0.2"
 

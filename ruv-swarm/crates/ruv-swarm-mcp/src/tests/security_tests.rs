@@ -17,9 +17,10 @@ use tokio::time::timeout;
 #[tokio::test]
 async fn test_malformed_request_handling() {
     // Use unique database for this test
-    std::env::set_var("RUV_SWARM_DB_PATH", format!("test_malformed_request_{}.db", uuid::Uuid::new_v4()));
+    let database = tempfile::tempdir().unwrap();
+    let database_path = database.path().join("state.sqlite");
     let swarm_config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
+    let orchestrator = Arc::new(SwarmOrchestrator::with_database(swarm_config, database_path.to_str().unwrap()).await.unwrap());
     let mcp_config = McpConfig::default();
     let server = McpServer::new(orchestrator, mcp_config);
 
@@ -39,9 +40,10 @@ async fn test_malformed_request_handling() {
 #[tokio::test]
 async fn test_tool_parameter_validation() {
     // Use unique database for this test
-    std::env::set_var("RUV_SWARM_DB_PATH", format!("test_tool_parameter_validation_{}.db", uuid::Uuid::new_v4()));
+    let database = tempfile::tempdir().unwrap();
+    let database_path = database.path().join("state.sqlite");
     let swarm_config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
+    let orchestrator = Arc::new(SwarmOrchestrator::with_database(swarm_config, database_path.to_str().unwrap()).await.unwrap());
     let mcp_config = McpConfig::default();
     let _server = McpServer::new(orchestrator, mcp_config);
 
@@ -67,9 +69,10 @@ async fn test_tool_parameter_validation() {
 #[tokio::test]
 async fn test_resource_limits() {
     // Use unique database for this test
-    std::env::set_var("RUV_SWARM_DB_PATH", format!("test_resource_limits_{}.db", uuid::Uuid::new_v4()));
+    let database = tempfile::tempdir().unwrap();
+    let database_path = database.path().join("state.sqlite");
     let swarm_config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
+    let orchestrator = Arc::new(SwarmOrchestrator::with_database(swarm_config, database_path.to_str().unwrap()).await.unwrap());
     let mcp_config = McpConfig::default();
     let _server = McpServer::new(orchestrator, mcp_config);
 
@@ -100,9 +103,10 @@ async fn test_resource_limits() {
 #[tokio::test]
 async fn test_session_isolation() {
     // Use unique database for this test
-    std::env::set_var("RUV_SWARM_DB_PATH", format!("test_session_isolation_{}.db", uuid::Uuid::new_v4()));
+    let database = tempfile::tempdir().unwrap();
+    let database_path = database.path().join("state.sqlite");
     let swarm_config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
+    let orchestrator = Arc::new(SwarmOrchestrator::with_database(swarm_config, database_path.to_str().unwrap()).await.unwrap());
     let mcp_config = McpConfig::default();
     let _server = McpServer::new(orchestrator, mcp_config);
 
@@ -142,9 +146,10 @@ async fn test_session_isolation() {
 #[tokio::test]
 async fn test_secure_error_handling() {
     // Use unique database for this test
-    std::env::set_var("RUV_SWARM_DB_PATH", format!("test_secure_error_handling_{}.db", uuid::Uuid::new_v4()));
+    let database = tempfile::tempdir().unwrap();
+    let database_path = database.path().join("state.sqlite");
     let swarm_config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
+    let orchestrator = Arc::new(SwarmOrchestrator::with_database(swarm_config, database_path.to_str().unwrap()).await.unwrap());
     let mcp_config = McpConfig::default();
     let _server = McpServer::new(orchestrator, mcp_config);
 
@@ -167,9 +172,10 @@ async fn test_secure_error_handling() {
 #[tokio::test]
 async fn test_memory_storage_limits() {
     // Use unique database for this test
-    std::env::set_var("RUV_SWARM_DB_PATH", format!("test_memory_storage_limits_{}.db", uuid::Uuid::new_v4()));
+    let database = tempfile::tempdir().unwrap();
+    let database_path = database.path().join("state.sqlite");
     let swarm_config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
+    let orchestrator = Arc::new(SwarmOrchestrator::with_database(swarm_config, database_path.to_str().unwrap()).await.unwrap());
     let mcp_config = McpConfig::default();
     let _server = McpServer::new(orchestrator, mcp_config);
 
@@ -198,9 +204,10 @@ async fn test_memory_storage_limits() {
 #[tokio::test]
 async fn test_workflow_path_validation() {
     // Use unique database for this test
-    std::env::set_var("RUV_SWARM_DB_PATH", format!("test_workflow_path_validation_{}.db", uuid::Uuid::new_v4()));
+    let database = tempfile::tempdir().unwrap();
+    let database_path = database.path().join("state.sqlite");
     let swarm_config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
+    let orchestrator = Arc::new(SwarmOrchestrator::with_database(swarm_config, database_path.to_str().unwrap()).await.unwrap());
     let mcp_config = McpConfig::default();
     let _server = McpServer::new(orchestrator, mcp_config);
 
@@ -236,9 +243,10 @@ async fn test_workflow_path_validation() {
 #[tokio::test]
 async fn test_rate_limiting_behavior() {
     // Use unique database for this test
-    std::env::set_var("RUV_SWARM_DB_PATH", format!("test_rate_limiting_behavior_{}.db", uuid::Uuid::new_v4()));
+    let database = tempfile::tempdir().unwrap();
+    let database_path = database.path().join("state.sqlite");
     let swarm_config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
+    let orchestrator = Arc::new(SwarmOrchestrator::with_database(swarm_config, database_path.to_str().unwrap()).await.unwrap());
     let mcp_config = McpConfig::default();
     let _server = McpServer::new(orchestrator, mcp_config);
 
@@ -267,9 +275,10 @@ async fn test_rate_limiting_behavior() {
 #[tokio::test]
 async fn test_numeric_parameter_boundaries() {
     // Use unique database for this test
-    std::env::set_var("RUV_SWARM_DB_PATH", format!("test_numeric_parameter_boundaries_{}.db", uuid::Uuid::new_v4()));
+    let database = tempfile::tempdir().unwrap();
+    let database_path = database.path().join("state.sqlite");
     let swarm_config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
+    let orchestrator = Arc::new(SwarmOrchestrator::with_database(swarm_config, database_path.to_str().unwrap()).await.unwrap());
     let mcp_config = McpConfig::default();
     let _server = McpServer::new(orchestrator, mcp_config);
 
@@ -305,9 +314,10 @@ async fn test_numeric_parameter_boundaries() {
 #[tokio::test]
 async fn test_concurrent_connections() {
     // Use unique database for this test
-    std::env::set_var("RUV_SWARM_DB_PATH", format!("test_concurrent_connections_{}.db", uuid::Uuid::new_v4()));
+    let database = tempfile::tempdir().unwrap();
+    let database_path = database.path().join("state.sqlite");
     let swarm_config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
+    let orchestrator = Arc::new(SwarmOrchestrator::with_database(swarm_config, database_path.to_str().unwrap()).await.unwrap());
     let mcp_config = McpConfig::default();
     let _server = McpServer::new(orchestrator.clone(), mcp_config);
 
@@ -333,9 +343,10 @@ async fn test_concurrent_connections() {
 #[tokio::test]
 async fn test_agent_metrics_security() {
     // Use unique database for this test
-    std::env::set_var("RUV_SWARM_DB_PATH", format!("test_agent_metrics_security_{}.db", uuid::Uuid::new_v4()));
+    let database = tempfile::tempdir().unwrap();
+    let database_path = database.path().join("state.sqlite");
     let swarm_config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
+    let orchestrator = Arc::new(SwarmOrchestrator::with_database(swarm_config, database_path.to_str().unwrap()).await.unwrap());
     let mcp_config = McpConfig::default();
     let _server = McpServer::new(orchestrator.clone(), mcp_config);
 
@@ -351,9 +362,10 @@ async fn test_agent_metrics_security() {
 #[tokio::test]
 async fn test_websocket_message_limits() {
     // Use unique database for this test
-    std::env::set_var("RUV_SWARM_DB_PATH", format!("test_websocket_message_limits_{}.db", uuid::Uuid::new_v4()));
+    let database = tempfile::tempdir().unwrap();
+    let database_path = database.path().join("state.sqlite");
     let swarm_config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
+    let orchestrator = Arc::new(SwarmOrchestrator::with_database(swarm_config, database_path.to_str().unwrap()).await.unwrap());
     let mcp_config = McpConfig::default();
     let _server = McpServer::new(orchestrator, mcp_config);
 
@@ -381,9 +393,10 @@ async fn test_websocket_message_limits() {
 #[tokio::test]
 async fn test_monitoring_duration_limits() {
     // Use unique database for this test
-    std::env::set_var("RUV_SWARM_DB_PATH", format!("test_monitoring_duration_limits_{}.db", uuid::Uuid::new_v4()));
+    let database = tempfile::tempdir().unwrap();
+    let database_path = database.path().join("state.sqlite");
     let swarm_config = SwarmConfig::default();
-    let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
+    let orchestrator = Arc::new(SwarmOrchestrator::with_database(swarm_config, database_path.to_str().unwrap()).await.unwrap());
     let mcp_config = McpConfig::default();
     let _server = McpServer::new(orchestrator, mcp_config);
 

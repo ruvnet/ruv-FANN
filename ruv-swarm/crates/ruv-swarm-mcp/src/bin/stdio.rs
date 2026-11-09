@@ -4,19 +4,22 @@
 //! enabling direct integration with Claude Code and other MCP clients
 //! that use stdio transport.
 
-use rmcp::{ServiceExt, transport::stdio};
-use ruv_swarm_mcp::service::RealSwarmService;
-use ruv_swarm_mcp::orchestrator::SwarmOrchestrator;
+use rmcp::{
+    transport::{async_rw::AsyncRwTransport, stdio_pipes},
+    ServiceExt,
+};
 use ruv_swarm_core::SwarmConfig;
-use tracing_subscriber::{EnvFilter};
+use ruv_swarm_mcp::orchestrator::SwarmOrchestrator;
+use ruv_swarm_mcp::service::{RealSwarmService, MAX_STDIO_MESSAGE_BYTES};
 use std::sync::Arc;
+use tracing_subscriber::EnvFilter;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging - all logs go to stderr to keep stdout clean for MCP
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env().add_directive(tracing::Level::INFO.into()))
-        .with_writer(std::io::stderr)  // Critical: logs to stderr, not stdout
+        .with_writer(std::io::stderr) // Critical: logs to stderr, not stdout
         .with_ansi(false)
         .init();
 
@@ -26,9 +29,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let swarm_config = SwarmConfig::default();
     let orchestrator = Arc::new(SwarmOrchestrator::new(swarm_config).await);
     let service = RealSwarmService::new(orchestrator);
-    
-    // Create and run the server with STDIO transport
-    let server = service.serve(stdio()).await.inspect_err(|e| {
+
+    // Bound each incoming line before buffering; recover after discarding an oversized line.
+    let (input, output) = stdio_pipes();
+    let transport =
+        AsyncRwTransport::new_server(input, output).with_max_line_length(MAX_STDIO_MESSAGE_BYTES);
+    let server = service.serve(transport).await.inspect_err(|e| {
         tracing::error!("Error starting server: {}", e);
     })?;
 
