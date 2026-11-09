@@ -30,6 +30,8 @@ JOB_ENVIRONMENTS = {
         'PLAYWRIGHT_BROWSERS_PATH': 'candle-native-browser-binaries',
         'RUV_FANN_CANDLE_FIXTURE': 'candle-native-oracle/candle-f64-fixture.json'},
 }
+BROWSER_VERSION = '151.0.7922.34'
+BROWSER_SOURCE = 'playwright-core/browsers.json'
 
 
 def validate(workflow, ci):
@@ -255,6 +257,53 @@ class CandleNativeWorkflowTests(unittest.TestCase):
                 values = dict(line.split('=', 1) for line in destination.read_text().splitlines())
                 self.assertEqual(values, {key: str(root / suffix) for key, suffix in expected.items()})
 
+    def discovery(self, metadata=None, package_version='1.62.1', core_version='1.62.1'):
+        program = re.search(r"node <<'JS'\n(.*?)\nJS", self.stage('browser', 'setup')['run'], re.S).group(1)
+        with tempfile.TemporaryDirectory(prefix='chromium environment ') as directory:
+            root = pathlib.Path(directory)
+            module = root / 'node_modules/playwright'
+            module.mkdir(parents=True)
+            (module / 'package.json').write_text(json.dumps(dict(version=package_version)))
+            (module / 'index.js').write_text('module.exports={chromium:{executablePath:()=>process.env.RUV_FANN_TEST_CHROMIUM}};\n')
+            core = root / 'node_modules/playwright-core'
+            core.mkdir()
+            (core / 'package.json').write_text(json.dumps(dict(version=core_version)))
+            if metadata is None:
+                metadata = dict(browsers=[dict(name='chromium', browserVersion=BROWSER_VERSION),
+                    dict(name='chromium-headless-shell', browserVersion=BROWSER_VERSION)])
+            (core / 'browsers.json').write_text(json.dumps(metadata))
+            executable = root / 'browser bin/chromium'
+            executable.parent.mkdir()
+            executable.write_text('#!/bin/sh\nexit 0\n')
+            executable.chmod(0o700)
+            destination = root / 'github.env'
+            result = subprocess.run(['node'], input=program, cwd=root, text=True, capture_output=True, timeout=10,
+                env={**os.environ, 'NODE_PATH': str(root / 'node_modules'), 'GITHUB_ENV': str(destination),
+                    'RUV_FANN_TEST_CHROMIUM': str(executable)})
+            data = destination.read_bytes() if destination.exists() else b''
+            if result.returncode == 0:
+                values = dict(line.split('=', 1) for line in data.decode().splitlines())
+                self.assertTrue(pathlib.Path(values['CHROMIUM_PATH']).is_file())
+            return result, data, {'CHROMIUM_PATH': str(executable), 'EXPECTED_CHROMIUM_VERSION': BROWSER_VERSION,
+                'CHROMIUM_VERSION_SOURCE': BROWSER_SOURCE}
+
+    def test_browser_discovery_exports_metadata_and_real_newlines_with_space_safe_path(self):
+        result, data, expected = self.discovery()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(data.endswith(bytes([10])))
+        self.assertEqual(dict(line.split('=', 1) for line in data.decode().splitlines()), expected)
+
+    def test_browser_discovery_rejects_missing_duplicate_malformed_metadata_and_wrong_package(self):
+        for entries in ([], [dict(name='chromium')] * 2, [dict(name='chromium')],
+            [dict(name='chromium', browserVersion='151.0')]):
+            result, data, _ = self.discovery(dict(browsers=entries))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(data, b'')
+        for kwargs in ({'package_version': '1.62.0'}, {'core_version': '1.62.0'}):
+            result, data, _ = self.discovery(**kwargs)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(data, b'')
+
     def test_browser_proof_cannot_be_removed_or_replaced_with_synthetic_test(self):
         self.stage('browser', 'training')['run'] = 'echo browser passed'
         self.invalid('actual browser training not executed')
@@ -351,17 +400,25 @@ class CandleNativeWorkflowTests(unittest.TestCase):
                     atomicParametersPreserved=True, poisonedMetadataIgnored=True)) for variant in ('core', 'simd')]
             receipt = dict(schema='ruv-fann.browser-training/1', status='passed', actualWasmTraining=True,
                 actualCandle=True, actualRuVectorHnsw=True, coreAndSimd=True, crossOriginIsolated=True,
-                unchanged=True, playwright='1.62.1', externalRequests=0, fixtureSha256=sha(oracle_bytes),
+                unchanged=True, playwright='1.62.1', chromium=BROWSER_VERSION, expectedChromiumVersion=BROWSER_VERSION,
+                chromiumVersionSource=BROWSER_SOURCE, externalRequests=0, fixtureSha256=sha(oracle_bytes),
                 inputsBefore=before, inputsAfter=copy.deepcopy(before), cases=cases)
             if mutate:
                 mutate(receipt)
             (temporary / 'candle-native-browser/browser.json').write_text(json.dumps(receipt))
             return subprocess.run(['bash', '--noprofile', '--norc', '-eo', 'pipefail', '-c', self.stage('browser', 'evidence')['run']],
-                cwd=ROOT, env={**os.environ, 'RUNNER_TEMP': directory, 'RUV_FANN_CANDLE_FIXTURE': str(oracle)},
+                cwd=ROOT, env={**os.environ, 'RUNNER_TEMP': directory, 'RUV_FANN_CANDLE_FIXTURE': str(oracle),
+                    'EXPECTED_CHROMIUM_VERSION': BROWSER_VERSION, 'CHROMIUM_VERSION_SOURCE': BROWSER_SOURCE},
                 text=True, capture_output=True, timeout=15)
 
     def test_real_browser_gate_accepts_complete_training_and_retrieval(self):
         result = self.browser_gate(); self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_real_browser_gate_rejects_version_or_source_mismatch(self):
+        for mutate in (lambda r: r.update(chromium='156.0.8078.79'),
+            lambda r: r.update(expectedChromiumVersion='156.0.8078.79'),
+            lambda r: r.update(chromiumVersionSource='actual-browser')):
+            result = self.browser_gate(mutate); self.assertNotEqual(result.returncode, 0)
 
     def test_real_browser_gate_rejects_missing_training_boundary_or_candle_step(self):
         for mutate in (lambda r: r['cases'].pop(), lambda r: r['cases'][0]['candle']['optimizers'][0].update(parameterUpdates=1),

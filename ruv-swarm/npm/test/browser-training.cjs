@@ -5,6 +5,15 @@ const http = require('node:http');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 
+function checkedChromiumVersion(value, label) {
+  if (typeof value !== 'string' || value.length > 64 ||
+    !/^[1-9]\d*\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$/.test(value) ||
+    value.split('.').some(part => !Number.isSafeInteger(Number(part)))) {
+    throw new Error(label + ' must be a full Chromium MAJOR.MINOR.BUILD.PATCH version');
+  }
+  return value;
+}
+
 async function browserProof() {
   const check = (condition, label) => { if (!condition) throw new Error(label); };
   const read = async url => {
@@ -219,6 +228,15 @@ async function browserProof() {
   if (process.argv.length !== 4 || process.argv[2] !== '--output') throw new Error('Use --output NEW_EXTERNAL_JSON');
   if (playwrightVersion !== '1.62.1') throw new Error('Playwright 1.62.1 is required');
   if (!process.env.RUV_FANN_CANDLE_FIXTURE) throw new Error('RUV_FANN_CANDLE_FIXTURE is required; no skipped oracle');
+  const expectedChromiumVersion = Object.hasOwn(process.env, 'EXPECTED_CHROMIUM_VERSION')
+    ? checkedChromiumVersion(process.env.EXPECTED_CHROMIUM_VERSION, 'EXPECTED_CHROMIUM_VERSION') : null;
+  const chromiumVersionSource = expectedChromiumVersion === null
+    ? 'actual-browser' : process.env.CHROMIUM_VERSION_SOURCE ?? 'explicit-environment';
+  if ((expectedChromiumVersion === null && Object.hasOwn(process.env, 'CHROMIUM_VERSION_SOURCE')) ||
+    !['actual-browser', 'explicit-environment', 'playwright-core/browsers.json'].includes(chromiumVersionSource) ||
+    (expectedChromiumVersion !== null && chromiumVersionSource === 'actual-browser')) {
+    throw new Error('CHROMIUM_VERSION_SOURCE must identify the supplied expected version');
+  }
   const helper = await import('../../../integrations/ruv-fann/test/e2e/fixture.mjs');
   const output = await helper.externalEvidencePath(process.argv[3]);
   const fixturePath = await fs.realpath(process.env.RUV_FANN_CANDLE_FIXTURE);
@@ -275,7 +293,10 @@ async function browserProof() {
       executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', headless: true,
       args: ['--no-sandbox', '--disable-dev-shm-usage']
     });
-    if (!browser.version().startsWith('156.')) throw new Error('Chromium 156 is required');
+    const actualChromiumVersion = checkedChromiumVersion(browser.version(), 'Actual browser version');
+    if (expectedChromiumVersion !== null && actualChromiumVersion !== expectedChromiumVersion) {
+      throw new Error('Chromium version mismatch: expected ' + expectedChromiumVersion + ', got ' + actualChromiumVersion);
+    }
     const context = await browser.newContext({ serviceWorkers: 'block' });
     const page = await context.newPage(), errors = [], externalRequests = [];
     page.on('pageerror', error => errors.push(error.message));
@@ -295,7 +316,8 @@ async function browserProof() {
     const after = await snapshot();
     if (JSON.stringify(before) !== JSON.stringify(after)) throw new Error('Source changed during browser proof');
     Object.assign(result, {
-      playwright: playwrightVersion, chromium: browser.version(), node: process.version,
+      playwright: playwrightVersion, chromium: actualChromiumVersion,
+      expectedChromiumVersion, chromiumVersionSource, node: process.version,
       fixtureSha256: helper.sha(fixture), inputsBefore: before, inputsAfter: after,
       unchanged: true, externalRequests: externalRequests.length
     });

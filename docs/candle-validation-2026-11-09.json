@@ -181,7 +181,9 @@
     "maximumAbsoluteError": 2.220446049250313e-16,
     "externalRequests": 0,
     "sourceUnchanged": true,
-    "receiptSha256": "3c518850db2f331982790785af72f690c8a985ff21cae8699ee0c2b59663430e"
+    "receiptSha256": "14221589665672e011e8aec24b0ebd2ee62597d80c4ce0a2441398a4b4f494f9",
+    "expectedChromiumVersion": "156.0.8078.79",
+    "versionSource": "explicit-environment"
   },
   "rune": {
     "upstream": {
@@ -259,11 +261,11 @@
     "scope": "Actual native-backed SDK execution; negative confirmation retained; no source promotion."
   },
   "ciAndReview": {
-    "workflowTestsPassed": 87,
+    "workflowTestsPassed": 90,
     "exactGenuineReceiptGuardsPassed": 3,
     "validationSha256": "71ca1ab4fa9caa5d46b157aedfa967ec9e1825704777bb13c9cef5c2121a3f69",
     "independentReviewSha256": "15423a53ecbe16166ac3679cf1a12874ec015a9b481547429d9efb2e6721e116",
-    "workflowSha256": "76a70d8f04283c10a780b796480cebc79e350343662cf4f44851dd2e407c95ec",
+    "workflowSha256": "b99818d3bdb4236646abc7cb3c23df5505f4b85e312af855f5c85850a3051295",
     "hostedExecution": "PR checks; local tests do not assert a hosted run.",
     "actionlint": {
       "version": "1.7.12",
@@ -275,6 +277,15 @@
       "cause": "runner context unavailable in job-level env; six paths moved to initialization via GITHUB_ENV",
       "receiptSha256": "58240dd7a6590460ed0cf4f9dad2543723f1cc92a0ee38b2df74515a9ac8b7c9",
       "runtimeOrEvidenceGuardChanges": false
+    },
+    "chromiumMetadataFix": {
+      "pinnedPlaywright": "1.62.1",
+      "bundledChromium": "151.0.7922.34",
+      "localSystemChromium": "156.0.8078.79",
+      "exactVersionAndSourceRequiredInCi": true,
+      "receiptSha256": "fb2d9b7c18531fe8ee6da662963b910f6cd4fb603ac771a6725fa6340269d166",
+      "versionRegressionCases": 13,
+      "hostedRerunPending": true
     }
   },
   "claudePlugin": {

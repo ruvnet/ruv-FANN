@@ -422,8 +422,13 @@ jobs:
           npm install --prefix "$RUNNER_TEMP/candle-native-browser-tools" --no-save --ignore-scripts playwright@1.62.1 2>&1 | tee "$RUNNER_TEMP/candle-native-browser/setup.log"
           "$RUNNER_TEMP/candle-native-browser-tools/node_modules/.bin/playwright" install --with-deps chromium 2>&1 | tee "$RUNNER_TEMP/candle-native-browser/chromium.log"
           node <<'JS'
-          const fs = require('node:fs'), {chromium} = require('playwright');
-          fs.appendFileSync(process.env.GITHUB_ENV, `CHROMIUM_PATH=${chromium.executablePath()}\n`);
+          const fs = require('node:fs'), path = require('node:path'), assert = require('node:assert/strict'), {chromium} = require('playwright');
+          assert.equal(require('playwright/package.json').version, '1.62.1'); assert.equal(require('playwright-core/package.json').version, '1.62.1');
+          const metadata = path.join(path.dirname(require.resolve('playwright-core/package.json')), 'browsers.json');
+          const entries = JSON.parse(fs.readFileSync(metadata, 'utf8')).browsers.filter(entry => entry.name === 'chromium');
+          assert.equal(entries.length, 1);
+          const expected = entries[0].browserVersion; assert.match(expected, /^\d+\.\d+\.\d+\.\d+$/);
+          fs.appendFileSync(process.env.GITHUB_ENV, `CHROMIUM_PATH=${chromium.executablePath()}\nEXPECTED_CHROMIUM_VERSION=${expected}\nCHROMIUM_VERSION_SOURCE=playwright-core/browsers.json\n`);
           JS
       - name: Run actual Chromium core and SIMD training against Candle
         id: training
@@ -441,6 +446,9 @@ jobs:
           assert.equal(receipt.schema, 'ruv-fann.browser-training/1'); assert.equal(receipt.status, 'passed');
           for (const key of ['actualWasmTraining', 'actualCandle', 'actualRuVectorHnsw', 'coreAndSimd', 'crossOriginIsolated', 'unchanged']) assert.equal(receipt[key], true, `missing actual browser proof: ${key}`);
           assert.equal(receipt.playwright, '1.62.1'); assert.equal(receipt.externalRequests, 0);
+          assert.match(process.env.EXPECTED_CHROMIUM_VERSION, /^\d+\.\d+\.\d+\.\d+$/);
+          assert.equal(receipt.chromium, process.env.EXPECTED_CHROMIUM_VERSION); assert.equal(receipt.expectedChromiumVersion, process.env.EXPECTED_CHROMIUM_VERSION);
+          assert.equal(process.env.CHROMIUM_VERSION_SOURCE, 'playwright-core/browsers.json'); assert.equal(receipt.chromiumVersionSource, process.env.CHROMIUM_VERSION_SOURCE);
           assert.equal(receipt.fixtureSha256, hash(readFileSync(process.env.RUV_FANN_CANDLE_FIXTURE)));
           assert(Object.keys(receipt.inputsBefore).length >= 4); assert.deepEqual(receipt.inputsAfter, receipt.inputsBefore);
           for (const digest of Object.values(receipt.inputsBefore)) assert.match(digest, /^[a-f0-9]{64}$/);

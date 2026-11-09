@@ -24,7 +24,7 @@ actual source/build/proof hashes. No registry release was performed.
 | Chromium 156 / Playwright 1.62.1 | Both binaries matched actual Candle, learned a regression, passed 112 rejection cases, and used trained frozen snapshots in four real HNSW lifecycle checks |
 | Pinned Rune | Frozen build, replay, fresh verification, real training/inference probe, release correctness and stale-source/plan/object rejection passed |
 | Claude plugin 0.1.5 | Eight skills, structural validation and 39 helper/package tests passed; current Claude-host execution was not claimed |
-| CI contracts | All 87 workflow tests, actionlint on nine workflows, and exact genuine native/browser receipt guards passed locally |
+| CI contracts | All 90 workflow tests, actionlint on nine workflows, and exact genuine native/browser receipt guards passed locally |
 
 The local root SQLite addon targets Node 24. For the full existing CLI/MCP suite
 on Node 22, a private test loader selected an independently built Node 22
