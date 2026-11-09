@@ -17,8 +17,8 @@ import time
 import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
-WORKSPACES = {".": 1, "ruv-swarm": 14, "neuro-divergent": 6, "cuda-wasm": 1, "opencv-rust": 4}
-ALIASES = {"root": ".", "swarm": "ruv-swarm", "forecasting": "neuro-divergent", "cuda": "cuda-wasm", "opencv": "opencv-rust"}
+WORKSPACES = {".": 1, "ruv-swarm": 14, "neuro-divergent": 6, "cuda-wasm": 1, "opencv-rust": 4, "integrations/candle": 1}
+ALIASES = {"root": ".", "swarm": "ruv-swarm", "forecasting": "neuro-divergent", "cuda": "cuda-wasm", "opencv": "opencv-rust", "candle": "integrations/candle"}
 EPHEMERAL = {".git", "target", "node_modules", "dist", ".hive-mind", ".swarm", ".claude-flow", ".ruflo", ".ruv-swarm", ".claude", ".claude.json", ".mcp.json", ".roo", ".roomodes", "__pycache__", ".pytest_cache"}
 ARTIFACT = re.compile(r"(?:\.db(?:-wal|-shm|-journal)?|\.sqlite\d*(?:-wal|-shm|-journal)?|\.crate|\.rmeta|\.rlib|\.pyc)$")
 
@@ -299,7 +299,7 @@ def verify(args):
     output.mkdir(parents=True, exist_ok=True)
     (output / "logs").mkdir(); (output / "archives").mkdir()
     requested = [ALIASES.get(name, name) for name in (args.workspace or WORKSPACES)]
-    if any(name in requested for name in ("ruv-swarm", "neuro-divergent")) and "." not in requested: requested.insert(0, ".")
+    if any(name in requested for name in ("ruv-swarm", "neuro-divergent", "integrations/candle")) and "." not in requested: requested.insert(0, ".")
     selected = [name for name in WORKSPACES if name in requested]
     live_locks = {name: digest(repo / name / "Cargo.lock") for name in selected}
     receipt = {"schema_version": 1, "verified": False, "requested_workspaces": selected,
@@ -325,10 +325,10 @@ def verify(args):
             if args.reuse_targets: target = repo / workspace / "target"
             else: target = (args.target_root or output / "targets").resolve() / ("root" if workspace == "." else workspace)
             stage_env = env | {"CARGO_TARGET_DIR": str(target)}
-            if workspace in ("ruv-swarm", "neuro-divergent"):
+            if workspace in ("ruv-swarm", "neuro-divergent", "integrations/candle"):
                 if root_archive is None: raise ValueError("Root archive must be verified before dependent families")
-                execute(["cargo", "fetch", "--locked"], folder, stage_env, output, receipt, f"{workspace}-reviewed-fetch")
-                original_log = execute(["cargo", "metadata", "--locked", "--format-version", "1"], folder, stage_env, output, receipt, f"{workspace}-reviewed-metadata")
+                execute(["cargo", "fetch", "--locked"], folder, stage_env, output, receipt, f"{workspace.replace('/', '-')}-reviewed-fetch")
+                original_log = execute(["cargo", "metadata", "--locked", "--format-version", "1"], folder, stage_env, output, receipt, f"{workspace.replace('/', '-')}-reviewed-metadata")
                 original = next(json.loads(line) for line in original_log.read_text().splitlines() if line.startswith('{"packages":'))
                 if external_lock(folder / "Cargo.lock") != before: raise ValueError("Reviewed metadata changed the snapshot lock")
                 extracted, root_info = registry_overlay(root_archive, output, original, folder / "Cargo.lock")

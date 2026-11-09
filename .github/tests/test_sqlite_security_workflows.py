@@ -101,8 +101,8 @@ def validate(workflow, ci):
     commands = {'install': 'npm ci --ignore-scripts --prefix ruv-swarm/npm',
         'build': 'node ruv-swarm/npm/scripts/sqlite-build.mjs',
         'verify': 'node ruv-swarm/npm/scripts/sqlite-build.mjs --verify',
-        'focused': 'node --test ruv-swarm/npm/test/sqlite-engine.test.js',
-        'security': 'npm run test:security --prefix ruv-swarm/npm',
+        'focused': 'node --test --test-reporter=tap ruv-swarm/npm/test/sqlite-engine.test.js',
+        'security': 'NODE_OPTIONS=--test-reporter=tap npm run test:security --prefix ruv-swarm/npm',
         'package': 'node ruv-swarm/npm/test/check-sqlite-package.mjs --output "$RUNNER_TEMP/sqlite-security-node/package"',
         'audit': 'npm audit --audit-level=low --prefix ruv-swarm/npm'}
     for name, command in commands.items():

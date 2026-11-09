@@ -130,6 +130,7 @@
     },
     "glob@>=9.0.0 <=14.0.1": "^14.0.2",
     "test-exclude": {
+      "minimatch": "^11.0.1",
       "glob": "^14.0.2"
     },
     "jest-config": {

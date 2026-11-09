@@ -1,0 +1,105 @@
+name: protected-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact reviewed main commit to publish (27 crates and 2 npm packages)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: protected-registry-release
+  cancel-in-progress: false
+
+jobs:
+  identity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require the reviewed main commit
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          ACTUAL_SHA: ${{ github.sha }}
+          ACTUAL_REF: ${{ github.ref }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$ACTUAL_REF" = refs/heads/main
+          test "$ACTUAL_SHA" = "$EXPECTED_SHA"
+          test "$(gh api 'repos/ruvnet/ruv-FANN/issues?labels=release-blocker&state=open&per_page=1' --jq length)" = 0
+  acceptance:
+    needs: identity
+    uses: ./.github/workflows/ci.yml
+  publish:
+    needs: acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: '3.12'
+      - name: Download this run's verified Cargo candidates
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+        run: gh run download "$RUN_ID" --repo ruvnet/ruv-FANN --name verified-cargo-release-archives --dir "$RUNNER_TEMP/cargo-candidates"
+      - name: Check source binding and all candidate bytes without credentials
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: python3 scripts/publish-candidates.py --artifacts "$RUNNER_TEMP/cargo-candidates" --expected-sha "$EXPECTED_SHA" --output "$RUNNER_TEMP/cargo-candidate-check.json"
+      - name: Download this run's actual Candle oracle
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          gh run download "$RUN_ID" --repo ruvnet/ruv-FANN --name candle-native-oracle --dir "$RUNNER_TEMP/candle-oracle"
+          echo "RUV_FANN_CANDLE_FIXTURE=$RUNNER_TEMP/candle-oracle/candle-f64-fixture.json" >> "$GITHUB_ENV"
+      - name: Build and test the exact npm release archives in fresh consumers
+        run: |
+          npm ci --prefix ruv-swarm/npm
+          node ruv-swarm/npm/test/check-sqlite-package.mjs --output "$RUNNER_TEMP/npm-swarm"
+          node ruv-swarm/npm/test/check-training-package.mjs --output "$RUNNER_TEMP/npm-training"
+          npm ci --prefix cuda-wasm
+          npm test --prefix cuda-wasm
+          mkdir "$RUNNER_TEMP/npm-cuda"
+          npm pack ./cuda-wasm --pack-destination "$RUNNER_TEMP/npm-cuda"
+          python3 scripts/publish-npm-candidates.py --prepare --directory "$RUNNER_TEMP"
+      - name: Publish the verified Cargo bytes and check public downloads
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: python3 scripts/publish-candidates.py --publish --artifacts "$RUNNER_TEMP/cargo-candidates" --expected-sha "$EXPECTED_SHA" --output "$RUNNER_TEMP/cargo-publication.json"
+      - name: Publish the tested npm archives and compare public bytes
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: python3 scripts/publish-npm-candidates.py --publish --directory "$RUNNER_TEMP"
+      - name: Test fresh public registry consumers without release credentials
+        run: python3 scripts/publish-npm-candidates.py --verify-public --directory "$RUNNER_TEMP"
+      - name: Retain candidate and publication evidence even on partial failure
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: registry-publication-evidence
+          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}/cargo-candidate-check.json
+            ${{ runner.temp }}/cargo-publication.json
+            ${{ runner.temp }}/npm-candidate.json
+            ${{ runner.temp }}/npm-publication.json
+            ${{ runner.temp }}/public-consumers.json
+            ${{ runner.temp }}/npm-swarm/receipt.json
+            ${{ runner.temp }}/npm-training/receipt.json

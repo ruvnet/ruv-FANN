@@ -233,10 +233,10 @@ jobs:
         run: node ruv-swarm/npm/scripts/sqlite-build.mjs --verify > "$RUNNER_TEMP/sqlite-security-node/runtime.json" 2> "$RUNNER_TEMP/sqlite-security-node/verify.log"
       - name: Test gateway rejection, persistence and build tampering
         id: focused
-        run: node --test ruv-swarm/npm/test/sqlite-engine.test.js 2>&1 | tee "$RUNNER_TEMP/sqlite-security-node/focused.log"
+        run: node --test --test-reporter=tap ruv-swarm/npm/test/sqlite-engine.test.js 2>&1 | tee "$RUNNER_TEMP/sqlite-security-node/focused.log"
       - name: Run the complete Node security regression suite
         id: security
-        run: npm run test:security --prefix ruv-swarm/npm 2>&1 | tee "$RUNNER_TEMP/sqlite-security-node/security.log"
+        run: NODE_OPTIONS=--test-reporter=tap npm run test:security --prefix ruv-swarm/npm 2>&1 | tee "$RUNNER_TEMP/sqlite-security-node/security.log"
       - name: Install an extracted package and exercise public CLI persistence
         id: package
         run: >-

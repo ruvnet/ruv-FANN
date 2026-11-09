@@ -11,8 +11,8 @@
     "ruv_swarm_wasm_bg.wasm",
     "ruv_swarm_wasm.js",
     "ruv_swarm_wasm.d.ts",
-    "LICENSE-MIT",
-    "LICENSE-APACHE"
+    "LICENSE-APACHE",
+    "LICENSE-MIT"
   ],
   "main": "ruv_swarm_wasm.js",
   "types": "ruv_swarm_wasm.d.ts",
