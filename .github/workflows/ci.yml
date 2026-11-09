@@ -29,6 +29,9 @@ jobs:
   rune:
     uses: ./.github/workflows/rune.yml
 
+  metaharness:
+    uses: ./.github/workflows/metaharness.yml
+
   inventory-and-docs:
     runs-on: ubuntu-latest
     timeout-minutes: 10

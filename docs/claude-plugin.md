@@ -3,7 +3,7 @@
 The [`ruv-fann` plugin](../plugins/ruv-fann/README.md) packages maintained
 repository workflows for Claude Code. It contains eight package-specific
 skills, three explicitly invoked commands, a read-only reviewer agent, and a
-Python standard-library helper. Its current version is `0.1.2`; installing it
+Python standard-library helper. Its current version is `0.1.3`; installing it
 does not change any Rust/npm package version.
 
 ## Start a local session
@@ -85,6 +85,50 @@ horizon groups, `as_of`/forecast-origin leakage guards, sample and memory limits
 and the statistical assumptions behind empirical coverage. This separate
 calibration API does not enable automatic prediction-interval builders,
 bootstrap/quantile methods, or probabilistic sampling.
+
+## MetaHarness optimization
+
+The security/performance skill includes a
+[MetaHarness procedure](../plugins/ruv-fann/skills/security-performance/references/metaharness.md).
+It uses the pinned public Darwin numeric engine to tune a supported runtime
+configuration against the actual generated WASM. It does not invent a model
+client, copy MetaHarness implementations, or replace the existing Rune gate.
+
+```sh
+npm ci --prefix tools/metaharness --ignore-scripts --omit=optional
+node tools/metaharness/src/cli.mjs plan --repo .
+node tools/metaharness/src/cli.mjs score --repo . --output /tmp/ruv-fann-score
+node tools/metaharness/src/cli.mjs optimize --repo . --variant simd --model medium --baseline-batch-rows 128 --samples 20 --total-rows 512 --output /tmp/ruv-fann-optimize
+```
+
+Use new external output directories. `score` is a static heuristic assessment of
+a bounded public metadata projection. Set `--baseline-batch-rows` to the current
+setting, from 1 to 128; it defaults to one. `optimize` executes a different path:
+real `evolveNumeric`, actual core/SIMD WASM inference, full output comparisons,
+bounded candidate dispatches and new paired confirmation samples. All variants
+process the same total input rows with identical weights; row grouping is the
+only gene. Duplicate observations are reused without claiming extra independent
+measurements. The ordinary and SIMD variants are separate experiments.
+
+Supported presets are Linear Float64 networks: tiny (5 → 7 → 3), medium
+(100 → 50 → 25 → 10), and large (784 → 128 → 64 → 10). The search range is
+1–128 rows per batch. The parent bounds wall time and output, uses a scrubbed
+child environment, and checks source/artifact/tool identities before and after.
+Every candidate must retain exact finite reference outputs, including tails.
+
+The fresh confirmation requires a 95% timing-block bootstrap lower speed ratio
+above 1.05 for a recommendation. `not_improved` retains the baseline and is a
+valid outcome. It is not a cross-machine guarantee or a forecasting-accuracy
+evaluation. Construction/storage observations are separate from warm throughput.
+The loop emits an archive and `receipt.json`, and never changes source or applies
+the chosen setting to production.
+
+The private tool has its own exact npm lock. It requires POSIX (Linux or macOS)
+and Node 22.13+, with no lifecycle
+install scripts, no unused optional native/model packages, and no provider key.
+Its [standalone/reusable workflow](../.github/workflows/metaharness.yml) checks
+real execution on supported Node versions without requiring a speed gain on a
+shared runner. Existing Rust/npm package locks and release policies are separate.
 
 ## Rune build verification
 
@@ -224,7 +268,7 @@ and any claimed state-of-the-art capability.
 The historical **0.1.0** [end-to-end report](claude-plugin-e2e.md) and
 [machine-readable receipt](claude-plugin-e2e.json) record the actual host version,
 tested file hashes, executed workflows, command results, and remaining limits.
-They do not certify the changed **0.1.2** plugin payload. Use those records for the tested state; the procedure above is not itself proof
+They do not certify the changed **0.1.3** plugin payload. Use those records for the tested state; the procedure above is not itself proof
 that a future installation or changed package passes.
 
 ## Format references

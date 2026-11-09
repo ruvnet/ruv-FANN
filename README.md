@@ -239,6 +239,40 @@ sandbox. The [setup guide](docs/claude-plugin.md#rune-build-verification) explai
 the commands and scope. The [Rune workflow](.github/workflows/rune.yml) runs on
 relevant pushes/PRs and is also part of the full release acceptance gate.
 
+## Tune WASM batching with MetaHarness
+
+The private [MetaHarness tool](tools/metaharness/) uses the real Darwin numeric
+optimizer to search batch sizes for the shipped WASM. Every candidate processes
+the same rows and must reproduce every reference output. A fresh paired
+measurement checks the candidate after search; a faster search sample alone is
+not enough for a recommendation.
+
+```sh
+npm ci --prefix tools/metaharness --ignore-scripts --omit=optional
+node tools/metaharness/src/cli.mjs plan --repo .
+node tools/metaharness/src/cli.mjs optimize --repo . --variant simd --model medium --baseline-batch-rows 128 --output /tmp/ruv-fann-tuning
+```
+
+Use POSIX (Linux or macOS) and Node 22.13+. Set the baseline to your current batch
+size (the default is one row). Use a new output directory for each run. The loop
+bounds evaluations, time and
+output, reuses identical observations, and records raw timings and confidence
+intervals. It changes batch configuration inside the experiment, without
+editing source or applying the result to production. The optional `score`
+command is a static metadata assessment, separate from runtime tests.
+
+![Bounded search measures real WASM, checks outputs, and confirms a candidate before recommending it.](docs/assets/metaharness-loop.svg)
+
+The [detailed workflow](docs/claude-plugin.md#metaharness-optimization) explains
+installation, presets, receipts and limits. The
+[CI gate](.github/workflows/metaharness.yml) executes real core/SIMD trials on
+supported Node versions without requiring a speedup on shared runners. No model
+service or provider key is needed.
+
+The [measured results](docs/metaharness-results-2026-11-09.md) include the
+128-row control: no confirmed gain over that existing setting, which the loop
+correctly retained.
+
 ## Contribute
 
 Choose a package, reproduce the issue, and add a regression test for a behavior change. Run that package's checks and the relevant integration checks before opening a pull request. Include the commands and results so another contributor can reproduce them.

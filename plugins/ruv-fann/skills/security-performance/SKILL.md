@@ -1,6 +1,6 @@
 ---
 name: security-performance
-description: "Review ruv-FANN trust boundaries, dependency findings, numerical correctness, allocation behavior, and performance evidence. Use for security audits, parser/process/SQL/FFI changes, performance optimization, benchmark claims, or research adoption decisions."
+description: "Review ruv-FANN trust boundaries, dependency findings, numerical correctness, allocation behavior, and performance evidence. Use for security audits, parser/process/SQL/FFI changes, MetaHarness or Darwin optimization loops, performance optimization, benchmark claims, or research adoption decisions."
 ---
 
 # Verify safety and measured improvement
@@ -51,6 +51,14 @@ upstream commit and dependency lock, local tool binary hash, source closure,
 compiler identity, plan, selected executable and stored object. Reproduction and
 a passing correctness probe do not establish a latency improvement. Require
 independent performance evidence before retaining an optimization.
+
+For measured batch-configuration search, follow the
+[MetaHarness procedure](references/metaharness.md). It runs actual Darwin numeric
+evolution with a bounded production-WASM evaluator. Keep total input work fixed,
+deduplicate equivalent genomes, and confirm a selected candidate using new paired
+samples. A static repository score is not an executed test, and a noisy search
+maximum is not an accepted speedup. Do not treat archive selection as permission
+to edit, publish or deploy.
 
 ## Evaluate new research honestly
 

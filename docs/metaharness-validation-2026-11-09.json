@@ -1,0 +1,213 @@
+{
+  "schema_version": 1,
+  "date_utc": "2026-11-09",
+  "baseline_commit": "3497cb7923f305ffc7ef8711a2ebad5032c6cdae",
+  "scope": "Private bounded MetaHarness integration; product Rust/npm source, existing locks and shipped WASM unchanged.",
+  "status": "passed",
+  "model_calls": 0,
+  "source_applied": false,
+  "registry_publication": false,
+  "tool_sources_sha256": {
+    "tools/metaharness/src/cli.mjs": "1a53041fc4aff09a201090d77e7ee0d4030f687cd0d388d3b0df06a21b74c1de",
+    "tools/metaharness/src/evolution.mjs": "e707025089c0d65d000b6716699ba73e23a16222b2a8e507ce6bb1e4ac7bb4eb",
+    "tools/metaharness/src/guards.mjs": "6c30d16829f69a6c5e204c2ef5e32d149734b912fb282e71907b906485a3fe5b",
+    "tools/metaharness/src/wasm-evaluator.mjs": "4d1f075dbc0f342f7cf10174abe85a1e73aeb05851117a098648aab8d68214b6",
+    "tools/metaharness/test/adapter.test.mjs": "7627dec5f3f022ff70071dc7bc92e49250dd6de7e0ad5bd2b1e87b799c475bce",
+    "tools/metaharness/test/cli.test.mjs": "f4bcdc2d0b3fa9f399113717b0cb197c8341d788c3fdae9562415f2af956e4b1",
+    "tools/metaharness/test/wasm-evaluator.test.mjs": "f58c7eb726a0fa350fc50b73c324713ca1b837e9d0b39291d310797303ab8e11",
+    "tools/metaharness/package.json": "ae69d9debf4d6c36d8e0c842a424041500cd6fd4a24e836b3ffa1578c891079d",
+    "tools/metaharness/package-lock.json": "8ae10f36ff4a90335407cec1343045a5c1a7c2de63cf4365b8d483d08db67273",
+    ".github/workflows/metaharness.yml": "cc6c5e37924f1844602ce8d543334d99a8842f67adcff9a3d674ef903101c93c",
+    ".github/tests/test_metaharness_workflows.py": "2ad1511b099b25e2d0bc5e25649b472cf84f457c77e9a933fbcc08f3b993dbb3"
+  },
+  "existing_locks_before_and_after": {
+    "Cargo.lock": "8b47266eb8835a4a18e658521b149507799cce30c1280bf2e7b6e9a15ecd4f8c",
+    "config/rune-probe/Cargo.lock": "ccf588ef761301b8eae1bf3c128466bea48b362b246ca813b63807fb34aa9462",
+    "cuda-wasm/Cargo.lock": "ff4bb589d5b39585ac19858640a1a98389dcda0ce3b782d886312aa27f4d11e0",
+    "cuda-wasm/package-lock.json": "1cfc5ae406d55538289943a4c417e1d39aa0f7ee620d1bade20920e37886e138",
+    "neuro-divergent/Cargo.lock": "50e70e307a2c5ffd17a43d5ce73320860ead04f8a07518f1400d9cd1b7beccdf",
+    "opencv-rust/Cargo.lock": "818a9e96facee00e9d00ace47e553d879e64e296929a28d37d91f735810b1b17",
+    "package-lock.json": "088550774a049975671d2e0cc075b8be515c4c436f1fc543bee4256ebeba09a8",
+    "ruv-swarm/Cargo.lock": "bb0a255f31a0430806bfd8fc08353ecc7e9d0e7a252c9e76afe109a002555568",
+    "ruv-swarm/npm/package-lock.json": "e80d214dfd4f6cd0068ca5beb43de8b028594fd4c52f133c82565c4c3996adf7",
+    "ruv-swarm/npm/test-npm-install-v106/package-lock.json": "4ce197425ee37207814a6a99f78349dbc0f33602c5eebb4e7699b147dd66a56c"
+  },
+  "new_private_lock": {
+    "path": "tools/metaharness/package-lock.json",
+    "sha256": "8ae10f36ff4a90335407cec1343045a5c1a7c2de63cf4365b8d483d08db67273",
+    "production_dependency": false
+  },
+  "pins": {
+    "repository": "https://github.com/ruvnet/metaharness",
+    "referenceCommit": "b27878cf39d3ada6b2c4d1bcc3e9258a70c6cfd6",
+    "metaharness": {
+      "version": "0.4.21",
+      "npmIntegrity": "sha512-Of5xVYYSnfxlh7mQHZDkjpKWAODHNKcu/uLg9usxIO4bCSVwO15asN58plSMRKPihaMm5TCioB+l2wcsl1CHDQ=="
+    },
+    "darwin": {
+      "version": "0.13.0",
+      "npmIntegrity": "sha512-L3SrQii70erHVDmo1qx0875IRpVujk86zAO7sxtSVChWCgAjabEmmYRYt72D1VekfUCbSWCgZKIktqUxVAKCFA=="
+    }
+  },
+  "artifact_identity": {
+    "repo/ruv-swarm/npm/wasm/build-info.json": "e11abe4cbbd7729716699db610f8dd58f44b2e379c2fd069d861306a0e05e43e",
+    "repo/ruv-swarm/npm/wasm/ruv_swarm_wasm.js": "85d0209e09cc4c9b7a226ac2cf39af8deabc987697d4abb2050e737a5422ddbd",
+    "repo/ruv-swarm/npm/wasm/ruv_swarm_wasm_bg.wasm": "913cd614e0fbfe30e18ab400d1a9b71311a88318f0d018f68701259677808c5c",
+    "repo/ruv-swarm/npm/wasm/ruv_swarm_simd.wasm": "404c4c3caed7a9f1e00bb6f3a2b4720302cfd2f090dcd1ce8b976fc96044b110"
+  },
+  "checks": {
+    "tool_tests": {
+      "node22": 27,
+      "node24": 27,
+      "failures": 0
+    },
+    "workflow_tests": {
+      "passed": 27,
+      "failed": 0,
+      "combined_rune_and_metaharness_passed": 46
+    },
+    "portable_plugin_tests": {
+      "passed": 39,
+      "failed": 0,
+      "version": "0.1.3",
+      "new_claude_host_certification": false
+    },
+    "actual_e2e": {
+      "passed": 5,
+      "failed": 0,
+      "all_output_errors": 0,
+      "all_final_source_verification": "passed",
+      "baseline128_unconfirmed_candidate_retains_requested_baseline": true
+    },
+    "exact_yaml_guard": {
+      "status": "passed",
+      "exit_code": 0,
+      "originals": {
+        "core": "/workspace/scratch/metaharness-integration-2026-11-09/ci-v2-node22-core/receipt.json",
+        "simd": "/workspace/scratch/metaharness-integration-2026-11-09/ci-v2-node24-simd/receipt.json"
+      },
+      "original_sha256": {
+        "core": "7dc8aa8372f6c869e56f690d9f8d7cb2cab54c4d170af4e18457e15571d792b4",
+        "simd": "3379b9e972275fbea1cb7c55f893107741e4892864058bfd776ac34d4dfb3b5d"
+      },
+      "originals_unchanged": true,
+      "workflow_sha256": "cc6c5e37924f1844602ce8d543334d99a8842f67adcff9a3d674ef903101c93c",
+      "exact_step_sha256": "f212485b6bd6c0b0f833f6375001100a6badcf405710dcd72eca3e92e2abcf0b",
+      "log_limit_bytes": 16384,
+      "log_truncated": false,
+      "results": {
+        "core": {
+          "status": "passed",
+          "baselineBatchRows": 1,
+          "trialBudget": {
+            "absoluteLimit": 12,
+            "worstCaseDispatches": 2,
+            "dispatchCount": 2,
+            "actualMeasurementCount": 2,
+            "cacheHits": 0,
+            "concurrency": 1
+          },
+          "recommendation": {
+            "batchRows": 33
+          },
+          "confirmation": {
+            "status": "passed",
+            "verified": true,
+            "faster": true,
+            "baselineBatchRows": 1,
+            "candidateBatchRows": 33,
+            "meanSpeedRatio": 15.567742120130648,
+            "ci95": [
+              15.110018706097648,
+              16.010586235205004
+            ],
+            "maximumAbsoluteError": 0
+          },
+          "modelCalls": 0,
+          "sourceApplied": false
+        },
+        "simd": {
+          "status": "passed",
+          "baselineBatchRows": 1,
+          "trialBudget": {
+            "absoluteLimit": 12,
+            "worstCaseDispatches": 2,
+            "dispatchCount": 2,
+            "actualMeasurementCount": 2,
+            "cacheHits": 0,
+            "concurrency": 1
+          },
+          "recommendation": {
+            "batchRows": 33
+          },
+          "confirmation": {
+            "status": "passed",
+            "verified": true,
+            "faster": true,
+            "baselineBatchRows": 1,
+            "candidateBatchRows": 33,
+            "meanSpeedRatio": 15.216979403286114,
+            "ci95": [
+              13.942700709313005,
+              16.656884690324112
+            ],
+            "maximumAbsoluteError": 0
+          },
+          "modelCalls": 0,
+          "sourceApplied": false
+        }
+      },
+      "experiments_or_source_edits_performed": false
+    },
+    "syntax_checks": "passed",
+    "wasm_provenance": "Both shipped binaries pass source-aware verification before and after every experiment.",
+    "npm_audit_installed_graph": {
+      "command": "npm audit --prefix tools/metaharness --omit=optional --json",
+      "known_vulnerabilities": 0
+    },
+    "supplementary_ruflo_scan": {
+      "version": "3.25.6",
+      "exit_code": 0,
+      "reported_findings": 0,
+      "format": "plain text despite --output json; heuristic scan, not proof"
+    },
+    "independent_read_only_review": "No remaining blockers, including the configured baseline delta.",
+    "coordination_state": "Original files restored byte for byte; task-created private state archived outside checkout.",
+    "documentation": "README local links and SVG source checks passed; animation rendered in Chromium with reduced-motion behavior verified.",
+    "portable_plugin_archive": {
+      "version": "0.1.3",
+      "sha256": "0c4035dbe22c54551fb4c4bb64202cdf58151b7aa311911cfd8b84ba93c425f7",
+      "extracted_structure_and_docs_runner": "passed",
+      "new_claude_host_certification": false
+    }
+  },
+  "evidence_sha256": {
+    "final-tests-node22.log": "9be414a48a1836c12073b19161b977e1f9996ff14034c4152238838d61cbb593",
+    "final-tests-node24.log": "5f5396ea614e3cc5f3a8b212a40825e3120ec6a9256523f7a855b664f86b542b",
+    "final-workflow-tests.log": "47aac48f0da43d1e6ad9ae247ed114940bf3bfa006ab030400a049b379a14c41",
+    "final-plugin-tests.log": "10a3e93749c9113d5e2b782d9f02bab56832008e063d6900582b184934a53f38",
+    "final-plugin-structure.json": "3882e58067741534954a8b377fa48b4df58bfa9dd825c9712501c76941ae0214",
+    "final-audit.json": "f95112b20efa3175e81876b0382be1b61c1eeb26c13be1cd7cd72a483c9f835f",
+    "security-scan.log": "47551ed45230a46f86ee6165c1af6f6069da951089542ea6839885e3ea8d43f0",
+    "ci-v2-acceptance-real.json": "f11ecc4453641a01d7d60c4750b5340e0c6d30a7f6d6e79971a63c4c89f3d221",
+    "ci-v2-acceptance-real.log": "e3794bc77b64e7e3f1421d3dd53407fccd8f7f8e2c49ffdfd75a3566a057073c",
+    "score-final/receipt.json": "ea7b6f757fb09c2b03a1e5625adbd9f5675ff5716f18fa6ba11c2a76fa9246cb",
+    "plan-final.json": "f499e9238333f5eb79aa09d0331ba57374e82cedb31a401dadb37d51e151f1c1",
+    "all-workflow-tests.log": "a361d76f06660f7291b965ec1393e7cb992ee6fe47ee66d9e8e1ccd398401d65",
+    "final-docs-check.log": "ce3ff235f9f5e0f2082cf66b6f448d1a098c2aeba4abcb9cda13ab3632cee11b",
+    "final-inventory.json": "a6d588d33589b7394118eb2bba900eadc5016f7b0b23643f0f557f558098793f",
+    "plugin-package.json": "beed6257cda291c910a854eac0d6c34dcb6d4450892aa81b77b7dc8624544f5f"
+  },
+  "measurements": {
+    "path": "docs/benchmarks/metaharness-2026-11-09.json",
+    "sha256": "5f5c58dc98b31c46340483f7c5fc2af81a89776ee37871615207832745bbba44"
+  },
+  "limits": [
+    "Only batch capacity is searched; no architecture/source evolution or model service call.",
+    "No confirmed gain over the existing 128-row setting; one-row comparisons are explicitly scoped.",
+    "Timing bootstrap describes one host/workload only; CI does not require a speedup.",
+    "Environment/deadline/output boundaries are not an OS sandbox for hostile code.",
+    "No new Claude host certification; portable plugin structural and runner tests passed.",
+    "Local validation precedes commit; hosted workflow status is reported separately."
+  ]
+}

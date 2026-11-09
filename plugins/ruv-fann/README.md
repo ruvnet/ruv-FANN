@@ -2,7 +2,7 @@
 
 A focused Claude Code plugin for working on this repository. It provides eight
 detailed skills, three explicit commands, a read-only reviewer, and a bounded
-Python verification helper. Version `0.1.1` describes the plugin, independently
+Python verification helper. Version `0.1.3` describes the plugin, independently
 of the Rust and npm package versions.
 
 ## Load it
@@ -64,12 +64,13 @@ The skill bodies load when needed; supporting references add package-specific
 commands and acceptance criteria. The plugin keeps these instructions separate
 from this repository's older generic Claude templates.
 
-Version `0.1.2` adds pinned Rune build/replay/reproduction guidance and updates
+Version `0.1.3` adds a bounded MetaHarness/Darwin optimization procedure, keeps
+pinned Rune build/replay/reproduction guidance, and updates
 prepared inference instructions for native f32/f64 batches and checked Float64
 WASM SIMD batches. Calibrated interval coverage still depends on residual
 assumptions and held-out evaluation. Automatic interval builders remain unsupported.
 The repository's dated `docs/claude-plugin-e2e.*` receipts establish the historical
-`0.1.0` host run; they do not certify the changed `0.1.2` payload.
+`0.1.0` host run; they do not certify the changed `0.1.3` payload.
 
 ## Commands and reviewer
 

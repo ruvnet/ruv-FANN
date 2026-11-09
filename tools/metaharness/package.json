@@ -1,0 +1,17 @@
+{
+  "name": "@ruv-fann/metaharness-tool",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Bounded local MetaHarness numeric evolution of actual ruv-FANN WASM batch capacity",
+  "license": "MIT OR Apache-2.0",
+  "engines": { "node": ">=22.13.0" },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "plan": "node src/cli.mjs plan"
+  },
+  "dependencies": {
+    "@metaharness/darwin": "0.13.0",
+    "metaharness": "0.4.21"
+  }
+}
