@@ -48,7 +48,7 @@
     "test:watch": "nodemon --watch test --exec 'npm run test:all'",
     "test:performance": "node test/comprehensive-performance-validation.test.js",
     "test:load": "node test/load-testing-suite.test.js",
-    "test:security": "node --test test/security-boundaries.test.js test/mcp-framing.test.js test/wasm-provenance.test.js test/wasm-api.test.js test/mcp-runtime.test.js test/wasm-batch.test.js",
+    "test:security": "node --test test/security-boundaries.test.js test/mcp-framing.test.js test/wasm-provenance.test.js test/wasm-api.test.js test/mcp-runtime.test.js test/wasm-batch.test.js test/wasm-dense-import.test.js test/wasm-autograd.test.js",
     "test:regression": "node test/regression-testing-pipeline.test.js",
     "test:comprehensive": "node test/run-comprehensive-validation.js",
     "test:orchestrator": "node test/comprehensive-test-orchestrator.js",

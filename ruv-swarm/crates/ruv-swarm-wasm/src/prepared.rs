@@ -15,10 +15,15 @@ type BuildResult<T> = Result<T, &'static str>;
 mod array_boundary;
 #[path = "prepared_batch.rs"]
 mod batch;
+#[path = "prepared_dense.rs"]
+mod dense_import;
 #[path = "prepared_json.rs"]
 mod json_import;
+#[path = "prepared_training.rs"]
+mod training;
 use array_boundary::ArrayBoundary;
 pub use batch::WasmPreparedBatch;
+pub use training::WasmTrainableNetwork;
 
 /// Owned parameters and reusable scratch. No raw WASM memory views are exposed.
 #[wasm_bindgen]
@@ -245,10 +250,31 @@ impl WasmPreparedNetwork {
             },
         )
         .map_err(|_| "Native prepared snapshot exceeds limits or has invalid parameters")?;
+        Self::from_snapshot(network)
+    }
+
+    pub(crate) fn from_snapshot(network: PreparedNetwork<f64>) -> BuildResult<Self> {
+        let staging = checked_bytes(
+            network
+                .num_inputs()
+                .checked_add(network.num_outputs())
+                .ok_or("Staging size overflow")?,
+            size_of::<f64>(),
+        )?
+        .checked_add(size_of::<Self>() - size_of::<InferenceWorkspace<f64>>())
+        .and_then(|n| n.checked_add(size_of::<ArrayBoundary>()))
+        .and_then(|n| n.checked_add(4 * size_of::<usize>()))
+        .ok_or("Staging size overflow")?;
+        let estimated = network
+            .estimated_bytes()
+            .checked_add(staging)
+            .ok_or("Combined storage overflow")?;
+        if estimated > MAX_BYTES {
+            return Err("Prepared snapshot, workspace and staging exceed 64 MiB");
+        }
         let workspace = network
             .workspace()
             .map_err(|_| "Prepared workspace allocation failed")?;
-        let estimated = network.estimated_bytes() + staging;
         let mut inputs = reserve(network.num_inputs())?;
         inputs.resize(network.num_inputs(), 0.0);
         let mut outputs = reserve(network.num_outputs())?;

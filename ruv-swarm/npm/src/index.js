@@ -243,6 +243,24 @@ class RuvSwarm {
     }
   }
 
+  /** Import canonical [outputs, inputs] layers exported by the Candle adapter. */
+  createDensePreparedNetwork(denseJson) {
+    try {
+      return this._bindings.WasmPreparedNetwork.from_dense_layers_json(denseJson);
+    } catch (error) {
+      throw error instanceof Error ? error : new Error(String(error));
+    }
+  }
+
+  /** Allocate actual fixed-graph MSE/autograd training with a reusable tape. */
+  createTrainableNetwork(denseJson, maxRows = 1) {
+    try {
+      return this._bindings.WasmTrainableNetwork.from_dense_layers_json(denseJson, maxRows);
+    } catch (error) {
+      throw error instanceof Error ? error : new Error(String(error));
+    }
+  }
+
   createConformalCalibrator(config) {
     const checked = conformalConfig(config);
     let binding;

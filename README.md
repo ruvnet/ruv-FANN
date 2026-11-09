@@ -15,6 +15,8 @@ Rust libraries for neural networks, time-series forecasting, agent coordination,
 | Location | Available behavior | Candidate versions / guide |
 | --- | --- | --- |
 | Repository root | `ruv-fann`: train feedforward networks, prepare immutable CPU inference snapshots, and use optional WebGPU operations | `0.2.2` · [Core example](examples/basic_usage.rs) · [API](https://docs.rs/ruv-fann) |
+| `integrations/candle/` | Import actual Candle CPU linear layers and compare training gradients/SGD/AdamW with Candle | `ruv-fann-candle 0.1.0` · [Candle guide](integrations/candle/README.md) |
+| `bindings/napi/` | Native Node inference and dense autograd through napi-rs, sharing the Rust core | `@ruv-fann/napi 0.1.0` · [Native Node guide](bindings/napi/README.md) |
 | `ruv-swarm/` | Fourteen Rust packages for scheduling, persistence, transport, MCP, CLI, and WASM | `1.0.6`–`1.0.8`; unified WASM `2.0.0` · [Rust guide](ruv-swarm/README.md) |
 | `ruv-swarm/npm/` | Node CLI/MCP, SQLite state, prepared WASM inference, historical forecast intervals, and capability assignment | `ruv-swarm 2.0.0` · [npm guide](ruv-swarm/npm/README.md) |
 | `integrations/ruv-fann/` | Use ruv-FANN neural outputs in RuVector search and tune inference batches with MetaHarness | `@ruv-fann/integrations 0.1.0` · [Integration guide](integrations/ruv-fann/README.md) |
@@ -22,7 +24,7 @@ Rust libraries for neural networks, time-series forecasting, agent coordination,
 | `cuda-wasm/` | Translate a CUDA subset to Rust or WGSL source; Node wrapper requires the external `cuda2rust` compiler | Rust `0.2.0`; npm `2.0.0` · [Translator guide](cuda-wasm/README.md) |
 | `opencv-rust/` | Portable Rust matrices, browser image operations, a small SDK, and native OpenCV C++ bindings | Portable/SDK `4.9.0`; native `opencv-sys 0.2.0` · [Image-processing guide](opencv-rust/README.md) |
 
-These are five independent Cargo workspaces, plus the npm distributions and optional integration package. Running `cargo test` at the repository root tests the core crate; use the verification driver below to cover the other workspaces. Versions in this checkout are unpublished release candidates. The dated [release inventory](docs/release-inventory.json) records the earlier package identities and registry observations; `scripts/verify-packages.py --inventory` reports the current checkout.
+The five main Cargo workspaces have separate build requirements; the optional Candle and napi-rs packages each have their own workspace and lockfile. Running `cargo test` at the repository root tests the core crate; use the verification driver below to cover the other workspaces. Versions in this checkout are unpublished release candidates. The dated [release inventory](docs/release-inventory.json) records the earlier package identities and registry observations; `scripts/verify-packages.py --inventory` reports the current checkout.
 
 Each family has a defined scope. Forecasting currently implements a univariate RNN and simple baselines; LSTM/GRU forecasting architectures return unsupported errors. Agent assignment records scheduling decisions; external task execution depends on the integration you supply. CUDA translation emits source and does not execute a GPU kernel. The native OpenCV bridge calls an installed C++ library, while the portable packages implement a smaller set of operations.
 
@@ -64,6 +66,50 @@ The calculation is `0.5 × 1.0 − 0.25 × 2.0 + 0.1 = 0.1`. A real task needs s
 ![Forward-pass diagram: input numbers pass through weighted connections and activation functions; run returns a vector, while run_into writes to a caller-provided output slice.](docs/assets/inference-flow.svg)
 
 For repeated inference, the checkout adds `Network::run_into(inputs, outputs)`. Pass a mutable output slice whose length equals `num_outputs()`. It reuses that buffer and the network's stored neuron values. `run()` remains the convenient API that returns a vector. Check input and output lengths through the returned `Result`.
+
+## Train with gradients, then freeze the result
+
+![Training rows produce predictions and MSE; a reverse pass computes gradients, SGD or AdamW updates weights, and an independent frozen snapshot serves Rust, WASM and native Node.](docs/assets/dense-training.svg)
+
+The checkout adds `AutogradNetwork<f32>` and `AutogradNetwork<f64>` for an
+explicit sequence of dense layers. You can inspect parameter and input
+gradients, then apply SGD or AdamW. MSE means the average squared error over
+every row and output. Linear, Sigmoid, Tanh, SigmoidSymmetric and ReLU have
+derivative rules; other activations return an unsupported error.
+
+```rust
+use ruv_fann::{ActivationFunction, AutogradNetwork, DenseLayer};
+let mut model = AutogradNetwork::<f64>::from_dense_layers(&[DenseLayer {
+    inputs: 1, outputs: 1, weights: &[0.0], bias: Some(&[0.0]),
+    activation: ActivationFunction::Linear, steepness: 1.0,
+}])?;
+let mut tape = model.workspace(2, 1024 * 1024)?;
+let loss = model.backward_mse(&[1.0, 2.0], &[2.0, 4.0], 2, &mut tape)?;
+assert_eq!(loss, 10.0);
+assert_eq!(tape.parameter_gradients(), &[-10.0, -6.0]); // weight, then bias
+model.sgd_step(&mut tape, 0.1)?;
+let frozen = model.prepare()?;
+```
+
+Run `cargo run --locked --example dense_autograd` for a complete AdamW learning
+example. The tape and optimizer allocate during setup; repeated forward,
+backward and update calls reuse their buffers. Each successful update consumes
+its gradients. Training again requires a fresh backward pass. Frozen snapshots
+keep their own weights after later training or model destruction.
+
+Actual Candle CPU tensors can enter through the optional
+[Candle adapter](integrations/candle/README.md). Its JSON export uses
+`ruv-fann.dense-layers/1`, with `[outputs, inputs]` row-major weights and optional
+bias. The same schema initializes Rust training, WASM
+`runtime.createTrainableNetwork(json, maxRows)` and native
+`NativeTrainableNetwork.from_dense_layers_json(json, maxRows)`.
+`to_dense_layers_json()` stores topology and weights; optimizer moments are
+separate state. A trained `prepare()` result works with the existing
+[RuVector search and MetaHarness tuning](integrations/ruv-fann/README.md).
+
+The [source review](docs/research-candle-2026-11-09.md) explains the design and
+the actual Candle gradient oracle. This is fixed dense training; general tensor
+graphs, transformers and GPU backward execution have separate requirements.
 
 ## Prepare a network for repeated inference
 
@@ -156,7 +202,7 @@ See [Cargo.toml](Cargo.toml) for the precise feature dependency graph. Native Ru
 
 ## Build and test
 
-Use a current stable Rust toolchain for full-repository development. The core declares Rust 1.81; the swarm and all four OpenCV packages declare Rust 1.88. Python 3.11 or newer runs the verification tools. Node 22.13 or newer covers the root tooling and swarm distribution; the standalone CUDA wrapper requires Node 22.12 or newer.
+Use a current stable Rust toolchain for full-repository development. The core declares Rust 1.81; the swarm, napi-rs binding and all four OpenCV packages require Rust 1.88. The optional Candle adapter is tested with Rust 1.99.1 and declares 1.99. Python 3.11 or newer runs the verification tools. Node 22.13 or newer covers the root tooling and swarm distribution; the standalone CUDA wrapper requires Node 22.12 or newer.
 
 The full OpenCV workspace also needs a C++17 compiler, pkg-config, libclang, and OpenCV 4.4 or newer development files. On Debian/Ubuntu these are typically `g++`, `pkg-config`, `libclang-dev`, and `libopencv-dev`. See the [native setup guide](opencv-rust/opencv-sys/README.md) for a checked user-owned prefix option. Portable OpenCV packages can be tested with `--exclude opencv-sys`. Swarm's SQLite npm addon may also need a C++ build toolchain.
 

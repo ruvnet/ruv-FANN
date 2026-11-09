@@ -35,6 +35,9 @@ jobs:
   ruv-fann-integrations:
     uses: ./.github/workflows/ruv-fann-integrations.yml
 
+  candle-native:
+    uses: ./.github/workflows/candle-native.yml
+
   inventory-and-docs:
     runs-on: ubuntu-latest
     timeout-minutes: 10

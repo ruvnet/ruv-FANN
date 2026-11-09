@@ -6,12 +6,14 @@
 
 // Re-export main types
 pub use activation::ActivationFunction;
+pub use autograd::{AdamW, AdamWConfig, AutogradError, AutogradNetwork, AutogradWorkspace};
 pub use connection::Connection;
 pub use layer::Layer;
 pub use network::{Network, NetworkBuilder, NetworkError};
 pub use neuron::Neuron;
 pub use prepared::{
-    BatchFloat, BatchWorkspace, InferenceWorkspace, PreparationLimits, PreparedError, PreparedNetwork,
+    BatchFloat, BatchWorkspace, DenseLayer, InferenceWorkspace, PreparationLimits, PreparedError,
+    PreparedNetwork, DENSE_LAYERS_SCHEMA,
 };
 
 // Re-export training types
@@ -39,6 +41,7 @@ pub use errors::{ErrorCategory, RuvFannError, ValidationError};
 
 // Modules
 pub mod activation;
+pub mod autograd;
 pub mod calibration;
 pub mod cascade;
 pub mod connection;

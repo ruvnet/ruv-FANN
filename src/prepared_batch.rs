@@ -7,9 +7,39 @@ use std::mem::size_of;
 mod kernels;
 
 mod sealed {
-    pub trait Sealed {}
-    impl Sealed for f32 {}
-    impl Sealed for f64 {}
+    pub trait Sealed: Sized {
+        fn dense_tile(
+            source: &[Self],
+            stride: usize,
+            weights: [&[Self]; 4],
+            target: &mut [Self],
+            rows: usize,
+        );
+    }
+    impl Sealed for f32 {
+        #[inline(always)]
+        fn dense_tile(
+            source: &[Self],
+            stride: usize,
+            weights: [&[Self]; 4],
+            target: &mut [Self],
+            rows: usize,
+        ) {
+            super::kernels::dense_tile_f32(source, stride, weights, target, rows);
+        }
+    }
+    impl Sealed for f64 {
+        #[inline(always)]
+        fn dense_tile(
+            source: &[Self],
+            stride: usize,
+            weights: [&[Self]; 4],
+            target: &mut [Self],
+            rows: usize,
+        ) {
+            super::kernels::dense_tile_f64(source, stride, weights, target, rows);
+        }
+    }
 }
 
 /// Supported batch arithmetic. Sealed to f32/f64; single-sample inference retains
@@ -155,46 +185,147 @@ impl<T: BatchFloat> PreparedNetwork<T> {
         if self.input_bias {
             source[self.inputs * stride..self.inputs * stride + rows].fill(T::one());
         }
+        // The native streaming accumulator avoids rereading weights for large
+        // batches. Keep its original tight loop for small/ineligible batches;
+        // the separate tile helper does not enlarge that loop's control flow.
+        let tile_max_rows = if cfg!(target_arch = "wasm32") { 8 } else { 32 };
+        let tile_rows = rows >= T::parallel_min_rows() && rows <= tile_max_rows;
         for (layer_index, layer) in self.layers.iter().enumerate() {
-            for (neuron, row) in self.rows[layer.row_start..layer.row_start + layer.row_count]
-                .iter()
-                .enumerate()
-            {
-                let sums = &mut target[neuron * stride..neuron * stride + rows];
-                let weights = &self.weights[row.start..row.start + row.len];
-                if rows < T::parallel_min_rows() {
-                    // A local accumulator avoids a memory update per weight
-                    // when there are too few samples to fill parallel lanes.
-                    for (sample, sum) in sums.iter_mut().enumerate() {
-                        *sum = if row.index_start == usize::MAX {
-                            weights
-                                .iter()
-                                .enumerate()
-                                .fold(T::zero(), |sum, (feature, &weight)| {
-                                    sum + source[feature * stride + sample] * weight
-                                })
-                        } else {
-                            self.indices[row.index_start..row.index_start + row.len]
-                                .iter()
-                                .zip(weights)
-                                .fold(T::zero(), |sum, (&feature, &weight)| {
-                                    sum + source[feature * stride + sample] * weight
-                                })
-                        };
+            if tile_rows && layer.row_count >= 4 {
+                self.run_tiled_layer(layer_index, source, target, rows, stride)?;
+            } else {
+                for (neuron, row) in self.rows[layer.row_start..layer.row_start + layer.row_count]
+                    .iter()
+                    .enumerate()
+                {
+                    let sums = &mut target[neuron * stride..neuron * stride + rows];
+                    let weights = &self.weights[row.start..row.start + row.len];
+                    if rows < T::parallel_min_rows() {
+                        // A local accumulator avoids a memory update per weight
+                        // when there are too few samples to fill parallel lanes.
+                        for (sample, sum) in sums.iter_mut().enumerate() {
+                            *sum = if row.index_start == usize::MAX {
+                                weights.iter().enumerate().fold(
+                                    T::zero(),
+                                    |sum, (feature, &weight)| {
+                                        sum + source[feature * stride + sample] * weight
+                                    },
+                                )
+                            } else {
+                                self.indices[row.index_start..row.index_start + row.len]
+                                    .iter()
+                                    .zip(weights)
+                                    .fold(T::zero(), |sum, (&feature, &weight)| {
+                                        sum + source[feature * stride + sample] * weight
+                                    })
+                            };
+                        }
+                    } else {
+                        sums.fill(T::zero());
+                        for (index, &weight) in weights.iter().enumerate() {
+                            let feature = if row.index_start == usize::MAX {
+                                index
+                            } else {
+                                self.indices[row.index_start + index]
+                            };
+                            let values = &source[feature * stride..feature * stride + rows];
+                            T::accumulate(sums, values, weight);
+                        }
                     }
-                } else {
-                    sums.fill(T::zero());
-                    for (index, &weight) in weights.iter().enumerate() {
-                        let feature = if row.index_start == usize::MAX {
-                            index
-                        } else {
-                            self.indices[row.index_start + index]
-                        };
-                        let values = &source[feature * stride..feature * stride + rows];
-                        T::accumulate(sums, values, weight);
+                    for sum in sums {
+                        if !sum.is_finite() {
+                            return Err(PreparedError::NumericOverflow {
+                                layer: layer_index + 1,
+                                neuron,
+                            });
+                        }
+                        let value = row.activation.apply(*sum, row.steepness);
+                        if !value.is_finite() {
+                            return Err(PreparedError::NumericOverflow {
+                                layer: layer_index + 1,
+                                neuron,
+                            });
+                        }
+                        *sum = value;
                     }
                 }
-                for sum in sums {
+            }
+            if layer.bias {
+                target[layer.row_count * stride..layer.row_count * stride + rows].fill(T::one());
+            }
+            std::mem::swap(&mut source, &mut target);
+        }
+        // All fallible work is complete, so transposition cannot expose a prefix
+        // of successful rows when any other row has invalid numeric output.
+        for (sample, output) in outputs.chunks_exact_mut(self.outputs).enumerate() {
+            for (feature, value) in output.iter_mut().enumerate() {
+                *value = source[feature * stride + sample];
+            }
+        }
+        Ok(())
+    }
+
+    // Keeping the tiled loop out of the caller preserves the compact fallback
+    // for batches that cannot amortize tile dispatch or repeated weight loads.
+    #[inline(never)]
+    fn run_tiled_layer(
+        &self,
+        layer_index: usize,
+        source: &[T],
+        target: &mut [T],
+        rows: usize,
+        stride: usize,
+    ) -> Result<(), PreparedError> {
+        let layer = &self.layers[layer_index];
+        let layer_rows = &self.rows[layer.row_start..layer.row_start + layer.row_count];
+        let mut neuron = 0;
+        while neuron < layer.row_count {
+            // Only complete canonical rows share source loads. Shuffled,
+            // duplicate and sparse rows retain their original fallback.
+            let tile = layer.row_count - neuron >= 4
+                && layer_rows[neuron..neuron + 4]
+                    .iter()
+                    .all(|row| row.index_start == usize::MAX && row.len == layer.source_width);
+            let count = if tile { 4 } else { 1 };
+            if tile {
+                let weights = std::array::from_fn(|offset| {
+                    let row = &layer_rows[neuron + offset];
+                    &self.weights[row.start..row.start + row.len]
+                });
+                T::dense_tile(
+                    source,
+                    stride,
+                    weights,
+                    &mut target[neuron * stride..(neuron + 4) * stride],
+                    rows,
+                );
+            } else {
+                let row = &layer_rows[neuron];
+                let sums = &mut target[neuron * stride..neuron * stride + rows];
+                sums.fill(T::zero());
+                for (index, &weight) in self.weights[row.start..row.start + row.len]
+                    .iter()
+                    .enumerate()
+                {
+                    let feature = if row.index_start == usize::MAX {
+                        index
+                    } else {
+                        self.indices[row.index_start + index]
+                    };
+                    T::accumulate(
+                        sums,
+                        &source[feature * stride..feature * stride + rows],
+                        weight,
+                    );
+                }
+            }
+            // Tile computation cannot fail or commit caller output. Check
+            // neurons, samples and activations in the original order, even
+            // when a later tiled neuron also has an overflowing sum.
+            for offset in 0..count {
+                let neuron = neuron + offset;
+                let row = &layer_rows[neuron];
+                for sum in &mut target[neuron * stride..neuron * stride + rows] {
                     if !sum.is_finite() {
                         return Err(PreparedError::NumericOverflow {
                             layer: layer_index + 1,
@@ -211,17 +342,7 @@ impl<T: BatchFloat> PreparedNetwork<T> {
                     *sum = value;
                 }
             }
-            if layer.bias {
-                target[layer.row_count * stride..layer.row_count * stride + rows].fill(T::one());
-            }
-            std::mem::swap(&mut source, &mut target);
-        }
-        // All fallible work is complete, so transposition cannot expose a prefix
-        // of successful rows when any other row has invalid numeric output.
-        for (sample, output) in outputs.chunks_exact_mut(self.outputs).enumerate() {
-            for (feature, value) in output.iter_mut().enumerate() {
-                *value = source[feature * stride + sample];
-            }
+            neuron += count;
         }
         Ok(())
     }

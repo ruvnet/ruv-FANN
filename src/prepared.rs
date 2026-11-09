@@ -11,6 +11,12 @@ use thiserror::Error;
 #[path = "prepared_batch.rs"]
 mod batch;
 pub use batch::{BatchFloat, BatchWorkspace};
+#[path = "prepared_dense.rs"]
+mod dense;
+pub use dense::{DenseLayer, DENSE_LAYERS_SCHEMA};
+#[cfg(feature = "serde")]
+#[path = "prepared_dense_json.rs"]
+mod dense_json;
 
 /// Checked preparation and inference failures. No error requires heap allocation.
 #[derive(Debug, Error, PartialEq, Eq)]

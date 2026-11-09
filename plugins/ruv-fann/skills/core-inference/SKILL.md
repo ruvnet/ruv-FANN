@@ -1,6 +1,6 @@
 ---
 name: core-inference
-description: "Implement, debug, and measure ruv-fann feedforward inference, prepared immutable inference, training boundaries, model I/O, SIMD, RuVector or MetaHarness adapters, or native/browser WebGPU primitives. Use for root-crate numerical, allocation, input-validation, integration, or backend changes."
+description: "Implement, debug, and measure ruv-fann dense autograd/SGD/AdamW, Candle tensor interchange, napi-rs, prepared inference, model I/O, SIMD, RuVector or MetaHarness adapters, or native/browser WebGPU primitives. Use for root-crate training, numerical, allocation, input-validation, integration, or backend changes."
 ---
 
 # Work on the neural-network core
@@ -73,6 +73,33 @@ Inspect `ruv-swarm/npm/README.md` for the exact limits and handle lifetime.
 Small batches can be slower. Measure setup, reuse, public boundary copies and
 warm inference separately; packing alone does not prove SIMD throughput.
 
+## Train a fixed dense graph and deploy it
+
+Use `AutogradNetwork<f32/f64>` for actual dense reverse-mode MSE training.
+Read `src/autograd`, `tests/autograd.rs` and `tests/autograd_allocations.rs`.
+`DenseLayer` weights are row-major `[outputs, inputs]`; a present bias is added
+last. This layout differs from the older WASM `WasmNeuralNetwork` constructor.
+`backward_mse` replaces parameter/input gradients and averages squared error over
+all rows and outputs. SGD and AdamW require a fresh backward pass for each step.
+Workspaces bind to the exact model identity; gradients and optimizers also bind
+to its parameter revision. Invalid numbers or staged update overflow cannot
+partially change parameters or AdamW moments.
+
+Use an explicit capacity/byte budget for the reusable tape and a separate budget
+for AdamW. Supported derivative rules are Linear, Sigmoid, Tanh,
+SigmoidSymmetric and ReLU; FANN chooses ReLU derivative zero at zero. Check
+unsupported rules instead of silently substituting a different activation.
+`prepare()` freezes an independent inference snapshot, which can feed the
+existing RuVector and MetaHarness adapters. JSON checkpoints store topology and
+weights, not optimizer moments.
+
+For actual Candle CPU tensors, use `integrations/candle` and its pinned 0.11.1
+adapter/oracles. Browser/Node WASM exposes `WasmTrainableNetwork`, and the
+independent `bindings/napi` package exposes `NativeTrainableNetwork`. Both call
+the same f64 core with bounded ordinary Float64Arrays. This does not add a
+general tensor engine, transformer trainer or GPU backward implementation.
+Follow [the complete training and interoperability procedure](references/dense-training.md).
+
 ## Implementation procedure
 
 1. Identify the exact method/feature and reproduce the result with known input, weights, expected shape and tolerance. Check sparse connection and bias order; do not assume a dense weight layout.
@@ -90,6 +117,8 @@ warm inference separately; packing alone does not prove SIMD throughput.
 | CPU `run`/`run_into` | Generic scalar types and canonical activation behavior; benchmark the invoked path |
 | `PreparedNetwork::run_into` | Immutable owned scalar parameters and separate reusable workspace; checked finite inputs and canonical unit bias |
 | `PreparedNetwork::run_batch_into` | f32/f64 row-major batches with fixed-capacity scratch and atomic caller outputs; independent sample SIMD on wasm32+simd128 |
+| `AutogradNetwork::backward_mse` | Actual fixed dense reverse pass; reusable tape, parameter/input gradients, checked SGD/AdamW and independent `prepare()` |
+| Candle / napi-rs | Optional independently locked CPU tensor adapter and native Node backend; exact dtype/layout and explicit toolchain requirements |
 | `simd`/`parallel` utilities | Optional optimization utilities; feature selection alone does not route every operation through them |
 | Native `gpu` | Real WGPU f32 matrix/batch/activation and managed buffers; f64 computation keeps CPU precision |
 | Browser `webgpu`/`wasm-gpu` | Async `WasmGpuBridge` for bounded f32 matrix multiplication and activations; separate from native `gpu` |
@@ -110,6 +139,7 @@ cargo test --locked --lib
 cargo test --locked --test inference_allocations
 cargo test --locked --test prepared_inference --test prepared_allocations
 cargo test --locked --test prepared_batch_equivalence --test prepared_batch_work
+cargo test --locked --test prepared_dense --test prepared_dense_kernel --test autograd --test autograd_allocations
 cargo test --locked --lib --no-default-features --features simd
 cargo test --locked --release --lib tests::core_regressions
 cargo test --locked --doc

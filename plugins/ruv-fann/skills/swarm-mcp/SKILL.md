@@ -61,7 +61,7 @@ Test a rejected unknown method/tool/key, missing task, malformed or oversized fr
 - SQL values must use parameters; update column names need a separate allowlist. Unknown keys cannot become SQL identifiers.
 - Process invocations must preserve literal arguments with `execFile`/spawn arrays. Prompts beginning with flags need the supported `--` separator. Preserve normal Claude permission checks.
 - Hash and consume the same WASM bytes. A missing or corrupt module is an error, never permission to substitute another package's binary or fake outputs.
-- Neural training, autonomous DAA, external model execution and invented telemetry are unsupported in this npm surface. WebSocket serving is not implemented in the Node distribution.
+- MCP neural-training tools, autonomous DAA, external model execution and invented telemetry are unsupported. The separate JavaScript `createTrainableNetwork` API runs dense MSE/autograd, SGD and AdamW; follow the core-inference skill for that contract. WebSocket serving is not implemented in the Node distribution.
 
 ## Verify changes
 

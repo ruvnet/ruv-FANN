@@ -1,0 +1,482 @@
+name: Candle and native prepared inference
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'bindings/napi/**'
+      - 'integrations/candle/**'
+      - 'integrations/ruv-fann/**'
+      - 'src/**'
+      - 'benches/**'
+      - 'examples/*.rs'
+      - 'tests/prepared*.rs'
+      - 'tests/autograd.rs'
+      - 'tests/autograd_allocations.rs'
+      - 'tests/autograd/**'
+      - 'Cargo.*'
+      - '.cargo/**'
+      - 'ruv-swarm/crates/ruv-swarm-wasm/**'
+      - 'ruv-swarm/npm/wasm/**'
+      - 'ruv-swarm/npm/test/wasm-dense-import.test.js'
+      - 'ruv-swarm/npm/test/wasm-autograd.test.js'
+      - 'ruv-swarm/npm/test/browser-training.cjs'
+      - 'ruv-swarm/npm/test/check-training-package.mjs'
+      - '.github/workflows/candle-native.yml'
+      - '.github/workflows/ci.yml'
+      - '.github/tests/**'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'bindings/napi/**'
+      - 'integrations/candle/**'
+      - 'integrations/ruv-fann/**'
+      - 'src/**'
+      - 'benches/**'
+      - 'examples/*.rs'
+      - 'tests/prepared*.rs'
+      - 'tests/autograd.rs'
+      - 'tests/autograd_allocations.rs'
+      - 'tests/autograd/**'
+      - 'Cargo.*'
+      - '.cargo/**'
+      - 'ruv-swarm/crates/ruv-swarm-wasm/**'
+      - 'ruv-swarm/npm/wasm/**'
+      - 'ruv-swarm/npm/test/wasm-dense-import.test.js'
+      - 'ruv-swarm/npm/test/wasm-autograd.test.js'
+      - 'ruv-swarm/npm/test/browser-training.cjs'
+      - 'ruv-swarm/npm/test/check-training-package.mjs'
+      - '.github/workflows/candle-native.yml'
+      - '.github/workflows/ci.yml'
+      - '.github/tests/**'
+  workflow_dispatch: {}
+  workflow_call: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: candle-native-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_BUILD_JOBS: '2'
+  CARGO_INCREMENTAL: '0'
+  CARGO_PROFILE_DEV_DEBUG: '0'
+  CARGO_PROFILE_TEST_DEBUG: '0'
+  PYTHONDONTWRITEBYTECODE: '1'
+
+jobs:
+  core:
+    name: Canonical dense core / Rust 1.88 and MSRV 1.81
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: bash
+    env:
+      CARGO_TARGET_DIR: ${{ runner.temp }}/candle-native-core-target
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Install pinned workflow parser
+        run: >-
+          python3 -m pip install --disable-pip-version-check --require-hashes --no-deps
+          --only-binary=:all: -r .github/tests/requirements-rune.txt
+      - name: Check workflow contracts and failure propagation
+        run: python3 -m unittest discover -s .github/tests -p 'test_candle_native*.py' -v
+      - name: Create external core evidence directory
+        run: mkdir -m 700 "$RUNNER_TEMP/candle-native-core"
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        with:
+          toolchain: '1.88.0'
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        with:
+          toolchain: '1.81.0'
+      - name: Test canonical dense packing, math, allocation and atomicity
+        id: dense
+        run: >-
+          cargo +1.88.0 test --locked --lib --test prepared_dense --test prepared_dense_kernel
+          --test prepared_batch_equivalence --test prepared_batch_work --test prepared_allocations
+          --test autograd --test autograd_allocations
+          2>&1 | tee "$RUNNER_TEMP/candle-native-core/dense.log"
+      - name: Check the core without default features on Rust 1.81
+        id: msrv-minimal
+        run: >-
+          cargo +1.81.0 check --locked --lib --no-default-features
+          2>&1 | tee "$RUNNER_TEMP/candle-native-core/msrv-minimal.log"
+      - name: Check the serde constructor on Rust 1.81
+        id: msrv-serde
+        run: >-
+          cargo +1.81.0 check --locked --lib --no-default-features --features serde
+          2>&1 | tee "$RUNNER_TEMP/candle-native-core/msrv-serde.log"
+      - name: Require an unchanged source checkout
+        id: unchanged
+        run: |
+          git diff --exit-code
+          git diff --cached --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - name: Upload core evidence on success or failure
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: candle-native-core
+          retention-days: 14
+          if-no-files-found: error
+          path: ${{ runner.temp }}/candle-native-core/
+
+  candle:
+    name: Actual Candle CPU f32 and f64 / Rust 1.99.1
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      CARGO_TARGET_DIR: ${{ runner.temp }}/candle-native-oracle-target
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        with:
+          toolchain: '1.99.1'
+      - name: Create external Candle evidence directory
+        run: mkdir -m 700 "$RUNNER_TEMP/candle-native-oracle"
+      - name: Test actual pinned Candle linear tensors against FANN
+        id: oracle
+        run: >-
+          cargo +1.99.1 test --locked --manifest-path integrations/candle/Cargo.toml
+          2>&1 | tee "$RUNNER_TEMP/candle-native-oracle/oracle.log"
+      - name: Export actual Candle CPU predictions and GradStore gradients
+        id: fixture
+        run: >-
+          cargo +1.99.1 run --quiet --locked --manifest-path integrations/candle/Cargo.toml
+          --example export_fixture > "$RUNNER_TEMP/candle-native-oracle/candle-f64-fixture.json"
+          2> "$RUNNER_TEMP/candle-native-oracle/export.log"
+      - name: Require an unchanged source checkout
+        id: unchanged
+        run: |
+          git diff --exit-code
+          git diff --cached --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - name: Upload Candle oracle evidence on success or failure
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: candle-native-oracle
+          retention-days: 14
+          if-no-files-found: error
+          path: ${{ runner.temp }}/candle-native-oracle/
+
+  native:
+    name: Actual native addon, training and SDK / Node ${{ matrix.node }}
+    needs: candle
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22.13.0', '24']
+    defaults:
+      run:
+        shell: bash
+    env:
+      RUV_FANN_CANDLE_FIXTURE: ${{ runner.temp }}/candle-native-oracle/candle-f64-fixture.json
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+          package-manager-cache: false
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        with:
+          toolchain: '1.88.0'
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: candle-native-oracle
+          path: ${{ runner.temp }}/candle-native-oracle
+      - name: Create external native evidence directory
+        run: mkdir -m 700 "$RUNNER_TEMP/candle-native-napi"
+      - name: Install only the locked native package
+        id: install
+        run: >-
+          npm ci --ignore-scripts --omit=optional --prefix bindings/napi
+          2>&1 | tee "$RUNNER_TEMP/candle-native-napi/install.log"
+      - name: Install only the locked optional SDK dependencies
+        id: sdk-install
+        run: >-
+          npm ci --ignore-scripts --omit=optional --prefix integrations/ruv-fann
+          2>&1 | tee "$RUNNER_TEMP/candle-native-napi/sdk-install.log"
+      - name: Audit the installed native and SDK graphs including development dependencies
+        id: audit
+        run: |
+          npm audit --audit-level=low --omit=optional --prefix bindings/napi 2>&1 | tee "$RUNNER_TEMP/candle-native-napi/audit-native.log"
+          npm audit --audit-level=low --omit=optional --prefix integrations/ruv-fann 2>&1 | tee "$RUNNER_TEMP/candle-native-napi/audit-sdk.log"
+      - name: Prefetch only the locked native Cargo graph
+        id: fetch
+        run: >-
+          cargo +1.88.0 fetch --locked --manifest-path bindings/napi/Cargo.toml
+          2>&1 | tee "$RUNNER_TEMP/candle-native-napi/fetch.log"
+      - name: Build the actual Node-API 8 addon offline from source
+        id: build
+        env:
+          CARGO_NET_OFFLINE: 'true'
+        run: >-
+          node bindings/napi/scripts/build.mjs --target-dir "$RUNNER_TEMP/candle-native-napi-target"
+          2>&1 | tee "$RUNNER_TEMP/candle-native-napi/build.log"
+      - name: Test raw native gateways, inference, training and existing SDK parity
+        id: native-tests
+        run: >-
+          node --test bindings/napi/test/*.test.mjs
+          2>&1 | tee "$RUNNER_TEMP/candle-native-napi/native-tests.log"
+      - name: Test actual core and SIMD WASM dense import and autograd
+        id: wasm-tests
+        run: >-
+          node --test ruv-swarm/npm/test/wasm-dense-import.test.js ruv-swarm/npm/test/wasm-autograd.test.js
+          2>&1 | tee "$RUNNER_TEMP/candle-native-napi/wasm-tests.log"
+      - name: Test an extracted native npm consumer
+        id: package
+        run: >-
+          node bindings/napi/test/packed-consumer.mjs --output "$RUNNER_TEMP/candle-native-package"
+          2>&1 | tee "$RUNNER_TEMP/candle-native-napi/package.log"
+      - name: Test the extracted public RuvSwarm WASM training exports
+        id: wasm-package
+        run: >-
+          node ruv-swarm/npm/test/check-training-package.mjs --output "$RUNNER_TEMP/candle-native-napi/wasm-package"
+          2>&1 | tee "$RUNNER_TEMP/candle-native-napi/wasm-package.log"
+      - name: Verify actual Darwin compatibility serially without requiring a speedup
+        id: tuner
+        run: >-
+          node bindings/napi/test/tuner-compat.mjs --output "$RUNNER_TEMP/candle-native-napi/tuner.json"
+          2>&1 | tee "$RUNNER_TEMP/candle-native-napi/tuner.log"
+      - name: Preserve native build provenance
+        id: provenance
+        run: cp bindings/napi/build-info.json "$RUNNER_TEMP/candle-native-napi/build-info.json"
+      - name: Require actual native, Candle training, package and Darwin evidence
+        id: evidence
+        # Learning is numerical correctness; elapsed speed is never a CI gate.
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import {readFileSync} from 'node:fs';
+          import {createHash} from 'node:crypto';
+          import path from 'node:path';
+          const read = name => JSON.parse(readFileSync(path.join(process.env.RUNNER_TEMP, name), 'utf8'));
+          const sha = bytes => createHash('sha256').update(bytes).digest('hex');
+          const hex = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
+          const positive = value => Number.isFinite(value) && value > 0;
+          const integer = (value, low, high) => Number.isSafeInteger(value) && value >= low && value <= high;
+          const build = read('candle-native-napi/build-info.json');
+          const consumer = read('candle-native-package/receipt.json');
+          const tuner = read('candle-native-napi/tuner.json');
+          const fixtureBytes = readFileSync(process.env.RUV_FANN_CANDLE_FIXTURE);
+          const fixture = JSON.parse(fixtureBytes);
+          const binarySha256 = sha(readFileSync('bindings/napi/ruv_fann.node'));
+          assert.equal(build.schema, 'ruv-fann.napi-build/1');
+          assert.equal(build.nodeApi, 8); assert.equal(build.platform, process.platform); assert.equal(build.arch, process.arch);
+          assert.match(build.rustc, /^rustc 1\.88\.0\b/); assert(hex(build.rustcSha256));
+          assert.equal(sha(readFileSync(build.rustcPath)), build.rustcSha256, 'compiler identity changed');
+          assert.deepEqual(build.pins, {napi:'3.16.1', derive:'3.7.0', build:'2.6.0'});
+          assert.deepEqual(build.inputsAfter, build.inputsBefore, 'native sources changed during compilation');
+          for (const name of ['Cargo.lock', 'bindings/napi/Cargo.lock', 'src/prepared_dense.rs', 'src/autograd/pass.rs', 'src/autograd/optim.rs', 'bindings/napi/src/gateway.rs', 'bindings/napi/src/training.rs']) assert(hex(build.inputsBefore[name]), `missing source identity: ${name}`);
+          for (const [name, digest] of Object.entries(build.inputsBefore)) {
+            assert(hex(digest) && !path.isAbsolute(name) && !name.includes('\\') && !name.split('/').includes('..'));
+            assert.equal(sha(readFileSync(name)), digest, 'compiled source identity changed after build');
+          }
+          assert.equal(build.coreLockSha256, build.inputsBefore['Cargo.lock']);
+          assert.equal(build.napiLockSha256, build.inputsBefore['bindings/napi/Cargo.lock']);
+          assert.equal(build.coreLockSha256, sha(readFileSync('Cargo.lock')));
+          assert.equal(build.napiLockSha256, sha(readFileSync('bindings/napi/Cargo.lock')));
+          assert.equal(build.binarySha256, binarySha256);
+          assert(build.commands.length >= 4 && build.commands.every(item => item.exitCode === 0));
+          assert(build.commands.some(item => item.program === 'cargo' && ['--release', '--locked', '--offline', '--message-format=json-render-diagnostics'].every(flag => item.args.includes(flag))));
+          assert.equal(build.flags.optLevel, 3); assert.equal(build.flags.debugAssertions, false);
+          assert.equal(build.flags.lto, 'thin'); assert.equal(build.flags.codegenUnits, 1);
+          assert.equal(build.flags.RUSTFLAGS, ''); assert.equal(build.flags.CARGO_ENCODED_RUSTFLAGS, '');
+          assert.equal(consumer.schema, 'ruv-fann.napi-consumer/1'); assert.equal(consumer.status, 'passed');
+          assert.equal(consumer.nativeLoaded, true); assert.equal(consumer.unchangedBinary, true);
+          assert.equal(consumer.binarySha256, binarySha256); assert.deepEqual(consumer.buildSourceHashes, build.inputsBefore);
+          assert(hex(consumer.artifact.sha256) && integer(consumer.artifact.size, 1, 128 * 1024 * 1024));
+          assert.deepEqual(consumer.commands.map(item => item.label), ['pack', 'install-local', 'consume']);
+          assert(consumer.commands.every(item => item.exitCode === 0));
+          for (const key of ['esm', 'cjs', 'directBinding', 'alias', 'atomic', 'lifecycle']) assert.equal(consumer.checks[key], true, `missing actual consumer proof: ${key}`);
+          const training = consumer.training;
+          for (const key of ['actualAutograd', 'finiteDifferences', 'sgdLearning', 'adamwLearning', 'atomicUpdates', 'immutableSnapshot', 'closedLifecycle']) assert.equal(training[key], true, `missing training proof: ${key}`);
+          for (const [first, last] of [[training.firstLoss, training.lastLoss], [training.adamFirst, training.adamLast]]) assert(positive(first) && Number.isFinite(last) && last >= 0 && last < first, 'training did not learn');
+          const candle = training.candle;
+          assert.equal(candle.verified, true); assert.equal(candle.oracle, fixture.oracle);
+          assert.match(candle.oracle, /candle.*0\.11\.1.*CPU.*f64/i);
+          assert.equal(candle.fixtureSha256, sha(fixtureBytes));
+          assert(positive(candle.tolerance) && candle.tolerance <= 1e-9);
+          assert.equal(candle.sgdStepCount, 3); assert.equal(candle.adamwStepCount, 3);
+          assert.equal(fixture.sgd_steps.length, 3); assert.equal(fixture.adamw_steps.length, 3);
+          const references = [fixture.parameter_gradients, fixture.input_gradients, fixture.sgd_expected_parameters, fixture.adamw_expected_parameters];
+          assert(references.every(values => Array.isArray(values) && values.length > 0 && values.every(Number.isFinite)));
+          const scale = Math.max(1, ...references.flat().map(Math.abs));
+          for (const key of ['parameterGradientError', 'inputGradientError', 'sgdError', 'adamwError']) assert(Number.isFinite(candle[key]) && candle[key] >= 0 && candle[key] <= candle.tolerance * scale, `invalid actual Candle comparison: ${key}`);
+          assert.equal(tuner.schema, 'ruv-fann.napi-tuner/1'); assert.equal(tuner.status, 'passed');
+          for (const key of ['nativeLoaded', 'unchangedBinary', 'actualDarwin']) assert.equal(tuner[key], true);
+          assert.equal(tuner.binarySha256, binarySha256);
+          const receipt = tuner.receipt, budget = receipt.trialBudget, confirmation = receipt.confirmation;
+          assert.equal(receipt.schema, 'ruv-fann.batch-tuning/1'); assert.equal(receipt.status, 'passed');
+          assert.equal(receipt.modelCalls, 0); assert.equal(receipt.sourceApplied, false); assert.equal(receipt.temporaryArchiveRemoved, true);
+          assert.deepEqual(receipt.engine, {package:'@metaharness/darwin', version:'0.13.0', algorithm:'evolveNumeric'});
+          assert(integer(receipt.options.samples, 5, 20) && integer(receipt.options.baselineBatchRows, 1, 128));
+          assert(integer(receipt.options.generations, 1, 3) && integer(receipt.options.children, 1, 2));
+          assert.equal(budget.absoluteLimit, 12); assert.equal(budget.concurrency, 1);
+          assert.equal(budget.worstCaseDispatches, 1 + receipt.options.children + 2 * receipt.options.children * (receipt.options.generations - 1));
+          assert(integer(budget.worstCaseDispatches, 1, 12) && integer(budget.dispatchCount, 1, budget.worstCaseDispatches));
+          assert(integer(budget.actualMeasurementCount, 1, budget.dispatchCount) && integer(budget.cacheHits, 0, budget.dispatchCount));
+          assert.equal(budget.actualMeasurementCount + budget.cacheHits, budget.dispatchCount);
+          assert.equal(receipt.trials.length, budget.dispatchCount);
+          for (const trial of receipt.trials) {
+            assert(integer(trial.genome.batchRows, 1, 128)); assert(positive(trial.score.primary));
+            assert.equal(trial.score.raw.maximumAbsoluteError, 0);
+            assert.equal(trial.score.raw.workloadSha256, receipt.context.workloadSha256);
+            assert(Array.isArray(trial.score.raw.samplesNs) && trial.score.raw.samplesNs.length === receipt.options.samples && trial.score.raw.samplesNs.every(positive));
+          }
+          for (const measured of [receipt.baseline, receipt.winner]) {
+            assert.equal(measured.score.regressed, false);
+            assert(receipt.trials.some(trial => JSON.stringify(trial) === JSON.stringify(measured)), 'unmeasured tuner result');
+          }
+          assert.equal(receipt.baseline.genome.batchRows, receipt.options.baselineBatchRows);
+          assert.equal(confirmation.verified, true); assert.equal(confirmation.maximumAbsoluteError, 0);
+          assert.equal(confirmation.baselineBatchRows, receipt.options.baselineBatchRows);
+          assert.equal(confirmation.candidateBatchRows, receipt.winner.genome.batchRows);
+          assert.equal(confirmation.workloadSha256, receipt.context.workloadSha256); assert.equal(confirmation.minimumImprovement, 0.05);
+          for (const key of ['baselineSamplesNs', 'candidateSamplesNs']) assert(Array.isArray(confirmation[key]) && confirmation[key].length === receipt.options.samples && confirmation[key].every(positive));
+          const sum = values => values.reduce((total, value) => total + value, 0);
+          const ratio = sum(confirmation.baselineSamplesNs) / sum(confirmation.candidateSamplesNs);
+          assert(positive(confirmation.meanSpeedRatio) && Math.abs(confirmation.meanSpeedRatio - ratio) <= 1e-10 * Math.max(1, ratio));
+          assert(Array.isArray(confirmation.ci95) && confirmation.ci95.length === 2 && confirmation.ci95.every(positive) && confirmation.ci95[0] <= confirmation.ci95[1]);
+          const faster = confirmation.candidateBatchRows !== confirmation.baselineBatchRows && confirmation.ci95[0] > 1.05;
+          assert.equal(confirmation.faster, faster); assert.equal(confirmation.status, faster ? 'passed' : 'not_improved');
+          assert.deepEqual(receipt.recommendation, faster ? receipt.winner.genome : receipt.baseline.genome);
+          console.log('Actual native inference, autograd, Candle, packed consumer and bounded Darwin evidence passed; elapsed speed is observational.');
+          JS
+      - name: Require an unchanged source checkout
+        id: unchanged
+        run: |
+          git diff --exit-code
+          git diff --cached --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - name: Upload native evidence on success or failure
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: candle-native-node-${{ matrix.node }}
+          retention-days: 14
+          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}/candle-native-napi/
+            ${{ runner.temp }}/candle-native-package/*.json
+
+  browser:
+    name: Actual Chromium training, Candle gradients and trained HNSW
+    needs: candle
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    env:
+      NODE_PATH: ${{ runner.temp }}/candle-native-browser-tools/node_modules
+      PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/candle-native-browser-binaries
+      RUV_FANN_CANDLE_FIXTURE: ${{ runner.temp }}/candle-native-oracle/candle-f64-fixture.json
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: candle-native-oracle
+          path: ${{ runner.temp }}/candle-native-oracle
+      - name: Create external browser evidence directory
+        run: mkdir -m 700 "$RUNNER_TEMP/candle-native-browser"
+      - name: Install only the locked optional SDK dependencies
+        id: sdk-install
+        run: npm ci --ignore-scripts --omit=optional --prefix integrations/ruv-fann 2>&1 | tee "$RUNNER_TEMP/candle-native-browser/sdk-install.log"
+      - name: Audit installed SDK dependencies including development dependencies
+        id: audit
+        run: npm audit --audit-level=low --omit=optional --prefix integrations/ruv-fann 2>&1 | tee "$RUNNER_TEMP/candle-native-browser/audit.log"
+      - name: Install explicit pinned browser tooling outside the checkout
+        id: setup
+        run: |
+          npm install --prefix "$RUNNER_TEMP/candle-native-browser-tools" --no-save --ignore-scripts playwright@1.62.1 2>&1 | tee "$RUNNER_TEMP/candle-native-browser/setup.log"
+          "$RUNNER_TEMP/candle-native-browser-tools/node_modules/.bin/playwright" install --with-deps chromium 2>&1 | tee "$RUNNER_TEMP/candle-native-browser/chromium.log"
+          node <<'JS'
+          const fs = require('node:fs'), {chromium} = require('playwright');
+          fs.appendFileSync(process.env.GITHUB_ENV, `CHROMIUM_PATH=${chromium.executablePath()}\n`);
+          JS
+      - name: Run actual Chromium core and SIMD training against Candle
+        id: training
+        run: node ruv-swarm/npm/test/browser-training.cjs --output "$RUNNER_TEMP/candle-native-browser/browser.json" 2>&1 | tee "$RUNNER_TEMP/candle-native-browser/training.log"
+      - name: Require actual browser gradients, updates, boundaries and HNSW evidence
+        id: evidence
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import {readFileSync} from 'node:fs';
+          import {createHash} from 'node:crypto';
+          import path from 'node:path';
+          const receipt = JSON.parse(readFileSync(path.join(process.env.RUNNER_TEMP, 'candle-native-browser/browser.json'), 'utf8'));
+          const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+          assert.equal(receipt.schema, 'ruv-fann.browser-training/1'); assert.equal(receipt.status, 'passed');
+          for (const key of ['actualWasmTraining', 'actualCandle', 'actualRuVectorHnsw', 'coreAndSimd', 'crossOriginIsolated', 'unchanged']) assert.equal(receipt[key], true, `missing actual browser proof: ${key}`);
+          assert.equal(receipt.playwright, '1.62.1'); assert.equal(receipt.externalRequests, 0);
+          assert.equal(receipt.fixtureSha256, hash(readFileSync(process.env.RUV_FANN_CANDLE_FIXTURE)));
+          assert(Object.keys(receipt.inputsBefore).length >= 4); assert.deepEqual(receipt.inputsAfter, receipt.inputsBefore);
+          for (const digest of Object.values(receipt.inputsBefore)) assert.match(digest, /^[a-f0-9]{64}$/);
+          assert.equal(receipt.inputsBefore.browserDriver, hash(readFileSync('ruv-swarm/npm/test/browser-training.cjs')));
+          assert.equal(receipt.inputsBefore.candleFixture, receipt.fixtureSha256);
+          for (const name of ['ruv_swarm_wasm_bg.wasm', 'ruv_swarm_simd.wasm', 'ruv_swarm_wasm.js']) { const key = `ruv-swarm/npm/wasm/${name}`; assert.equal(receipt.inputsBefore[key], hash(readFileSync(key))); }
+          assert(Array.isArray(receipt.cases) && receipt.cases.length === 2);
+          assert.deepEqual(receipt.cases.map(value => value.variant).sort(), ['core', 'simd']);
+          for (const item of receipt.cases) {
+            assert.equal(item.simdSupport, item.variant === 'simd');
+            assert.match(item.candle.oracle, /candle.*0\.11\.1.*CPU.*f64/i);
+            assert.deepEqual(item.candle.optimizers.map(value => value.optimizer).sort(), ['adamw', 'sgd']);
+            for (const optimizer of item.candle.optimizers) {
+              assert.equal(optimizer.steps, 3); assert.equal(optimizer.freezeAfterTrainerFree, true);
+              assert.equal(optimizer.backwardPasses, 3); assert.equal(optimizer.parameterUpdates, 3);
+              assert(Number.isFinite(optimizer.maximumAbsoluteError) && optimizer.maximumAbsoluteError >= 0 && optimizer.maximumAbsoluteError <= 1e-9);
+              assert.equal(optimizer.hnsw.indexType, 'hnsw'); assert.equal(optimizer.hnsw.records, 17);
+              assert.equal(optimizer.hnsw.actualId, 'sample-7'); assert.equal(optimizer.hnsw.distance, 0); assert.equal(optimizer.hnsw.deleted, true);
+            }
+            assert.equal(item.learning.optimizer, 'sgd'); assert.equal(item.learning.steps, 200);
+            assert(Number.isFinite(item.learning.initialLoss) && item.learning.initialLoss > 0 && Number.isFinite(item.learning.finalLoss) && item.learning.finalLoss >= 0 && item.learning.finalLoss < item.learning.initialLoss);
+            for (const [key, minimum] of [['arrayRejections', 23], ['scalarRejections', 25], ['invalidJsonRejections', 8]]) assert(Number.isSafeInteger(item.boundaries[key]) && item.boundaries[key] >= minimum);
+            assert.equal(item.boundaries.metadataGetterReads, 0);
+            for (const key of ['sharedArrayBufferTested', 'detachedTested', 'wasmMemoryTested', 'atomicParametersPreserved', 'poisonedMetadataIgnored']) assert.equal(item.boundaries[key], true, `browser boundary not tested: ${key}`);
+          }
+          console.log('Actual core/SIMD browser training, three-step Candle updates, boundaries and trained HNSW passed.');
+          JS
+      - name: Require an unchanged source checkout
+        id: unchanged
+        run: |
+          git diff --exit-code
+          git diff --cached --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - name: Upload browser evidence on success or failure
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: candle-native-browser-training
+          retention-days: 14
+          if-no-files-found: error
+          path: ${{ runner.temp }}/candle-native-browser/
