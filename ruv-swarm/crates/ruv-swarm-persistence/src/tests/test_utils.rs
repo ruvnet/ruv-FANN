@@ -53,7 +53,7 @@ impl TestFixture {
             .ok_or_else(|| StorageError::Other("Invalid temp file path".to_string()))?;
         
         // Create storage with custom pool size
-        let manager = r2d2_sqlite::SqliteConnectionManager::file(path);
+        let manager = crate::sqlite_pool::SqliteConnectionManager::file(path);
         let pool = r2d2::Pool::builder()
             .max_size(pool_size)
             .min_idle(Some(2))

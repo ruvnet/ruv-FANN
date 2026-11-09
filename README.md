@@ -202,9 +202,9 @@ See [Cargo.toml](Cargo.toml) for the precise feature dependency graph. Native Ru
 
 ## Build and test
 
-Use a current stable Rust toolchain for full-repository development. The core declares Rust 1.81; the swarm, napi-rs binding and all four OpenCV packages require Rust 1.88. The optional Candle adapter is tested with Rust 1.99.1 and declares 1.99. Python 3.11 or newer runs the verification tools. Node 22.13 or newer covers the root tooling and swarm distribution; the standalone CUDA wrapper requires Node 22.12 or newer.
+Use a current stable Rust toolchain for full-repository development. The core declares Rust 1.81; native swarm packages require Rust 1.89 for patched SQLite. The minimal swarm WASM crate, napi-rs binding and all four OpenCV packages retain Rust 1.88. The optional Candle adapter is tested with Rust 1.99.1 and declares 1.99. Python 3.11 or newer runs the verification tools. Node 22.13 or newer covers the root tooling and swarm distribution; the standalone CUDA wrapper requires Node 22.12 or newer.
 
-The full OpenCV workspace also needs a C++17 compiler, pkg-config, libclang, and OpenCV 4.4 or newer development files. On Debian/Ubuntu these are typically `g++`, `pkg-config`, `libclang-dev`, and `libopencv-dev`. See the [native setup guide](opencv-rust/opencv-sys/README.md) for a checked user-owned prefix option. Portable OpenCV packages can be tested with `--exclude opencv-sys`. Swarm's SQLite npm addon may also need a C++ build toolchain.
+The full OpenCV workspace also needs a C++17 compiler, pkg-config, libclang, and OpenCV 4.4 or newer development files. On Debian/Ubuntu these are typically `g++`, `pkg-config`, `libclang-dev`, and `libopencv-dev`. See the [native setup guide](opencv-rust/opencv-sys/README.md) for a checked user-owned prefix option. Portable OpenCV packages can be tested with `--exclude opencv-sys`. Swarm's SQLite npm addon requires Python and a C++20 toolchain: installation builds a verified SQLite 3.54.1 source archive and checks its version, source ID, binary hash and Node ABI before opening user databases. See the [Node installation guide](ruv-swarm/npm/README.md).
 
 ```bash
 # Inventory every Cargo workspace and npm distribution.

@@ -31,3 +31,4 @@ async fn test_basic_mcp_server_creation() {
 mod integration_tests;
 mod security_tests;
 mod quota_regressions;
+mod stdio_transport;

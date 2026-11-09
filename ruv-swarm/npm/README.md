@@ -8,7 +8,7 @@ A JavaScript API and command-line tool for coordinating agents, storing task sta
 
 ## Install
 
-Use Node.js **22.13 or newer**. SQLite uses a native addon; npm may need a C++ build toolchain when a matching prebuilt addon is unavailable. The maintained development tools also require this minimum.
+Use Node.js **22.13 or newer**, Python 3 and a **C++20 build toolchain**. The checkout builds its SQLite addon from verified source: published Node wrappers still bundle an older affected SQLite. Installation pins the compatible `better-sqlite3` 12.11.1 wrapper and builds SQLite 3.54.1 from an archive and file hashes recorded in `scripts/sqlite-source.json`. It honors the host proxy and CA settings; unverified/default prebuilt binaries cannot open application databases.
 
 ```sh
 npm install ruv-swarm
@@ -17,6 +17,22 @@ npx ruv-swarm --version
 ```
 
 Pin the version you have tested in applications and MCP client configurations. The npm package and Rust crates have separate version numbers.
+
+The package installs one binding per platform, architecture and Node ABI under
+`native/sqlite/`. Database construction checks its receipt, source/binary hashes,
+ABI and actual `sqlite_version()`/`sqlite_source_id()` using a private memory DB
+before opening a user file. Rebuild after changing Node ABI:
+
+```sh
+npm run build:sqlite
+node scripts/sqlite-build.mjs --verify
+```
+
+`--ignore-scripts` installations can use the independent WASM exports and help
+commands. Database-backed commands report an actionable error until the patched
+source build succeeds. The builder never substitutes a vulnerable prebuilt addon
+after a build failure. Root workspace installation builds the workspace package,
+then verifies the result from its root lifecycle hook.
 
 ## Start the MCP server
 

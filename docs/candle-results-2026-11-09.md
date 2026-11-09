@@ -19,19 +19,21 @@ actual source/build/proof hashes. No registry release was performed.
 | Core MSRV | Rust 1.81 minimal and serde checks passed |
 | Actual Candle 0.11.1 CPU | 18 tests, 280 backward comparisons and 240 SGD/AdamW updates across f32/f64, five activation names and every two-layer bias combination |
 | Native napi-rs | 21 tests each on Node 22.13 and 24.22.1; actual native library, hostile arrays, Workers, reentrancy, SDK/HNSW, gradients and three optimizer updates |
-| New WASM APIs | 14 focused import/training tests each Node, both core/SIMD variants; full maintained security/runtime suite passed 97 each |
-| Extracted npm consumers | Both Node versions passed the native archive and four core/SIMD × SGD/AdamW cases from the actual `ruv-swarm` archive |
+| New WASM APIs | 14 focused import/training tests each Node, both core/SIMD variants; full maintained security/runtime suite passed 108 each |
+| Extracted npm consumers | Both Node versions passed the native archive and four core/SIMD × SGD/AdamW cases from the actual `ruv-swarm` archive; normal SQLite lifecycle installation and durable CLI state are tested separately |
 | Chromium 156 / Playwright 1.62.1 | Both binaries matched actual Candle, learned a regression, passed 112 rejection cases, and used trained frozen snapshots in four real HNSW lifecycle checks |
 | Pinned Rune | Frozen build, replay, fresh verification, real training/inference probe, release correctness and stale-source/plan/object rejection passed |
 | Claude plugin 0.1.5 | Eight skills, structural validation and 39 helper/package tests passed; current Claude-host execution was not claimed |
-| CI contracts | All 90 workflow tests, actionlint on nine workflows, and exact genuine native/browser receipt guards passed locally |
+| Patched native services | Rust 1.89: 144 library tests, two actual SQLite runtime/durability tests and the compiled MCP stdio protocol check passed |
+| CI contracts | All 103 workflow tests and actionlint on ten workflows passed locally; evidence guards also exercise genuine runtime receipts |
 
-The local root SQLite addon targets Node 24. For the full existing CLI/MCP suite
-on Node 22, a private test loader selected an independently built Node 22
-`better-sqlite3` 11.10.0 addon with byte-identical JS sources. That suite passed
-97/97. New raw/packed WASM and napi-rs proofs and benchmarks run directly without
-that loader. The extracted WASM training consumer needs only Node builtins;
-SQLite/CLI dependency installation is outside that archive check.
+Both Node versions now run the full 108-test suite directly with package-owned,
+source-built SQLite 3.54.1 binaries for their respective ABIs. No private loader
+is used. The extracted WASM training consumer needs only Node builtins. A separate
+archive check performs a normal dependency installation and source-build lifecycle,
+then verifies the actual SQLite engine and durable state across public CLI
+processes. See the [SQLite and MCP security changes](sqlite-security-2026-11-09.md)
+for the installation requirements and runtime checks.
 
 Candle gradient/optimizer comparisons use f32 `atol=5e-6, rtol=3e-5` and f64
 `1e-12` each. Browser maximum absolute error was `2.22e-16`. ReLU's derivative
@@ -39,13 +41,16 @@ at zero differs between engines; FANN's zero rule has a separate regression.
 The examples demonstrate implementation and learning behavior on small fixtures,
 not task-level SOTA model accuracy.
 
-Cargo audits of core/new Candle/new napi-rs locks found zero vulnerabilities;
-the dependency-free napi npm package audit also passed. Pinned Ruflo deep scans
-of new runtime areas reported zero findings, supplementing independent human
+Cargo audits of all seven reviewed locks found zero vulnerabilities after fixing
+the SQLite and rmcp advisories discovered by hosted CI. Root and swarm npm audits
+and the dependency-free napi npm audit also passed. Pinned Ruflo deep scans
+of new runtime areas reported zero findings, supplementing independent
 source review. A broad checkout scan also reported existing fixture/demo and
 generated-file patterns outside this review; this is not a repository-wide
-security-clean claim. All 12 pre-existing locks remain byte-identical. Three new
-package locks were added. Private coordinator state was restored byte-for-byte.
+security-clean claim. Nine of the 12 pre-existing locks remain byte-identical;
+the swarm Cargo lock and root/swarm npm locks changed for the security migration.
+Three new package locks were added. Obsolete vulnerability exceptions for removed
+dependency graphs were deleted. Private coordinator state was restored byte-for-byte.
 
 ## Matched-toolchain performance
 
@@ -56,6 +61,9 @@ same benchmark computation. WASM baseline/candidate use Rust 1.88,
 wasm-pack 0.15.1, wasm-bindgen 0.2.130 and identical release/profile flags.
 The archived WASM source was checked against 1,292 Git blobs; its source digest
 matches the original receipt. Baseline and candidate build directories are separate.
+The later security rebuild produced byte-identical core/SIMD WASM binaries and
+glue. The independent napi-rs binary also remains identical to the measured
+artifact. The measurements below are retained from those exact binaries.
 
 Each case has 20 raw timing blocks after warmup/calibration. Native cases
 alternate baseline/candidate order; Node cases reverse backend order by case.

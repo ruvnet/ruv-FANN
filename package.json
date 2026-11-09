@@ -7,7 +7,7 @@
     "vite": "^6.0.0",
     "vitest": "^4.1.12",
     "@vitest/ui": "^4.1.12",
-    "better-sqlite3": "^11.6.0",
+    "better-sqlite3": "12.11.1",
     "minimatch@>=7.0.0 <11.0.1": "^11.0.1",
     "@typescript-eslint/typescript-estree": {
       "minimatch": "^11.0.1"
@@ -28,7 +28,8 @@
     }
   },
   "dependencies": {
-    "better-sqlite3": "^11.6.0",
+    "better-sqlite3": "12.11.1",
+    "node-gyp": "12.4.0",
     "ruv-swarm": "file:ruv-swarm/npm",
     "uuid": "^11.1.1"
   },
@@ -36,7 +37,9 @@
   "scripts": {
     "test": "npm --prefix ruv-swarm/npm test",
     "test:security": "npm --prefix ruv-swarm/npm run test:security",
-    "build": "npm --prefix ruv-swarm/npm run build"
+    "build": "npm --prefix ruv-swarm/npm run build",
+    "build:sqlite": "node ruv-swarm/npm/scripts/sqlite-build.mjs",
+    "postinstall": "node ruv-swarm/npm/scripts/sqlite-build.mjs --verify"
   },
   "workspaces": [
     "ruv-swarm/npm"

@@ -31,3 +31,4 @@ __pycache__/
 *.py[cod]
 /ruv-swarm/crates/ruv-swarm-mcp/test_*.db*
 /ruv-swarm/crates/ruv-swarm-mcp/ruv-swarm-mcp.db*
+/ruv-swarm/npm/native/sqlite/

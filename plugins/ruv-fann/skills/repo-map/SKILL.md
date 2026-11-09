@@ -58,7 +58,7 @@ Use direct family commands when a narrower portable or browser gate is appropria
 
 ## Resource and execution boundaries
 
-- Root library MSRV is Rust 1.81; swarm and OpenCV declare 1.88. Full-repository work uses a current stable toolchain. Read each manifest for the actual requirement.
+- Root library MSRV is Rust 1.81; native swarm uses 1.89 for patched SQLite. Minimal swarm WASM, napi-rs and OpenCV retain 1.88. Full-repository work uses a current stable toolchain. Read each manifest for the actual requirement.
 - Python 3.11+ runs repository verification tools. Node 22.13+ covers root/swarm; CUDA's standalone wrapper accepts 22.12+.
 - Native OpenCV needs C++17, pkg-config, libclang and OpenCV development files. Browser execution needs separately installed build/browser tooling.
 - Keep one writer per file and one owner per shared target cache. Do not erase caches or regenerate locks as a troubleshooting shortcut.

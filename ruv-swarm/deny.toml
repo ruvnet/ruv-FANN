@@ -39,29 +39,9 @@ expression = "MIT OR Apache-2.0"
 license-files = []
 
 [advisories]
-# ruv-swarm workspace (this file shadows the repo-root deny.toml when
-# cargo-deny runs from ruv-swarm/). Every entry below has no patched release
-# reachable without replacing the dependency, and none is on a code path that
-# ruv-swarm compiles by default. Re-check when the listed blocker moves.
-#
-# Lockfile-only advisories. Cargo.lock records optional dependencies whether or
-# not their feature is enabled; cargo-audit reads the lockfile, so it reports
-# these, while cargo-deny (which walks the enabled graph) does not see them.
-#
-# RUSTSEC-2023-0071: rsa 0.9 Marvin timing side channel, no fixed release.
-#   Path: sqlx -> sqlx-mysql -> rsa. ruv-swarm-benchmarking enables sqlx with
-#   `sqlite` only; the `mysql` feature is never enabled, so `cargo tree -i rsa
-#   --target all -e all` prints nothing and rsa is not compiled into any
-#   artifact. ruv-swarm has no RSA code of its own (no `rsa::` / RsaPrivateKey
-#   in the tree), so there is no private-key operation an attacker can time.
-#
-# RUSTSEC-2026-0367/0368/0369/0429: zip 0.6 (no fix below zip 9.0).
-# RUSTSEC-2026-0403 (+ unsound 0395/0397/0399/0400/0401/0402/0404/0406):
-#   zstd-safe 5.0, pulled in by that zip.
-#   Path: tch 0.13 / candle-core 0.3 -> zip 0.6, behind ruv-swarm-daa's opt-in
-#   `neural-networks` feature (needs a local libtorch; not built by default or
-#   by CI). Fixing it means migrating tch/candle across several majors, and no
-#   tch or candle release depends on zip >= 9 yet.
+# Native SQLite and MCP use patched suppliers. The old sqlx/RSA and
+# optional tch/Candle/zip graphs are absent from the committed lock; their
+# obsolete vulnerability exceptions have been removed.
 #
 # Unmaintained, no advisory-listed replacement version:
 # RUSTSEC-2025-0012 backoff / RUSTSEC-2024-0384 instant: ruv-swarm-transport
@@ -71,20 +51,6 @@ license-files = []
 # RUSTSEC-2025-0141 bincode 1.x / RUSTSEC-2024-0436 paste /
 # RUSTSEC-2022-0054 wee_alloc: same rationale as the repo-root deny.toml.
 ignore = [
-    "RUSTSEC-2023-0071",  # rsa: lockfile-only via unused sqlx `mysql`; no RSA ops in ruv-swarm
-    "RUSTSEC-2026-0367",  # zip 0.6: opt-in ruv-swarm-daa `neural-networks` (tch/candle)
-    "RUSTSEC-2026-0368",  # zip 0.6: same
-    "RUSTSEC-2026-0369",  # zip 0.6: same
-    "RUSTSEC-2026-0429",  # zip 0.6: same
-    "RUSTSEC-2026-0403",  # zstd-safe 5.0 via zip 0.6: same
-    "RUSTSEC-2026-0395",  # zstd-safe 5.0 unsound: same
-    "RUSTSEC-2026-0397",  # zstd-safe 5.0 unsound: same
-    "RUSTSEC-2026-0399",  # zstd-safe 5.0 unsound: same
-    "RUSTSEC-2026-0400",  # zstd-safe 5.0 unsound: same
-    "RUSTSEC-2026-0401",  # zstd-safe 5.0 unsound: same
-    "RUSTSEC-2026-0402",  # zstd-safe 5.0 unsound: same
-    "RUSTSEC-2026-0404",  # zstd-safe 5.0 unsound: same
-    "RUSTSEC-2026-0406",  # zstd-safe 5.0 unsound: same
     "RUSTSEC-2025-0012",  # backoff unmaintained
     "RUSTSEC-2024-0384",  # instant unmaintained (via backoff)
     "RUSTSEC-2024-0449",  # unsafe-libyaml unmaintained (via serde_yaml)

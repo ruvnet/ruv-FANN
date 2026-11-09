@@ -7,7 +7,7 @@ import { execFileSync } from 'child_process';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import Database from 'better-sqlite3';
+import Database from '../sqlite-engine.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

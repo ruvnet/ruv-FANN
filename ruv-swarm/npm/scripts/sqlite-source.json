@@ -1,0 +1,26 @@
+{
+  "schema": "ruv-swarm.sqlite-source/1",
+  "version": "3.54.1",
+  "sourceId": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+  "license": "public-domain",
+  "archive": {
+    "url": "https://static.crates.io/crates/libsqlite3-sys/libsqlite3-sys-0.39.1.crate",
+    "prefix": "libsqlite3-sys-0.39.1/sqlite3/",
+    "sha256": "14a5f01b87b92705d07b433c06f96cbc764637d81a0bffb5734ce17cf0f9a2b3",
+    "bytes": 2759388
+  },
+  "files": {
+    "sqlite3.c": {
+      "sha256": "0c657666d819f261cc4007526ad57e1669de9949df7a8ea847aa284a2bf0ee52",
+      "bytes": 9582521
+    },
+    "sqlite3.h": {
+      "sha256": "d6c84557261893439b341d2e6c35187ae3ea24fbfd843ad94616f72d89242b8c",
+      "bytes": 695729
+    },
+    "sqlite3ext.h": {
+      "sha256": "48963abfefb41ac329ef9d706acb5eadba952a99a748285c9ded6b5e0942721b",
+      "bytes": 39547
+    }
+  }
+}

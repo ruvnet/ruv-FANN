@@ -1,9 +1,9 @@
 {
   "schema": "ruv-fann.candle-validation/1",
-  "dateUtc": "2026-11-09T14:23:59.688304+00:00",
+  "dateUtc": "2026-11-09T16:16:37.461735+00:00",
   "status": "passed_local_release_gates",
   "baselineCommit": "d182eb42ae23a48560528c1d9284ee19b9bc510a",
-  "scope": "Fixed sequential dense reverse-mode AD and SGD/AdamW, actual Candle CPU adapter, native napi-rs and WASM training, independently frozen inference; local measurements and PR-oriented CI. No registry release.",
+  "scope": "Fixed sequential dense reverse-mode AD and SGD/AdamW, actual Candle CPU adapter, native napi-rs and WASM training, independently frozen inference; local measurements and PR-oriented CI. No registry release. Includes patched SQLite/MCP suppliers and normal Node source-build installation.",
   "capabilities": {
     "rustPrecisions": [
       "f32",
@@ -33,30 +33,35 @@
     "memoryScope": "Requested logical storage; excludes caller data, allocator slack and process-wide runtime memory."
   },
   "source": {
-    "runeCoreTreeSha256": "5651eeb53d557a517f792048d35413676b25b5768e97f56b24fbe61fa025aff3",
-    "runeSnapshotSha256": "8eb0802142ab5d53492c3c6012b72654ead11644dfcf3518a2644d71cf7bef16",
-    "wasmSourceSha256": "0f94cba8a35336d0302e702966b205faaf7855de9297dc0bae0c2fefbf4756bb",
+    "runeCoreTreeSha256": "153eb465d48dee641455bbd6ca213fd2c5f33817daa2bb87fec75f96f2f3d723",
+    "runeSnapshotSha256": "4977c0b6ee90200a80255bfcb28387b446cca663606c5866cf78508b6208bab0",
+    "wasmSourceSha256": "9513ca66cfc1a616b94f07ab123d3524cddf995a15a3f05e075b66ccfe9411b6",
     "nativeInputMapSha256": "e2018f38fda1b303e4b0bbee8510743c15f1024d3339aeccaacf059bc6f92424",
-    "existingLocksUnchanged": 12,
+    "existingLocksUnchanged": 9,
     "existingLockSha256": {
-      "package-lock.json": "088550774a049975671d2e0cc075b8be515c4c436f1fc543bee4256ebeba09a8",
+      "package-lock.json": "408a8a5ce0294f775e7281bd6c8d0f2e14cc90af6e03763df53c228df2da5e26",
       "Cargo.lock": "8b47266eb8835a4a18e658521b149507799cce30c1280bf2e7b6e9a15ecd4f8c",
       "cuda-wasm/package-lock.json": "1cfc5ae406d55538289943a4c417e1d39aa0f7ee620d1bade20920e37886e138",
       "cuda-wasm/Cargo.lock": "ff4bb589d5b39585ac19858640a1a98389dcda0ce3b782d886312aa27f4d11e0",
       "opencv-rust/Cargo.lock": "818a9e96facee00e9d00ace47e553d879e64e296929a28d37d91f735810b1b17",
-      "ruv-swarm/Cargo.lock": "bb0a255f31a0430806bfd8fc08353ecc7e9d0e7a252c9e76afe109a002555568",
+      "ruv-swarm/Cargo.lock": "a0116b1612809a96889d7c127678e698991f045bd77d879a7a0f4be7e7dee281",
       "neuro-divergent/Cargo.lock": "50e70e307a2c5ffd17a43d5ce73320860ead04f8a07518f1400d9cd1b7beccdf",
       "config/rune-probe/Cargo.lock": "ccf588ef761301b8eae1bf3c128466bea48b362b246ca813b63807fb34aa9462",
       "tools/metaharness/package-lock.json": "8ae10f36ff4a90335407cec1343045a5c1a7c2de63cf4365b8d483d08db67273",
       "integrations/ruv-fann/package-lock.json": "60fefabe58a1b544125a90fd1b4ae1c09965b06c129ff2a3d2ac2b9df2abb6b3",
-      "ruv-swarm/npm/package-lock.json": "e80d214dfd4f6cd0068ca5beb43de8b028594fd4c52f133c82565c4c3996adf7",
+      "ruv-swarm/npm/package-lock.json": "ba1636531263951427ad8d1e933964726b3a5c934c808535fd6d740e6fe7b837",
       "ruv-swarm/npm/test-npm-install-v106/package-lock.json": "4ce197425ee37207814a6a99f78349dbc0f33602c5eebb4e7699b147dd66a56c"
     },
     "newLocks": {
       "bindings/napi/Cargo.lock": "b80db062343a65892707575a84c3e1df334be59a0f66ed73c09810401b105230",
       "bindings/napi/package-lock.json": "4a14c4d8da0a4ec2d185f75a8ab64054f44dbb170b9b0aa06425d3aca9881f90",
       "integrations/candle/Cargo.lock": "d9093ad4cf4fba77fb877fddeda523245666458a36ce551365e0896f2c0abde4"
-    }
+    },
+    "existingLocksChanged": [
+      "package-lock.json",
+      "ruv-swarm/Cargo.lock",
+      "ruv-swarm/npm/package-lock.json"
+    ]
   },
   "rust": {
     "compiler": "1.88.0",
@@ -141,7 +146,7 @@
       "rustc": "rustc 1.88.0 (6b00bc388 2025-06-23)",
       "wasmPack": "wasm-pack 0.15.1"
     },
-    "buildReceiptSha256": "af49b9a3265b15a11955061f99daacddf496a6a03db63ae1ebaf204f4ee1a257",
+    "buildReceiptSha256": "02795a598ad251c4a1379b5e29143e93304242340249a20a95efa015fc71dc1e",
     "artifacts": {
       "ruv_swarm_wasm_bg.wasm": "c27354d248f4369a5f3843094fbfba04203f1f784504c279fdf4f34161eea9a0",
       "ruv_swarm_simd.wasm": "2f0ea5c3483c47d55943f34fe90c2dbf0eb9ca526570b7b3db965eb96cdf5127",
@@ -152,21 +157,21 @@
       "wasm-bindings-loader.mjs": "b2bc4abd1997b1d01d32ef4dba60f1e633a6503529752898f0c346e2b5de7158"
     },
     "focusedTrainingImportTestsPerNode": 14,
-    "fullSecurityRuntimeTestsPerNode": 97,
-    "node22FullRuntimeScope": "Local Node22 full CLI/MCP gate uses the same better-sqlite3 11.10.0 JS source with an existing separately compiled Node22 addon; current root addon targetsNode24. Only private test loader redirects that one dependency, no product/source/lock changes. New WASM/NAPI raw and packed backend proofs and benchmarks do not use this loader.",
+    "fullSecurityRuntimeTestsPerNode": 108,
+    "node22FullRuntimeScope": "Direct Node22 execution with package-owned ABI127 SQLite3.54.1 binding; no loader override. Both ABIs coexist and are checked before user database access.",
     "nativeAndWasmTrainingProofsUseSqliteLoader": false,
     "extractedConsumers": {
       "22": {
-        "receiptSha256": "27fb580408ca82da494ddde1e3cc01fc45a1ebb541b7ac9418fb8a9923efa05c",
+        "receiptSha256": "ff8a08edc148a41b700e7dcb40ff917dfab70c21f9372ee5ddc59ad47bbcaa51",
         "cases": 4,
         "dependencyScope": "Only Node builtins and extracted package files; no dependency graph installed or linked. CLI/SQLite are outside this check.",
-        "tarballSha256": "b2eea5471480b2658ef2373207812892697aee88a31cfc3bff259782408a0add"
+        "tarballSha256": "96122ff90a427db25863830844da539f33d49986e06f4bc09bb17c2160da9268"
       },
       "24": {
-        "receiptSha256": "4d2c6540213e053e8cf7b6374b8f9600e09e7b8fc6f13b97cf1e526f10d0e890",
+        "receiptSha256": "33619f2b60c2b71d5c531ed146d0b0acf71bf6033e52ac3ec7262fc678d0ee1a",
         "cases": 4,
         "dependencyScope": "Only Node builtins and extracted package files; no dependency graph installed or linked. CLI/SQLite are outside this check.",
-        "tarballSha256": "b2eea5471480b2658ef2373207812892697aee88a31cfc3bff259782408a0add"
+        "tarballSha256": "96122ff90a427db25863830844da539f33d49986e06f4bc09bb17c2160da9268"
       }
     }
   },
@@ -181,7 +186,7 @@
     "maximumAbsoluteError": 2.220446049250313e-16,
     "externalRequests": 0,
     "sourceUnchanged": true,
-    "receiptSha256": "14221589665672e011e8aec24b0ebd2ee62597d80c4ce0a2441398a4b4f494f9",
+    "receiptSha256": "5f915f640c1751fadd98c40c3d6b856d634a5b2016ed5dfdec8abfb3d12828fe",
     "expectedChromiumVersion": "156.0.8078.79",
     "versionSource": "explicit-environment"
   },
@@ -201,10 +206,10 @@
     },
     "product": {
       "name": "ruv-fann-rune-probe",
-      "sha256": "6b52043e9d4954c6c4208cd5600b041b127f43a7a8c525dfc6eb733ad3a47b1f",
+      "sha256": "e95a130621385ed6c0a452688612cdd26fc48e047474a00edd0c6c665176cdaa",
       "stored_object_verified": true
     },
-    "planId": "6d717615e0ff4f37778f7096bd5f87f46edaeab9a99336c3a7368ee9de008330",
+    "planId": "a5f011b637cf0a9c29c3277b87c300ac7be191ff0083227ab3b11143139769f0",
     "runtimeProbe": {
       "status": "passed",
       "probe": "ruv-fann-core",
@@ -252,7 +257,7 @@
     },
     "offline": true,
     "modelCalls": 0,
-    "receiptSha256": "fb3ebef05ced8d3a19b51e78fdcffaa6c44332a41a2d0c0413ce973bc6abbcd2"
+    "receiptSha256": "2be448c26234f95b0582243f3ec7cb8b397454f93f65ca701ac39aa702fa1890"
   },
   "metaHarness": {
     "actualDarwin": true,
@@ -261,15 +266,14 @@
     "scope": "Actual native-backed SDK execution; negative confirmation retained; no source promotion."
   },
   "ciAndReview": {
-    "workflowTestsPassed": 90,
-    "exactGenuineReceiptGuardsPassed": 3,
-    "validationSha256": "71ca1ab4fa9caa5d46b157aedfa967ec9e1825704777bb13c9cef5c2121a3f69",
+    "workflowTestsPassed": 103,
+    "exactGenuineReceiptGuardsPassed": 7,
     "independentReviewSha256": "15423a53ecbe16166ac3679cf1a12874ec015a9b481547429d9efb2e6721e116",
     "workflowSha256": "b99818d3bdb4236646abc7cb3c23df5505f4b85e312af855f5c85850a3051295",
-    "hostedExecution": "PR checks; local tests do not assert a hosted run.",
+    "hostedExecution": "Training/Candle/native/browser, Rune, MetaHarness and RuVector workflows passed on 12b0b05. Security migration awaiting new-head hosted checks at record time.",
     "actionlint": {
       "version": "1.7.12",
-      "workflowsPassed": 9,
+      "workflowsPassed": 10,
       "shellcheckAndPyflakes": "disabled; platform structure/expression validation performed"
     },
     "hostedValidationFix": {
@@ -285,8 +289,12 @@
       "exactVersionAndSourceRequiredInCi": true,
       "receiptSha256": "fb2d9b7c18531fe8ee6da662963b910f6cd4fb603ac771a6725fa6340269d166",
       "versionRegressionCases": 13,
-      "hostedRerunPending": true
-    }
+      "hostedRerunPending": false,
+      "hostedRun": 42641255116
+    },
+    "originalTrainingGuardValidationSha256": "71ca1ab4fa9caa5d46b157aedfa967ec9e1825704777bb13c9cef5c2121a3f69",
+    "securityGuardValidationSha256": "7d983b66dd02cd7e7f47c2266b34fbca86cd4d6e4a89199baf84b62d91932e73",
+    "independentSecuritySourceReviewSha256": "3b8325b0963b4ee827682893b4a452940690dbff2404e25d52218f57aacd0251"
   },
   "claudePlugin": {
     "version": "0.1.5",
@@ -298,6 +306,10 @@
   "security": {
     "cargoAuditedLocks": [
       "Cargo.lock",
+      "ruv-swarm/Cargo.lock",
+      "neuro-divergent/Cargo.lock",
+      "cuda-wasm/Cargo.lock",
+      "opencv-rust/Cargo.lock",
       "integrations/candle/Cargo.lock",
       "bindings/napi/Cargo.lock"
     ],
@@ -316,7 +328,13 @@
     "broadScan": "44 pattern hits, including10high, outside the new-runtime review; no repository-wide clean claim.",
     "privateCoordinationRestored": true,
     "privateRestoreReceiptSha256": "c2ce542addefacd6517d3167cab4d32fa8fb6fc2b137885951720efde91729e5",
-    "finalPackageCheckerRufloFindings": 0
+    "finalPackageCheckerRufloFindings": 0,
+    "rootAndSwarmNpmAudit": "passed, zero vulnerabilities",
+    "securityMigration": {
+      "record": "sqlite-security-validation-2026-11-09.json",
+      "scope": "Actual SQLite 3.54.1 and rmcp 3.9.0; 144 Rust library tests, two SQLite runtime gates, real stdio, 11 focused and 108 full tests per Node, and normal external lifecycle consumers.",
+      "sha256": "f07bca9aad3947f9d75608de515de09b11b4cf47b4bc4400effdba897db3c15f"
+    }
   },
   "performance": {
     "summary": "benchmarks/candle-summary-2026-11-09.json",
@@ -330,6 +348,7 @@
     "baselineGitBlobsVerified": 1292,
     "prototypeAndConfoundedPilotRetained": true,
     "benchmarkJsHarnessSha256": "b1ebdb5c0f8b746bfa171ae72dee2d13f466b3280945660936b6c321668eaee2",
-    "universalSpeedClaim": false
+    "universalSpeedClaim": false,
+    "securityRebuildMatchesMeasuredWasmArtifacts": true
   }
 }

@@ -92,16 +92,18 @@ These changes are supported by regression tests. They do not establish a univers
 
 ## Verify the checkout
 
-All 14 packages declare **Rust 1.88**. Linux acceptance on that toolchain passed **482 tests, 48 Criterion smoke cases and 5 doctests**, using all native targets and Cargo features. All 14 examples build; 11 offline executable smoke checks pass, including an isolated MCP server health check. Two compiled examples need an external Claude executable/provider and were not exercised against a live service.
+Native packages now require **Rust 1.89** to use patched `rusqlite`/SQLite. The minimal `ruv-swarm-wasm` crate explicitly retains Rust 1.88; unified/all-feature workspace builds use 1.89. SQLite is pinned to 3.54.1 and rmcp to 3.9.0; the benchmark store uses the same SQLite supplier. The current targeted native gate passes 144 library tests, two actual SQLite version/durability gates, and a bounded real MCP stdio protocol check.
+
+Historical acceptance on the previous Rust 1.88 dependency graph passed **482 tests, 48 Criterion smoke cases and 5 doctests**, using all native targets and Cargo features. All 14 examples built; 11 offline executable smoke checks passed. Those counts describe that earlier graph; current verification uses the commands below. Two compiled examples need an external Claude executable/provider and were not exercised against a live service.
 
 ```sh
-cargo +1.88.0 test --locked --workspace --all-targets --all-features --no-fail-fast
-cargo +1.88.0 test --locked --workspace --all-features --doc
-cargo +1.88.0 build --locked --workspace --all-features --examples
+cargo +1.89.0 test --locked --workspace --all-targets --all-features --no-fail-fast
+cargo +1.89.0 test --locked --workspace --all-features --doc
+cargo +1.89.0 build --locked --workspace --all-features --examples
 
-cargo +1.88.0 check --locked -p ruv-swarm-wasm -p ruv-swarm-wasm-unified \
+cargo +1.89.0 check --locked -p ruv-swarm-wasm -p ruv-swarm-wasm-unified \
   --all-features --lib --target wasm32-unknown-unknown
-RUSTFLAGS="-C target-feature=+simd128" cargo +1.88.0 check --locked \
+RUSTFLAGS="-C target-feature=+simd128" cargo +1.89.0 check --locked \
   -p ruv-swarm-wasm -p ruv-swarm-wasm-unified \
   --all-features --lib --target wasm32-unknown-unknown
 ```

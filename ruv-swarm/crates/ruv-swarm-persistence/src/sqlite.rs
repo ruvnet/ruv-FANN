@@ -1,10 +1,10 @@
 //! SQLite backend implementation for native platforms
 
 use crate::{models::*, Storage, StorageError, Transaction as TransactionTrait};
+use crate::sqlite_pool::SqliteConnectionManager;
 use async_trait::async_trait;
 use parking_lot::Mutex;
 use r2d2::{Pool, PooledConnection};
-use r2d2_sqlite::SqliteConnectionManager;
 use rusqlite::{params, OptionalExtension};
 use std::sync::Arc;
 use std::time::Duration;
@@ -64,7 +64,7 @@ impl SqliteStorage {
     
     /// Create SQLite storage from an existing pool (for testing)
     #[cfg(test)]
-    pub async fn from_pool(pool: SqlitePool) -> Result<Self, StorageError> {
+    pub(crate) async fn from_pool(pool: SqlitePool) -> Result<Self, StorageError> {
         let storage = Self {
             pool: Arc::new(pool),
             path: ":memory:".to_string(),
@@ -83,7 +83,7 @@ impl SqliteStorage {
     
     /// Get connection from pool (for testing)
     #[cfg(test)]
-    pub fn get_conn_test(&self) -> Result<SqliteConn, StorageError> {
+    pub(crate) fn get_conn_test(&self) -> Result<SqliteConn, StorageError> {
         self.get_conn()
     }
     
@@ -604,6 +604,8 @@ impl Storage for SqliteStorage {
             )
             .map_err(|e| StorageError::Database(e.to_string()))?;
 
+        let limit = i64::try_from(limit)
+            .map_err(|error| StorageError::Database(error.to_string()))?;
         let events = stmt
             .query_map(params![agent_id, limit], |row| row.get::<_, String>(0))
             .map_err(|e| StorageError::Database(e.to_string()))?
@@ -630,6 +632,8 @@ impl Storage for SqliteStorage {
             )
             .map_err(|e| StorageError::Database(e.to_string()))?;
 
+        let limit = i64::try_from(limit)
+            .map_err(|error| StorageError::Database(error.to_string()))?;
         let events = stmt
             .query_map(params![event_type, limit], |row| {
                 row.get::<_, String>(0)
@@ -707,6 +711,8 @@ impl Storage for SqliteStorage {
             )
             .map_err(|e| StorageError::Database(e.to_string()))?;
 
+        let limit = i64::try_from(limit)
+            .map_err(|error| StorageError::Database(error.to_string()))?;
         let messages = stmt
             .query_map(params![agent1, agent2, limit], |row| {
                 row.get::<_, String>(0)

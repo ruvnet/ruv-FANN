@@ -31,11 +31,8 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # SQLite storage
-# This private backend only needs SQLite. The umbrella/macros package also
-# resolves unused MySQL/RSA dependencies. Keep these semver-exempt crates pinned
-# together, as required by SQLx's driver documentation.
-sqlx-core = { version = "=0.8.6", default-features = false, features = ["_rt-tokio", "json", "chrono"] }
-sqlx-sqlite = { version = "=0.8.6", default-features = false, features = ["bundled", "json", "chrono"] }
+# Every SQLite user shares the workspace's patched bundled native library.
+rusqlite.workspace = true
 chrono = { version = "0.4", features = ["serde"] }
 
 # Metrics and analysis

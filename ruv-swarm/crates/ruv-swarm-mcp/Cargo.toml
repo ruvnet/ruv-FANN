@@ -16,7 +16,7 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-rust-version = "1.88"  # rmcp >= 1.4 (RUSTSEC-2026-0189 fix) needs darling 0.23
+rust-version = "1.89"  # Patched native SQLite persistence requires 1.89; rmcp itself needs 1.88.
 description = "Model Context Protocol (MCP) integration for RUV Swarm"
 
 [[bin]]
@@ -41,7 +41,8 @@ dashmap = { workspace = true }
 futures = { workspace = true }
 
 # MCP SDK for stdio transport
-rmcp = { version = "1.4", default-features = false, features = ["server", "macros", "transport-io"] }
+# RUSTSEC-2026-0462: pin the SDK release with bounded HTTP response buffering.
+rmcp = { version = "=3.9.0", default-features = false, features = ["server", "macros", "transport-io"] }
 
 # MCP specific dependencies (WebSocket)
 axum = { version = "0.7", features = ["ws", "json"] }

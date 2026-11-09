@@ -6,7 +6,7 @@
  */
 
 import { parentPort, workerData } from 'worker_threads';
-import Database from 'better-sqlite3';
+import Database from './sqlite-engine.js';
 
 class SQLiteWorker {
   constructor(dbPath, options = {}) {

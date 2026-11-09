@@ -57,6 +57,14 @@ Test a rejected unknown method/tool/key, missing task, malformed or oversized fr
 
 ## Safety and resource boundaries
 
+The Node database path requires the package-owned patched SQLite source build.
+Use `npm run build:sqlite` and `node scripts/sqlite-build.mjs --verify` from the
+swarm npm package. Normal installation builds the SHA-pinned SQLite 3.54.1 with
+Python/C++20; the runtime validates its source ID, binary hash and Node ABI before
+opening user data. Missing/stale binaries fail; a default wrapper prebuilt is
+not an accepted replacement. Native Rust persistence uses Rust 1.89 and the same
+patched SQLite, while the minimal neural WASM engine retains Rust 1.88.
+
 - Input/output frames are capped at 1 MiB, with 32 pending requests and a 4 MiB reply queue. Metadata caps are 64 swarms, 1,000 agents and 10,000 tasks per database.
 - SQL values must use parameters; update column names need a separate allowlist. Unknown keys cannot become SQL identifiers.
 - Process invocations must preserve literal arguments with `execFile`/spawn arrays. Prompts beginning with flags need the supported `--` separator. Preserve normal Claude permission checks.

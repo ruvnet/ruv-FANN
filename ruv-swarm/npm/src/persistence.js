@@ -5,7 +5,7 @@ import { buildUpdateFields } from './persistence-updates.js';
  * SQLite Persistence Layer for ruv-swarm MCP
  */
 
-import Database from 'better-sqlite3';
+import Database from './sqlite-engine.js';
 import path from 'path';
 import fs from 'fs';
 

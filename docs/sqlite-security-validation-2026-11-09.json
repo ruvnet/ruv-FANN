@@ -1,0 +1,222 @@
+{
+  "schema": "ruv-fann.sqlite-security-validation/1",
+  "dateUtc": "2026-11-09T16:17:16.803781+00:00",
+  "status": "passed_local_release_gates",
+  "guide": "sqlite-security-2026-11-09.md",
+  "advisoriesFixed": [
+    "RUSTSEC-2026-0459",
+    "RUSTSEC-2026-0462"
+  ],
+  "pins": {
+    "rusqlite": "0.41.1",
+    "libsqlite3-sys": "0.39.1",
+    "sqlite": "3.54.1",
+    "rmcp": "3.9.0",
+    "better-sqlite3": "12.11.1",
+    "node-gyp": "12.4.0"
+  },
+  "minimumRust": {
+    "core": "1.81",
+    "nativeSwarm": "1.89",
+    "minimalSwarmWasmAndNapi": "1.88"
+  },
+  "sqliteSource": {
+    "schema": "ruv-swarm.sqlite-source/1",
+    "version": "3.54.1",
+    "sourceId": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+    "license": "public-domain",
+    "archive": {
+      "url": "https://static.crates.io/crates/libsqlite3-sys/libsqlite3-sys-0.39.1.crate",
+      "prefix": "libsqlite3-sys-0.39.1/sqlite3/",
+      "sha256": "14a5f01b87b92705d07b433c06f96cbc764637d81a0bffb5734ce17cf0f9a2b3",
+      "bytes": 2759388
+    },
+    "files": {
+      "sqlite3.c": {
+        "sha256": "0c657666d819f261cc4007526ad57e1669de9949df7a8ea847aa284a2bf0ee52",
+        "bytes": 9582521
+      },
+      "sqlite3.h": {
+        "sha256": "d6c84557261893439b341d2e6c35187ae3ea24fbfd843ad94616f72d89242b8c",
+        "bytes": 695729
+      },
+      "sqlite3ext.h": {
+        "sha256": "48963abfefb41ac329ef9d706acb5eadba952a99a748285c9ded6b5e0942721b",
+        "bytes": 39547
+      }
+    }
+  },
+  "builderSha256": {
+    "sqlite-build.mjs": "97c296f2a517b30606039174a80352c9bc9296bd2edc2e596cfb50bf823f757a",
+    "sqlite-build-source.mjs": "edaf05373a7ac74cec99f15d49f056153de649f7ccac779129931dff2b71267a",
+    "sqlite-build-process.mjs": "044e6386864f66fff75543b275bad06eba7cba35b832c3601426b77e1efe1c1f",
+    "sqlite-build-contract.mjs": "e0c4f30d55d900b4db376e8cb8933ea8e56dfc4bd6e2a99f00b0a2bbb96a8409",
+    "sqlite-source.json": "a5f00f2eea642eaf862fbaaf82886ca4396a5b079e126b13785ccccc1f1e53d3"
+  },
+  "guardSha256": "ceafcaa8cf97eb0557e2633b2337f43c0a07cafd307d700e9e09657b84e048e3",
+  "rust": {
+    "compiler": "1.89.0",
+    "libraryTests": 144,
+    "sqliteRuntimeAndDurabilityTests": 2,
+    "libraryLogSha256": "3df35838dae51bc108a84a0c2c244cfaaed7857944fa4b3ef19ecec4e4f06531",
+    "sqliteRuntimeLogSha256": "813ed535bdd4c2651f71e2c0ed86a66a54926498de896ae79afca6793ad4f88f",
+    "actualStdioSdk": "rmcp 3.9.0",
+    "actualStdioLineLimit": 1048576,
+    "actualStdioReceiptSha256": "adac461896a77d40d9412a9e204d4b25d21e151db7dadce0761406b48d7fe199",
+    "stdioBinarySha256": "037255a3ed3717f40f65741f141bc7ee37a5abe602d619e5dfe3079872a7a24e",
+    "exactCiGuardSha256": "f0f6eb357e0fb553e168b0412dd4e37b027b994b88c9cfa41ec47dd67deba9c6"
+  },
+  "node": {
+    "22": {
+      "version": "v22.13.0",
+      "abi": "127",
+      "sourceRuntimeSha256": "abf207159e07b0118f3386d1a6613b91df34caee45403f65a54c57067ec53399",
+      "binarySha256": "0d0c714580cc5235369fea0613787048eac8558e1d9c9443255de2ec7fde7125",
+      "focusedTests": 11,
+      "focusedTapSha256": "01d28c324bae8989eb49b4d4a196237b06a96c6119e69f03ceff3962369e3a82",
+      "securityRuntimeTests": 108,
+      "securityRuntimeTapSha256": "71d00ef57112cc75eaa47364aec351d9be4f00d2863615fe6bb08703a31e3898",
+      "normalArchiveLifecycleInstall": true,
+      "actualCliProcesses": 4,
+      "literalSqlArgumentPreserved": true,
+      "archiveReceiptSha256": "cd2b8d68959e181ceb4b0fbe0babd67e7a98f95467bc980a678aeda1a07771e3",
+      "archiveSha256": "96122ff90a427db25863830844da539f33d49986e06f4bc09bb17c2160da9268",
+      "installedBinarySha256": "0d0c714580cc5235369fea0613787048eac8558e1d9c9443255de2ec7fde7125",
+      "loaderOverride": false
+    },
+    "24": {
+      "version": "v24.22.1",
+      "abi": "137",
+      "sourceRuntimeSha256": "766e5d9e87e82da7419332a7e3cadc4cc5b77cd301c125c872197c5ccdab1cdb",
+      "binarySha256": "46f7be1c90bf698989ae74742f8de0615576d2c3251a11d115f32a8901a64393",
+      "focusedTests": 11,
+      "focusedTapSha256": "9e414d45c3640eef92fd03f2349b90b942a3f70e68f85f956b22d6da1de262a8",
+      "securityRuntimeTests": 108,
+      "securityRuntimeTapSha256": "7247ad90141598b5dc54f9dae92410764ac0a190dfcee2861969a29b85a177b5",
+      "normalArchiveLifecycleInstall": true,
+      "actualCliProcesses": 4,
+      "literalSqlArgumentPreserved": true,
+      "archiveReceiptSha256": "221dd085ac5ad40433c9dc297e06aa93fdc8692b65d1033fdf9bfe9786d2028e",
+      "archiveSha256": "96122ff90a427db25863830844da539f33d49986e06f4bc09bb17c2160da9268",
+      "installedBinarySha256": "46f7be1c90bf698989ae74742f8de0615576d2c3251a11d115f32a8901a64393",
+      "loaderOverride": false
+    }
+  },
+  "rootNormalInstall": {
+    "status": "passed",
+    "command": "npm ci --foreground-scripts --no-fund --no-audit",
+    "logSha256": "c40293f1a2b0fa0b7b61e41eb6147f539ca7d0f59ce932c87e755c5d3a0b208b",
+    "childBuildThenRootVerify": true
+  },
+  "extraNode24Checks": {
+    "npmTest": "passed",
+    "npmTestLogSha256": "5055762b87d1c5ce2e3e72b63e487ff5cd407cf51dda6c2b782768adc0f0d019",
+    "realHttpIntegrationRunnerTests": 55,
+    "runnerLogSha256": "119f5ba543a2fc50d9ca7745c2882f2f251be35c3f192b36d6bc9c163cd4876e",
+    "maintainedLint": "passed, zero warnings",
+    "lintLogSha256": "fe9becdfa66d90e2a94f3d456c81f70885c9b47818fc4ed9a338006cf35a9eeb"
+  },
+  "audits": {
+    "advisoryCount": 1429,
+    "scope": "Seven committed Cargo lock graphs; freshly fetched advisory cache reused without network fetch for final scans; no vulnerability, severity or target exclusions.",
+    "graphs": [
+      {
+        "lock": "Cargo.lock",
+        "lockSha256": "8b47266eb8835a4a18e658521b149507799cce30c1280bf2e7b6e9a15ecd4f8c",
+        "vulnerabilities": 0,
+        "exitCode": 0,
+        "reportSha256": "728b9dfaaca8da512fa8ba2e33bc04c93c7b165f06159bacb98e6bc3f45e0f10"
+      },
+      {
+        "lock": "ruv-swarm/Cargo.lock",
+        "lockSha256": "a0116b1612809a96889d7c127678e698991f045bd77d879a7a0f4be7e7dee281",
+        "vulnerabilities": 0,
+        "exitCode": 0,
+        "reportSha256": "14de583301925660ed179144577d0bac92be88f1d72a2ed45023f81ab62b83d0"
+      },
+      {
+        "lock": "neuro-divergent/Cargo.lock",
+        "lockSha256": "50e70e307a2c5ffd17a43d5ce73320860ead04f8a07518f1400d9cd1b7beccdf",
+        "vulnerabilities": 0,
+        "exitCode": 0,
+        "reportSha256": "769d28f714cfb1fe7087bbfb50887cb6255bb5a6eeb050f38b25e5cdc922ba28"
+      },
+      {
+        "lock": "cuda-wasm/Cargo.lock",
+        "lockSha256": "ff4bb589d5b39585ac19858640a1a98389dcda0ce3b782d886312aa27f4d11e0",
+        "vulnerabilities": 0,
+        "exitCode": 0,
+        "reportSha256": "6044b9d8e70139dab99f33f2e053acf05e0e7c49a53251b0b863dc5442bfea0e"
+      },
+      {
+        "lock": "opencv-rust/Cargo.lock",
+        "lockSha256": "818a9e96facee00e9d00ace47e553d879e64e296929a28d37d91f735810b1b17",
+        "vulnerabilities": 0,
+        "exitCode": 0,
+        "reportSha256": "bf96ed2d54b49444e07f1770a23a0690a9b78492cc38e0f66e2599cc533a6f08"
+      },
+      {
+        "lock": "integrations/candle/Cargo.lock",
+        "lockSha256": "d9093ad4cf4fba77fb877fddeda523245666458a36ce551365e0896f2c0abde4",
+        "vulnerabilities": 0,
+        "exitCode": 0,
+        "reportSha256": "22acff49a1186e356f01c4a2455d665adde8c6063e5cd889718d0ee117c47d7b"
+      },
+      {
+        "lock": "bindings/napi/Cargo.lock",
+        "lockSha256": "b80db062343a65892707575a84c3e1df334be59a0f66ed73c09810401b105230",
+        "vulnerabilities": 0,
+        "exitCode": 0,
+        "reportSha256": "8ae8f6bfc8011ee25d2cf9890e922282c79a8e18e94ee2df63c6f8f8057a0a0e"
+      }
+    ],
+    "exactCiGuardSha256": "5aa2268596c4ab8cbfce312e0f392a77995cba20f4bc2a5addfc2bc3189abdba",
+    "npm": {
+      "root": {
+        "vulnerabilities": 0,
+        "reportSha256": "0f3e0a29c31e5655b97edf77359cc65127a07c7abb3f4edc9a9524c9cea83d1f"
+      },
+      "swarm": {
+        "vulnerabilities": 0,
+        "reportSha256": "0f3e0a29c31e5655b97edf77359cc65127a07c7abb3f4edc9a9524c9cea83d1f"
+      }
+    }
+  },
+  "rufloScans": {
+    "version": "3.25.6",
+    "type": "code",
+    "depth": "deep",
+    "scope": "Supplemental pattern scan; does not establish repository-wide security.",
+    "results": {
+      "builders": {
+        "findings": 0,
+        "logSha256": "95665f5a88e5385fd5c5409fb0a1a9d99d961779c417064112c3ab04c497f999"
+      },
+      "storage": {
+        "findings": 0,
+        "logSha256": "2608fa5ba8c68201b33962aa21fd25d3d2f9f1f8d050bb83b110e8ec2b3e3106"
+      },
+      "mcp": {
+        "findings": 0,
+        "logSha256": "711580c40ff13f169237dcf41d3a86478c6d919a5312a530bbd7900d4419a672"
+      }
+    }
+  },
+  "localRetry": {
+    "cause": "An extra integration run used a separate default Cargo target and exhausted local disk; one Node24 archive install also failed.",
+    "resolution": "Removed reproducible intermediate objects only; retained source, binaries and receipts. Reran the55-test integration suite with verified1.89 target and repeated actual Node24 archive installation. Both passed.",
+    "testWaivers": false
+  },
+  "ciAndReview": {
+    "workflowTests": 103,
+    "actionlintWorkflows": 10,
+    "allExactGenuineArtifactGuards": "passed",
+    "combinedReceiptSha256": "7d983b66dd02cd7e7f47c2266b34fbca86cd4d6e4a89199baf84b62d91932e73",
+    "independentSourceReviewSha256": "3b8325b0963b4ee827682893b4a452940690dbff2404e25d52218f57aacd0251",
+    "workflowSha256": "81e6354b637b2a88ec06c9be554006cc1dc6f5dc54bd0cae07bbf5b8269a6236",
+    "workflowTestSha256": "b125879a04d8107c156e6479ae92d037ba28333b2731faacc8bab637c97d8dce",
+    "mainCiSha256": "e0e6ddb94107e40c05b6e117e921e6b35461267dd145e9e42596dda2e19fd52e",
+    "packedReceiptBoundToCurrentBuilderAndEngine": true,
+    "hostedExecution": "Awaiting new-head CI at record time; local proof does not assert Windows or macOS execution."
+  }
+}
