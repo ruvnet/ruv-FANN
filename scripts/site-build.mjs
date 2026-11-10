@@ -70,7 +70,9 @@ for(const tag of html.matchAll(/<(?:script|link|img)\b[^>]*>/gi)) {
   if(/\b(?:src|href)=["'](?:https?:)?\/\//i.test(tag[0])) throw Error('External runtime assets forbidden');
 }
 if (/\son\w+\s*=/i.test(html)) throw Error('Inline event handlers forbidden');
-await fs.writeFile(index,html); await fs.writeFile(path.join(output,'.nojekyll'),'');
+// Workflow-based Pages does not run Jekyll. Its official upload action
+// excludes dotfiles, so no .nojekyll sentinel belongs in the public manifest.
+await fs.writeFile(index,html);
 const files={}; for(const file of await safeFiles(output)) files[file]=sha(await fs.readFile(path.join(output,file)));
 const manifest={schema:'ruv-fann.pages-manifest/1',sourceSha,sourceTreeClean,packages:packages.map(([name,version,integrity])=>({name,version,integrity})),files};
 await fs.writeFile(path.join(output,'site-manifest.json'),JSON.stringify(manifest,null,2)+'\n');
