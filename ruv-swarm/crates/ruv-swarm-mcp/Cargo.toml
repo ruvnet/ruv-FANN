@@ -11,13 +11,17 @@ include = [
     "/LICENSE*",
 ]
 name = "ruv-swarm-mcp"
-version = "1.0.6"
+version = "1.0.7"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage = "https://ruv.io"
 rust-version = "1.89"  # Patched native SQLite persistence requires 1.89; rmcp itself needs 1.88.
 description = "Model Context Protocol (MCP) integration for RUV Swarm"
+readme = "README.md"
+keywords = ["mcp", "model-context-protocol", "swarm", "agents", "json-rpc"]
+categories = ["development-tools", "network-programming"]
 
 [[bin]]
 name = "ruv-swarm-mcp"
@@ -56,7 +60,7 @@ tungstenite = "0.27.0"
 
 # JSON Schema
 schemars = { version = "0.8", features = ["derive"] }
-jsonschema = "0.30.0"
+jsonschema = { version = "0.30.0", default-features = false, features = ["resolve-file"] }
 
 # Security utilities
 rand = "0.8"

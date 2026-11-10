@@ -47,6 +47,6 @@ python3 crates/ruv-swarm-mcp/test_stdio.py --binary /absolute/target/debug/ruv-s
 
 New regressions test concurrent quota reservations, memory arithmetic and bounded defaults. Several older security tests only validate request construction; their names do not establish end-to-end protection.
 
-The versions in this checkout are **unpublished release candidates**. See the [workspace guide](https://github.com/ruvnet/ruv-FANN/tree/main/ruv-swarm) for all 14 packages and the [review record](https://github.com/ruvnet/ruv-FANN/blob/main/docs/review-rust-swarm.md) for checks, dependency findings and remaining limits.
+Published on [crates.io](https://crates.io/crates/ruv-swarm-mcp). Builds use rustls for TLS; no OpenSSL dependency. See the [workspace guide](https://github.com/ruvnet/ruv-FANN/tree/main/ruv-swarm) for all 14 packages and the [review record](https://github.com/ruvnet/ruv-FANN/blob/main/docs/review-rust-swarm.md) for checks, dependency findings and remaining limits.
 
 ![Animated map of the ruv-FANN packages](https://raw.githubusercontent.com/ruvnet/ruv-FANN/main/docs/assets/package-map.svg)
