@@ -12,18 +12,10 @@ on:
       - 'packages/wasm/**'
       - 'packages/core/**'
       - 'scripts/npm-modules-*.mjs'
-      - 'scripts/npm-release-lane.mjs'
+      - 'scripts/npm-release-*.mjs'
       - '.github/workflows/npm-modules.yml'
       - '.github/workflows/protected-npm-modules.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'packages/wasm/**'
-      - 'packages/core/**'
-      - 'scripts/npm-modules-*.mjs'
-      - 'scripts/npm-release-lane.mjs'
-      - '.github/workflows/npm-modules.yml'
-      - '.github/workflows/protected-npm-modules.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -37,6 +29,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22.13.0'
@@ -76,13 +69,13 @@ jobs:
         run: node scripts/npm-release-lane.mjs consumer --manifest "$RUNNER_TEMP/npm-release-candidate/package-manifest.json" --output "$RUNNER_TEMP/npm-consumers/node-22.json"
       - name: Seal the archives tested on both Node versions
         env:
-          EXPECTED_SHA: ${{ github.sha }}
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           RELEASE_TAG: ${{ inputs.release_tag || 'ruv-fann-npm-v0.1.0' }}
         run: |
           node scripts/npm-release-lane.mjs seal --expected-sha "$EXPECTED_SHA" --release-tag "$RELEASE_TAG" --directory "$RUNNER_TEMP/npm-release-candidate" --consumer-receipts "$RUNNER_TEMP/npm-consumers"
           cp "$RUNNER_TEMP/npm-consumers/"*.json "$RUNNER_TEMP/npm-release-candidate/"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: npm-module-candidate
+          name: npm-module-candidate-${{ github.event.pull_request.head.sha || github.sha }}
           if-no-files-found: error
           path: ${{ runner.temp }}/npm-release-candidate/
