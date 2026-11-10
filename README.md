@@ -1,20 +1,27 @@
 # ruv-FANN
 
-Rust libraries for neural networks, time-series forecasting, agent coordination, GPU compute, and image processing.
+Small neural networks you can train, inspect and edit in Rust, Node.js and the browser. The repository also contains separate forecasting, agent, GPU-compute and image-processing projects.
+
+[![See the weights. Prove the change. An illustrated guide to inspecting a network, editing a weight and evaluating the result.](docs/assets/weight-space-story.svg)](https://ruvnet.github.io/ruv-FANN/)
+
+**[Explore the interactive field guide →](https://ruvnet.github.io/ruv-FANN/)** Follow a prediction through a network, make a real WASM weight edit in your browser, and see why evaluation comes before promotion. The guide includes animated diagrams, package choices and reproducible benchmark results.
 
 [![Crates.io](https://img.shields.io/crates/v/ruv-fann.svg)](https://crates.io/crates/ruv-fann)
 [![API documentation](https://docs.rs/ruv-fann/badge.svg)](https://docs.rs/ruv-fann)
 [![CI](https://github.com/ruvnet/ruv-FANN/actions/workflows/ci.yml/badge.svg)](https://github.com/ruvnet/ruv-FANN/actions/workflows/ci.yml)
 
-**Start with `ruv-fann` if you need a small feedforward neural network in Rust.** It provides generic floating-point networks, training algorithms, and model I/O inspired by [FANN](https://github.com/libfann/fann). Other directories contain separate libraries and tools with their own build requirements.
+**For Rust, start with the `ruv-fann` crate. For JavaScript and TypeScript, start with the `ruv-fann` npm package.** Add `ruv-fann-wsp` when you want to propose direct weight edits, inspect what changed, and explicitly evaluate and version the result. The Rust core provides generic floating-point networks, training algorithms and model I/O inspired by [FANN](https://github.com/libfann/fann).
 
 ![Repository map: five independent Rust workspaces for neural networks, agent tools, forecasting, CUDA source translation and image processing.](docs/assets/package-map.svg)
 
 ## Choose a package
 
-| Location | Available behavior | Candidate versions / guide |
+| Location | Available behavior | Version / guide |
 | --- | --- | --- |
-| Repository root | `ruv-fann`: train feedforward networks, prepare immutable CPU inference snapshots, and use optional WebGPU operations | `0.2.2` · [Core example](examples/basic_usage.rs) · [API](https://docs.rs/ruv-fann) |
+| `packages/wsp/` | **`ruv-fann-wsp`**: inspect and trace models, build bounded weight patches, evaluate candidates, then promote or roll back | Published npm **[0.2.0](https://www.npmjs.com/package/ruv-fann-wsp)** · [WSP guide](packages/wsp/README.md) · [Interactive story](https://ruvnet.github.io/ruv-FANN/) |
+| `packages/core/` | **`ruv-fann` for JavaScript/TypeScript**: typed dense models, reusable WASM batch inference, SGD and AdamW training | Published npm **[0.1.2](https://www.npmjs.com/package/ruv-fann)** · [JavaScript guide](packages/core/README.md) |
+| `packages/wasm/` | **`ruv-fann-wasm`**: direct WASM bindings, bundled runtime binaries and SIMD detection | Published npm **[0.1.2](https://www.npmjs.com/package/ruv-fann-wasm)** · [Runtime guide](packages/wasm/README.md) |
+| Repository root | **`ruv-fann` for Rust**: train feedforward networks, prepare immutable CPU inference snapshots, and use optional WebGPU operations | Checkout `0.2.2` · [Crate](https://crates.io/crates/ruv-fann) · [Core example](examples/basic_usage.rs) · [API](https://docs.rs/ruv-fann) |
 | `integrations/candle/` | Import actual Candle CPU linear layers and compare training gradients/SGD/AdamW with Candle | `ruv-fann-candle 0.1.0` · [Candle guide](integrations/candle/README.md) |
 | `bindings/napi/` | Native Node inference and dense autograd through napi-rs, sharing the Rust core | `@ruv-fann/napi 0.1.0` · [Native Node guide](bindings/napi/README.md) |
 | `ruv-swarm/` | Fourteen Rust packages for scheduling, persistence, transport, MCP, CLI, and WASM | `1.0.6`–`1.0.8`; unified WASM `2.0.0` · [Rust guide](ruv-swarm/README.md) |
@@ -24,26 +31,64 @@ Rust libraries for neural networks, time-series forecasting, agent coordination,
 | `cuda-wasm/` | Translate a CUDA subset to Rust or WGSL source; Node wrapper requires the external `cuda2rust` compiler | Rust `0.2.0`; npm `2.0.0` · [Translator guide](cuda-wasm/README.md) |
 | `opencv-rust/` | Portable Rust matrices, browser image operations, a small SDK, and native OpenCV C++ bindings | Portable/SDK `4.9.0`; native `opencv-sys 0.2.0` · [Image-processing guide](opencv-rust/README.md) |
 
-The five main Cargo workspaces have separate build requirements; the optional Candle and napi-rs packages each have their own workspace and lockfile. Running `cargo test` at the repository root tests the core crate; use the verification driver below to cover the other workspaces. Versions in this checkout are unpublished release candidates. The dated [release inventory](docs/release-inventory.json) records the earlier package identities and registry observations; `scripts/verify-packages.py --inventory` reports the current checkout.
+The five main Cargo workspaces have separate build requirements; the optional Candle and napi-rs packages each have their own workspace and lockfile. Running `cargo test` at the repository root tests the core crate; use the verification driver below to cover the other workspaces. The npm WSP, core and WASM releases are identified above; other version numbers describe this checkout and should be checked against their package registries before use. The dated [release inventory](docs/release-inventory.json) records earlier package identities and registry observations; `scripts/verify-packages.py --inventory` reports the current checkout.
 
 Each family has a defined scope. Forecasting currently implements a univariate RNN and simple baselines; LSTM/GRU forecasting architectures return unsupported errors. Agent assignment records scheduling decisions; external task execution depends on the integration you supply. CUDA translation emits source and does not execute a GPU kernel. The native OpenCV bridge calls an installed C++ library, while the portable packages implement a smaller set of operations.
 
 ## Weight-space programming in Node.js and browsers
 
-Install `ruv-fann-wsp` for bounded direct parameter edits and a real-WASM workbench:
+A neural network's weights are the numbers that control how inputs become
+predictions. Training adjusts those numbers using examples and an optimizer.
+**Weight-space programming makes a direct, explicit edit instead.** A person,
+an agent or an algorithm can propose the edit; evaluation decides whether it
+meets your stated criteria.
+
+Install the published **[ruv-fann-wsp@0.2.0](https://www.npmjs.com/package/ruv-fann-wsp)**:
 
 ```sh
 npm install ruv-fann-wsp
 ```
 
-Version 0.2.0 adds canonical model inspection, affine/activation traces, hidden-neuron
-ablation patches and finite-difference sensitivity analysis. Edits still require
-explicit evaluation and promotion; revisioned checkpoints support rollback.
-See the [WSP package guide](packages/wsp/README.md) and the
-[public-data benchmark](packages/wsp/benchmarks/README.md). The benchmark compares
-linear and small neural models against simple baselines and ExtraTrees on Iris and
-Wine. All outcomes are retained; it establishes no state-of-the-art or agent-task
-performance claim.
+It includes TypeScript declarations and uses ESM on Node.js 20.9+ or compatible
+browsers. It depends on `ruv-fann@0.1.2`, which loads `ruv-fann-wasm@0.1.2`.
+The npm packages run the actual Rust neural engine through WebAssembly.
+
+| Step | What the WSP package provides | What it tells you |
+| --- | --- | --- |
+| **Inspect** | `inspectWeightModel`, `traceWeightModel` | Model dimensions, a checkpoint fingerprint, and the values before and after each layer's activation |
+| **Experiment** | `createNeuronAblationPatch`, `analyzeWeightSensitivity` | What happens when you disconnect a hidden neuron, or slightly change a named weight or bias |
+| **Propose** | `applyWeightPatch`, `createWeightEditPrompt` | A bounded patch tied to its starting checkpoint, with a provider-neutral prompt helper |
+| **Evaluate** | `evaluateWeightPatch` | Real WASM predictions and baseline/candidate errors against your supplied cases and thresholds |
+| **Version** | `createWeightWorkspace` | Explicit proposal, promotion and rollback, with increasing revisions |
+
+Sensitivity uses central finite differences: it probes a small change in each
+direction and measures the error. It is a numerical diagnostic, not autograd.
+A patch does not activate itself, and a passing evaluation only supports the
+cases you evaluated. Keep independent cases for testing generalization.
+
+Start with the [complete XOR repair example](packages/wsp/README.md#repair-a-neural-network-without-training),
+then follow the [inspection and diagnostics guide](packages/wsp/README.md#inspect-trace-and-diagnose-a-checkpoint)
+and [browser deployment instructions](packages/wsp/README.md#browser-deployment).
+The package does not call an LLM provider or execute generated code; your
+application supplies the patch and controls promotion.
+
+**[Try a weight edit in the interactive field guide →](https://ruvnet.github.io/ruv-FANN/)**
+
+### What has been measured?
+
+The [public-data benchmark](packages/wsp/benchmarks/README.md) compares a small
+MLP with majority, nearest-centroid, linear and ExtraTrees baselines on UCI Iris
+and Wine. It uses five fixed stratified splits, learns normalization from training
+data, and retains every result. Mean test accuracy was **96.00% on Iris** and
+**95.90% on Wine** for the small MLP; ExtraTrees reached **94.67%** and **99.49%**.
+These classification results do not establish weight-editing improvements,
+agent-task performance or a general state-of-the-art claim.
+
+The [WSP 0.2.0 release](https://github.com/ruvnet/ruv-FANN/releases/tag/ruv-fann-wsp-v0.2.0)
+links benchmark and security evidence, including 46 tests on each of Node.js 22
+and 24, real Chromium checks, and 19 adversarial input checks. See the
+[field guide](https://ruvnet.github.io/ruv-FANN/) for an illustrated explanation
+of those results and their limits.
 
 ## Try the neural-network core
 
