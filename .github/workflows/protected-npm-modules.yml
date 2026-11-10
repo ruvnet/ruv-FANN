@@ -22,36 +22,15 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  identity:
-    name: Verify exact reviewed main SHA and open blockers
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Require exact current main and zero release blockers
-        env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
-          ACTUAL_SHA: ${{ github.sha }}
-          ACTUAL_REF: ${{ github.ref }}
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          test "$ACTUAL_REF" = refs/heads/main
-          test "$ACTUAL_SHA" = "$EXPECTED_SHA"
-          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
-          test "$(gh api repos/ruvnet/ruv-FANN/commits/main --jq .sha)" = "$EXPECTED_SHA"
-          test "$(gh api 'repos/ruvnet/ruv-FANN/issues?labels=release-blocker&state=open&per_page=1' --jq length)" = 0
-
   candidate:
     name: Build, test and seal package tarballs
-    needs: identity
     uses: ./.github/workflows/npm-modules.yml
     with:
       release_tag: ${{ inputs.release_tag }}
 
   publish:
     name: Publish and verify sealed npm artifacts
-    needs: [identity, candidate]
+    needs: candidate
     runs-on: ubuntu-latest
     timeout-minutes: 50
     permissions:
@@ -77,6 +56,8 @@ jobs:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
           GH_TOKEN: ${{ github.token }}
         run: |
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_SHA" = "$EXPECTED_SHA"
           test "$(gh api repos/ruvnet/ruv-FANN/commits/main --jq .sha)" = "$EXPECTED_SHA"
           test "$(gh api 'repos/ruvnet/ruv-FANN/issues?labels=release-blocker&state=open&per_page=1' --jq length)" = 0
       - name: Publish only the sealed package archives with provenance

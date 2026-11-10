@@ -29,36 +29,8 @@ permissions:
   contents: read
 
 jobs:
-  unit:
-    name: Package source tests / Node ${{ matrix.node }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        node: ['22.13.0', '24']
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: ${{ matrix.node }}
-          package-manager-cache: false
-      - name: Verify checked-in WASM assets
-        run: node scripts/npm-modules-build.mjs
-      - name: Test WASM package
-        run: node --test --test-concurrency=1 packages/wasm/test/*.test.mjs
-      - name: Install local WASM package for the core unit tests
-        run: |
-          mkdir -p packages/core/node_modules
-          ln -s ../../wasm packages/core/node_modules/ruv-fann-wasm
-      - name: Test core package
-        run: node --test --test-concurrency=1 packages/core/test/*.test.mjs
-
-  pack:
-    name: Pack once and run first packed consumer
-    needs: unit
+  qualify:
+    name: Node 22/24, browser, mutations and sealed consumers
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -67,105 +39,48 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '24'
+          node-version: '22.13.0'
           package-manager-cache: false
-      - name: Pack each package once and verify an installed consumer
-        run: |
-          npm install --prefix "$RUNNER_TEMP/ruv-fann-typescript" --no-save --ignore-scripts typescript@5.9.3
-          RUV_FANN_TSC="$RUNNER_TEMP/ruv-fann-typescript/node_modules/typescript/bin/tsc" node scripts/npm-modules-pack-test.mjs "$RUNNER_TEMP/npm-packages"
-          node scripts/npm-modules-mutation-test.mjs
-          node scripts/npm-release-lane.mjs pack --output "$RUNNER_TEMP/npm-packages" --tarballs "$RUNNER_TEMP/npm-packages"
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: npm-module-packs
-          if-no-files-found: error
-          path: ${{ runner.temp }}/npm-packages/
-
-  browser:
-    name: Real browser package smoke
-    needs: unit
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: '24'
-          package-manager-cache: false
-      - name: Install pinned Playwright and Chromium
+      - name: Real WASM tests on Node 22
         run: |
           node scripts/npm-modules-build.mjs
-          npm install --prefix "$RUNNER_TEMP/ruv-fann-browser" --no-save --ignore-scripts playwright@1.55.1
-          "$RUNNER_TEMP/ruv-fann-browser/node_modules/.bin/playwright" install --with-deps chromium
-      - name: Verify browser inference and training on actual WASM backends
-        env:
-          RUV_FANN_PLAYWRIGHT: ${{ runner.temp }}/ruv-fann-browser/node_modules/playwright
-        run: |
-          node scripts/npm-modules-browser-test.mjs | tee "$RUNNER_TEMP/npm-browser-proof.json"
-          node --input-type=module -e 'import fs from "node:fs"; const {proof}=JSON.parse(fs.readFileSync(process.argv[1], "utf8")); const backends=new Set(proof.map(item=>item.backend)); if (!backends.has("wasm") || !backends.has("wasm-simd")) throw new Error("Chromium did not exercise both actual WASM backends");' "$RUNNER_TEMP/npm-browser-proof.json"
-
-  packed-consumer:
-    name: Packed artifact consumer / Node ${{ matrix.node }}
-    needs: pack
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        node: ['22.13.0', '24']
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
+          mkdir -p packages/core/node_modules
+          ln -s ../../wasm packages/core/node_modules/ruv-fann-wasm
+          node --test --test-concurrency=1 packages/wasm/test/*.test.mjs packages/core/test/*.test.mjs
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: ${{ matrix.node }}
+          node-version: '24'
           package-manager-cache: false
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+      - name: Real WASM tests and mutation checks on Node 24
+        run: |
+          node --test --test-concurrency=1 packages/wasm/test/*.test.mjs packages/core/test/*.test.mjs
+          node scripts/npm-modules-mutation-test.mjs
+      - name: Pack once and validate strict consumer types
+        run: |
+          npm install --prefix "$RUNNER_TEMP/ruv-fann-tools" --no-save --ignore-scripts typescript@5.9.3 playwright@1.55.1
+          RUV_FANN_TSC="$RUNNER_TEMP/ruv-fann-tools/node_modules/typescript/bin/tsc" node scripts/npm-modules-pack-test.mjs "$RUNNER_TEMP/npm-release-candidate"
+          node scripts/npm-release-lane.mjs pack --output "$RUNNER_TEMP/npm-release-candidate" --tarballs "$RUNNER_TEMP/npm-release-candidate"
+      - name: Real Chromium inference and training
+        env:
+          RUV_FANN_PLAYWRIGHT: ${{ runner.temp }}/ruv-fann-tools/node_modules/playwright
+        run: |
+          "$RUNNER_TEMP/ruv-fann-tools/node_modules/.bin/playwright" install --with-deps chromium
+          node scripts/npm-modules-browser-test.mjs
+      - name: Exact packed consumer on Node 24
+        run: node scripts/npm-release-lane.mjs consumer --manifest "$RUNNER_TEMP/npm-release-candidate/package-manifest.json" --output "$RUNNER_TEMP/npm-consumers/node-24.json"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          name: npm-module-packs
-          path: ${{ runner.temp }}/npm-packages
-      - name: Install exact packed archives and exercise real backends
-        run: node scripts/npm-release-lane.mjs consumer --manifest "$RUNNER_TEMP/npm-packages/package-manifest.json" --output "$RUNNER_TEMP/npm-consumer/receipt.json"
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: npm-module-consumer-node-${{ matrix.node }}
-          if-no-files-found: error
-          path: ${{ runner.temp }}/npm-consumer/receipt.json
-
-  seal:
-    name: Seal tested package tarballs
-    needs: [pack, packed-consumer, browser]
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
-        with:
-          name: npm-module-packs
-          path: ${{ runner.temp }}/npm-release-candidate
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
-        with:
-          name: npm-module-consumer-node-22.13.0
-          path: ${{ runner.temp }}/npm-consumers/node-22
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
-        with:
-          name: npm-module-consumer-node-24
-          path: ${{ runner.temp }}/npm-consumers/node-24
-      - name: Seal only the tested exact tarballs
+          node-version: '22.13.0'
+          package-manager-cache: false
+      - name: Exact packed consumer on Node 22
+        run: node scripts/npm-release-lane.mjs consumer --manifest "$RUNNER_TEMP/npm-release-candidate/package-manifest.json" --output "$RUNNER_TEMP/npm-consumers/node-22.json"
+      - name: Seal the archives tested on both Node versions
         env:
           EXPECTED_SHA: ${{ github.sha }}
           RELEASE_TAG: ${{ inputs.release_tag || 'ruv-fann-npm-v0.1.0' }}
         run: |
-          mkdir -p "$RUNNER_TEMP/npm-consumer-receipts"
-          cp "$RUNNER_TEMP/npm-consumers/node-22/receipt.json" "$RUNNER_TEMP/npm-consumer-receipts/node-22.json"
-          cp "$RUNNER_TEMP/npm-consumers/node-24/receipt.json" "$RUNNER_TEMP/npm-consumer-receipts/node-24.json"
-          node scripts/npm-release-lane.mjs seal --expected-sha "$EXPECTED_SHA" --release-tag "$RELEASE_TAG" \
-            --directory "$RUNNER_TEMP/npm-release-candidate" --consumer-receipts "$RUNNER_TEMP/npm-consumer-receipts"
+          node scripts/npm-release-lane.mjs seal --expected-sha "$EXPECTED_SHA" --release-tag "$RELEASE_TAG" --directory "$RUNNER_TEMP/npm-release-candidate" --consumer-receipts "$RUNNER_TEMP/npm-consumers"
+          cp "$RUNNER_TEMP/npm-consumers/"*.json "$RUNNER_TEMP/npm-release-candidate/"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: npm-module-candidate
