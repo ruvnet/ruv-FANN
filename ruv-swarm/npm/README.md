@@ -388,7 +388,7 @@ Version 2.0 narrows the public API to working capabilities. Use `RuvSwarm.initia
 
 MCP clients should refresh `tools/list`: unsupported autonomous, training and invented telemetry tools have been removed. Assignment replies return actual task IDs, `assigned` or `unassigned`, and `assignedAgents`; they contain no estimated completion or fabricated model accuracy. SQLite records survive process restarts. State defaults to `.ruv-swarm/state.sqlite` in the working project; `RUV_SWARM_DB_PATH` selects an explicit location. To use an older database, back it up and point that variable at the existing file.
 
-The npm package is 2.0.0; its bundled core Rust WASM crate has its own version, 1.0.6. See the [changelog](./CHANGELOG.md) for the compatibility changes.
+The npm package is 2.0.1; its bundled core Rust WASM crate has its own version, 1.0.6. See the [changelog](./CHANGELOG.md) for the compatibility changes.
 
 ## License
 
