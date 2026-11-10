@@ -20,6 +20,9 @@ try {
   try{
     await test('outside base path rejected',async()=>assert.equal((await fetch(new URL('/index.html',url))).status,404));
     await test('encoded traversal rejected',async()=>assert.notEqual((await fetch(url+'..%2f..%2fetc%2fpasswd')).status,200));
+    await fs.symlink(path.dirname(temp),path.join(temp,'outside'));
+    await test('symlinked parent rejected',async()=>assert.notEqual((await fetch(url+'outside/'+path.basename(temp)+'/index.html')).status,200));
+    await fs.rm(path.join(temp,'outside'));
     await test('MIME supports real WASM',async()=>{const wasm=Object.keys(m.files).find(n=>n.endsWith('.wasm'));assert.equal((await fetch(url+wasm)).headers.get('content-type'),'application/wasm');});
   }finally{await new Promise(r=>server.close(r));}
   console.log(JSON.stringify({schema:'ruv-fann.pages-security/1',status:'passed',tests:checks,failed:0,skipped:0,sourceSha:m.sourceSha}));
