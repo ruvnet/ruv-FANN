@@ -10,6 +10,10 @@ const requiredChecks=['sourceBinding','allStorySections','desktopNoOverflow','lo
 function validBrowser(r,sha,manifest) {
   return r?.schema==='ruv-fann.pages-browser/1'&&r.status==='passed'&&r.sourceSha===sha&&r.manifestSha256===manifest&&r.failed===0&&r.skipped===0&&r.tests===Object.keys(r.checks??{}).length&&requiredChecks.every(k=>r.checks?.[k]===true)&&Object.values(r.checks).every(v=>v===true);
 }
+const securityChecks=['unchanged manifest verifies','wrong expected source fails','runtime byte tampering fails','unlisted files fail','symlinks fail','manifest traversal fails','outside base path rejected','encoded traversal rejected','symlinked parent rejected','MIME supports real WASM'];
+function validSecurity(r,sha,manifest) {
+  return r?.schema==='ruv-fann.pages-security/1'&&r.status==='passed'&&r.sourceSha===sha&&r.manifestSha256===manifest&&r.failed===0&&r.skipped===0&&r.tests===Object.keys(r.checks??{}).length&&securityChecks.every(k=>r.checks?.[k]===true)&&Object.values(r.checks).every(v=>v===true);
+}
 export async function verifySite(root,expectedSha) {
   const bytes=await fs.readFile(path.join(root,'site-manifest.json')); const m=JSON.parse(bytes);
   if(m.schema!=='ruv-fann.pages-manifest/1'||! /^[a-f0-9]{40}$/.test(m.sourceSha)|| (expectedSha&&m.sourceSha!==expectedSha)) throw Error('Source-bound manifest mismatch');
@@ -29,10 +33,12 @@ if (mode==='seal') {
   if(verified.manifest.sourceTreeClean!==true)throw Error('Site was built from uncommitted or untracked source');
   const receipt=JSON.parse(await fs.readFile(path.join(proof,'browser-receipt.json'),'utf8'));
   if(!validBrowser(receipt,sourceSha,verified.manifestSha256))throw Error('Nonzero complete source-bound browser qualification required');
+  const security=JSON.parse(await fs.readFile(path.join(proof,'security-receipt.json'),'utf8'));
+  if(!validSecurity(security,sourceSha,verified.manifestSha256))throw Error('Nonzero complete source-bound security qualification required');
   await fs.mkdir(candidate,{recursive:true});const archive=path.join(candidate,'site.tar.gz');
   execFileSync('tar',['--sort=name','--mtime=@0','--owner=0','--group=0','--numeric-owner','-czf',archive,'-C',root,'.']);
   await fs.cp(proof,path.join(candidate,'evidence'),{recursive:true});
-  const seal={schema:'ruv-fann.pages-candidate/1',sourceSha,archive:'site.tar.gz',archiveSha256:hash(await fs.readFile(archive)),manifestSha256:verified.manifestSha256,browserReceiptSha256:hash(await fs.readFile(path.join(candidate,'evidence/browser-receipt.json')))};
+  const seal={schema:'ruv-fann.pages-candidate/1',sourceSha,archive:'site.tar.gz',archiveSha256:hash(await fs.readFile(archive)),manifestSha256:verified.manifestSha256,browserReceiptSha256:hash(await fs.readFile(path.join(candidate,'evidence/browser-receipt.json'))),securityReceiptSha256:hash(await fs.readFile(path.join(candidate,'evidence/security-receipt.json')))};
   await fs.writeFile(path.join(candidate,'candidate-seal.json'),JSON.stringify(seal,null,2)+'\n');console.log(JSON.stringify(seal));
 } else if (mode==='verify') {
   const candidate=path.resolve(repo,first),seal=JSON.parse(await fs.readFile(path.join(candidate,'candidate-seal.json'),'utf8'));
@@ -44,5 +50,7 @@ if (mode==='seal') {
   try {execFileSync('tar',['-xzf',archive,'-C',temp,'--no-same-owner','--no-same-permissions']);const v=await verifySite(temp,seal.sourceSha);if(v.manifestSha256!==seal.manifestSha256||v.manifest.sourceTreeClean!==true)throw Error('Manifest seal mismatch or uncommitted source');}finally{await fs.rm(temp,{recursive:true,force:true});}
   const bytes=await fs.readFile(path.join(candidate,'evidence/browser-receipt.json'));const r=JSON.parse(bytes);
   if(hash(bytes)!==seal.browserReceiptSha256||!validBrowser(r,seal.sourceSha,seal.manifestSha256))throw Error('Browser seal mismatch');
+  const securityBytes=await fs.readFile(path.join(candidate,'evidence/security-receipt.json'));const security=JSON.parse(securityBytes);
+  if(hash(securityBytes)!==seal.securityReceiptSha256||!validSecurity(security,seal.sourceSha,seal.manifestSha256))throw Error('Security seal mismatch');
   console.log(JSON.stringify({status:'verified',sourceSha:seal.sourceSha,archiveSha256:seal.archiveSha256}));
 } else if(process.argv[1]===fileURLToPath(import.meta.url)) throw Error('Usage: site-seal.mjs seal [site] [evidence] [candidate] | verify [candidate]');

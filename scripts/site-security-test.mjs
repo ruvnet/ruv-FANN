@@ -4,8 +4,11 @@ import path from 'node:path';
 import os from 'node:os';
 import { verifySite } from './site-seal.mjs';
 import { serveSite } from './site-serve.mjs';
-const root=path.resolve(process.argv[2]??'_site');const temp=await fs.mkdtemp(path.join(os.tmpdir(),'fann-pages-hostile-'));
-let checks=0;const test=async(name,fn)=>{await fn();checks++;console.log('PASS '+name);};
+const root=path.resolve(process.argv[2]??'_site');
+const evidence=path.resolve(process.argv[3]??'_site-evidence');
+const verified=await verifySite(root);
+const temp=await fs.mkdtemp(path.join(os.tmpdir(),'fann-pages-hostile-'));
+let tests=0;const checks={};const test=async(name,fn)=>{await fn();checks[name]=true;tests++;console.log('PASS '+name);};
 try {
   await fs.cp(root,temp,{recursive:true});const original=await fs.readFile(path.join(temp,'site-manifest.json'),'utf8');const m=JSON.parse(original);
   await test('unchanged manifest verifies',()=>verifySite(temp,m.sourceSha));
@@ -25,5 +28,8 @@ try {
     await fs.rm(path.join(temp,'outside'));
     await test('MIME supports real WASM',async()=>{const wasm=Object.keys(m.files).find(n=>n.endsWith('.wasm'));assert.equal((await fetch(url+wasm)).headers.get('content-type'),'application/wasm');});
   }finally{await new Promise(r=>server.close(r));}
-  console.log(JSON.stringify({schema:'ruv-fann.pages-security/1',status:'passed',tests:checks,failed:0,skipped:0,sourceSha:m.sourceSha}));
+  const receipt={schema:'ruv-fann.pages-security/1',status:'passed',tests,failed:0,skipped:0,sourceSha:m.sourceSha,manifestSha256:verified.manifestSha256,checks};
+  await fs.mkdir(evidence,{recursive:true});
+  await fs.writeFile(path.join(evidence,'security-receipt.json'),JSON.stringify(receipt,null,2)+'\n');
+  console.log(JSON.stringify(receipt));
 }finally{await fs.rm(temp,{recursive:true,force:true});}

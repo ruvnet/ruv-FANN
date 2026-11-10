@@ -120,6 +120,7 @@ jobs:
           path: |
             site-candidate/candidate-seal.json
             site-candidate/evidence/browser-receipt.json
+            site-candidate/evidence/security-receipt.json
             _site-public-evidence/
           if-no-files-found: error
           retention-days: 90
