@@ -12,6 +12,6 @@
     "test": "node smoke.mjs"
   },
   "dependencies": {
-    "ruv-swarm": "file:../ruv-swarm-2.0.1.tgz"
+    "ruv-swarm": "file:../ruv-swarm-2.0.2.tgz"
   }
 }

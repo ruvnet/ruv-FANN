@@ -14,6 +14,7 @@
   "files": ["src/", "README.md", "LICENSE-MIT", "LICENSE-APACHE"],
   "engines": { "node": ">=22.13.0" },
   "license": "MIT OR Apache-2.0",
+  "homepage": "https://ruv.io",
   "repository": { "type": "git", "url": "https://github.com/ruvnet/ruv-FANN.git", "directory": "integrations/ruv-fann" },
   "publishConfig": { "access": "public" },
   "scripts": {

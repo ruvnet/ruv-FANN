@@ -1,6 +1,6 @@
 {
   "name": "ruv-swarm",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Node.js swarm metadata, SQLite persistence, and checked WebAssembly inference",
   "main": "src/index.js",
   "module": "src/index.js",
@@ -166,7 +166,7 @@
   "bugs": {
     "url": "https://github.com/ruvnet/ruv-FANN/issues"
   },
-  "homepage": "https://github.com/ruvnet/ruv-FANN#readme",
+  "homepage": "https://ruv.io",
   "dependencies": {
     "better-sqlite3": "12.11.1",
     "node-gyp": "12.4.0",

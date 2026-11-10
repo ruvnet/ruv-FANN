@@ -1,6 +1,6 @@
 {
   "name": "cuda-wasm",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Node.js wrapper for cuda2rust: generate Rust or WGSL source from a subset of CUDA C++",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -52,7 +52,7 @@
   "bugs": {
     "url": "https://github.com/ruvnet/ruv-FANN/issues"
   },
-  "homepage": "https://github.com/ruvnet/ruv-FANN/tree/main/cuda-wasm#readme",
+  "homepage": "https://ruv.io",
   "funding": {
     "type": "github",
     "url": "https://github.com/sponsors/ruvnet"

@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.0.2] - Unreleased
+
+### Package metadata
+
+- Set `homepage` to https://ruv.io. No code, dependency or WASM change.
+
 ## [2.0.1] - 2026-11-10
 
 ### Release pipeline
