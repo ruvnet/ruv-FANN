@@ -20,7 +20,7 @@ homepage = "https://ruv.io"
 rust-version = "1.89"  # Patched native SQLite persistence requires 1.89; rmcp itself needs 1.88.
 description = "Model Context Protocol (MCP) integration for RUV Swarm"
 readme = "README.md"
-keywords = ["mcp", "model-context-protocol", "swarm", "agents", "json-rpc"]
+keywords = ["mcp", "ai", "swarm", "agents", "json-rpc"]
 categories = ["development-tools", "network-programming"]
 
 [[bin]]
