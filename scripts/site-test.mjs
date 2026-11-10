@@ -20,17 +20,20 @@ try {
   const context=await browser.newContext({viewport:{width:1440,height:1000},permissions:['clipboard-read','clipboard-write']});
   const page=await context.newPage();
   const origin=new URL(url).origin;
-  page.on('pageerror',e=>errors.push(e.message));
-  page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
-  page.on('request',r=>{const u=new URL(r.url());if(['http:','https:'].includes(u.protocol)&&u.origin!==origin)external.push(r.url());});
-  page.on('response',r=>{if(r.status()>=400)badResponses.push(`${r.status()} ${r.url()}`);});
+  function observe(p) {
+    p.on('pageerror',e=>errors.push(e.message));
+    p.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+    p.on('request',r=>{const u=new URL(r.url());if(['http:','https:'].includes(u.protocol)&&u.origin!==origin)external.push(r.url());});
+    p.on('response',r=>{if(r.status()>=400)badResponses.push(`${r.status()} ${r.url()}`);});
+  }
+  observe(page);
   await page.goto(url,{waitUntil:'networkidle'});
   await check('sourceBinding',async()=>assert.equal(await page.locator('meta[name="source-sha"]').getAttribute('content'),verified.manifest.sourceSha));
   await check('allStorySections',async()=>{for(const id of ['story','workbench','playground','evidence','packages','start'])assert.equal(await page.locator('#'+id).count(),1);assert.ok((await page.locator('main').innerText()).length>3000);});
   await check('desktopNoOverflow',async()=>assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)));
   await check('localLinksResolve',async()=>{for(const href of await page.locator('a[href^="#"]').evaluateAll(a=>a.map(x=>x.getAttribute('href')))){if(href.length>1)assert.equal(await page.locator(href).count(),1,href);}});
   await check('scrollNarrative',async()=>{for(const scene of ['input','training','edit','review']){await page.locator(`[data-scene="${scene}"]`).scrollIntoViewIfNeeded();await page.waitForFunction(scene=>document.querySelector('#story-visual')?.dataset.activeScene===scene,scene,{timeout:10000});}});
-  await check('motionPause',async()=>{await page.locator('#motion-toggle').click();assert.equal(await page.locator('#motion-toggle').getAttribute('aria-pressed'),'true');assert.equal(await page.locator('html').getAttribute('data-motion'),'paused');await page.locator('#motion-toggle').click();assert.equal(await page.locator('#motion-toggle').getAttribute('aria-pressed'),'false');});
+  await check('motionPause',async()=>{await page.locator('#motion-toggle').click();assert.equal(await page.locator('#motion-toggle').getAttribute('aria-pressed'),'true');assert.equal(await page.locator('html').getAttribute('data-motion'),'paused');assert.equal(await page.evaluate(()=>document.getAnimations().filter(a=>a.constructor.name==='CSSAnimation'&&a.playState==='running').length),0);await page.locator('#motion-toggle').click();assert.equal(await page.locator('#motion-toggle').getAttribute('aria-pressed'),'false');});
   await check('keyboardControls',async()=>{await page.locator('#motion-toggle').focus();await page.keyboard.press('Space');assert.equal(await page.locator('#motion-toggle').getAttribute('aria-pressed'),'true');await page.keyboard.press('Space');});
   await check('copyInstall',async()=>{const button=page.locator('[data-copy="install-command"]').first();await button.click();const copied=await page.evaluate(()=>navigator.clipboard.readText());assert.equal(copied.trim(),(await page.locator('#install-command').innerText()).trim());assert.match(await page.locator('#copy-status').innerText(),/copied/i);});
   await check('benchmarkTabs',async()=>{await page.locator('[data-benchmark="wine"]').click();assert.equal(await page.locator('[data-benchmark="wine"]').getAttribute('aria-pressed'),'true');assert.match(await page.locator('#evidence').innerText(),/99\.49/);await page.locator('[data-benchmark="iris"]').click();assert.equal(await page.locator('[data-benchmark="iris"]').getAttribute('aria-pressed'),'true');});
@@ -45,13 +48,13 @@ try {
   await check('demoReset',async()=>{await page.locator('#demo-reset').click();await page.waitForFunction(()=>Number(document.querySelector('#demo-revision').textContent)===1);assert.deepEqual(await outputs('active'),[0,1,0,0]);});
   await check('accessibilityDesktop',async()=>{const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa']).analyze();await fs.writeFile(path.join(evidence,'axe-desktop.json'),JSON.stringify(result,null,2));assert.deepEqual(result.violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.map(n=>n.target)})),[]);});
   await page.screenshot({path:path.join(evidence,'desktop.png'),fullPage:true});
-  const mobile=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,reducedMotion:'reduce'});const small=await mobile.newPage();await small.goto(url,{waitUntil:'networkidle'});
+  const mobile=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,reducedMotion:'reduce'});const small=await mobile.newPage();observe(small);await small.goto(url,{waitUntil:'networkidle'});
   await check('mobileNoOverflow',async()=>assert.ok(await small.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)));
   await check('reducedMotion',async()=>{assert.ok(await small.evaluate(()=>matchMedia('(prefers-reduced-motion: reduce)').matches));const running=await small.evaluate(()=>document.getAnimations().filter(a=>a.playState==='running'&&a.effect?.getComputedTiming().duration>1).length);assert.equal(running,0,'Reduced motion must stop decorative animations');});
   await check('accessibilityMobile',async()=>{const result=await new AxeBuilder({page:small}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa']).analyze();await fs.writeFile(path.join(evidence,'axe-mobile.json'),JSON.stringify(result,null,2));assert.deepEqual(result.violations.map(v=>({id:v.id,impact:v.impact,nodes:v.nodes.map(n=>n.target)})),[]);});
   await small.screenshot({path:path.join(evidence,'mobile.png'),fullPage:true});
   await small.setViewportSize({width:360,height:800});await check('narrowNoOverflow',async()=>assert.ok(await small.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)));
-  const plain=await browser.newContext({javaScriptEnabled:false});const nojs=await plain.newPage();await nojs.goto(url);await check('noJavaScriptReadable',async()=>{assert.ok((await nojs.locator('main').innerText()).length>3000);for(const id of ['story','workbench','evidence','packages'])assert.ok(await nojs.locator('#'+id).isVisible());});
+  const plain=await browser.newContext({javaScriptEnabled:false});const nojs=await plain.newPage();observe(nojs);await nojs.goto(url);await check('noJavaScriptReadable',async()=>{assert.ok((await nojs.locator('main').innerText()).length>3000);for(const id of ['story','workbench','evidence','packages'])assert.ok(await nojs.locator('#'+id).isVisible());});
   await check('strictBasePath',async()=>{if(!publicUrl){const response=await page.request.get(new URL('/styles.css',url).href);assert.equal(response.status(),404);}assert.match(await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content'),/wasm-unsafe-eval/);});
   await check('runtimeSelfOrigin',async()=>assert.deepEqual(external,[]));
   await check('noBrowserErrors',async()=>{assert.deepEqual(errors,[]);assert.deepEqual(badResponses,[]);});
