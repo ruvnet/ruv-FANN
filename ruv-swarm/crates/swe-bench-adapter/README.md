@@ -29,6 +29,6 @@ cargo test --locked -p swe-bench-adapter --test integration_test
 
 Rust 1.88 all-target/all-feature coverage includes 18 library tests, six integration tests and 13 Criterion smoke cases. Tests invoke the actual typed handler and apply/check a patch in a local Git fixture, including preservation of an existing patch file. `PatchEvaluator::with_working_directory` supports an existing local checkout. Temporary patch files have unique names, and timed-out child processes are killed. These checks do not run the official benchmark or isolate untrusted code.
 
-The versions in this checkout are **unpublished release candidates**. See the [workspace guide](https://github.com/ruvnet/ruv-FANN/tree/main/ruv-swarm) for all 14 packages and the [review record](https://github.com/ruvnet/ruv-FANN/blob/main/docs/review-rust-swarm.md) for checks, dependency findings and remaining limits.
+Published on [crates.io](https://crates.io/crates/swe-bench-adapter). Builds use rustls for TLS; no OpenSSL dependency. See the [workspace guide](https://github.com/ruvnet/ruv-FANN/tree/main/ruv-swarm) for all 14 packages and the [review record](https://github.com/ruvnet/ruv-FANN/blob/main/docs/review-rust-swarm.md) for checks, dependency findings and remaining limits.
 
 ![Animated map of the ruv-FANN packages](https://raw.githubusercontent.com/ruvnet/ruv-FANN/main/docs/assets/package-map.svg)

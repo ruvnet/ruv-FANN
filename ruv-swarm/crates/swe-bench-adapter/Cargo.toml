@@ -11,13 +11,15 @@ include = [
     "/LICENSE*",
 ]
 name = "swe-bench-adapter"
-version = "1.0.6"
+version = "1.0.7"
 rust-version.workspace = true
 edition = "2021"
 authors = ["ruv-swarm team"]
 description = "SWE-Bench adapter for ruv-swarm orchestration system"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/ruvnet/ruv-FANN"
+homepage = "https://ruv.io"
+readme = "README.md"
 keywords = ["swe-bench", "benchmarking", "evaluation", "swarm", "orchestration"]
 categories = ["development-tools", "science", "algorithms"]
 
@@ -42,7 +44,7 @@ thiserror = "1.0"
 anyhow = "1.0"
 
 # HTTP client for downloading instances
-reqwest = { version = "0.12", features = ["json", "stream"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls", "charset", "http2"] }
 
 # Diff and patch handling
 similar = { version = "2.3", features = ["text", "inline"] }

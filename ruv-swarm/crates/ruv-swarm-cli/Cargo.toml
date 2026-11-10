@@ -11,13 +11,14 @@ include = [
     "/LICENSE*",
 ]
 name = "ruv-swarm-cli"
-version = "1.0.6"
+version = "1.0.7"
 rust-version.workspace = true
 edition = "2021"
 authors = ["RUV FANN Contributors"]
 description = "Distributed swarm orchestration CLI with cognitive diversity"
 readme = "README.md"
 repository = "https://github.com/ruvnet/ruv-FANN"
+homepage = "https://ruv.io"
 license = "MIT OR Apache-2.0"
 keywords = ["swarm", "distributed", "orchestration", "ai", "cli"]
 categories = ["command-line-utilities", "development-tools"]
@@ -63,7 +64,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
 
 # HTTP client for API interactions
-reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "charset", "http2"] }
 
 # Time handling
 chrono = { version = "0.4", features = ["serde"] }
