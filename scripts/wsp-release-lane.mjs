@@ -450,7 +450,7 @@ async function githubRelease() {
   }
   if (tagCommit(seal.releaseTag) !== seal.sourceSha) throw new Error('WSP GitHub release tag does not point to the exact sealed source SHA');
   if (existing) {
-    const expectedNames = assets.map(basename).sort();
+    const expectedNames = assets.map(path => basename(path)).sort();
     const actualNames = existing.assets.map(item => item.name).sort();
     if (JSON.stringify(actualNames) !== JSON.stringify(expectedNames)) throw new Error('Existing WSP release asset set differs from the exact sealed release');
   }
