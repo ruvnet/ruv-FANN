@@ -73,6 +73,8 @@ jobs:
           path: |
             ${{ runner.temp }}/wsp-candidate/*.tgz
             ${{ runner.temp }}/wsp-candidate/candidate-seal.json
+            ${{ runner.temp }}/wsp-candidate/benchmark.json
+            ${{ runner.temp }}/wsp-candidate/security.json
             ${{ runner.temp }}/wsp-publication.json
             ${{ runner.temp }}/wsp-public-consumer.json
             ${{ runner.temp }}/wsp-release-receipt.json

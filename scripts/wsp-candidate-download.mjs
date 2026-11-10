@@ -42,7 +42,7 @@ try {
   const digest = createHash('sha256').update(bytes).digest('hex');
   if (manifest.sourceSha !== sha || seal.sourceSha !== sha || seal.status !== 'passed' || seal.tarball !== manifest.tarball ||
       basename(manifest.tarball) !== manifest.tarball || seal.sha256 !== digest || manifest.sha256 !== digest ||
-      manifest.name !== 'ruv-fann-wsp' || manifest.version !== '0.1.0' || seal.releaseTag !== 'ruv-fann-wsp-v0.1.0')
+      manifest.name !== 'ruv-fann-wsp' || manifest.version !== '0.2.0' || seal.releaseTag !== 'ruv-fann-wsp-v0.2.0')
     throw new Error('Downloaded candidate is not the exact successful sealed archive requested');
   await mkdir(output, { recursive: true });
   for (const name of await readdir(temp)) {

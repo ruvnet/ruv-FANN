@@ -61,6 +61,53 @@ console.log(restored.hash === baseline.hash); // true
 
 The four cases above exhaust the binary XOR domain. For larger tasks, keep evaluation cases separate from examples shown to the patch generator. The package cannot verify whether supplied cases were previously seen by an LLM.
 
+## Inspect, trace and diagnose a checkpoint
+
+Version 0.2.0 adds a bounded workbench using the same real WASM engine:
+
+```js
+import { inspectWeightModel, traceWeightModel, createNeuronAblationPatch,
+  analyzeWeightSensitivity, evaluateWeightPatch } from 'ruv-fann-wsp';
+
+const checkpoint = promoted.model; // From the successful XOR repair above.
+const inspection = await inspectWeightModel(checkpoint);
+const trace = await traceWeightModel(checkpoint, { inputs: [0, 0, 0, 1, 1, 0, 1, 1], rows: 4 });
+console.log(inspection.baseHash, inspection.parameterCount);
+console.log(trace.layers[0].preactivations, trace.layers[0].activations);
+
+// Disconnect hidden neuron 0 from the next layer. This is an experiment;
+// it neither mutates the model nor activates the changed checkpoint.
+const patch = await createNeuronAblationPatch(checkpoint, 0, 0);
+const dataset = { inputs: [0, 0, 0, 1, 1, 0, 1, 1], targets: [0, 1, 1, 0], rows: 4 };
+const effect = await evaluateWeightPatch(checkpoint, patch, dataset,
+  { maxMSE: 0, maxRegressionMSE: 0 });
+console.log(effect.baseline, effect.candidate, effect.accepted);
+
+const sensitivity = await analyzeWeightSensitivity(checkpoint, dataset,
+  [{ layer: 1, parameter: 'weights', index: 0 }], { epsilon: 0.0001 });
+console.log(sensitivity.method, sensitivity.entries[0].derivative);
+```
+
+The snippet assumes a checkpoint with a hidden layer and a nonzero outgoing
+connection. For the XOR checkpoint above, first use `promoted.model`: the initial
+output weights are all zero, and an empty/no-op ablation is rejected.
+
+A trace returns affine values before activation and activation outputs for each
+layer, flattened in row-major order. Affine probes use Linear activation with
+steepness 1; actual activations retain their original steepness. Both passes run
+through WASM. Hidden-neuron ablation zeros its outgoing weights in the next layer,
+which also works when its activation at zero is nonzero, such as Sigmoid.
+
+Sensitivity measures how dataset MSE changes around each explicitly named weight
+or bias. It uses central finite differences, not autograd, and returns baseline,
+positive/negative probe errors and a numerical derivative. It changes no weights.
+At most 16 unique locations are allowed; epsilon defaults to `1e-4` and must lie
+in `[1e-8, 1]`. Unrepresentable probes, out-of-bound values and nonfinite results
+reject. Derivatives near activation discontinuities require careful interpretation.
+
+Inspection and diagnostics are evidence for a proposed edit. Promotion continues
+to require an accepted proposal in the existing workspace lifecycle.
+
 ## Ask an agent for a patch
 
 ```js
@@ -103,6 +150,10 @@ Serve `.wasm` assets as `application/wasm`; allow WebAssembly compilation in you
 
 | Export | Purpose |
 | --- | --- |
+| `inspectWeightModel(model)` | Inspect canonical model dimensions, activations, parameter counts and fingerprint |
+| `traceWeightModel(model, batch, options?)` | Inspect real-WASM affine values and activations |
+| `createNeuronAblationPatch(model, layer, neuron, limits?)` | Build a hash-bound patch disconnecting one hidden neuron |
+| `analyzeWeightSensitivity(model, dataset, locations, options?)` | Estimate selected parameter effects on MSE using finite differences |
 | `fingerprintModel(model)` | Validate and SHA-256 hash a canonical model |
 | `applyWeightPatch(model, patch, limits?)` | Apply bounded parameter replacements to a copy |
 | `evaluateWeightPatch(model, patch, dataset, policy, options?)` | Compare baseline/candidate with real WASM predictions |
@@ -143,7 +194,7 @@ Up to 16 pending proposals and 32 checkpoints are retained. Stale proposals cann
 
 ## Resource bounds
 
-The initial release targets small dense networks and bounded evaluation batches:
+The package targets small dense networks and bounded evaluation batches:
 
 | Resource | Maximum/default |
 | --- | --- |
@@ -152,6 +203,9 @@ The initial release targets small dense networks and bounded evaluation batches:
 | Evaluation rows | 1,024 |
 | Input/target array elements | 65,536 each |
 | Evaluation work | `rows × parameterCount ≤ 10,000,000` |
+| Trace storage | 65,536 aggregate original input + affine + activation elements |
+| Trace work | Both passes together: `2 × rows × parameterCount ≤ 10,000,000` |
+| Sensitivity probes | 16 unique locations; `(2 × locations + 1) × rows × parameterCount ≤ 10,000,000` |
 | Patch edits | 128 |
 | Absolute replacement value | 1,000,000 |
 | Absolute change from baseline | 1,000 |
@@ -159,6 +213,29 @@ The initial release targets small dense networks and bounded evaluation batches:
 | Prompt size | 64 KiB; model portion at most 48 KiB |
 
 Patch limits may be tightened, not raised beyond these defaults. The core runtime's native-memory bounds also apply. Evaluation is synchronous once the runtime is loaded; use a Worker for workloads that would block your application's event loop. Unsupported operations and numerical failures reject rather than yielding a passing evaluation.
+
+## Reproducible benchmarks and security
+
+The source checkout includes `scripts/wsp-benchmark.mjs` and attributed, hash-pinned
+UCI Iris/Wine fixtures. Five fixed stratified splits separate training, validation
+and test rows; normalization is fitted on training data only. Training budgets and
+fault-injection neurons are selected on validation data. Reports include simple,
+linear, neural and external tree baselines, all held-out results, uncertainty,
+runtime/tool versions and dataset provenance. Python is benchmark tooling only;
+it is not required to install or use this package.
+
+The release attaches the exact source-bound benchmark and dependency audit reports.
+Classification results on these small datasets do not measure agent memory quality.
+Controlled ablation/repair checks do not establish that an editor can improve an
+arbitrary model. Refer to the benchmark README in the source checkout for commands,
+limitations and recorded results.
+
+Installed-package checks exercise real WASM in Node22/24 and Chromium, strict
+TypeScript declarations, malformed inputs, caller mutation, aggregate budgets,
+stale proposals and forged receipts. The production dependency tree is audited
+for known npm advisories. These checks have a defined scope and do not constitute
+a general security certification. Application owners must limit concurrent calls
+and select evaluation data and promotion policies appropriate to their use case.
 
 ## AgentDB and MCP
 

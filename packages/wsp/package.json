@@ -1,19 +1,49 @@
 {
   "name": "ruv-fann-wsp",
-  "version": "0.1.0",
-  "description": "Bounded weight-space patches, real WASM evaluation and revision-safe neural model workspaces",
+  "version": "0.2.0",
+  "description": "Bounded weight-space programming, real WASM activation traces, neuron ablation and numerical sensitivity",
   "type": "module",
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
-  "engines": { "node": ">=20.9.0" },
-  "exports": { ".": { "types": "./src/index.d.ts", "import": "./src/index.js" } },
-  "files": ["src", "README.md", "LICENSE"],
-  "dependencies": { "ruv-fann": "0.1.2" },
-  "scripts": { "test": "node --test test/*.test.mjs" },
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "ruv-fann": "0.1.2"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
   "license": "MIT",
-  "repository": { "type": "git", "url": "git+https://github.com/ruvnet/ruv-FANN.git", "directory": "packages/wsp" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ruvnet/ruv-FANN.git",
+    "directory": "packages/wsp"
+  },
   "homepage": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp#readme",
-  "bugs": { "url": "https://github.com/ruvnet/ruv-FANN/issues" },
-  "publishConfig": { "access": "public" },
-  "keywords": ["ruv-fann", "weight-space-programming", "neural-network", "wasm", "model-editing", "agentdb"]
+  "bugs": {
+    "url": "https://github.com/ruvnet/ruv-FANN/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "ruv-fann",
+    "weight-space-programming",
+    "neural-network",
+    "wasm",
+    "model-editing",
+    "agentdb"
+  ]
 }

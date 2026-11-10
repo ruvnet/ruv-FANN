@@ -28,6 +28,23 @@ The five main Cargo workspaces have separate build requirements; the optional Ca
 
 Each family has a defined scope. Forecasting currently implements a univariate RNN and simple baselines; LSTM/GRU forecasting architectures return unsupported errors. Agent assignment records scheduling decisions; external task execution depends on the integration you supply. CUDA translation emits source and does not execute a GPU kernel. The native OpenCV bridge calls an installed C++ library, while the portable packages implement a smaller set of operations.
 
+## Weight-space programming in Node.js and browsers
+
+Install `ruv-fann-wsp` for bounded direct parameter edits and a real-WASM workbench:
+
+```sh
+npm install ruv-fann-wsp
+```
+
+Version 0.2.0 adds canonical model inspection, affine/activation traces, hidden-neuron
+ablation patches and finite-difference sensitivity analysis. Edits still require
+explicit evaluation and promotion; revisioned checkpoints support rollback.
+See the [WSP package guide](packages/wsp/README.md) and the
+[public-data benchmark](packages/wsp/benchmarks/README.md). The benchmark compares
+linear and small neural models against simple baselines and ExtraTrees on Iris and
+Wine. All outcomes are retained; it establishes no state-of-the-art or agent-task
+performance claim.
+
 ## Try the neural-network core
 
 Install [Rust](https://www.rust-lang.org/tools/install), then run the included example:

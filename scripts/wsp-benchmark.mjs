@@ -146,7 +146,10 @@ async function repairProof(model, job) {
     acceptedOnValidation: proof.accepted, originalTest: original.metrics, ablatedTest: damaged.metrics, repairedTest: recovered.metrics,
     exactWeightHashRestored: true, exactHeldoutOutputsRestored: true, rollbackRestoresAblation: true, traceMatchesFullWasm: true, sensitivityMatchesIndependentMSE: true,
     sensitivity: { method: sensitivity.method, baseHash: sensitivity.baseHash, datasetHash: sensitivity.datasetHash, backend: sensitivity.backend,
-      epsilon: sensitivity.epsilon, entries: sensitivity.entries },
+      epsilon: sensitivity.epsilon, baseline: sensitivity.baseline,
+      parameterValue: model.layers[1].weights[selected.neuron],
+      minusValue: minusModel.layers[1].weights[selected.neuron], plusValue: plusModel.layers[1].weights[selected.neuron],
+      independentMSE: { minus: minusMSE, plus: plusMSE }, entries: sensitivity.entries },
     limitation: 'Controlled single-neuron damage with known original weights; restoration is not discovery of better weights or general autonomous repair.' };
 }
 const runs = [];

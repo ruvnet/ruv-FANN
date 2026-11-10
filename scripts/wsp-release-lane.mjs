@@ -7,6 +7,8 @@ import { readFile, readdir, writeFile, mkdir, mkdtemp, rm } from 'node:fs/promis
 import { tmpdir } from 'node:os';
 import { join, resolve, basename, dirname, extname, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { runWorkbenchProbe, runWorkbenchSecurityProbe } from './wsp-workbench-probes.mjs';
+import { validateWorkbenchProof, validateSecurity, validateBenchmark } from './wsp-release-evidence.mjs';
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const argv = process.argv.slice(2);
@@ -28,7 +30,7 @@ const json = async path => JSON.parse(await readFile(path, 'utf8'));
 const saveNew = async (path, value) => writeFile(path, `${JSON.stringify(value, null, 2)}\n`, { flag: 'wx' });
 const gitSha = () => exec('git', ['rev-parse', 'HEAD']);
 const assertClean = () => { if (exec('git', ['status', '--porcelain'])) throw new Error('Source tree is dirty'); };
-const identity = { name: 'ruv-fann-wsp', version: '0.1.0', dependency: { 'ruv-fann': '0.1.2' }, tag: 'ruv-fann-wsp-v0.1.0' };
+const identity = { name: 'ruv-fann-wsp', version: '0.2.0', dependency: { 'ruv-fann': '0.1.2' }, tag: 'ruv-fann-wsp-v0.2.0' };
 const archiveInfo = async path => JSON.parse(exec('tar', ['-xOzf', path, 'package/package.json']));
 
 async function pack() {
@@ -38,7 +40,7 @@ async function pack() {
   const manifest = await json(join(root, 'packages/wsp/package.json'));
   if (manifest.name !== identity.name || manifest.version !== identity.version || manifest.private ||
       JSON.stringify(manifest.dependencies) !== JSON.stringify(identity.dependency))
-    throw new Error('WSP manifest must publish ruv-fann-wsp@0.1.0 with exact ruv-fann@0.1.2 dependency');
+    throw new Error('WSP manifest must publish ruv-fann-wsp@0.2.0 with exact ruv-fann@0.1.2 dependency');
   const packed = JSON.parse(exec('npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', output], join(root, 'packages/wsp')));
   if (packed.length !== 1 || packed[0].name !== identity.name || packed[0].version !== identity.version ||
       packed[0].files.some(file => /(^|\/)(test|tests|node_modules|scripts)(\/|$)/.test(file.path)))
@@ -93,7 +95,9 @@ assert.throws(() => workspace.promote({id:proposal.id,evaluation:{accepted:true}
 const after=workspace.snapshot(); assert.equal(after.revision,3); assert.deepEqual(after.model.layers[0].weights,[0]);
 const raw=await loadRuntime({simd:false}); const prepared=raw.prepare(promoted.model);
 assert.deepEqual([...prepared.predict(Float64Array.of(0,1,2))],[1,3,5]); prepared.dispose();
-console.log(JSON.stringify({status:'passed',backends:['wasm','wasm-simd'],accepted:true,rejected:true,promotedRevision:2,rollbackRevision:3}));
+const workbench=await (${runWorkbenchProbe.toString()})();
+const security=await (${runWorkbenchSecurityProbe.toString()})();
+console.log(JSON.stringify({workbench,security,status:'passed',backends:['wasm','wasm-simd'],accepted:true,rejected:true,promotedRevision:2,rollbackRevision:3}));
 `;
 }
 
@@ -125,10 +129,15 @@ async function consumer() {
   try {
     const { candidate, bytes } = await installArchive(candidatePath, temp, env);
     await writeFile(join(temp, 'integration.mjs'), nodeIntegrationSource());
-    console.log(exec(process.execPath, ['integration.mjs'], temp, env));
+    const integrationOutput = exec(process.execPath, ['integration.mjs'], temp, env);
+    console.log(integrationOutput);
+    const integrationProof = JSON.parse(integrationOutput.split('\n').at(-1));
+    validateWorkbenchProof(integrationProof);
     const tsc = resolve(required('tsc'));
     await writeFile(join(temp, 'types.mts'), `
 import { fingerprintModel, applyWeightPatch, evaluateWeightPatch, createWeightWorkspace,
+  inspectWeightModel, traceWeightModel, analyzeWeightSensitivity, createNeuronAblationPatch,
+  type WeightModelInspection, type WeightTrace, type WeightSensitivity,
   type DenseModel, type WeightPatch, type EvaluationDataset, type EvaluationPolicy, type WeightEvaluation } from 'ruv-fann-wsp';
 const model: DenseModel = {schema:'ruv-fann.dense-layers/1',layers:[{inputs:1,outputs:1,weights:[0],activation:'Linear',steepness:1}]};
 const patch: WeightPatch = {schema:'ruv-fann.weight-patch/1',baseHash:'0'.repeat(64),edits:[{layer:0,parameter:'weights',index:0,value:1}]};
@@ -144,13 +153,17 @@ const promoted = workspace.promote(proposal.id,proposal.revision);
 const restored = workspace.rollback(snapshot.revision,promoted.revision);
 const history = workspace.history();
 if (promoted.revision !== 2 || restored.revision !== 3 || history.length < 3) throw new Error('workspace declarations do not support the published lifecycle');
-void hash; void changed; void result; void snapshot;
+const inspected: WeightModelInspection = await inspectWeightModel(model);
+const traced: WeightTrace = await traceWeightModel(model,{inputs:[0,1],rows:2});
+const probed: WeightSensitivity = await analyzeWeightSensitivity(model,dataset,[{layer:0,parameter:'weights',index:0}]);
+const ablation: Promise<WeightPatch> = createNeuronAblationPatch(model,0,0); void ablation.catch(() => {});
+void inspected; void traced; void probed; void hash; void changed; void result; void snapshot;
 `);
     exec(process.execPath, [tsc, '--noEmit', '--strict', '--target', 'ES2022', '--module', 'NodeNext', '--moduleResolution', 'NodeNext', '--lib', 'ESNext,DOM,ESNext.Disposable', 'types.mts'], temp, env);
     await mkdir(dirname(receiptPath), { recursive: true });
     await saveNew(receiptPath, { schema: 'ruv-fann-wsp.npm-consumer/1', sourceSha: candidate.sourceSha,
       package: identity.name, version: identity.version, tarballSha256: sha256(bytes), runtime: process.version,
-      status: 'passed', mutationChecks: ['caller patch and dataset snapshot before await', 'returned proposal mutation isolated from workspace state',
+      status: 'passed', workbench: integrationProof.workbench, security: integrationProof.security, mutationChecks: ['caller patch and dataset snapshot before await', 'returned proposal mutation isolated from workspace state',
         'stale revision rejected', 'forged proposal receipt rejected'],
       scenarios: ['installed archive', 'patch and fingerprint', 'real WASM evaluation', 'workspace propose/promote/rollback', 'strict installed TypeScript declarations'] });
   } finally { await rm(temp, { recursive: true, force: true }); }
@@ -160,6 +173,8 @@ async function unit() {
   const output = resolve(required('output'));
   const testDir = join(root, 'packages/wsp/test');
   const tests = (await readdir(testDir)).filter(name => name.endsWith('.test.mjs')).sort().map(name => `test/${name}`);
+  const scriptTests = (await readdir(join(root, 'scripts'))).filter(name => /^wsp-.*\.test\.mjs$/.test(name)).map(name => join(root, 'scripts', name));
+  tests.push(...scriptTests);
   if (!tests.length) throw new Error('No WSP unit tests found');
   const reporter = exec(process.execPath, ['--test', '--test-reporter=tap', ...tests], join(root, 'packages/wsp'));
   const count = name => Number(new RegExp(`^# ${name} (\\d+)$`, 'm').exec(reporter)?.[1] ?? NaN);
@@ -223,11 +238,50 @@ async function browser() {
       assert(restored.revision===3 && restored.model.layers[0].weights[0]===0,'browser rollback');
       return {evaluationBackend:evaluation.backend,revision:promoted.revision,rollbackRevision:restored.revision};
     });
+    const workbench = await page.evaluate(runWorkbenchProbe);
+    const security = await page.evaluate(runWorkbenchSecurityProbe);
+    validateWorkbenchProof({workbench,security});
+    proof.workbench = workbench; proof.security = security;
     if (errors.length) throw new Error(errors.join('\n'));
     await mkdir(dirname(output), { recursive: true });
     await saveNew(output, { schema: 'ruv-fann-wsp.npm-browser/1', sourceSha: candidate.sourceSha,
       tarballSha256: sha256(bytes), browser: await browserInstance.version(), proof, status: 'passed' });
   } finally { await browserInstance?.close(); if (server) await new Promise(resolveClose => server.close(resolveClose)); await rm(temp, { recursive: true, force: true }); }
+}
+
+async function audit() {
+  const candidatePath = resolve(required('candidate'));
+  const temp = await mkdtemp(join(tmpdir(), 'ruv-fann-wsp-audit-'));
+  const env = { ...process.env };
+  for (const key of ['NPM_TOKEN', 'NODE_AUTH_TOKEN', 'GH_TOKEN', 'GITHUB_TOKEN', 'CARGO_REGISTRY_TOKEN']) delete env[key];
+  try {
+    const { candidate, bytes } = await installArchive(candidatePath, temp, env);
+    const report = JSON.parse(exec('npm', ['audit', '--omit=dev', '--json', '--registry=https://registry.npmjs.org'], temp, env));
+    const vulnerabilities = report.metadata?.vulnerabilities;
+    if (!vulnerabilities || vulnerabilities.total !== 0 ||
+        ['info', 'low', 'moderate', 'high', 'critical'].some(level => vulnerabilities[level] !== 0))
+      throw new Error('Published dependency tree must have zero known npm advisories');
+    const output = resolve(required('output')); await mkdir(dirname(output), { recursive: true });
+    await saveNew(output, { schema: 'ruv-fann-wsp.npm-security/1', status: 'passed', sourceSha: candidate.sourceSha,
+      tarballSha256: sha256(bytes), npmVersion: exec('npm', ['--version']), vulnerabilities,
+      dependencyAudit: report.metadata.dependencies, checkedAt: new Date().toISOString(),
+      scope: 'Known npm advisories for the installed production tree; adversarial API probes are required in both Node consumer and browser receipts.' });
+  } finally { await rm(temp, { recursive: true, force: true }); }
+}
+
+async function benchmark() {
+  const candidatePath = resolve(required('candidate'));
+  const temp = await mkdtemp(join(tmpdir(), 'ruv-fann-wsp-benchmark-'));
+  const env = { ...process.env };
+  for (const key of ['NPM_TOKEN', 'NODE_AUTH_TOKEN', 'GH_TOKEN', 'GITHUB_TOKEN', 'CARGO_REGISTRY_TOKEN']) delete env[key];
+  try {
+    const { candidate, archive } = await installArchive(candidatePath, temp, env);
+    const output = resolve(required('output')); await mkdir(dirname(output), { recursive: true });
+    const args = [join(root, 'scripts/wsp-benchmark.mjs'), '--wsp-module', join(temp, 'node_modules/ruv-fann-wsp/src/index.js'), '--output', output];
+    if (options.python) args.push('--python', resolve(options.python));
+    console.log(exec(process.execPath, args, root, env));
+    const report = await json(output); await validateBenchmark(report, candidate.sourceSha, archive);
+  } finally { await rm(temp, { recursive: true, force: true }); }
 }
 
 async function seal() {
@@ -249,6 +303,7 @@ async function seal() {
   const majors = new Set(receipts.map(item => Number(/^v(\d+)/.exec(item.runtime)?.[1])));
   if (receipts.length !== 2 || !majors.has(22) || !majors.has(24) || receipts.some(item => item.status !== 'passed' ||
       item.sourceSha !== sourceSha || item.tarballSha256 !== candidate.sha256)) throw new Error('Exact packed archive must pass both Node 22 and Node 24 consumers');
+  for (const receipt of receipts) validateWorkbenchProof(receipt);
   const unitDir = resolve(required('unit-receipts'));
   const unitFiles = (await readdir(unitDir)).filter(name => name.endsWith('.json'));
   const units = (await Promise.all(unitFiles.map(name => json(join(unitDir, name)))))
@@ -259,11 +314,19 @@ async function seal() {
   const browser = await json(resolve(required('browser-receipt')));
   if (browser.status !== 'passed' || browser.sourceSha !== sourceSha || browser.tarballSha256 !== candidate.sha256 ||
       browser.proof?.evaluationBackend !== 'wasm-simd') throw new Error('Exact packed archive browser receipt is missing or failed');
+  validateWorkbenchProof(browser.proof);
+  const benchmarkBytes = await readFile(resolve(required('benchmark-receipt')));
+  const securityBytes = await readFile(resolve(required('security-receipt')));
+  await validateBenchmark(JSON.parse(benchmarkBytes), sourceSha, archive);
+  validateSecurity(JSON.parse(securityBytes), sourceSha, candidate.sha256);
+  await writeFile(join(directory, 'benchmark.json'), benchmarkBytes, { flag: 'wx' });
+  await writeFile(join(directory, 'security.json'), securityBytes, { flag: 'wx' });
   await saveNew(join(directory, 'candidate-seal.json'), { schema: 'ruv-fann-wsp.npm-seal/1', status: 'passed', sourceSha, releaseTag,
     name: identity.name, version: identity.version, tarball: candidate.tarball, sha256: candidate.sha256, integrity: candidate.integrity,
     unitReceiptSha256: await Promise.all(unitFiles.filter(name => (name.startsWith('node-') && name.includes('unit'))).map(async name => sha256(await readFile(join(unitDir, name))))),
     consumerReceiptSha256: await Promise.all(allReceiptFiles.filter(name => name.includes('consumer')).map(async name => sha256(await readFile(join(consumerDir, name))))),
     browserReceiptSha256: sha256(await readFile(resolve(options['browser-receipt']))),
+    benchmarkReceiptSha256: sha256(benchmarkBytes), securityReceiptSha256: sha256(securityBytes),
     packageManifestSha256: sha256(await readFile(join(directory, 'package-manifest.json'))) });
 }
 
@@ -341,6 +404,7 @@ async function verifySeal(seal, directory) {
   if (units.length !== 2 || consumers.length !== 2 || !unitMajors.has(22) || !unitMajors.has(24) || !consumerMajors.has(22) || !consumerMajors.has(24) ||
       units.some(({ receipt }) => !(receipt.passed > 0) || receipt.failed !== 0 || receipt.skipped !== 0 || receipt.todo !== 0))
     throw new Error('WSP seal lacks nonzero Node 22/24 test and consumer results with zero skips/todos');
+  for (const { receipt } of consumers) validateWorkbenchProof(receipt);
   const requiredMutations = ['caller patch and dataset snapshot before await', 'returned proposal mutation isolated from workspace state',
     'stale revision rejected', 'forged proposal receipt rejected'];
   for (const { receipt } of [...units, ...consumers]) if (receipt.sourceSha !== seal.sourceSha || receipt.status !== 'passed')
@@ -352,6 +416,13 @@ async function verifySeal(seal, directory) {
   if (!browser || sha256(await readFile(join(directory, browser))) !== seal.browserReceiptSha256 || browserReceipt.status !== 'passed' ||
       browserReceipt.sourceSha !== seal.sourceSha || browserReceipt.tarballSha256 !== seal.sha256 || browserReceipt.proof?.evaluationBackend !== 'wasm-simd')
     throw new Error('WSP browser receipt hash or runtime proof does not match the seal');
+  validateWorkbenchProof(browserReceipt.proof);
+  const benchmarkBytes = await readFile(join(directory, 'benchmark.json'));
+  const securityBytes = await readFile(join(directory, 'security.json'));
+  if (sha256(benchmarkBytes) !== seal.benchmarkReceiptSha256 || sha256(securityBytes) !== seal.securityReceiptSha256)
+    throw new Error('Benchmark/security evidence bytes differ from the seal');
+  await validateBenchmark(JSON.parse(benchmarkBytes), seal.sourceSha, join(directory, seal.tarball));
+  validateSecurity(JSON.parse(securityBytes), seal.sourceSha, seal.sha256);
   return archive;
 }
 
@@ -407,9 +478,12 @@ async function publicConsumer() {
     await writeFile(join(temp, 'integration.mjs'), nodeIntegrationSource());
     const runtimeOutput = exec(process.execPath, ['integration.mjs'], temp, env);
     console.log(runtimeOutput);
+    const integrationProof = JSON.parse(runtimeOutput.split('\n').at(-1));
+    validateWorkbenchProof(integrationProof);
     await mkdir(dirname(resolve(required('output'))), { recursive: true });
     await saveNew(resolve(required('output')), { schema: 'ruv-fann-wsp.npm-public-consumer/1', sourceSha: seal.sourceSha,
       releaseTag: seal.releaseTag, package: seal.name, version: seal.version, tarballSha256: sha256(publicBytes), status: 'passed', runtime: process.version,
+      workbench: integrationProof.workbench, security: integrationProof.security,
       scenarios: ['fresh-cache public npm ci with SHA512 integrity', 'real WASM patch evaluation', 'workspace propose/promote/rollback'] });
   } finally { await rm(temp, { recursive: true, force: true }); }
 }
@@ -440,12 +514,13 @@ async function githubRelease() {
   await saveNew(receiptPath, { schema: 'ruv-fann-wsp.npm-release/1', sourceSha: seal.sourceSha, releaseTag: seal.releaseTag,
     package: seal.name, version: seal.version, tarballSha256: seal.sha256, integrity: seal.integrity,
     publicationReceiptSha256: sha256(await readFile(publicationPath)), publicConsumerReceiptSha256: sha256(await readFile(consumerPath)) });
-  const assets = [join(dirname(sealPath), seal.tarball), sealPath, publicationPath, consumerPath, receiptPath];
+  const assets = [join(dirname(sealPath), seal.tarball), sealPath, publicationPath, consumerPath, receiptPath,
+    join(dirname(sealPath), 'benchmark.json'), join(dirname(sealPath), 'security.json')];
   let existing;
   try { existing = JSON.parse(exec('gh', ['release', 'view', seal.releaseTag, '--json', 'assets'])); }
   catch {
     exec('gh', ['release', 'create', seal.releaseTag, ...assets, '--target', seal.sourceSha, '--title', seal.releaseTag,
-      '--notes', `ruv-fann-wsp@${seal.version} from source ${seal.sourceSha}; attached archive and exact-byte receipts.`]);
+      '--notes', `ruv-fann-wsp@${seal.version} from source ${seal.sourceSha}; bounded real-WASM traces, neuron ablation, numerical sensitivity and public-data evaluation. Attached archive, benchmark, dependency audit and exact-byte receipts. The benchmark retains all outcomes and makes no SOTA claim.`]);
     existing = null;
   }
   if (tagCommit(seal.releaseTag) !== seal.sourceSha) throw new Error('WSP GitHub release tag does not point to the exact sealed source SHA');
@@ -464,6 +539,8 @@ async function githubRelease() {
   } finally { await rm(download, { recursive: true, force: true }); }
 }
 
-const modes = { pack, unit, consumer, browser, seal, publish, 'public-consumer': publicConsumer, 'github-release': githubRelease };
+async function verify() { const path = resolve(required('seal')); await verifySeal(await json(path), dirname(path)); console.log('Exact WSP candidate evidence verified'); }
+
+const modes = { verify, pack, unit, consumer, browser, audit, benchmark, seal, publish, 'public-consumer': publicConsumer, 'github-release': githubRelease };
 if (!modes[mode]) throw new Error(`Unknown WSP release mode: ${mode}`);
 await modes[mode]();
