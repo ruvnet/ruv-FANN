@@ -7,7 +7,7 @@ const Database = apiRequire('better-sqlite3');
 const database = new Database(':memory:');
 try { assert.equal(database.prepare('SELECT 2 + 3 AS result').get().result, 5); }
 finally { database.close(); }
-assert.equal(RuvSwarm.getVersion(), '2.0.1');
+assert.equal(RuvSwarm.getVersion(), '2.0.2');
 const runtime = await RuvSwarm.initialize();
 const network = runtime.createNeuralNetwork([2, 1], 'Linear');
 try {

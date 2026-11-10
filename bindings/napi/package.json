@@ -12,6 +12,7 @@
   "files": ["index.cjs", "index.mjs", "index.d.ts", "ruv_fann.node", "build-info.json", "README.md", "LICENSE-MIT", "LICENSE-APACHE"],
   "engines": { "node": ">=22.13.0" },
   "license": "MIT OR Apache-2.0",
+  "homepage": "https://ruv.io",
   "repository": { "type": "git", "url": "https://github.com/ruvnet/ruv-FANN.git", "directory": "bindings/napi" },
   "scripts": {
     "build": "node scripts/build.mjs",

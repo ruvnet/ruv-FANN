@@ -25,7 +25,7 @@ function rejectsCode(promise, code) {
 
 test('CJS, ESM and package version expose only the documented source API', async () => {
   const esm = await import(pathToFileURL(path.resolve(__dirname, '../dist/index.mjs')).href);
-  assert.equal(api.getVersion(), '2.0.0');
+  assert.equal(api.getVersion(), '2.0.1');
   assert.equal(api.getVersion(), pkg.version);
   assert.equal(esm.transpileCuda, api.transpileCuda);
   assert.equal(esm.default.transpileFile, api.transpileFile);

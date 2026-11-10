@@ -12,6 +12,26 @@ import urllib.error
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
+# npm can take several minutes before a new tarball is served publicly.
+VISIBILITY_TIMEOUT = 600
+VISIBILITY_DELAYS = (5, 10, 20, 30, 60)
+
+
+def wait_public(url, timeout=VISIBILITY_TIMEOUT, sleep=time.sleep, clock=time.monotonic):
+    """Return the public tarball bytes, or None if it stays 404 past the deadline."""
+    deadline = clock() + timeout
+    attempt = 0
+    while True:
+        try:
+            return urllib.request.urlopen(url, timeout=60).read()
+        except urllib.error.HTTPError as error:
+            if error.code != 404:
+                raise
+        remaining = deadline - clock()
+        if remaining <= 0:
+            return None
+        sleep(min(VISIBILITY_DELAYS[min(attempt, len(VISIBILITY_DELAYS) - 1)], remaining))
+        attempt += 1
 
 
 def sha(path):
@@ -31,13 +51,17 @@ def head():
     return subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
 
 
-def consumer(directory, specs, compiler=None):
+def consumer(directory, specs, packages, compiler=None):
     directory.mkdir()
     (directory / 'package.json').write_text('{"private":true,"type":"module"}')
     # Consumer lifecycle code never inherits registry publishing credentials.
     env = {k: v for k, v in os.environ.items() if k not in ('NODE_AUTH_TOKEN', 'NPM_TOKEN', 'CARGO_REGISTRY_TOKEN', 'GH_TOKEN', 'GITHUB_TOKEN')}
     (directory / '.npmrc').write_text('registry=https://registry.npmjs.org\n')
     env['NPM_CONFIG_USERCONFIG'] = str(directory / '.npmrc')
+    cuda = [r['version'] for r in packages if r['name'] == 'cuda-wasm']
+    if len(cuda) != 1: raise ValueError('Expected one cuda-wasm candidate')
+    # The consumer checks the exact version that this release candidate carries.
+    env['CUDA_WASM_VERSION'] = cuda[0]
     run(['npm', 'install', '--registry=https://registry.npmjs.org', '--no-audit', '--no-fund', *specs], directory, env)
     script = r'''
 import assert from 'node:assert/strict';
@@ -58,7 +82,7 @@ for (const simd of [false,true]) {
 const cli=new URL('./node_modules/ruv-swarm/bin/ruv-swarm-secure.js',import.meta.url);
 const call=args=>JSON.parse(execFileSync(process.execPath,[cli.pathname,...args],{encoding:'utf8',env:{...process.env,RUV_SWARM_DB_PATH:new URL('./state.sqlite',import.meta.url).pathname}}));
 call(['init','mesh','2']);call(['spawn','coder','Registry consumer']);assert.equal(call(['status']).total_agents,1);
-const cjs=require('cuda-wasm');const esm=await import('cuda-wasm');assert.equal(cjs.getVersion(),'2.0.0');assert.equal(esm.getVersion(),'2.0.0');
+const cjs=require('cuda-wasm');const esm=await import('cuda-wasm');assert.equal(cjs.getVersion(),process.env.CUDA_WASM_VERSION);assert.equal(esm.getVersion(),process.env.CUDA_WASM_VERSION);
 if(process.env.CUDA2RUST_BINARY){
  const source='__global__ void copy(float* a, float* b) { int i = threadIdx.x; b[i] = a[i]; }';
  assert.match((await cjs.transpileCuda(source)).code,/fn copy/);
@@ -101,7 +125,7 @@ def main():
         training_archive = list((base / 'npm-training').glob('*.tgz'))
         if len(training_archive) != 1 or sha(training_archive[0]) != candidates[0]['sha256']:
             raise ValueError('Training-tested archive differs')
-        consumer(base / 'npm-local-consumer', [r['archive'] for r in candidates])
+        consumer(base / 'npm-local-consumer', [r['archive'] for r in candidates], candidates)
         save(seal, {'sourceSha': head(), 'packages': candidates})
         return
     record = json.loads(seal.read_text())
@@ -122,21 +146,17 @@ def main():
                 except urllib.error.HTTPError as error:
                     if error.code != 404: raise
                     run(['npm','publish',row['archive'],'--ignore-scripts','--access','public','--provenance','--registry=https://registry.npmjs.org'],ROOT)
-                    public = None
-                    for _ in range(24):
-                        try:
-                            public = urllib.request.urlopen(url, timeout=60).read(); break
-                        except urllib.error.HTTPError as retry:
-                            if retry.code != 404: raise
-                            time.sleep(5)
-                if public is None or hashlib.sha256(public).hexdigest() != row['sha256']:
+                    public = wait_public(url)
+                    if public is None:
+                        raise RuntimeError(f'Published, but {url} was not publicly downloadable within {VISIBILITY_TIMEOUT}s; rerun the failed job to verify the bytes')
+                if hashlib.sha256(public).hexdigest() != row['sha256']:
                     raise ValueError('Published npm bytes do not match candidate: '+row['name'])
                 published.append({**row, 'status':'published-and-byte-verified'})
                 stream.seek(0);json.dump({'sourceSha':head(),'packages':published},stream,indent=2);stream.truncate();stream.flush()
         return
     # Install the Cargo compiler and dense example from public crates.io too.
     run(['cargo','install','cuda-rust-wasm','--version','=0.2.0','--locked','--bin','cuda2rust','--root',str(base/'public-compiler')],base)
-    consumer(base/'npm-public-consumer',[r['name']+'@'+r['version'] for r in record['packages']],base/'public-compiler/bin/cuda2rust')
+    consumer(base/'npm-public-consumer',[r['name']+'@'+r['version'] for r in record['packages']],record['packages'],base/'public-compiler/bin/cuda2rust')
     rust = base/'rust-public-consumer';(rust/'src').mkdir(parents=True)
     (rust/'Cargo.toml').write_text('[package]\nname="release-consumer"\nversion="0.0.0"\nedition="2021"\n[dependencies]\nruv-fann={version="=0.2.2",default-features=false,features=["std","serde"]}\nruv-fann-candle="=0.1.0"\n')
     (rust/'src/main.rs').write_text((ROOT/'examples/dense_autograd.rs').read_text())
