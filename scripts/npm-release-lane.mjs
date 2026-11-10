@@ -62,7 +62,7 @@ async function pack() {
     rows.push({ name: spec.name, version: spec.version, tarball: basename(tarball), sha256: hash(await readFile(tarball)) });
   }
   if (rows[1].name !== 'ruv-fann' || rows[1].version !== '0.1.0') throw new Error('Core package identity mismatch');
-  const core = await archiveMetadata(rows[1].tarball);
+  const core = await archiveMetadata(join(tarballDir, rows[1].tarball));
   if (core.dependencies?.['ruv-fann-wasm'] !== rows[0].version) throw new Error('Core must depend on the exact WASM release');
   await mkdir(out, { recursive: true });
   await saveNew(join(out, 'package-manifest.json'), { schema: 'ruv-fann.npm-candidate/1', packages: rows });
