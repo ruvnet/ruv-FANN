@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.0.1] - 2026-11-10
+
+### Release pipeline
+
+- Refresh the WASM build receipt source digest after the ruv-swarm Rust crates dropped OpenSSL (RUSTSEC-2026-0474/0476/0477, #205/#208). The WASM binaries and their hashes are unchanged; no runtime or dependency change.
+
 ## [2.0.0] - 2026-11-07
 
 ### Breaking corrections
