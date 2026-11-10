@@ -2,7 +2,13 @@
 
 Train and run dense neural networks in **Node.js and the browser** with a typed JavaScript API backed by **Rust and WebAssembly**. Use reusable batch inference, SGD or AdamW training, and automatic SIMD detection with one runtime dependency: `ruv-fann-wasm`.
 
-![Animated ruv-fann diagram: input data flows through a dense neural network to predictions, with an SGD or AdamW training loop.](https://raw.githubusercontent.com/ruvnet/ruv-FANN/ruv-fann-npm-v0.1.1/packages/core/assets/neural-network.svg)
+<p align="center">
+  <a href="https://raw.githubusercontent.com/ruvnet/ruv-FANN/a482ab31934257e8b6b25c9b9bbaac9e341ae27c/packages/core/assets/neural-network.svg">
+    <img src="https://raw.githubusercontent.com/ruvnet/ruv-FANN/a482ab31934257e8b6b25c9b9bbaac9e341ae27c/packages/core/assets/neural-network.svg" alt="Animated ruv-fann diagram: input data flows through a dense neural network to predictions, with an SGD or AdamW training loop." width="960">
+  </a>
+</p>
+
+[View animated diagram](https://raw.githubusercontent.com/ruvnet/ruv-FANN/a482ab31934257e8b6b25c9b9bbaac9e341ae27c/packages/core/assets/neural-network.svg)
 
 [![npm version](https://img.shields.io/npm/v/ruv-fann?color=14b8a6)](https://www.npmjs.com/package/ruv-fann)
 [![License: MIT](https://img.shields.io/badge/license-MIT-6366f1)](https://github.com/ruvnet/ruv-FANN/blob/main/packages/core/LICENSE)

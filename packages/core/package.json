@@ -1,6 +1,6 @@
 {
   "name": "ruv-fann",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Neural networks for JavaScript and TypeScript: WebAssembly batch inference and SGD/AdamW training in Node.js and browsers.",
   "type": "module",
   "engines": {
@@ -19,7 +19,7 @@
     "assets"
   ],
   "dependencies": {
-    "ruv-fann-wasm": "0.1.1"
+    "ruv-fann-wasm": "0.1.2"
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",

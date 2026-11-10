@@ -2,7 +2,13 @@
 
 Run **ruv-FANN neural networks in Node.js and browsers** with bundled Rust-compiled WebAssembly, generated wasm-bindgen bindings and automatic **SIMD** detection. This low-level ESM package has **zero npm runtime dependencies** and includes TypeScript declarations.
 
-![Animated ruv-fann-wasm diagram: a JavaScript loader selects the core or SIMD WebAssembly backend, each with its own memory.](https://raw.githubusercontent.com/ruvnet/ruv-FANN/ruv-fann-npm-v0.1.1/packages/wasm/assets/wasm-runtime.svg)
+<p align="center">
+  <a href="https://raw.githubusercontent.com/ruvnet/ruv-FANN/a482ab31934257e8b6b25c9b9bbaac9e341ae27c/packages/wasm/assets/wasm-runtime.svg">
+    <img src="https://raw.githubusercontent.com/ruvnet/ruv-FANN/a482ab31934257e8b6b25c9b9bbaac9e341ae27c/packages/wasm/assets/wasm-runtime.svg" alt="Animated ruv-fann-wasm diagram: a JavaScript loader selects the core or SIMD WebAssembly backend, each with its own memory." width="960">
+  </a>
+</p>
+
+[View animated diagram](https://raw.githubusercontent.com/ruvnet/ruv-FANN/a482ab31934257e8b6b25c9b9bbaac9e341ae27c/packages/wasm/assets/wasm-runtime.svg)
 
 [![npm version](https://img.shields.io/npm/v/ruv-fann-wasm?color=14b8a6)](https://www.npmjs.com/package/ruv-fann-wasm)
 [![License: MIT](https://img.shields.io/badge/license-MIT-6366f1)](https://github.com/ruvnet/ruv-FANN/blob/main/packages/wasm/LICENSE)
