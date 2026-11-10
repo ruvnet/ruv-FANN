@@ -188,7 +188,7 @@ async function publish() {
       }
     }
     await waitForPublic(row, row.sha256);
-    published.push({ name: row.name, version: row.version, filename: row.filename, sha256: row.sha256, status: existing ? 'existing-version-byte-equal' : 'published-byte-verified' });
+    published.push({ name: row.name, version: row.version, filename: row.filename, sha256: row.sha256, status: 'public-bytes-verified' });
   }
   const receipt = { schema: 'ruv-fann.npm-publication/1', sourceSha: seal.sourceSha, releaseTag: seal.releaseTag, packages: published };
   await saveNew(resolve(need('output')), receipt);

@@ -24,7 +24,7 @@ concurrency:
 jobs:
   publish:
     name: Publish and verify sealed npm artifacts
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 50
     permissions:
       contents: write
