@@ -12,7 +12,7 @@ try {
   await cp(join(root, 'packages/core/package.json'), join(temporary, 'package.json'));
   await mkdir(join(temporary, 'node_modules'));
   await symlink(join(root, 'packages/wasm'), join(temporary, 'node_modules/ruv-fann-wasm'));
-  execFileSync(process.execPath, ['--test', 'test/runtime.test.mjs'], { cwd: temporary, stdio: 'pipe' });
+  execFileSync(process.execPath, ['--test', '--test-reporter=tap', 'test/runtime.test.mjs'], { cwd: temporary, stdio: 'pipe' });
   const mutations = [
     { name: 'remove native byte preflight', file: 'src/validation.js',
       from: 'if (!Number.isSafeInteger(estimated) || estimated > LIMITS.maxBytes)', to: 'if (false)',
@@ -30,7 +30,7 @@ try {
     const file = join(temporary, mutation.file), original = await readFile(file, 'utf8');
     if (!original.includes(mutation.from)) throw new Error(`Mutation source missing: ${mutation.name}`);
     await writeFile(file, original.replace(mutation.from, mutation.to));
-    const result = spawnSync(process.execPath, ['--test', `--test-name-pattern=${mutation.test}`, 'test/runtime.test.mjs'],
+    const result = spawnSync(process.execPath, ['--test', '--test-reporter=tap', `--test-name-pattern=${mutation.test}`, 'test/runtime.test.mjs'],
       { cwd: temporary, encoding: 'utf8' });
     await writeFile(file, original);
     if (result.error || result.status !== 1 || !result.stdout.includes('not ok')) {
