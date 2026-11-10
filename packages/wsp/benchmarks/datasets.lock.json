@@ -1,0 +1,44 @@
+{
+  "schema": "ruv-fann.benchmark-datasets/1",
+  "retrievedUtc": "2026-11-10",
+  "license": "CC-BY-4.0",
+  "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+  "licenseVerifiedFrom": "Each official UCI dataset page explicitly declares CC BY 4.0.",
+  "rawDataModified": false,
+  "datasets": [
+    {
+      "id": "iris",
+      "uciId": 53,
+      "sourceUrl": "https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data",
+      "pageUrl": "https://archive.ics.uci.edu/dataset/53/iris",
+      "doi": "10.24432/C56C76",
+      "citation": "Fisher, R. (1936). Iris [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C56C76.",
+      "rows": 150,
+      "features": 4,
+      "classCounts": [
+        50,
+        50,
+        50
+      ],
+      "sha256": "6f608b71a7317216319b4d27b4d9bc84e6abd734eda7872b71a458569e2656c0",
+      "bytes": 4551
+    },
+    {
+      "id": "wine",
+      "uciId": 109,
+      "sourceUrl": "https://archive.ics.uci.edu/ml/machine-learning-databases/wine/wine.data",
+      "pageUrl": "https://archive.ics.uci.edu/dataset/109/wine",
+      "doi": "10.24432/C5PC7J",
+      "citation": "Aeberhard, S. & Forina, M. (1992). Wine [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C5PC7J.",
+      "rows": 178,
+      "features": 13,
+      "classCounts": [
+        59,
+        71,
+        48
+      ],
+      "sha256": "6be6b1203f3d51df0b553a70e57b8a723cd405683958204f96d23d7cd6aea659",
+      "bytes": 10782
+    }
+  ]
+}

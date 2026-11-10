@@ -1,0 +1,7 @@
+# Benchmark-only lock: CPython 3.12, Linux x86_64 manylinux wheels.
+# No Python dependency is shipped by the production npm package.
+numpy==1.26.4 --hash=sha256:675d61ffbfa78604709862923189bad94014bef562cc35cf61d3a07bba02a7ed
+scipy==1.12.0 --hash=sha256:a7ebda398f86e56178c2fa94cad15bf457a218a54a35c2a7b4490b9f9cb2676c
+scikit-learn==1.7.2 --hash=sha256:e5bf3d930aee75a65478df91ac1225ff89cd28e9ac7bd1196853a9229b6adb0b
+joblib==1.4.2 --hash=sha256:06d478d5674cbc267e7496a410ee875abd68e4340feff4490bcb7afb88060ae6
+threadpoolctl==3.5.0 --hash=sha256:56c1e26c150397e58c4926da8eeee87533b1e32bef131bd4bf6a2f45f3185467
