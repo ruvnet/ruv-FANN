@@ -1,0 +1,43 @@
+{
+  "name": "ruv-fann-wasm",
+  "version": "0.1.0",
+  "description": "Verified ruv-FANN WebAssembly binaries and an isolated browser/Node loader",
+  "type": "module",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "files": [
+    "src",
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node ../../scripts/npm-modules-build.mjs",
+    "prepack": "npm run build",
+    "test": "node --test test/*.test.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ruvnet/ruv-FANN.git",
+    "directory": "packages/wasm"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "fann",
+    "wasm",
+    "neural-network",
+    "simd"
+  ],
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts"
+}

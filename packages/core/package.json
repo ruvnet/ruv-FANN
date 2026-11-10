@@ -1,0 +1,45 @@
+{
+  "name": "ruv-fann",
+  "version": "0.1.0",
+  "description": "Typed dense neural inference and SGD/AdamW training over real ruv-FANN WASM",
+  "type": "module",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "ruv-fann-wasm": "0.1.0"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "benchmark": "node test/benchmark.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ruvnet/ruv-FANN.git",
+    "directory": "packages/core"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "fann",
+    "wasm",
+    "neural-network",
+    "autograd",
+    "adamw"
+  ],
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts"
+}
