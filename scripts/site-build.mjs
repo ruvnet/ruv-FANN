@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const output = path.resolve(repo, process.argv[2] ?? '_site');
 const source = path.join(repo, 'site');
-if (output === repo || output === source || !output.startsWith(repo + path.sep)) throw Error('Build output must be a separate directory inside the repository');
+if (path.dirname(output)!==repo||!/^_site(?:-[a-z0-9-]+)?$/.test(path.basename(output))) throw Error('Build output must use a reserved _site or _site-name directory in the repository root');
 const packages = [
   ['ruv-fann-wsp','0.2.0','sha512-vCHGNiMUuxvCycd58gIOdlXTy1e2Tw6J1MD3FV9ri2ljkS534sk90c3h2mS4bBJozpebQu/fB6iDwKvdp09xIQ=='],
   ['ruv-fann','0.1.2','sha512-gdHjT8EUz4tSPpBYkCjbpISwW7bcB5XvtDPeRqZps8M9DcDF+I3deiIBt9aw6hxqKphrnbzQSltiFYLUYc0vjQ=='],
