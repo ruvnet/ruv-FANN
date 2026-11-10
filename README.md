@@ -67,6 +67,31 @@ The calculation is `0.5 × 1.0 − 0.25 × 2.0 + 0.1 = 0.1`. A real task needs s
 
 For repeated inference, the checkout adds `Network::run_into(inputs, outputs)`. Pass a mutable output slice whose length equals `num_outputs()`. It reuses that buffer and the network's stored neuron values. `run()` remains the convenient API that returns a vector. Check input and output lengths through the returned `Result`.
 
+### ESP32 C5 inference
+
+The [ESP32 C5 example](examples/esp32-c5) compiles a RuFANN dense JSON checkpoint into a native fixed point evidence scorer. The device accepts local and adjacent evidence from `0` to `1024`, where `1024` represents one. Scoring uses integer arithmetic and requires no heap allocation.
+
+The supported checkpoint has two ReLU units with weights `[1, -1, 1, -1]`, followed by one linear unit with weights `[1, -1]` and zero bias. The hidden biases set the two hinges. For example, `[-0.125, -0.875]` subtracts a margin of `0.125` and caps the result at `0.75`. Both hinge values must be exact multiples of `1/1024` in `[0, 1]`, with the second greater than the first. Replace `examples/esp32-c5/model.json` and rebuild to apply a supported weight edit.
+
+With Rust 1.90 or newer and [espflash](https://docs.espressif.com/projects/rust/book/getting-started/tooling/espflash.html) installed, run from the checkout:
+
+```sh
+cd examples/esp32-c5
+cargo test --locked
+rustup target add riscv32imac-unknown-none-elf
+cargo build --locked --release --features firmware --target riscv32imac-unknown-none-elf
+espflash flash --monitor --chip esp32c5 target/riscv32imac-unknown-none-elf/release/ruvfann-c5
+```
+
+The host test compares 1,089 scores with the Rust core. On a C5, the demo prints `ruvfann-c5 PASS cases=1089` after its boot self test. The printed duration includes the test loop and its reference calculation. For a CSI integration, pass window features to `score` from a worker and measure latency and packet loss with WiFi active.
+
+To run the same boot test in [Espressif's emulator](https://github.com/espressif/esp-emulator), package a merged image with espflash, then select the USB JTAG console:
+
+```sh
+espflash save-image --chip esp32c5 --merge --skip-padding target/riscv32imac-unknown-none-elf/release/ruvfann-c5 /tmp/ruvfann-c5-flash.bin
+esp-emu --chip esp32c5 --firmware /tmp/ruvfann-c5-flash.bin --console usb-jtag --timeout 10s --exit-on 'ruvfann-c5 PASS'
+```
+
 ## Train with gradients, then freeze the result
 
 ![Training rows produce predictions and MSE; a reverse pass computes gradients, SGD or AdamW updates weights, and an independent frozen snapshot serves Rust, WASM and native Node.](docs/assets/dense-training.svg)
