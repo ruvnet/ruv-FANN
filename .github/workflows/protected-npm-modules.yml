@@ -1,0 +1,110 @@
+name: protected-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact reviewed commit on main to publish
+        required: true
+        type: string
+      release_tag:
+        description: Immutable GitHub release tag for these npm versions
+        required: false
+        default: ruv-fann-npm-v0.1.0
+        type: string
+
+permissions:
+  contents: read
+  issues: read
+
+concurrency:
+  group: protected-npm-modules
+  cancel-in-progress: false
+
+jobs:
+  identity:
+    name: Verify exact reviewed main SHA and open blockers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Require exact current main and zero release blockers
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          ACTUAL_SHA: ${{ github.sha }}
+          ACTUAL_REF: ${{ github.ref }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$ACTUAL_REF" = refs/heads/main
+          test "$ACTUAL_SHA" = "$EXPECTED_SHA"
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(gh api repos/ruvnet/ruv-FANN/commits/main --jq .sha)" = "$EXPECTED_SHA"
+          test "$(gh api 'repos/ruvnet/ruv-FANN/issues?labels=release-blocker&state=open&per_page=1' --jq length)" = 0
+
+  candidate:
+    name: Build, test and seal package tarballs
+    needs: identity
+    uses: ./.github/workflows/npm-modules.yml
+    with:
+      release_tag: ${{ inputs.release_tag }}
+
+  publish:
+    name: Publish and verify sealed npm artifacts
+    needs: [identity, candidate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    permissions:
+      contents: write
+      issues: read
+      actions: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: npm-module-candidate
+          path: ${{ runner.temp }}/npm-release-candidate
+      - name: Recheck main and blockers immediately before publish
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$(gh api repos/ruvnet/ruv-FANN/commits/main --jq .sha)" = "$EXPECTED_SHA"
+          test "$(gh api 'repos/ruvnet/ruv-FANN/issues?labels=release-blocker&state=open&per_page=1' --jq length)" = 0
+      - name: Publish only the sealed package archives with provenance
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/npm-release-lane.mjs publish --seal "$RUNNER_TEMP/npm-release-candidate/candidate-seal.json" --output "$RUNNER_TEMP/npm-publication.json"
+      - name: Install published packages from npm and exercise real WASM inference and training
+        run: |
+          mkdir -p "$RUNNER_TEMP/npm-receipts"
+          node scripts/npm-release-lane.mjs verify-public --seal "$RUNNER_TEMP/npm-release-candidate/candidate-seal.json" \
+            --publication "$RUNNER_TEMP/npm-publication.json" --output "$RUNNER_TEMP/npm-receipts/public-consumer.json"
+      - name: Create or verify the exact GitHub release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/npm-release-lane.mjs github-release --seal "$RUNNER_TEMP/npm-release-candidate/candidate-seal.json" \
+            --publication "$RUNNER_TEMP/npm-publication.json" --public-consumer "$RUNNER_TEMP/npm-receipts/public-consumer.json" \
+            --release-receipt "$RUNNER_TEMP/npm-receipts/release-receipt.json"
+      - name: Retain package seal, publication and post-publication receipts
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: npm-module-publication-evidence
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/npm-release-candidate/candidate-seal.json
+            ${{ runner.temp }}/npm-publication.json
+            ${{ runner.temp }}/npm-receipts/public-consumer.json
+            ${{ runner.temp }}/npm-receipts/release-receipt.json
