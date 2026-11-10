@@ -25,7 +25,9 @@ if (mode==='seal') {
   const root=path.resolve(repo,first), proof=path.resolve(repo,evidence), candidate=path.resolve(repo,out);
   const sourceSha=execFileSync('git',['rev-parse','HEAD'],{cwd:repo,encoding:'utf8'}).trim();
   if(execFileSync('git',['status','--porcelain','--untracked-files=normal'],{cwd:repo,encoding:'utf8'}).trim())throw Error('Clean committed source required for sealing');
-  const verified=await verifySite(root,sourceSha); const receipt=JSON.parse(await fs.readFile(path.join(proof,'browser-receipt.json'),'utf8'));
+  const verified=await verifySite(root,sourceSha);
+  if(verified.manifest.sourceTreeClean!==true)throw Error('Site was built from uncommitted or untracked source');
+  const receipt=JSON.parse(await fs.readFile(path.join(proof,'browser-receipt.json'),'utf8'));
   if(!validBrowser(receipt,sourceSha,verified.manifestSha256))throw Error('Nonzero complete source-bound browser qualification required');
   await fs.mkdir(candidate,{recursive:true});const archive=path.join(candidate,'site.tar.gz');
   execFileSync('tar',['--sort=name','--mtime=@0','--owner=0','--group=0','--numeric-owner','-czf',archive,'-C',root,'.']);
@@ -39,7 +41,7 @@ if (mode==='seal') {
   const names=execFileSync('tar',['-tzf',archive],{encoding:'utf8'}).trim().split('\n');const types=execFileSync('tar',['-tvzf',archive],{encoding:'utf8'}).trim().split('\n');
   if(names.some(n=>!n.startsWith('./')||n.split('/').includes('..')||n.includes('\\'))||types.some(n=>!['-','d'].includes(n[0])))throw Error('Unsafe sealed archive');
   const temp=await fs.mkdtemp(path.join(os.tmpdir(),'fann-pages-verify-'));
-  try {execFileSync('tar',['-xzf',archive,'-C',temp,'--no-same-owner','--no-same-permissions']);const v=await verifySite(temp,seal.sourceSha);if(v.manifestSha256!==seal.manifestSha256)throw Error('Manifest seal mismatch');}finally{await fs.rm(temp,{recursive:true,force:true});}
+  try {execFileSync('tar',['-xzf',archive,'-C',temp,'--no-same-owner','--no-same-permissions']);const v=await verifySite(temp,seal.sourceSha);if(v.manifestSha256!==seal.manifestSha256||v.manifest.sourceTreeClean!==true)throw Error('Manifest seal mismatch or uncommitted source');}finally{await fs.rm(temp,{recursive:true,force:true});}
   const bytes=await fs.readFile(path.join(candidate,'evidence/browser-receipt.json'));const r=JSON.parse(bytes);
   if(hash(bytes)!==seal.browserReceiptSha256||!validBrowser(r,seal.sourceSha,seal.manifestSha256))throw Error('Browser seal mismatch');
   console.log(JSON.stringify({status:'verified',sourceSha:seal.sourceSha,archiveSha256:seal.archiveSha256}));

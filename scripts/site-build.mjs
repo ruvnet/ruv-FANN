@@ -29,8 +29,11 @@ async function safeFiles(dir, prefix='') {
 }
 await fs.rm(output,{recursive:true,force:true}); await fs.mkdir(output,{recursive:true});
 const allowed=/\.(?:html|css|js|svg|png|webp|woff2|ico|txt)$/;
+const tracked=new Set(execFileSync('git',['ls-files','-z','--','site'],{cwd:repo,encoding:'utf8'}).split('\0').filter(Boolean));
+let sourceTreeClean=!execFileSync('git',['status','--porcelain','--untracked-files=normal'],{cwd:repo,encoding:'utf8'}).trim();
 for (const file of await safeFiles(source)) {
   if (!allowed.test(file) || file === 'README.md') continue;
+  if (!tracked.has('site/'+file)) sourceTreeClean=false;
   await fs.mkdir(path.dirname(path.join(output,file)),{recursive:true});
   await fs.copyFile(path.join(source,file),path.join(output,file));
 }
@@ -69,6 +72,6 @@ for(const tag of html.matchAll(/<(?:script|link|img)\b[^>]*>/gi)) {
 if (/\son\w+\s*=/i.test(html)) throw Error('Inline event handlers forbidden');
 await fs.writeFile(index,html); await fs.writeFile(path.join(output,'.nojekyll'),'');
 const files={}; for(const file of await safeFiles(output)) files[file]=sha(await fs.readFile(path.join(output,file)));
-const manifest={schema:'ruv-fann.pages-manifest/1',sourceSha,packages:packages.map(([name,version,integrity])=>({name,version,integrity})),files};
+const manifest={schema:'ruv-fann.pages-manifest/1',sourceSha,sourceTreeClean,packages:packages.map(([name,version,integrity])=>({name,version,integrity})),files};
 await fs.writeFile(path.join(output,'site-manifest.json'),JSON.stringify(manifest,null,2)+'\n');
 console.log(JSON.stringify({output,sourceSha,files:Object.keys(files).length}));
