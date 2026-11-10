@@ -10,7 +10,7 @@ on:
       release_tag:
         description: Immutable GitHub release tag for these npm versions
         required: false
-        default: ruv-fann-npm-v0.1.0
+        default: ruv-fann-npm-v0.1.1
         type: string
 
 permissions:

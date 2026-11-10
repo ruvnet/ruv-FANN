@@ -45,7 +45,7 @@ const archiveMetadata = async tarball => {
   const stdout = run('tar', ['-xOzf', tarball, 'package/package.json']);
   return JSON.parse(stdout);
 };
-const packageConfig = JSON.parse('{"packages":[{"name":"ruv-fann-wasm","version":"0.1.0","directory":"packages/wasm"},{"name":"ruv-fann","version":"0.1.0","directory":"packages/core"}]}');
+const packageConfig = JSON.parse('{"packages":[{"name":"ruv-fann-wasm","version":"0.1.1","directory":"packages/wasm"},{"name":"ruv-fann","version":"0.1.1","directory":"packages/core"}]}');
 
 async function pack() {
   const out = resolve(need('output'));
@@ -61,7 +61,7 @@ async function pack() {
       throw new Error(`Packed manifest identity mismatch for ${spec.name}`);
     rows.push({ name: spec.name, version: spec.version, tarball: basename(tarball), sha256: hash(await readFile(tarball)) });
   }
-  if (rows[1].name !== 'ruv-fann' || rows[1].version !== '0.1.0') throw new Error('Core package identity mismatch');
+  if (rows[1].name !== 'ruv-fann' || rows[1].version !== '0.1.1') throw new Error('Core package identity mismatch');
   const core = await archiveMetadata(join(tarballDir, rows[1].tarball));
   if (core.dependencies?.['ruv-fann-wasm'] !== rows[0].version) throw new Error('Core must depend on the exact WASM release');
   await mkdir(out, { recursive: true });
@@ -213,7 +213,11 @@ async function publicVerify() {
       if (!bytes || hash(bytes) !== row.sha256) throw new Error(`Public tarball changed before install: ${row.name}`);
       lock.packages[`node_modules/${row.name}`] = { version: row.version, resolved: registryUrl(row),
         integrity: `sha512-${createHash('sha512').update(bytes).digest('base64')}` };
-      if (row.name === 'ruv-fann') lock.packages[`node_modules/${row.name}`].dependencies = { 'ruv-fann-wasm': '0.1.0' };
+      if (row.name === 'ruv-fann') {
+        const wasm = seal.packages.find(item => item.name === 'ruv-fann-wasm');
+        if (!wasm) throw new Error('Public install is missing the exact ruv-fann-wasm release');
+        lock.packages[`node_modules/${row.name}`].dependencies = { 'ruv-fann-wasm': wasm.version };
+      }
     }
     await writeFile(join(temp, 'package-lock.json'), JSON.stringify(lock));
     run('npm', ['ci', '--ignore-scripts', '--no-audit', '--no-fund', '--registry=https://registry.npmjs.org'], temp, env);

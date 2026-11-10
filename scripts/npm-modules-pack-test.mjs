@@ -30,7 +30,7 @@ try {
   const wasmManifest = JSON.parse(await readFile(join(consumer, 'node_modules/ruv-fann-wasm/package.json')));
   if (Object.keys(wasmManifest.dependencies ?? {}).length) throw new Error('WASM package has dependencies');
   const coreManifest = JSON.parse(await readFile(join(consumer, 'node_modules/ruv-fann/package.json')));
-  if (JSON.stringify(coreManifest.dependencies) !== JSON.stringify({ 'ruv-fann-wasm': '0.1.0' })) throw new Error('SDK dependency drift');
+  if (JSON.stringify(coreManifest.dependencies) !== JSON.stringify({ 'ruv-fann-wasm': '0.1.1' })) throw new Error('SDK dependency drift');
   await writeFile(join(consumer, 'test.mjs'), `
 import assert from 'node:assert/strict';
 import { loadRuntime } from 'ruv-fann';

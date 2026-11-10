@@ -1,7 +1,7 @@
 {
   "name": "ruv-fann",
-  "version": "0.1.0",
-  "description": "Typed dense neural inference and SGD/AdamW training over real ruv-FANN WASM",
+  "version": "0.1.1",
+  "description": "Neural networks for JavaScript and TypeScript: WebAssembly batch inference and SGD/AdamW training in Node.js and browsers.",
   "type": "module",
   "engines": {
     "node": ">=20.9.0"
@@ -15,10 +15,11 @@
   "files": [
     "src",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "assets"
   ],
   "dependencies": {
-    "ruv-fann-wasm": "0.1.0"
+    "ruv-fann-wasm": "0.1.1"
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
@@ -34,12 +35,28 @@
     "access": "public"
   },
   "keywords": [
+    "ruv-fann",
     "fann",
-    "wasm",
     "neural-network",
-    "autograd",
-    "adamw"
+    "neural-networks",
+    "machine-learning",
+    "webassembly",
+    "wasm",
+    "simd",
+    "javascript",
+    "typescript",
+    "nodejs",
+    "browser",
+    "inference",
+    "training",
+    "sgd",
+    "adamw",
+    "agentdb"
   ],
   "main": "./src/index.js",
-  "types": "./src/index.d.ts"
+  "types": "./src/index.d.ts",
+  "homepage": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/core#readme",
+  "bugs": {
+    "url": "https://github.com/ruvnet/ruv-FANN/issues"
+  }
 }

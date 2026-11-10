@@ -1,7 +1,7 @@
 {
   "name": "ruv-fann-wasm",
-  "version": "0.1.0",
-  "description": "Verified ruv-FANN WebAssembly binaries and an isolated browser/Node loader",
+  "version": "0.1.1",
+  "description": "WebAssembly neural network runtime for Node.js and browsers: ruv-FANN binaries, SIMD detection and typed ESM bindings.",
   "type": "module",
   "engines": {
     "node": ">=20.9.0"
@@ -16,7 +16,8 @@
     "src",
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "assets"
   ],
   "scripts": {
     "build": "node ../../scripts/npm-modules-build.mjs",
@@ -33,11 +34,27 @@
     "access": "public"
   },
   "keywords": [
+    "ruv-fann",
     "fann",
-    "wasm",
     "neural-network",
-    "simd"
+    "neural-networks",
+    "machine-learning",
+    "webassembly",
+    "wasm",
+    "simd",
+    "javascript",
+    "typescript",
+    "nodejs",
+    "browser",
+    "inference",
+    "wasm-bindgen",
+    "rust",
+    "runtime"
   ],
   "main": "./src/index.js",
-  "types": "./src/index.d.ts"
+  "types": "./src/index.d.ts",
+  "homepage": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/wasm#readme",
+  "bugs": {
+    "url": "https://github.com/ruvnet/ruv-FANN/issues"
+  }
 }
