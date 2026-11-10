@@ -56,7 +56,7 @@ export function modelDocument(model) {
   if (model.schema !== 'ruv-fann.dense-layers/1') throw new TypeError('unsupported model schema');
   if (!Array.isArray(model.layers)) throw new TypeError('layers must be an array');
   integer(model.layers.length, 1, LIMITS.maxLayers, 'layers');
-  let previous, parameterCount = 0;
+  let previous, parameterCount = 0, width = 0, outputUnits = 0;
   const layers = [];
   for (const layer of model.layers) {
     options(layer, ['inputs', 'outputs', 'weights', 'bias', 'activation', 'steepness'], 'layer');
@@ -64,6 +64,8 @@ export function modelDocument(model) {
     const output = integer(layer.outputs, 1, LIMITS.maxDimension, 'layer outputs');
     if (previous !== undefined && input !== previous) throw new RangeError('layers must have adjacent dimensions');
     previous = output;
+    width = Math.max(width, input, output);
+    outputUnits += output;
     const count = input * output;
     parameterCount += count + (layer.bias == null ? 0 : output);
     integer(parameterCount, 1, LIMITS.maxParameters, 'parameter count');
@@ -75,5 +77,34 @@ export function modelDocument(model) {
   }
   const json = JSON.stringify({ schema: 'ruv-fann.dense-layers/1', layers });
   if (new TextEncoder().encode(json).length > LIMITS.maxModelBytes) throw new RangeError('model exceeds JSON byte budget');
-  return { json, parameterCount, inputSize: layers[0].inputs, outputSize: layers.at(-1).outputs };
+  return { json, parameterCount, width, outputUnits, layerCount: layers.length, inputSize: layers[0].inputs, outputSize: layers.at(-1).outputs };
+}
+
+/** Conservative upper bounds for the fixed wasm32/f64 asset's requested native
+ * storage. Matches src/prepared_{dense,batch}.rs and src/autograd/{model,
+ * workspace,optim}.rs. Metadata allowances exceed their actual descriptor sizes;
+ * native code independently recomputes its exact cap before buffer allocation.
+ */
+export function storageBudget(document, rows, training) {
+  const { parameterCount, width, outputUnits, layerCount, inputSize, outputSize } = document;
+  const metadata = 4096 + 256 * layerCount;
+  let estimated;
+  if (training) {
+    // Model parameters + gradients/proposed + four AdamW moment/proposal arrays.
+    // Tape stores the input and every layer output. Delta has two max-width
+    // buffers, plus input gradients and both JS-boundary staging arrays.
+    const tapeUnits = inputSize + outputUnits;
+    estimated = metadata + 8 * (7 * parameterCount +
+      rows * (tapeUnits + 2 * width + 2 * inputSize + outputSize));
+  } else {
+    // Dense packed row descriptors, shared parameters, two feature-major batch
+    // buffers and row-major boundary staging. Include the temporary source
+    // prepared object's single-row buffers alive while create_batch executes.
+    const packedWidth = width + 1; // conservative allowance for dense bias slots
+    estimated = metadata + 64 * outputUnits + 8 * (parameterCount +
+      2 * packedWidth * (rows + 1) + (inputSize + outputSize) * (rows + 1));
+  }
+  if (!Number.isSafeInteger(estimated) || estimated > LIMITS.maxBytes)
+    throw new RangeError(`${training ? 'training' : 'prepared batch'} exceeds native byte budget`);
+  return estimated;
 }

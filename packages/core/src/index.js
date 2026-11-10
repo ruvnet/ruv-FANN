@@ -1,5 +1,5 @@
 import { loadWasm } from 'ruv-fann-wasm';
-import { LIMITS, integer, options, finite, array, inputs, modelDocument } from './validation.js';
+import { LIMITS, integer, options, finite, array, inputs, modelDocument, storageBudget } from './validation.js';
 export { LIMITS } from './validation.js';
 const runtimes = new WeakMap();
 
@@ -17,7 +17,9 @@ export async function loadRuntime(configuration = {}) {
 function prepare(raw, model, configuration) {
   options(configuration, ['maxRows'], 'prepare options');
   const maxRows = integer(configuration.maxRows === undefined ? 128 : configuration.maxRows, 1, LIMITS.maxRows, 'maxRows');
-  const { json } = modelDocument(model);
+  const document = modelDocument(model);
+  storageBudget(document, maxRows, false);
+  const { json } = document;
   const prepared = raw.bindings.WasmPreparedNetwork.from_dense_layers_json(json);
   let batch;
   try { batch = prepared.create_batch(maxRows); } finally { prepared.free(); }
@@ -54,6 +56,7 @@ function train(raw, model, configuration) {
   const optimizer = configuration.optimizer === undefined ? 'sgd' : configuration.optimizer;
   if (optimizer !== 'sgd' && optimizer !== 'adamw') throw new TypeError('optimizer must be sgd or adamw');
   const document = modelDocument(model);
+  storageBudget(document, rows, true);
   // Bound total synchronous compute before native training workspace allocation.
   const backwardWork = rows * (32 * document.parameterCount + 8 * (document.inputSize + document.outputSize) + 1);
   const updateWork = 64 * document.parameterCount;

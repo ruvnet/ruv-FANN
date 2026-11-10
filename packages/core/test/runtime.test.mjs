@@ -102,3 +102,36 @@ test('public model/options validation enforces JSON, shape, finite values, epoch
   assert.throws(() => runtime.train(wide, { inputs: new Float64Array(10000), targets: new Float64Array(100),
     rows: 100, epochs: 1000, learningRate: 0.1 }), /total work budget/);
 });
+
+
+test('storage preflight rejects large boundaries and hidden layers before any native constructor', async () => {
+  const runtime = await loadRuntime({ simd: false });
+  const { bindings, memory } = await loadWasm({ simd: false });
+  const preparedConstructor = bindings.WasmPreparedNetwork.from_dense_layers_json;
+  const trainingConstructor = bindings.WasmTrainableNetwork.from_dense_layers_json;
+  let nativeCalls = 0;
+  const forbidden = () => { nativeCalls++; throw new Error('native constructor must not be called'); };
+  bindings.WasmPreparedNetwork.from_dense_layers_json = forbidden;
+  bindings.WasmTrainableNetwork.from_dense_layers_json = forbidden;
+  const beforeBytes = memory.buffer.byteLength;
+  try {
+    const layer = (inputs, outputs) => ({ inputs, outputs, weights: Array(inputs * outputs).fill(0),
+      bias: null, activation: 'Linear', steepness: 1 });
+    const shapes = [
+      [layer(1, 65536)], [layer(65536, 1)],
+      [layer(1, 65536), layer(65536, 1)] // small boundary widths must not hide a wide tape
+    ];
+    for (const layers of shapes) {
+      const wide = { schema: 'ruv-fann.dense-layers/1', layers };
+      assert.throws(() => runtime.prepare(wide, { maxRows: 4096 }), /native byte budget/);
+      // No caller arrays sized to enormous row counts are allocated for rejection.
+      assert.throws(() => runtime.train(wide, { inputs: new Float64Array(0), targets: new Float64Array(0),
+        rows: 4096, epochs: 1, learningRate: 0.1 }), /native byte budget/);
+    }
+    assert.equal(nativeCalls, 0);
+    assert.equal(memory.buffer.byteLength, beforeBytes);
+  } finally {
+    bindings.WasmPreparedNetwork.from_dense_layers_json = preparedConstructor;
+    bindings.WasmTrainableNetwork.from_dense_layers_json = trainingConstructor;
+  }
+});

@@ -61,6 +61,11 @@ an update fails. Large runs should be scheduled in a worker to keep the UI free.
 Bounds are exported as `LIMITS`: up to 4096 rows (prepared default 128), 64 layers,
 65536 elements per dimension, 1 million parameters, 4 MiB UTF-8 model JSON,
 64 MiB native storage per prepared batch/training object, and 1–1000 epochs.
+A conservative JS preflight checks full layer widths, packed row descriptors,
+inference workspace/staging, or training tape/adjoints/gradients and AdamW state
+before entering either native constructor. It includes the temporary ordinary
+prepared buffers alive during batch creation. The native layer independently
+checks its exact storage budget.
 Total synchronous training is also capped at 100 million conservative work units:
 `(epochs + 1) * rows * (32 * parameters + 8 * (inputs + outputs) + 1)
 + epochs * 64 * parameters`. This uses the existing native training/update cost

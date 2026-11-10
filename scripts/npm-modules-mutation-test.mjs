@@ -14,6 +14,9 @@ try {
   await symlink(join(root, 'packages/wasm'), join(temporary, 'node_modules/ruv-fann-wasm'));
   execFileSync(process.execPath, ['--test', 'test/runtime.test.mjs'], { cwd: temporary, stdio: 'pipe' });
   const mutations = [
+    { name: 'remove native byte preflight', file: 'src/validation.js',
+      from: 'if (!Number.isSafeInteger(estimated) || estimated > LIMITS.maxBytes)', to: 'if (false)',
+      test: 'storage preflight rejects' },
     { name: 'allow epoch 1001', file: 'src/validation.js', from: 'maxEpochs: 1000', to: 'maxEpochs: 1001',
       test: 'public model/options validation' },
     { name: 'remove total training compute cap', file: 'src/index.js',
