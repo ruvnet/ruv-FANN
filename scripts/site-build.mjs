@@ -62,7 +62,11 @@ const csp=`default-src 'none'; script-src 'self' 'wasm-unsafe-eval' 'sha256-${sh
 const index=path.join(output,'index.html'); let html=await fs.readFile(index,'utf8');
 if (!html.includes('<!-- SITE_CSP -->')||!html.includes('<!-- SITE_IMPORTMAP -->')) throw Error('Missing site security placeholders');
 html=html.replace('<!-- SITE_CSP -->',`<meta http-equiv="Content-Security-Policy" content="${csp}">`).replace('<!-- SITE_IMPORTMAP -->',`<script type="importmap">${importmap}</script>`).replaceAll('__SOURCE_SHA__',sourceSha);
-if (/<(?:script|link|img)[^>]+(?:src|href)=["']https?:/i.test(html)||/\son\w+\s*=/i.test(html)) throw Error('External runtime assets or inline event handlers forbidden');
+for(const tag of html.matchAll(/<(?:script|link|img)\b[^>]*>/gi)) {
+  if (/^<link\b/i.test(tag[0])&&/\brel=["']canonical["']/i.test(tag[0])) continue;
+  if(/\b(?:src|href)=["'](?:https?:)?\/\//i.test(tag[0])) throw Error('External runtime assets forbidden');
+}
+if (/\son\w+\s*=/i.test(html)) throw Error('Inline event handlers forbidden');
 await fs.writeFile(index,html); await fs.writeFile(path.join(output,'.nojekyll'),'');
 const files={}; for(const file of await safeFiles(output)) files[file]=sha(await fs.readFile(path.join(output,file)));
 const manifest={schema:'ruv-fann.pages-manifest/1',sourceSha,packages:packages.map(([name,version,integrity])=>({name,version,integrity})),files};
