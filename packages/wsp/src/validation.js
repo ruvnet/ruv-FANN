@@ -35,7 +35,13 @@ export function arrayLength(value, maximum, name) {
   if (!Array.isArray(value) || ![Array.prototype, null].includes(Object.getPrototypeOf(value)))
     throw new TypeError(`${name} must be an array`);
   const descriptor = own(value, 'length');
-  return integer(descriptor?.value, 0, maximum, `${name} length`);
+  const length = integer(descriptor?.value, 0, maximum, `${name} length`);
+  for (const key of Reflect.ownKeys(value)) {
+    if (key === 'length') continue;
+    if (typeof key !== 'string' || !/^(0|[1-9][0-9]*)$/.test(key) || Number(key) >= length)
+      throw new TypeError(`${name} contains unknown array fields`);
+  }
+  return length;
 }
 export function element(value, index, name) {
   const descriptor = own(value, String(index));

@@ -3,6 +3,7 @@ import { WSP_LIMITS, record, integer, snapshotModel, snapshotLimits, snapshotDat
   snapshotPolicy, snapshotOptions, patchCandidate, cloneModel, owned } from './validation.js';
 import { hashJSON, cryptoProvider, randomId } from './crypto.js';
 export { WSP_LIMITS } from './validation.js';
+export { inspectWeightModel, traceWeightModel, analyzeWeightSensitivity, createNeuronAblationPatch } from './workbench.js';
 
 export async function fingerprintModel(model) {
   const source = snapshotModel(model);
