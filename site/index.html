@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en" data-motion="running">
+<head>
+  <meta charset="utf-8">
+  <!-- SITE_CSP -->
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f6f4ee">
+  <title>ruv-fann — Small networks. Visible decisions.</title>
+  <meta name="description" content="An illustrated, interactive guide to ruv-fann and weight-space programming. Follow a prediction, edit a real neural network in your browser, and explore the evidence behind ruv-fann-wsp.">
+  <meta name="source-sha" content="__SOURCE_SHA__">
+  <link rel="canonical" href="https://ruvnet.github.io/ruv-FANN/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="ruv-fann — Small networks. Visible decisions.">
+  <meta property="og:description" content="Look inside a neural network. Turn a weight. Test the change. An interactive field guide to local neural networks and weight-space programming.">
+  <meta property="og:url" content="https://ruvnet.github.io/ruv-FANN/">
+  <meta property="og:image" content="https://ruvnet.github.io/ruv-FANN/assets/social-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="ruv-fann: Small networks. Visible decisions. An illustrated network with an editable connection.">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
+  <link rel="stylesheet" href="./styles.css">
+  <!-- SITE_IMPORTMAP -->
+  <script type="module" src="./story.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to the story</a>
+  <header class="site-header">
+    <a class="brand" href="#" aria-label="ruv-fann home"><svg viewBox="0 0 34 34" aria-hidden="true"><path d="M7 10 25 17 7 25M7 10v15"/><circle cx="7" cy="10" r="4"/><circle cx="7" cy="25" r="4"/><circle cx="25" cy="17" r="4"/></svg>ruv<span>·</span>fann</a>
+    <nav aria-label="Main navigation"><a href="#story">The story</a><a href="#playground">Try it</a><a href="#evidence">The evidence</a><a href="#packages">Packages</a></nav>
+    <div class="header-actions"><button id="motion-toggle" class="motion-toggle" type="button" aria-pressed="false"><span class="pause-icon" aria-hidden="true">Ⅱ</span><span data-motion-label>Pause motion</span></button><a class="github-link" href="https://github.com/ruvnet/ruv-FANN" aria-label="ruv-fann source on GitHub">GitHub <span aria-hidden="true">↗</span></a></div>
+    <div class="reading-progress" aria-hidden="true"><span id="reading-progress"></span></div>
+  </header>
+  <main id="main">
+    <section class="hero wrap" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="live-dot" aria-hidden="true"></span> A field guide to local neural networks</p>
+        <h1 id="hero-title">Small networks.<br><em>Visible decisions.</em></h1>
+        <p class="hero-deck">A neural network is a collection of numbers doing useful math. With <strong>ruv-fann</strong>, you can train it, look inside it, and test a change before you keep it.</p>
+        <div class="hero-cta"><a class="button button-primary" href="#story">Follow a prediction <span aria-hidden="true">↓</span></a><a class="text-link" href="https://www.npmjs.com/package/ruv-fann-wsp">Meet ruv-fann-wsp <span aria-hidden="true">↗</span></a></div>
+        <div class="hero-notes"><span>Rust at the core</span><span>Node + browser</span><span>Computation stays local</span></div>
+      </div>
+      <figure class="hero-art">
+        <div class="figure-meta"><span>SPECIMEN 001</span><span>2 → 2 → 1</span></div>
+        <svg class="hero-network" viewBox="0 0 560 460" role="img" aria-labelledby="hero-art-title hero-art-desc">
+          <title id="hero-art-title">A small network with one editable connection</title><desc id="hero-art-desc">Two inputs connect to two hidden units and one output. A highlighted connection represents a weight you can inspect and change. This is an explanatory illustration.</desc>
+          <defs><pattern id="hero-grid" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="#d8ded5"/></pattern><marker id="hero-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="m0 0 7 3.5L0 7" fill="none" stroke="#2d7068"/></marker></defs>
+          <rect x="8" y="8" width="544" height="444" rx="26" fill="url(#hero-grid)"/>
+          <g class="network-wires"><path d="M109 160C180 160 187 125 255 125M109 160C175 160 185 285 255 285M109 300C180 300 183 125 255 125M109 300C180 300 188 285 255 285M299 285C370 285 375 220 441 220"/><path class="accent-wire" d="M299 125C370 125 375 220 441 220"/></g>
+          <g class="signal-traces"><path d="M109 160C180 160 187 125 255 125"/><path d="M109 300C180 300 188 285 255 285"/><path d="M299 125C370 125 375 220 441 220"/></g>
+          <g class="input-node"><rect x="45" y="134" width="64" height="52" rx="13"/><rect x="45" y="274" width="64" height="52" rx="13"/><text x="77" y="167">1</text><text x="77" y="307">0</text></g>
+          <g class="hidden-node"><circle cx="277" cy="125" r="27"/><circle cx="277" cy="285" r="27"/><path d="M262 134h9v-17h19M262 294h9v-17h19"/></g>
+          <g class="output-node"><circle cx="466" cy="220" r="30"/><text x="466" y="229">1</text></g>
+          <g class="weight-knob"><rect x="327" y="115" width="105" height="51" rx="13"/><circle cx="350" cy="140" r="11"/><path d="M350 140 355 132"/><text x="389" y="146">w = 1</text></g>
+          <g class="svg-label"><text x="45" y="90">a few inputs</text><text x="219" y="62">a little math</text><text x="427" y="161">an answer</text></g>
+          <g class="hero-annotation"><path d="M389 189q-8 22-30 22"/><text x="237" y="237">a weight is a knob</text></g>
+          <path class="hero-loop" d="M465 275v91q0 20-20 20H98q-20 0-20-20v-19" fill="none" stroke="#2d7068" stroke-width="1.5" stroke-dasharray="4 6" marker-end="url(#hero-arrow)"/>
+          <text class="loop-label" x="269" y="406">inspect → edit → evaluate → decide</text>
+        </svg>
+        <figcaption><span class="figure-dot" aria-hidden="true"></span> An illustration. A real model is waiting below.</figcaption>
+      </figure>
+    </section>
+    <div class="chapter-ribbon wrap"><span>01 / THE IDEA</span><p>Small enough to understand.<br>Useful enough to build with.</p><a href="#playground">Skip to the live experiment <span aria-hidden="true">↘</span></a></div>
+
+    <section id="story" class="story wrap" aria-label="Follow a prediction through a neural network">
+      <div class="story-copy">
+        <article class="story-step" data-scene="input" id="scene-input">
+          <p class="eyebrow">01 — A few numbers go in</p><h2>Start with something<br><em>you can name.</em></h2>
+          <p>A model takes numbers as inputs. They might describe a sensor reading, a candidate search result, or—in our tiny example—whether two switches are on.</p>
+          <p>Connections multiply those inputs by <strong>weights</strong>. A bias adds an offset. An activation function shapes the result. Repeat that across a few layers, and you have a small neural network.</p>
+          <dl class="plain-definitions"><div><dt>Input</dt><dd>A number you give the model.</dd></div><div><dt>Weight</dt><dd>A number that changes a connection’s influence.</dd></div><div><dt>Prediction</dt><dd>The result of running the math.</dd></div></dl>
+        </article>
+        <article class="story-step" data-scene="training" id="scene-training">
+          <p class="eyebrow">02 — Learn from examples</p><h2>Training turns<br><em>the knobs.</em></h2>
+          <p>Show a model examples with the answers you want. Compare its predictions with those answers. An optimizer adjusts the weights to reduce the error, then tries again.</p>
+          <p>The JavaScript SDK supports <strong>SGD and AdamW</strong> training through real Rust-built WebAssembly. Prepare the resulting checkpoint once, then reuse it for predictions across batches.</p>
+          <div class="margin-note"><span aria-hidden="true">↳</span><p>A checkpoint is simply a saved model: its structure, weights, biases and activation settings.</p></div>
+        </article>
+        <article class="story-step" data-scene="edit" id="scene-edit">
+          <p class="eyebrow">03 — Make a precise intervention</p><h2>Sometimes you want<br><em>to turn one yourself.</em></h2>
+          <p><strong>Weight-space programming</strong> means inspecting and directly changing a model’s parameters. A person, an algorithm or an agent can propose the edit.</p>
+          <p>With <code>ruv-fann-wsp</code>, the edit is a small, structured patch. It names the exact weight or bias to replace and the fingerprint of the model it belongs to.</p>
+          <p>The patch preserves the network’s structure. It is still a proposal: changing a number does not tell you whether the behavior got better.</p>
+          <div class="weight-example"><span>One connection</span><code>0.00 <span aria-hidden="true">→</span> 1.00</code><span>Same network. A different answer.</span></div>
+        </article>
+        <article class="story-step" data-scene="review" id="scene-review">
+          <p class="eyebrow">04 — Measure before you keep it</p><h2>A change earns<br><em>its place.</em></h2>
+          <p>Run the original model and the candidate on the same evaluation cases. Check the error and your regression limits. Keep the candidate separate while you inspect the result.</p>
+          <p><strong>Promotion is an explicit action.</strong> An accepted, current proposal can become the active checkpoint. Rollback restores a retained checkpoint as a new revision.</p>
+          <p>For real tasks, keep unseen evaluation cases away from whoever chooses the edits. A passing score describes those cases; it does not prove generalization.</p>
+          <a class="text-link" href="#playground">Try the whole loop <span aria-hidden="true">↓</span></a>
+        </article>
+      </div>
+      <div class="story-visual-column">
+        <figure class="story-board" id="story-visual" data-active-scene="input">
+          <div class="board-heading"><span class="eyebrow">THE SAME SMALL NETWORK</span><span id="scene-number" class="scene-number">01 / 04</span></div>
+          <svg class="story-network" viewBox="0 0 580 470" role="img" aria-labelledby="story-svg-title story-svg-desc">
+            <title id="story-svg-title">A prediction, a weight edit and a review</title><desc id="story-svg-desc">This illustrated example has inputs one and zero, two hidden units and an output. Scrolling highlights how training or a direct weight edit changes the result, followed by evaluation.</desc>
+            <defs><pattern id="story-grid" width="22" height="22" patternUnits="userSpaceOnUse"><path d="M22 0H0v22" fill="none" stroke="#dfe3da" stroke-width=".6"/></pattern></defs>
+            <rect x="15" y="30" width="550" height="380" rx="15" fill="url(#story-grid)"/>
+            <g class="story-wires"><path d="M109 154C170 154 191 135 249 135M109 154C172 154 186 296 249 296M109 302C171 302 186 135 249 135M109 302C172 302 190 296 249 296M305 296C372 296 376 224 439 224"/><path class="story-edit-wire" d="M305 135C372 135 376 224 439 224"/></g>
+            <g class="story-flow"><path d="M109 154C170 154 191 135 249 135"/><path d="M305 135C372 135 376 224 439 224"/></g>
+            <g class="input-node"><rect x="50" y="130" width="59" height="48" rx="11"/><rect x="50" y="278" width="59" height="48" rx="11"/><text x="79" y="162">1</text><text x="79" y="310">0</text></g>
+            <g class="hidden-node"><circle cx="277" cy="135" r="28"/><circle cx="277" cy="296" r="28"/><text x="277" y="142">1</text><text x="277" y="303">0</text></g>
+            <g class="output-node"><circle cx="470" cy="224" r="31"/><text id="story-output" x="470" y="234">0</text></g>
+            <g class="story-weight"><rect x="328" y="122" width="92" height="40" rx="9"/><text id="story-weight" x="374" y="148">w = 0</text></g>
+            <g class="svg-label"><text x="50" y="100">inputs</text><text x="235" y="76">hidden units</text><text x="432" y="170">output</text><text x="441" y="281">want: 1</text></g>
+            <g class="training-annotation"><path d="M472 325v34q0 18-18 18H92q-18 0-18-18v-18" fill="none" stroke="#2d7068" stroke-width="2" stroke-dasharray="5 7"/><text x="277" y="400">compare → adjust → try again</text></g>
+            <g class="edit-annotation"><path d="M372 172q-9 36-45 37" fill="none" stroke="#c55534" stroke-width="1.5"/><text x="282" y="234">one direct edit</text></g>
+            <g class="review-annotation"><rect x="116" y="354" width="348" height="56" rx="10"/><text x="290" y="388">4 cases checked · error 0.25 → 0</text></g>
+          </svg>
+          <figcaption class="scene-caption"><span class="scene-dot" aria-hidden="true"></span><p id="scene-caption">Two inputs enter. The connections decide how much each one matters.</p></figcaption>
+          <div class="scene-pagination" aria-label="Story scenes"><a href="#scene-input" aria-label="Scene 1: inputs" aria-current="step">01</a><a href="#scene-training" aria-label="Scene 2: training">02</a><a href="#scene-edit" aria-label="Scene 3: direct edit">03</a><a href="#scene-review" aria-label="Scene 4: evaluation">04</a></div>
+        </figure>
+      </div>
+    </section>
+
+    <section id="workbench" class="workbench section-pad wrap" aria-labelledby="workbench-title">
+      <div class="section-heading"><div><p class="eyebrow">02 / THE WORKBENCH</p><h2 id="workbench-title">Open the model.<br><em>Ask a better question.</em></h2></div><p>Version <strong>0.2.0</strong> adds four ways to understand a small model before changing it. Each observation stays tied to the checkpoint it describes.</p></div>
+      <div class="workbench-grid">
+        <article class="tool-card"><div class="tool-number">01</div><svg viewBox="0 0 240 100" aria-hidden="true"><g class="mini-wire"><path d="M35 30 115 25 205 50M35 30 115 75 205 50M35 70 115 25M35 70 115 75"/></g><g class="mini-node"><circle cx="35" cy="30" r="8"/><circle cx="35" cy="70" r="8"/><circle cx="115" cy="25" r="9"/><circle cx="115" cy="75" r="9"/><circle cx="205" cy="50" r="12"/></g></svg><h3>Look at the structure.</h3><p>See the layer dimensions, activation settings and parameter counts. Get a canonical fingerprint for the checkpoint.</p><code>inspectWeightModel()</code></article>
+        <article class="tool-card"><div class="tool-number">02</div><svg viewBox="0 0 240 100" aria-hidden="true"><path class="mini-grid" d="M15 20h210M15 50h210M15 80h210"/><path class="trace-a" d="M15 74 50 62 84 68 119 33 154 42 189 19 225 30"/><path class="trace-b" d="M15 68 50 60 84 64 119 41 154 47 189 35 225 39"/></svg><h3>Follow a signal.</h3><p>Trace the values before and after each activation. Both passes use the actual WASM engine’s calculations.</p><code>traceWeightModel()</code></article>
+        <article class="tool-card"><div class="tool-number">03</div><svg viewBox="0 0 240 100" aria-hidden="true"><path class="mini-wire" d="M35 25 112 25M35 75 112 75 205 50"/><path class="ablated-wire" d="M112 25 205 50"/><circle class="mini-node-fill" cx="35" cy="25" r="8"/><circle class="mini-node-fill" cx="35" cy="75" r="8"/><circle class="ablation-node" cx="112" cy="25" r="11"/><circle class="mini-node-fill" cx="112" cy="75" r="9"/><circle class="mini-node-fill" cx="205" cy="50" r="12"/><path class="ablation-cross" d="m106 19 12 12m0-12-12 12"/></svg><h3>Disconnect one unit.</h3><p>Zero a hidden neuron’s outgoing connections, then measure what changes. The result is a normal hash-bound patch.</p><code>createNeuronAblationPatch()</code></article>
+        <article class="tool-card"><div class="tool-number">04</div><svg viewBox="0 0 240 100" aria-hidden="true"><path class="sensitivity-curve" d="M20 20Q115 122 220 25"/><path class="probe-line" d="M95 28v56m40-56v56M95 61h40"/><circle class="probe-dot" cx="95" cy="70" r="5"/><circle class="probe-dot" cx="135" cy="69" r="5"/><text class="mini-text" x="78" y="20">w − ε</text><text class="mini-text" x="125" y="20">w + ε</text></svg><h3>Estimate sensitivity.</h3><p>Nudge selected parameters up and down, and compare the measured error. This is a local numerical estimate, not autograd.</p><code>analyzeWeightSensitivity()</code></article>
+      </div>
+      <div class="workbench-footnote"><span class="small-label">BOUNDED BY DESIGN</span><p>Up to 65,536 model parameters, 128 edits per patch and 16 selected sensitivity locations. Traces and probes share aggregate work and storage limits. <a href="https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp#resource-bounds">Read the precise limits <span aria-hidden="true">↗</span></a></p></div>
+    </section>
+
+    <section id="playground" class="playground section-pad" aria-labelledby="playground-title">
+      <div class="wrap"><div class="section-heading"><div><p class="eyebrow">03 / A REAL, LOCAL EXPERIMENT</p><h2 id="playground-title">Make one edit.<br><em>See four answers change.</em></h2></div><p>This tiny network answers XOR: “Is exactly one switch on?” One output connection starts at zero. Move it, evaluate the candidate, then choose whether to promote it.</p></div>
+      <div class="playground-panel" data-playground>
+        <div class="demo-topline"><span><span class="live-dot" aria-hidden="true"></span> Real WebAssembly · four binary cases</span><span id="demo-backend">Ready when you are</span></div>
+        <div class="demo-grid"><div class="demo-controls">
+          <button class="button button-light" type="button" id="demo-start">Run local demo <span aria-hidden="true">↗</span></button>
+          <div class="weight-control-label"><label for="weight-control">Candidate connection weight</label><output id="demo-weight" for="weight-control">0.00</output></div>
+          <input id="weight-control" type="range" min="0" max="2" step="0.05" value="0" disabled aria-describedby="weight-help">
+          <div class="range-labels" aria-hidden="true"><span>0.00</span><span>1.00</span><span>2.00</span></div>
+          <p class="control-help" id="weight-help">Try 2.00 and evaluate. Then try 1.00. The candidate changes only the preview until you promote it.</p>
+          <div class="demo-actions"><button class="button button-accent" id="demo-evaluate" type="button" disabled>Evaluate edit</button><button class="button button-outline-light" id="demo-promote" type="button" disabled>Promote candidate</button></div>
+          <div class="demo-secondary"><button id="demo-rollback" type="button" disabled>Rollback to start</button><button id="demo-reset" type="button" disabled>Reset experiment</button></div>
+          <p class="demo-status" id="demo-status" role="status" aria-live="polite">Click “Run local demo” to load the local WASM engine.</p>
+        </div><div class="demo-results">
+          <svg id="demo-network" viewBox="0 0 460 155" role="img" aria-labelledby="demo-svg-title demo-svg-desc"><title id="demo-svg-title">The XOR model’s editable connection</title><desc id="demo-svg-desc">Two input nodes feed two ReLU hidden units. The highlighted output connection is the weight controlled by the slider.</desc><g class="demo-wire"><path d="M48 42 199 42M48 42 199 116M48 116 199 42M48 116 199 116M219 116 394 78"/><path data-demo-connection d="M219 42 394 78"/></g><g class="demo-node"><circle cx="38" cy="42" r="10"/><circle cx="38" cy="116" r="10"/><circle cx="209" cy="42" r="12"/><circle cx="209" cy="116" r="12"/><circle cx="408" cy="78" r="14"/></g><rect class="demo-weight-label" x="271" y="33" width="78" height="32" rx="7"/><text data-demo-weight x="310" y="54">w = 0</text></svg>
+          <div class="table-scroll"><table class="demo-table"><caption>All four cases. “Active” changes only after promotion.</caption><thead><tr><th scope="col">A</th><th scope="col">B</th><th scope="col">Want</th><th scope="col">Active</th><th scope="col">Preview</th></tr></thead><tbody><tr><td>0</td><td>0</td><td>0</td><td data-active-output="0">0</td><td data-preview-output="0">—</td></tr><tr><td>0</td><td>1</td><td>1</td><td data-active-output="1">1</td><td data-preview-output="1">—</td></tr><tr><td>1</td><td>0</td><td>1</td><td data-active-output="2">0</td><td data-preview-output="2">—</td></tr><tr><td>1</td><td>1</td><td>0</td><td data-active-output="3">0</td><td data-preview-output="3">—</td></tr></tbody></table></div>
+          <dl class="demo-metrics"><div><dt>Candidate MSE</dt><dd id="demo-mse">—</dd></div><div><dt>Active weight</dt><dd id="demo-active-weight">0.00</dd></div><div><dt>Revision</dt><dd id="demo-revision">1</dd></div></dl><p class="candidate-id">Candidate fingerprint <code id="demo-candidate-hash">Not evaluated</code></p>
+        </div></div>
+      </div><p class="playground-disclosure">This example covers the entire binary XOR domain. It demonstrates direct editing and checkpoint control, not generalization. Computation runs in your browser, using self-hosted package files. No model provider, account or data upload is involved.</p>
+      <noscript><p class="noscript-note">JavaScript is needed for the live experiment. The explanations, package guides and benchmark tables remain available below.</p></noscript></div>
+    </section>
+
+    <section id="evidence" class="evidence section-pad wrap" aria-labelledby="evidence-title">
+      <div class="section-heading"><div><p class="eyebrow">04 / SHOW THE EVIDENCE</p><h2 id="evidence-title">A useful result<br><em>includes the losses.</em></h2></div><p>Small networks are useful when they suit the task. We compared five approaches on two real, public classification datasets—and kept every result.</p></div>
+      <div class="benchmark-layout"><div class="benchmark-chart"><div class="chart-topline"><span class="small-label">MEAN HELD-OUT ACCURACY</span><div class="dataset-switch" aria-label="Choose chart dataset"><button type="button" data-benchmark="iris" aria-pressed="true">Iris</button><button type="button" data-benchmark="wine" aria-pressed="false">Wine</button></div></div>
+        <svg id="benchmark-chart" viewBox="0 0 665 330" role="img" aria-labelledby="benchmark-svg-title benchmark-svg-desc"><title id="benchmark-svg-title">Iris mean held-out accuracy</title><desc id="benchmark-svg-desc">Across five fixed splits: majority 33.33%, nearest-centroid 84.67%, linear network 80.67%, small MLP 96.00%, ExtraTrees 94.67%. The complete results for both datasets follow in a table.</desc><g class="chart-grid"><path d="M160 35v250M268 35v250M376 35v250M484 35v250M592 35v250"/></g><g class="chart-axis"><text x="160" y="316">0%</text><text x="268" y="316">25</text><text x="376" y="316">50</text><text x="484" y="316">75</text><text x="592" y="316">100</text></g><g class="chart-row"><text x="140" y="64">Majority</text><rect data-bar="majority" x="160" y="45" width="144" height="24" rx="3"/><text data-bar-value="majority" x="314" y="64">33.33%</text></g><g class="chart-row"><text x="140" y="114">Nearest-centroid</text><rect data-bar="centroid" x="160" y="95" width="365.77" height="24" rx="3"/><text data-bar-value="centroid" x="535.77" y="114">84.67%</text></g><g class="chart-row"><text x="140" y="164">Linear network</text><rect data-bar="linear" x="160" y="145" width="348.49" height="24" rx="3"/><text data-bar-value="linear" x="518.49" y="164">80.67%</text></g><g class="chart-row chart-row-highlight"><text x="140" y="214">Small MLP</text><rect data-bar="mlp" x="160" y="195" width="414.72" height="24" rx="3"/><text data-bar-value="mlp" x="584.72" y="214">96.00%</text></g><g class="chart-row"><text x="140" y="264">ExtraTrees</text><rect data-bar="trees" x="160" y="245" width="408.97" height="24" rx="3"/><text data-bar-value="trees" x="578.97" y="264">94.67%</text></g></svg>
+        <p class="chart-takeaway" id="chart-takeaway">On Iris, the small MLP averages 96.00%. That is a result on these splits, not a universal ranking.</p>
+      </div><aside class="benchmark-method"><p class="small-label">WHAT WAS COMPARED?</p><h3>Same data.<br>Different approaches.</h3><p><strong>Majority</strong> always chooses the most common training class. <strong>Nearest-centroid</strong> chooses the closest class average.</p><p><strong>Linear</strong> and the <strong>small MLP</strong> run through actual scalar WASM. <strong>ExtraTrees</strong> is a pinned scikit-learn tree ensemble.</p><p>Each neural model chooses between 100 and 200 epochs using validation data. The MLP has one hidden layer with eight Tanh units.</p><p class="method-caveat">Two candidate settings per family do not imply equal compute. The report records the different objectives and timing boundaries.</p></aside></div>
+      <div class="table-scroll evidence-table-wrap" tabindex="0" role="region" aria-label="Complete benchmark accuracy table"><table class="evidence-table"><caption>Mean held-out accuracy across five predetermined stratified splits</caption><thead><tr><th scope="col">Dataset</th><th scope="col">Majority</th><th scope="col">Nearest-centroid</th><th scope="col">Linear</th><th scope="col">Small MLP</th><th scope="col">ExtraTrees</th></tr></thead><tbody><tr><th scope="row">Iris <span>150 rows · 4 inputs</span></th><td>33.33%</td><td>84.67%</td><td>80.67%</td><td class="mlp-cell">96.00%</td><td>94.67%</td></tr><tr><th scope="row">Wine <span>178 rows · 13 inputs</span></th><td>38.46%</td><td>97.95%</td><td>97.44%</td><td class="mlp-cell">95.90%</td><td>99.49%</td></tr></tbody></table></div>
+      <div class="evidence-notes"><p>Training, validation and test rows are separate within each split. Standardization uses training rows only. The splits overlap across seeds; reported confidence intervals are descriptive. These two small datasets establish neither agent-task quality nor state of the art.</p><p>A separate controlled experiment disconnects one hidden unit, chosen using validation data, and restores its known original weights. Exact held-out outputs return. This checks the editing tools; it does not show that an agent can discover arbitrary repairs.</p></div>
+      <div class="proof-strip"><div><span class="proof-number">46</span><p>tests per Node version<br><strong>Node 22 + 24, plus Chromium</strong></p></div><div><span class="proof-number">19</span><p>hostile-input checks<br><strong>in installed runtime probes</strong></p></div><div><span class="proof-number">0</span><p>known npm advisories<br><strong>in the release’s production tree</strong></p></div></div>
+      <div class="evidence-source"><p>Recorded for WSP 0.2.0, released 10 November 2026. These checks have a defined scope; they are not a general security certification.</p><div><a class="text-link" href="https://github.com/ruvnet/ruv-FANN/releases/download/ruv-fann-wsp-v0.2.0/benchmark.json">Full benchmark JSON ↗</a><a class="text-link" href="https://github.com/ruvnet/ruv-FANN/releases/download/ruv-fann-wsp-v0.2.0/security.json">Dependency audit ↗</a><a class="text-link" href="https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp/benchmarks">Method + dataset attribution ↗</a></div></div>
+    </section>
+
+    <section id="packages" class="packages section-pad" aria-labelledby="packages-title"><div class="wrap">
+      <div class="section-heading"><div><p class="eyebrow">05 / FIND YOUR ENTRY POINT</p><h2 id="packages-title">A small stack.<br><em>A clear place to start.</em></h2></div><p>The npm packages form a simple chain. Choose the workbench for direct edits, the SDK for training and prediction, or the low-level bindings when you need manual control.</p></div>
+      <div class="package-chain" aria-label="Package dependency chain"><span>ruv-fann-wsp</span><span aria-label="depends on">→</span><span>ruv-fann</span><span aria-label="depends on">→</span><span>ruv-fann-wasm</span><small>All run in Node.js and browsers</small></div>
+      <div class="package-grid">
+        <article class="package-card package-featured"><div class="package-top"><span class="package-kind">THE WORKBENCH</span><span class="version">0.2.0</span></div><h3>ruv-fann-wsp</h3><p>Inspect a checkpoint, trace its activations, propose bounded edits, evaluate them, then promote or roll back explicitly.</p><ul><li>Four new inspection and diagnostic APIs</li><li>Hash-bound weight and bias patches</li><li>In-memory revisioned workspaces</li></ul><a href="https://www.npmjs.com/package/ruv-fann-wsp">View on npm <span aria-hidden="true">↗</span></a><a class="package-guide" href="https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp">API + complete examples ↗</a></article>
+        <article class="package-card"><div class="package-top"><span class="package-kind">THE JAVASCRIPT SDK</span><span class="version">0.1.2</span></div><h3>ruv-fann</h3><p>A typed ESM API for dense models, reusable batch inference, SGD/AdamW training and model serialization.</p><ul><li>Prepare once; predict across batches</li><li>Managed, explicit model disposal</li><li>Automatic SIMD feature detection</li></ul><a href="https://www.npmjs.com/package/ruv-fann">View on npm <span aria-hidden="true">↗</span></a><a class="package-guide" href="https://github.com/ruvnet/ruv-FANN/tree/main/packages/core">SDK guide ↗</a></article>
+        <article class="package-card"><div class="package-top"><span class="package-kind">THE RUNTIME BINDINGS</span><span class="version">0.1.2</span></div><h3>ruv-fann-wasm</h3><p>The Rust-built WASM binaries and wasm-bindgen bindings beneath the SDK, for callers who manage object ownership directly.</p><ul><li>Scalar and SIMD runtime assets</li><li>Direct low-level access</li><li>No runtime package dependencies</li></ul><a href="https://www.npmjs.com/package/ruv-fann-wasm">View on npm <span aria-hidden="true">↗</span></a><a class="package-guide" href="https://github.com/ruvnet/ruv-FANN/tree/main/packages/wasm">Runtime guide ↗</a></article>
+      </div>
+      <p class="package-requirements">The published npm packages are ESM and support Node.js 20.9+ or a browser with WebAssembly. TypeScript declarations are included. WSP pins core 0.1.2; core pins WASM 0.1.2. Consuming the npm packages does not require compiling a native addon.</p>
+      <div class="beyond-js"><div class="rust-callout"><span class="small-label">WORKING DIRECTLY IN RUST?</span><h3>Start at the core.</h3><p>The <a href="https://crates.io/crates/ruv-fann">ruv-fann 0.2.2 crate</a> provides feedforward networks, training and model I/O in Rust. Crate and npm versions identify different distributions.</p><code>cargo add ruv-fann@0.2.2</code><a class="text-link" href="https://docs.rs/ruv-fann">Rust API documentation ↗</a></div><div class="ecosystem-links"><p class="small-label">WHERE IT CONNECTS</p><a href="https://github.com/ruvnet/agentdb"><span>AgentDB</span><p>Durable models and weight programs, plus optional evaluated memory reranking. Use it when checkpoints and revision history need to persist.</p><span aria-hidden="true">↗</span></a><a href="https://github.com/ruvnet/ruv-FANN/tree/main/integrations/candle"><span>Candle integration</span><p>A bridge and numerical cross-checks for Rust neural-network workflows.</p><span aria-hidden="true">↗</span></a><a href="https://github.com/ruvnet/ruv-FANN/tree/main/neuro-divergent"><span>Forecasting workspace</span><p>A univariate RNN, simple baselines, chronological evaluation and residual-calibrated intervals.</p><span aria-hidden="true">↗</span></a></div></div>
+    </div></section>
+
+    <section id="start" class="get-started section-pad wrap" aria-labelledby="start-title"><div class="section-heading"><div><p class="eyebrow">06 / YOUR FIRST CHECKPOINT</p><h2 id="start-title">Start with a model<br><em>you can check.</em></h2></div><p>This complete example traces a one-layer model computing <code>y = 2x + 1</code>. Save it as <code>inspect.mjs</code> and run <code>node inspect.mjs</code>.</p></div>
+      <div class="quickstart-grid"><div class="install-panel"><span class="small-label">1. INSTALL THE WORKBENCH</span><div class="command-row"><code id="install-command">npm install ruv-fann-wsp</code><button type="button" class="copy-button" data-copy="install-command" aria-label="Copy npm install command">Copy</button></div><p>The exact core and WASM dependencies arrive with it. Then create the example file shown here.</p><span class="small-label">2. RUN YOUR FILE</span><div class="command-row"><code id="run-command">node inspect.mjs</code><button type="button" class="copy-button" data-copy="run-command" aria-label="Copy Node run command">Copy</button></div><p class="install-note">Expected activations: <code>[3, 5, 7]</code>. Tracing observes the model; it does not train or change it.</p><a class="text-link" href="https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp#repair-a-neural-network-without-training">Next: a complete patch + promotion example ↗</a></div><div class="code-panel"><div class="code-topline"><span><span aria-hidden="true">● ● ●</span> inspect.mjs</span><button type="button" class="copy-button" data-copy="quickstart-code" aria-label="Copy complete JavaScript example">Copy code</button></div><pre><code id="quickstart-code">import {
+  inspectWeightModel,
+  traceWeightModel
+} from 'ruv-fann-wsp';
+
+const model = {
+  schema: 'ruv-fann.dense-layers/1',
+  layers: [{
+    inputs: 1, outputs: 1,
+    weights: [2], bias: [1],
+    activation: 'Linear', steepness: 1
+  }]
+};
+
+const info = await inspectWeightModel(model);
+const trace = await traceWeightModel(model, {
+  inputs: [1, 2, 3], rows: 3
+});
+
+console.log(info.parameterCount); // 2
+console.log(trace.layers[0].activations);
+// [3, 5, 7]</code></pre></div></div><p id="copy-status" class="sr-only" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="questions section-pad wrap" aria-labelledby="questions-title"><div class="questions-intro"><p class="eyebrow">A FEW USEFUL DISTINCTIONS</p><h2 id="questions-title">Before you<br><em>build.</em></h2></div><div class="question-list">
+      <details><summary>Does weight-space programming replace training?</summary><p>It gives you another way to create or adapt a checkpoint. Training adjusts parameters using an optimizer and examples. WSP applies explicit parameter edits. The useful choice depends on the task, data and evaluation budget. The package provides the tools; it does not promise direct edits will outperform training.</p></details>
+      <details><summary>Is the workbench automatically learning or calling an LLM?</summary><p>No. A caller supplies the model, edit and evaluation cases. No model provider is built in, and retrieval does not trigger automatic updates. An agent can use the API through its own orchestration, with explicit evaluation and promotion.</p></details>
+      <details><summary>What does the fingerprint protect?</summary><p>A patch’s SHA-256 fingerprint identifies the canonical checkpoint it was written for. A mismatched patch is rejected. Hashes bind content; they are not signatures and do not authorize promotion. A workspace uses its internally retained accepted proposal and current revision for that decision.</p></details>
+      <details><summary>Does this page demonstrate GPU acceleration?</summary><p>The live experiment uses CPU WebAssembly, with SIMD when supported. The repository also has separate optional WebGPU compute paths. Their software-adapter correctness checks do not establish physical GPU throughput. See the <a href="https://github.com/ruvnet/ruv-FANN/blob/main/docs/review-core.md">core review and feature limits</a> before choosing a backend.</p></details>
+      <details><summary>What should I evaluate for an actual application?</summary><p>Use representative cases, separate model/edit selection from final evaluation, and check regressions that matter to your users. Record dataset provenance, model hashes, runtime and policy. MSE is the WSP workbench’s supplied numeric metric; an application may also need task success, ranking quality, calibration or other criteria.</p></details>
+      <details><summary>Can I persist the workspace?</summary><p>The package’s workspace history is in memory. Save checkpoints yourself or use the AgentDB integration for durable models, proposals and revisions. Keep application access controls and concurrency limits around mutations.</p></details>
+    </div></section>
+    <section class="closing wrap"><p class="eyebrow">BUILT TO BE OPENED</p><h2>Keep the model small.<br><em>Keep the evidence close.</em></h2><p>Explore the source, try a checkpoint, and let the measurements tell you what to keep.</p><div class="hero-cta"><a class="button button-primary" href="https://www.npmjs.com/package/ruv-fann-wsp">Get ruv-fann-wsp <span aria-hidden="true">↗</span></a><a class="text-link" href="https://github.com/ruvnet/ruv-FANN">Explore the repository ↗</a></div></section>
+  </main>
+  <footer class="site-footer wrap"><a class="brand" href="#">ruv<span>·</span>fann</a><p>Built by <a href="https://ruv.io">rUv</a> · Open source · <a href="https://github.com/ruvnet/ruv-FANN/blob/main/LICENSE-MIT">MIT</a></p><a href="https://github.com/ruvnet/ruv-FANN/releases/tag/ruv-fann-wsp-v0.2.0">Release + reproducible evidence ↗</a><a href="#main">Back to top ↑</a></footer>
+</body>
+</html>

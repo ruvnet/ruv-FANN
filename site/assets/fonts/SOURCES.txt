@@ -1,0 +1,6 @@
+Fonts: Instrument Serif (regular and italic), Manrope variable.
+Source: https://github.com/google/fonts/tree/main/ofl/instrumentserif and https://github.com/google/fonts/tree/main/ofl/manrope
+Retrieved 2026-11-10. Licensed under the SIL Open Font License 1.1, included alongside each family. Converted from original TTF to WOFF2 without changing glyphs, using fontTools and Brotli.
+instrument-serif-italic.woff2 SHA-256 b7fa3335220e70e9a3236bc2506740d9763e7a53b3f4daeb9d420f562ecdfbba
+instrument-serif.woff2 SHA-256 fae042e42e9f18bdff13a211f6b646ba802cb093cdc2c91a6b837546e1a8f3b3
+manrope.woff2 SHA-256 1d200306b211356619bb5953cc789f62dedc9f9e90e4c210810100b24e542cbf
