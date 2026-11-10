@@ -33,8 +33,7 @@ export async function validateBenchmark(report, sourceSha, archivePath) {
   assert.equal(report.benchmarkScriptSha256, sha256(await readFile(join(ROOT, 'scripts/wsp-benchmark.mjs'))));
   assert.equal(report.benchmarkHelpersSha256, sha256(await readFile(join(ROOT, 'scripts/wsp-benchmark-lib.mjs'))));
   assert.equal(report.tooling?.backend, 'wasm');
-  assert.equal(report.tooling.pythonPackages?.['scikit-learn'], '1.7.2');
-  assert.equal(report.tooling.pythonPackages?.numpy, '1.26.4');
+  assert.deepEqual(report.tooling.pythonPackages, {numpy:'1.26.4',scipy:'1.12.0','scikit-learn':'1.7.2',joblib:'1.4.2',threadpoolctl:'3.5.0'});
   const { datasets, lock, lockSha256 } = await loadDatasets();
   assert.equal(report.datasetLockSha256, lockSha256); assert.deepEqual(report.dataProvenance, lock);
   assert.equal(report.tooling.pythonRequirementsSha256, sha256(await readFile(join(DATA_ROOT, 'requirements.lock'))));
@@ -43,7 +42,8 @@ export async function validateBenchmark(report, sourceSha, archivePath) {
   assert.equal(report.moduleEntrySha256, sha256(entryBytes));
   assert.deepEqual(report.plan.seeds, SEEDS);
   assert.deepEqual(report.plan.models.epochs, [100, 200]);
-  assert.equal(report.runs?.length, 10); assert.equal(report.aggregate?.length, 2);
+  assert.equal(report.runs?.length, 10);
+  assert.deepEqual(report.aggregate?.map(row => row.dataset), ['iris','wine']);
   const keys = new Set();
   for (const run of report.runs) {
     const key = `${run.dataset}:${run.seed}`; assert.ok(!keys.has(key)); keys.add(key);
@@ -57,7 +57,7 @@ export async function validateBenchmark(report, sourceSha, archivePath) {
     for (const name of ['majority', 'nearest-centroid', 'linear', 'mlp', 'extra-trees']) {
       const model = run.models?.[name]; assert.ok(model);
       const measured = metrics(run.heldoutLabels, model.testScores);
-      for (const metric of ['accuracy', 'macroF1', 'mse']) assert.ok(Math.abs(measured[metric] - model.test[metric]) <= 1e-12, `${name} ${metric}`);
+      assert.deepEqual(model.test, measured, `${name} held-out metrics`);
     }
     for (const name of ['linear', 'mlp']) {
       assert.match(run.modelHashes[name], /^[a-f0-9]{64}$/);

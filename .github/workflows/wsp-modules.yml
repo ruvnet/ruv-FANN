@@ -6,6 +6,7 @@ on:
     paths:
       - 'packages/wsp/**'
       - 'scripts/wsp-*.mjs'
+      - 'scripts/wsp-benchmark-tree.py'
       - '.github/workflows/wsp-modules.yml'
       - '.github/workflows/protected-wsp-release.yml'
   workflow_dispatch:
