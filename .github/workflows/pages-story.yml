@@ -1,0 +1,125 @@
+name: Pages story
+
+on:
+  pull_request:
+    paths:
+      - 'site/**'
+      - 'scripts/site-*.mjs'
+      - '.github/workflows/pages-story.yml'
+      - 'README.md'
+      - 'docs/assets/weight-space-story.svg'
+      - 'docs/adr/ADR-011-scrollytelling-pages.md'
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact qualified commit already on main
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-story-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'protected-deploy' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  qualify:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22.23.2'
+          package-manager-cache: false
+      - name: Install pinned private browser tooling
+        run: |
+          npm ci --prefix site --ignore-scripts
+          npm audit --prefix site --audit-level=low
+          site/node_modules/.bin/playwright install --with-deps chromium
+      - name: Build public-package-verified static site and exercise real browser
+        run: |
+          printf '\n/_site/\n/_site-evidence/\n/site-candidate/\n/site/node_modules/\n' >> .git/info/exclude
+          node scripts/site-build.mjs
+          node scripts/site-security-test.mjs
+          node scripts/site-test.mjs
+          node scripts/site-seal.mjs seal
+          node scripts/site-seal.mjs verify site-candidate
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pages-candidate-${{ github.event.pull_request.head.sha }}
+          path: site-candidate/
+          if-no-files-found: error
+          retention-days: 30
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pages-debug-${{ github.event.pull_request.head.sha }}
+          path: _site-evidence/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  deploy:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+      actions: read
+      issues: read
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.expected_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22.23.2'
+          package-manager-cache: false
+      - name: Require qualified exact current main and no release blockers
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$GITHUB_SHA" = "$EXPECTED_SHA"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test "$(gh api repos/${GITHUB_REPOSITORY}/commits/main --jq .sha)" = "$EXPECTED_SHA"
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/issues?labels=release-blocker&state=open&per_page=1" --jq length)" = 0
+          node scripts/site-candidate-download.mjs site-candidate
+          mkdir _site
+          tar -xzf site-candidate/site.tar.gz -C _site --no-same-owner --no-same-permissions
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+        with:
+          path: _site
+      - name: Deploy sealed site
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
+      - name: Verify every public byte and public browser behavior
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          SITE_PUBLIC_URL: https://ruvnet.github.io/ruv-FANN/
+        run: |
+          npm ci --prefix site --ignore-scripts
+          site/node_modules/.bin/playwright install --with-deps chromium
+          node scripts/site-public-check.mjs _site _site-public-evidence
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pages-publication-${{ inputs.expected_sha }}
+          path: |
+            site-candidate/candidate-seal.json
+            site-candidate/evidence/browser-receipt.json
+            _site-public-evidence/
+          if-no-files-found: error
+          retention-days: 90
