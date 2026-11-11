@@ -12,6 +12,10 @@ The `ruv-fann-toolkit-v0.2.0` release contains thirteen new npm archives: `ruv-f
 | [protected-toolkit-release.yml](../.github/workflows/protected-toolkit-release.yml) | Core facade plus twelve toolkit archives | Existing protected npm credential bootstraps the new packages |
 | [constellation-oidc.mjs](../scripts/constellation-oidc.mjs) | Optional future configuration guard | Requires deliberately opted-in, package-specific npm trusted-publisher registration |
 
+Current CI calls `wsp-toolkit.yml` for the core 0.2.0 release set. The older
+`npm-modules.yml` pair lane remains available only by explicit manual or reusable
+invocation against its 0.1.2 generation; it rejects newer package identities.
+
 A package's catalog status, a successful local pack or possession of the helper does not establish namespace ownership, a registered trusted publisher or permission to upload. The optional OIDC helper is not the active bootstrap publisher, and this documentation does not claim a live OIDC exchange.
 
 ## Exact archives move through qualification and publication
