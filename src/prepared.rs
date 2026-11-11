@@ -347,6 +347,58 @@ impl<T: Float> PreparedNetwork<T> {
         })
     }
 
+    /// Independent output accumulators share source loads without changing a
+    /// row's multiply/add order. No horizontal reduction or fused operation.
+    #[inline]
+    fn run_dense_four(
+        &self,
+        rows: &[Row<T>],
+        inputs: &[T],
+        input_bias: bool,
+        outputs: &mut [T],
+        layer: usize,
+        first_neuron: usize,
+    ) -> Result<(), PreparedError> {
+        let weights = |row: &Row<T>| &self.weights[row.start..row.start + row.len];
+        let (a, b, c, d) = (
+            weights(&rows[0]),
+            weights(&rows[1]),
+            weights(&rows[2]),
+            weights(&rows[3]),
+        );
+        let mut sums = [T::zero(); 4];
+        for ((((&value, &wa), &wb), &wc), &wd) in inputs.iter().zip(a).zip(b).zip(c).zip(d) {
+            sums[0] = sums[0] + value * wa;
+            sums[1] = sums[1] + value * wb;
+            sums[2] = sums[2] + value * wc;
+            sums[3] = sums[3] + value * wd;
+        }
+        if input_bias {
+            for (sum, weights) in sums.iter_mut().zip([a, b, c, d]) {
+                *sum = *sum + weights[inputs.len()];
+            }
+        }
+        // Preserve neuron priority, including an earlier activation overflow
+        // ahead of a later neuron's non-finite dot product.
+        for (lane, (&sum, row)) in sums.iter().zip(rows).enumerate() {
+            if !sum.is_finite() {
+                return Err(PreparedError::NumericOverflow {
+                    layer,
+                    neuron: first_neuron + lane,
+                });
+            }
+            let value = row.activation.apply(sum, row.steepness);
+            if !value.is_finite() {
+                return Err(PreparedError::NumericOverflow {
+                    layer,
+                    neuron: first_neuron + lane,
+                });
+            }
+            outputs[lane] = value;
+        }
+        Ok(())
+    }
+
     /// No steady-state allocations. Outputs are committed only after all layers
     /// succeed. Non-finite inputs, weighted sums or activation outputs are errors;
     /// stable saturation inside an activation follows the normal scalar API.
@@ -387,10 +439,22 @@ impl<T: Float> PreparedNetwork<T> {
         let mut first = 0;
         if self.direct_first {
             let layer = &self.layers[0];
-            for (index, row) in self.rows[layer.row_start..layer.row_start + layer.row_count]
-                .iter()
-                .enumerate()
-            {
+            let rows = &self.rows[layer.row_start..layer.row_start + layer.row_count];
+            let mut index = 0;
+            while index < rows.len() {
+                if inputs.len() >= 16 && rows.len() - index >= 4 {
+                    self.run_dense_four(
+                        &rows[index..index + 4],
+                        inputs,
+                        self.input_bias,
+                        &mut target[index..index + 4],
+                        1,
+                        index,
+                    )?;
+                    index += 4;
+                    continue;
+                }
+                let row = &rows[index];
                 let weights = &self.weights[row.start..row.start + row.len];
                 let mut sum = inputs
                     .iter()
@@ -413,6 +477,7 @@ impl<T: Float> PreparedNetwork<T> {
                     });
                 }
                 target[index] = value;
+                index += 1;
             }
             if layer.bias {
                 target[layer.row_count] = T::one();
@@ -427,10 +492,27 @@ impl<T: Float> PreparedNetwork<T> {
         }
         for (layer_index, layer) in self.layers.iter().enumerate().skip(first) {
             let previous = &source[..layer.source_width];
-            for (index, row) in self.rows[layer.row_start..layer.row_start + layer.row_count]
-                .iter()
-                .enumerate()
-            {
+            let rows = &self.rows[layer.row_start..layer.row_start + layer.row_count];
+            let mut index = 0;
+            while index < rows.len() {
+                if previous.len() >= 16
+                    && rows.len() - index >= 4
+                    && rows[index..index + 4]
+                        .iter()
+                        .all(|row| row.index_start == usize::MAX)
+                {
+                    self.run_dense_four(
+                        &rows[index..index + 4],
+                        previous,
+                        false,
+                        &mut target[index..index + 4],
+                        layer_index + 1,
+                        index,
+                    )?;
+                    index += 4;
+                    continue;
+                }
+                let row = &rows[index];
                 let weights = &self.weights[row.start..row.start + row.len];
                 let sum = if row.index_start == usize::MAX {
                     previous
@@ -460,6 +542,7 @@ impl<T: Float> PreparedNetwork<T> {
                     });
                 }
                 target[index] = value;
+                index += 1;
             }
             if layer.bias {
                 target[layer.row_count] = T::one();
