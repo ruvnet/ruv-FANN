@@ -111,6 +111,7 @@ impl<T: Float> PreparedNetwork<T> {
             width,
             input_bias: first.bias.is_some(),
             direct_first: false,
+            single_tiled: false,
             estimated_bytes: estimated,
         };
         for (index, layer) in layers.iter().enumerate() {
@@ -139,9 +140,16 @@ impl<T: Float> PreparedNetwork<T> {
                 bias: layers
                     .get(index + 1)
                     .is_some_and(|next| next.bias.is_some()),
+                single_tiled: layer.outputs >= 4
+                    && if index == 0 {
+                        layer.inputs >= 64
+                    } else {
+                        source_width >= 64
+                    },
             });
         }
         prepared.direct_first = prepared.first_layer_is_dense();
+        prepared.single_tiled = prepared.layers.iter().any(|layer| layer.single_tiled);
         Ok(prepared)
     }
 }

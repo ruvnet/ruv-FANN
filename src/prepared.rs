@@ -83,6 +83,7 @@ struct PackedLayer {
     row_count: usize,
     source_width: usize,
     bias: bool,
+    single_tiled: bool,
 }
 
 /// An immutable snapshot independent of future source weights, topology or caches.
@@ -101,6 +102,8 @@ pub struct PreparedNetwork<T: Float> {
     /// Every first-layer row is dense, so single-row inference can read the
     /// caller's inputs in place instead of copying them into the workspace.
     direct_first: bool,
+    /// Immutable preparation-time dispatch; scalar calls need one branch only.
+    single_tiled: bool,
     estimated_bytes: usize,
 }
 
@@ -247,6 +250,7 @@ impl<T: Float> PreparedNetwork<T> {
             width,
             input_bias: network.layers[0].has_bias(),
             direct_first: false,
+            single_tiled: false,
             estimated_bytes: estimated,
         };
         for (index, layer) in network.layers.iter().enumerate().skip(1) {
@@ -284,9 +288,19 @@ impl<T: Float> PreparedNetwork<T> {
                 row_count: layer.num_regular_neurons(),
                 source_width,
                 bias: layer.has_bias(),
+                single_tiled: layer.num_regular_neurons() >= 4
+                    && (if index == 1 {
+                        prepared.inputs >= 64
+                    } else {
+                        source_width >= 64
+                    })
+                    && prepared.rows[row_start..]
+                        .iter()
+                        .all(|row| row.index_start == usize::MAX),
             });
         }
         prepared.direct_first = prepared.first_layer_is_dense();
+        prepared.single_tiled = prepared.layers.iter().any(|layer| layer.single_tiled);
         Ok(prepared)
     }
 
@@ -449,10 +463,8 @@ impl<T: Float> PreparedNetwork<T> {
         Ok(())
     }
 
-    /// No steady-state allocations. Outputs are committed only after all layers
-    /// succeed. Non-finite inputs, weighted sums or activation outputs are errors;
-    /// stable saturation inside an activation follows the normal scalar API.
-    pub fn run_into(
+    #[inline(never)]
+    fn run_tiled_into(
         &self,
         inputs: &[T],
         outputs: &mut [T],
@@ -489,7 +501,7 @@ impl<T: Float> PreparedNetwork<T> {
         let mut first = 0;
         if self.direct_first {
             let layer = &self.layers[0];
-            if inputs.len() >= 64 && layer.row_count >= 4 {
+            if layer.single_tiled {
                 self.run_dense_layer(
                     &self.rows[layer.row_start..layer.row_start + layer.row_count],
                     inputs,
@@ -540,10 +552,7 @@ impl<T: Float> PreparedNetwork<T> {
         for (layer_index, layer) in self.layers.iter().enumerate().skip(first) {
             let previous = &source[..layer.source_width];
             let rows = &self.rows[layer.row_start..layer.row_start + layer.row_count];
-            if previous.len() >= 64
-                && layer.row_count >= 4
-                && rows.iter().all(|row| row.index_start == usize::MAX)
-            {
+            if layer.single_tiled {
                 self.run_dense_layer(rows, previous, false, target, layer_index + 1)?;
             } else {
                 for (index, row) in self.rows[layer.row_start..layer.row_start + layer.row_count]
@@ -580,6 +589,134 @@ impl<T: Float> PreparedNetwork<T> {
                     }
                     target[index] = value;
                 }
+            }
+            if layer.bias {
+                target[layer.row_count] = T::one();
+            }
+            std::mem::swap(&mut source, &mut target);
+        }
+        outputs.copy_from_slice(&source[..self.outputs]);
+        Ok(())
+    }
+
+    /// No steady-state allocations. Outputs are committed only after all layers
+    /// succeed. Non-finite inputs, weighted sums or activation outputs are errors;
+    /// stable saturation inside an activation follows the normal scalar API.
+    pub fn run_into(
+        &self,
+        inputs: &[T],
+        outputs: &mut [T],
+        workspace: &mut InferenceWorkspace<T>,
+    ) -> Result<(), PreparedError> {
+        // The immutable snapshot caches dispatch once during preparation. Keep
+        // the original scalar loops independent of tiled-path code generation.
+        if self.single_tiled {
+            return self.run_tiled_into(inputs, outputs, workspace);
+        }
+        if inputs.len() != self.inputs {
+            return Err(PreparedError::InputSizeMismatch {
+                expected: self.inputs,
+                actual: inputs.len(),
+            });
+        }
+        if outputs.len() != self.outputs {
+            return Err(PreparedError::OutputSizeMismatch {
+                expected: self.outputs,
+                actual: outputs.len(),
+            });
+        }
+        let actual = workspace.front.len().min(workspace.back.len());
+        if actual < self.width {
+            return Err(PreparedError::WorkspaceTooSmall {
+                required: self.width,
+                actual,
+            });
+        }
+        if let Some(index) = inputs.iter().position(|value| !value.is_finite()) {
+            return Err(PreparedError::NonFiniteInput { index });
+        }
+        let (mut source, mut target) = (&mut workspace.front, &mut workspace.back);
+        // Copying the inputs into the workspace and reading them straight back
+        // one scalar at a time defeats store-to-load forwarding and dominates
+        // the cost of small networks. A dense first layer reads the caller's
+        // slice in place instead; the bias source is exactly one, so its term
+        // is the bias weight itself, added last as before (bit-identical).
+        let mut first = 0;
+        if self.direct_first {
+            let layer = &self.layers[0];
+            for (index, row) in self.rows[layer.row_start..layer.row_start + layer.row_count]
+                .iter()
+                .enumerate()
+            {
+                let weights = &self.weights[row.start..row.start + row.len];
+                let mut sum = inputs
+                    .iter()
+                    .zip(weights)
+                    .fold(T::zero(), |sum, (&value, &weight)| sum + value * weight);
+                if self.input_bias {
+                    sum = sum + weights[self.inputs];
+                }
+                if !sum.is_finite() {
+                    return Err(PreparedError::NumericOverflow {
+                        layer: 1,
+                        neuron: index,
+                    });
+                }
+                let value = row.activation.apply(sum, row.steepness);
+                if !value.is_finite() {
+                    return Err(PreparedError::NumericOverflow {
+                        layer: 1,
+                        neuron: index,
+                    });
+                }
+                target[index] = value;
+            }
+            if layer.bias {
+                target[layer.row_count] = T::one();
+            }
+            std::mem::swap(&mut source, &mut target);
+            first = 1;
+        } else {
+            source[..self.inputs].copy_from_slice(inputs);
+            if self.input_bias {
+                source[self.inputs] = T::one();
+            }
+        }
+        for (layer_index, layer) in self.layers.iter().enumerate().skip(first) {
+            let previous = &source[..layer.source_width];
+            for (index, row) in self.rows[layer.row_start..layer.row_start + layer.row_count]
+                .iter()
+                .enumerate()
+            {
+                let weights = &self.weights[row.start..row.start + row.len];
+                let sum = if row.index_start == usize::MAX {
+                    previous
+                        .iter()
+                        .zip(weights)
+                        .fold(T::zero(), |sum, (&value, &weight)| sum + value * weight)
+                } else {
+                    let indices = &self.indices[row.index_start..row.index_start + row.len];
+                    indices
+                        .iter()
+                        .zip(weights)
+                        .fold(T::zero(), |sum, (&source, &weight)| {
+                            sum + previous[source] * weight
+                        })
+                };
+                if !sum.is_finite() {
+                    return Err(PreparedError::NumericOverflow {
+                        layer: layer_index + 1,
+                        neuron: index,
+                    });
+                }
+                let value = row.activation.apply(sum, row.steepness);
+                if !value.is_finite() {
+                    return Err(PreparedError::NumericOverflow {
+                        layer: layer_index + 1,
+                        neuron: index,
+                    });
+                }
+                target[index] = value;
             }
             if layer.bias {
                 target[layer.row_count] = T::one();

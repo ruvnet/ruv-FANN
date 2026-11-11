@@ -36,7 +36,7 @@ fn equivalence<T: Float + Debug>() {
         &[65, 65, 7],
         &[67, 25, 7],
     ] {
-        for topology in 0..3 {
+        for topology in 0..4 {
             let mut network = Network::<T>::new(shape);
             let weights = (0..network.total_connections())
                 .map(|i| T::from(((i * 17 % 31) as f64 - 15.0) / 64.0).unwrap())
@@ -54,12 +54,12 @@ fn equivalence<T: Float + Debug>() {
                     }
                 }
             }
-            for layer in network.layers.iter_mut().skip(1) {
+            for (layer_index, layer) in network.layers.iter_mut().enumerate().skip(1) {
                 for (index, neuron) in layer.neurons.iter_mut().filter(|n| !n.is_bias).enumerate() {
                     neuron.activation_function = ACTIVATIONS[index % ACTIVATIONS.len()];
                     neuron.activation_steepness =
                         T::from(if index % 2 == 0 { 0.75 } else { -1.25 }).unwrap();
-                    if topology == 1 {
+                    if topology == 1 || (topology == 3 && layer_index == 1) {
                         match index {
                             0 => neuron.connections.clear(),
                             1 => neuron.connections.reverse(),

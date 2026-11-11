@@ -214,3 +214,35 @@ fn dense_json_schema_shape_and_float64_round_trip() {
         value.to_bits()
     );
 }
+
+#[test]
+fn dense_constructor_caches_single_tiles_across_width_boundary() {
+    for width in [63, 64, 65] {
+        for biased in [false, true] {
+            let first = (0..width * 65)
+                .map(|i| ((i * 17 % 31) as f64 - 15.0) / 128.0)
+                .collect::<Vec<_>>();
+            let second = (0..65 * 5)
+                .map(|i| ((i * 11 % 23) as f64 - 11.0) / 128.0)
+                .collect::<Vec<_>>();
+            let first_bias = vec![0.125; 65];
+            let second_bias = vec![-0.25; 5];
+            let layers = [
+                layer(width, 65, &first, biased.then_some(first_bias.as_slice())),
+                layer(65, 5, &second, biased.then_some(second_bias.as_slice())),
+            ];
+            let prepared = PreparedNetwork::from_dense_layers(&layers).unwrap();
+            let mut scalar = legacy(&layers);
+            for sample in 0..8 {
+                let input = (0..width)
+                    .map(|i| (((i + sample) * 7 % 17) as f64 - 8.0) / 8.0)
+                    .collect::<Vec<_>>();
+                let expected = scalar.run(&input).unwrap();
+                let actual = run(&prepared, &input);
+                for (a, b) in actual.iter().zip(expected) {
+                    assert_eq!(a.to_bits(), b.to_bits(), "width={width}, biased={biased}");
+                }
+            }
+        }
+    }
+}
