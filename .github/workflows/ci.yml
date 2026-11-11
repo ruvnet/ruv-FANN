@@ -23,6 +23,13 @@ env:
   RUST_BACKTRACE: 1
 
 jobs:
+  # Current npm generation: core 0.2.0 plus twelve exact toolkit satellites.
+  # The former npm-modules.yml pair lane is manual/reusable for 0.1.2 refs only.
+  npm-toolkit:
+    uses: ./.github/workflows/wsp-toolkit.yml
+    with:
+      expected_sha: ${{ github.event.pull_request.head.sha || github.sha }}
+
   wasm-targets:
     uses: ./.github/workflows/wasm-build.yml
 

@@ -1,21 +1,14 @@
 name: npm modules
 
+# Frozen publication contract for the ruv-fann-wasm/ruv-fann 0.1.2 pair.
+# Invoke manually/reusably at a legacy source ref only. Current core and
+# satellite qualification lives in wsp-toolkit.yml and is called by CI.
 on:
   workflow_call:
     inputs:
       release_tag:
         required: false
         type: string
-  pull_request:
-    branches: [main]
-    paths:
-      - 'packages/wasm/**'
-      # Frozen 0.1.x WASM/core pair. Core 0.2.0 and its exact satellite
-      # dependency graph are qualified together by wsp-toolkit.yml.
-      - 'scripts/npm-modules-*.mjs'
-      - 'scripts/npm-release-*.mjs'
-      - '.github/workflows/npm-modules.yml'
-      - '.github/workflows/protected-npm-modules.yml'
   workflow_dispatch:
 
 permissions:
@@ -31,6 +24,15 @@ jobs:
         with:
           persist-credentials: false
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Require the frozen legacy package generation
+        run: |
+          node --input-type=module <<'JS'
+          import {readFileSync} from 'node:fs';
+          const core=JSON.parse(readFileSync('packages/core/package.json','utf8'));
+          const wasm=JSON.parse(readFileSync('packages/wasm/package.json','utf8'));
+          if(core.version!=='0.1.2'||wasm.version!=='0.1.2'||core.dependencies?.['ruv-fann-wasm']!=='0.1.2')
+            throw Error('This manual legacy lane qualifies only the frozen core/WASM 0.1.2 pair; use wsp-toolkit.yml for core 0.2.0 and its satellites.');
+          JS
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22.13.0'
