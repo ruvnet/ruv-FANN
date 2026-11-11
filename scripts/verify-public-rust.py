@@ -9,6 +9,7 @@ import re
 from pathlib import Path
 import shutil
 import subprocess
+import tarfile
 import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,10 +17,50 @@ spec = importlib.util.spec_from_file_location('cargo_publisher', ROOT / 'scripts
 publisher = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(publisher)
 REQUIRED_CASES = ['candle-public-inference', 'sgd-three-step-gradients', 'adamw-three-step-gradients']
+PACKED_TESTS = ['training_backprop_equivalence', 'prepared_single_tiles', 'prepared_wide_overflow_layers', 'prepared_allocations']
+PACKED_COMMAND = ['cargo', 'test', '--locked', '--no-default-features',
+                  *[value for name in PACKED_TESTS for value in ('--test', name)], '--', '--test-threads=1']
 
 
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def extract_public_root(archive, destination):
+    """Extract regular files/directories from the checksum-verified public root only."""
+    prefix = 'ruv-fann-0.2.3'
+    destination.mkdir()
+    with tarfile.open(archive, 'r:gz') as stream:
+        members = stream.getmembers()
+        names = set()
+        for member in members:
+            parts = Path(member.name).parts
+            if (not parts or parts[0] != prefix or member.name.startswith('/')
+                    or '\\' in member.name or ':' in member.name or '..' in parts
+                    or not (member.isfile() or member.isdir()) or member.name in names):
+                raise ValueError('Unsafe or duplicate public archive member: ' + member.name)
+            names.add(member.name)
+        for member in members:
+            target = destination.joinpath(*Path(member.name).parts)
+            if member.isdir():
+                target.mkdir(parents=True, exist_ok=True)
+            else:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                with stream.extractfile(member) as source, target.open('xb') as output:
+                    shutil.copyfileobj(source, output)
+    root = destination / prefix
+    for name in PACKED_TESTS:
+        if not (root / 'tests' / (name + '.rs')).is_file():
+            raise ValueError('Required public artifact test missing: ' + name)
+    return root
+
+
+def test_summaries(output):
+    rows = re.findall(r'^test result: ok\. (\d+) passed; (\d+) failed; (\d+) ignored; (\d+) measured; (\d+) filtered out;', output, re.MULTILINE)
+    summaries = [dict(zip(('passed', 'failed', 'ignored', 'measured', 'filtered'), map(int, row))) for row in rows]
+    if len(summaries) != 4 or any(row['passed'] <= 0 or any(row[key] != 0 for key in ('failed', 'ignored', 'measured', 'filtered')) for row in summaries):
+        raise ValueError('Packed public tests require four nonempty zero-failure/skip summaries')
+    return summaries
 
 
 def validate(receipt, publication, source):
@@ -47,6 +88,17 @@ def validate(receipt, publication, source):
     expected = {'ruv-fann': '0.2.3', 'ruv-fann-candle': '0.1.1'}
     if receipt.get('versions') != expected or not re.fullmatch('[a-f0-9]{64}', receipt.get('fixtureSha256', '')):
         raise ValueError('Wrong public consumer versions or missing actual Candle fixture')
+    packed = receipt.get('packedArtifactQualification', {})
+    command = packed.get('command', {})
+    root = next((row for row in rows if row['name'] == 'ruv-fann' and row['version'] == '0.2.3'), {})
+    summaries = packed.get('summaries', [])
+    if (packed.get('archiveSha256') != root.get('sha256') or not root
+            or command.get('command') != PACKED_COMMAND or command.get('exit_code') != 0
+            or not re.fullmatch('[a-f0-9]{64}', command.get('logSha256', ''))
+            or len(summaries) != 4 or any(not isinstance(row.get('passed'), int) or row['passed'] <= 0
+                or any(row.get(key) != 0 for key in ('failed', 'ignored', 'measured', 'filtered')) for row in summaries)
+            or packed.get('tests') != sum(row['passed'] for row in summaries)):
+        raise ValueError('Missing, unbound, empty, skipped or failed packed public artifact qualification')
 
 
 def main():
@@ -77,7 +129,8 @@ def main():
         if (data['name'], data['vers']) != (row['name'], row['version']):
             raise ValueError('Public crate identity mismatch')
         rows.append({key: row[key] for key in ('name', 'version', 'sha256')})
-    rust = base / 'rust-public-consumer'
+    # The explicit npm-full mode has its own legacy rust-public-consumer folder.
+    rust = base / 'rust-public-api-consumer'
     (rust / 'src').mkdir(parents=True)
     (rust / 'Cargo.toml').write_text('''[package]
 name="ruv-fann-public-release-consumer"
@@ -116,10 +169,25 @@ serde_json={version="=1.0.154",features=["float_roundtrip"]}
                 or len(locked) != 1 or locked[0].get('checksum') != public['sha256']):
             raise ValueError('Consumer did not resolve exact canonical public bytes: ' + name)
     result = json.loads(run(['cargo', 'run', '--locked', '--release', '--quiet', '--', str(fixture)]))
+    root_archive = archives / 'ruv-fann-0.2.3.crate'
+    root_record = next(row for row in rows if row['name'] == 'ruv-fann' and row['version'] == '0.2.3')
+    if digest(root_archive) != root_record['sha256']:
+        raise ValueError('Canonical public root changed before packed qualification')
+    extracted = extract_public_root(root_archive, base / 'public-root-extracted')
+    packed_result = subprocess.run(PACKED_COMMAND, cwd=extracted, env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    packed_output = packed_result.stdout + '\n' + packed_result.stderr
+    packed_log = base / 'public-rust-packed.log'
+    packed_log.write_text(packed_output)
+    if packed_result.returncode:
+        raise RuntimeError('Packed public root tests failed; see ' + str(packed_log))
+    summaries = test_summaries(packed_output)
+    packed = {'archiveSha256': root_record['sha256'], 'tests': sum(row['passed'] for row in summaries),
+              'summaries': summaries, 'command': {'command': PACKED_COMMAND,
+              'exit_code': packed_result.returncode, 'logSha256': digest(packed_log)}}
     receipt = {'schema': 'ruv-fann.public-rust-consumer/1', 'sourceSha': source,
                'fixtureSha256': digest(fixture), 'consumerSourceSha256': digest(rust / 'src/main.rs'),
                'lockSha256': digest(rust / 'Cargo.lock'), 'versions': versions,
-               'commands': commands, 'result': result, 'crates': rows}
+               'commands': commands, 'result': result, 'crates': rows, 'packedArtifactQualification': packed}
     validate(receipt, publication, source)
     with (base / 'public-rust-consumers.json').open('x') as stream:
         json.dump(receipt, stream, indent=2)

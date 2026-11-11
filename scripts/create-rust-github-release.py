@@ -109,6 +109,10 @@ def main():
         if digest(log) != command['logSha256']:
             raise ValueError('Public consumer command log changed')
         shutil.copyfile(log, assets / log.name)
+    packed_log = base / 'public-rust-packed.log'
+    if digest(packed_log) != receipts['public-rust-consumers']['packedArtifactQualification']['command']['logSha256']:
+        raise ValueError('Packed public artifact command log changed')
+    shutil.copyfile(packed_log, assets / packed_log.name)
     manifest = {path.name: digest(path) for path in assets.iterdir()}
     (assets / 'SHA256SUMS').write_text(''.join(f'{value}  {name}\n' for name, value in sorted(manifest.items())))
     manifest['SHA256SUMS'] = digest(assets / 'SHA256SUMS')

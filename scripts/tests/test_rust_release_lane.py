@@ -1,11 +1,13 @@
 import copy
 import hashlib
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
 import shutil
 import tempfile
+import tarfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -89,6 +91,11 @@ def receipts(base):
                 'consumerSourceSha256': release.digest(ROOT / 'scripts/fixtures/public-rust-consumer.rs'),
                 'result': {'cases': public.REQUIRED_CASES, 'tests': 3, 'checks': 300, 'failures': 0, 'skipped': 0},
                 'crates': [{key: row[key] for key in ('name', 'version', 'sha256')} for row in rows]}
+    packed_log = base / 'public-rust-packed.log'
+    packed_log.write_text('packed public artifact command output fixture')
+    consumer['packedArtifactQualification'] = {'archiveSha256': rows[0]['sha256'], 'tests': 8,
+        'summaries': [{'passed': 2, 'failed': 0, 'ignored': 0, 'measured': 0, 'filtered': 0} for _ in range(4)],
+        'command': {'command': public.PACKED_COMMAND, 'exit_code': 0, 'logSha256': release.digest(packed_log)}}
     ci = {'schema': 'ruv-fann.rust-candidate-ci/1', 'sourceSha': SOURCE, 'jobs': [{'conclusion': 'success'}]}
     for name, data in [('cargo-publication', publication), ('cargo-candidate-check', publication), ('public-rust-consumers', consumer), ('validated-ci', ci)]:
         (base / f'{name}.json').write_text(json.dumps(data))
@@ -110,12 +117,55 @@ class PublicRustReceiptTests(unittest.TestCase):
                          lambda r: r['result'].update(checks=0), lambda r: r['result'].update(skipped=1),
                          lambda r: r['result'].update(failures=1), lambda r: r['commands'][0].update(exit_code=1),
                          lambda r: r['commands'][1].update(command=['true']), lambda r: r.update(consumerSourceSha256='0' * 64),
+                         lambda r: r.pop('packedArtifactQualification'),
+                         lambda r: r['packedArtifactQualification'].update(archiveSha256='0' * 64),
+                         lambda r: r['packedArtifactQualification']['summaries'][0].update(passed=0),
+                         lambda r: r['packedArtifactQualification']['summaries'][0].update(ignored=1),
+                         lambda r: r['packedArtifactQualification']['summaries'][0].update(failed=1),
+                         lambda r: r['packedArtifactQualification']['command'].update(exit_code=1),
+                         lambda r: r['packedArtifactQualification']['command'].update(command=['true']),
                          lambda r: r['crates'].pop(), lambda r: r['crates'][0].update(sha256='0' * 64)]
             for mutate in mutations:
                 changed = copy.deepcopy(consumer)
                 mutate(changed)
                 with self.assertRaises(ValueError):
                     public.validate(changed, publication, SOURCE)
+
+    def test_packed_summary_parser_rejects_zero_skipped_failed_filtered_and_missing_suites(self):
+        summary = 'test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s\n'
+        self.assertEqual(len(public.test_summaries(summary * 4)), 4)
+        for bad in (summary * 3, summary.replace('2 passed', '0 passed') * 4,
+                    summary.replace('0 failed', '1 failed') * 4,
+                    summary.replace('0 ignored', '1 ignored') * 4,
+                    summary.replace('0 filtered', '1 filtered') * 4):
+            with self.assertRaises(ValueError):
+                public.test_summaries(bad)
+
+    def test_public_archive_extraction_requires_safe_regular_packaged_test_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            archive = base / 'public.crate'
+            def write(extra=None):
+                with tarfile.open(archive, 'w:gz') as stream:
+                    for name in public.PACKED_TESTS:
+                        info = tarfile.TarInfo('ruv-fann-0.2.3/tests/' + name + '.rs')
+                        info.size = 1
+                        stream.addfile(info, io.BytesIO(b'x'))
+                    if extra is not None:
+                        stream.addfile(extra)
+            write()
+            root = public.extract_public_root(archive, base / 'good')
+            self.assertTrue((root / 'tests/prepared_single_tiles.rs').is_file())
+            for index, name in enumerate(('ruv-fann-0.2.3/../../escape', '/escape', 'other-root/test')):
+                write(tarfile.TarInfo(name))
+                with self.assertRaises(ValueError):
+                    public.extract_public_root(archive, base / f'bad-{index}')
+            link = tarfile.TarInfo('ruv-fann-0.2.3/symlink')
+            link.type = tarfile.SYMTYPE
+            link.linkname = '/escape'
+            write(link)
+            with self.assertRaises(ValueError):
+                public.extract_public_root(archive, base / 'bad-link')
 
 
 class RustGitHubReleaseTests(unittest.TestCase):
@@ -153,7 +203,7 @@ class RustGitHubReleaseTests(unittest.TestCase):
                     release.main()
                     result = json.loads((base / 'github-release.json').read_text())
                     self.assertEqual(result['tagSourceSha'], SOURCE)
-                    self.assertEqual(len(result['assets']), 42)
+                    self.assertEqual(len(result['assets']), 43)
                     self.assertEqual(result['status'], 'already-released' if existing else 'published-and-byte-verified')
     def test_every_public_asset_and_source_tag_verified(self):
         self.exercise()
@@ -167,6 +217,8 @@ class RustGitHubReleaseTests(unittest.TestCase):
         self.exercise(missing_performance=True)
     def test_corrupt_performance_evidence_cannot_publish(self):
         self.exercise(corruption='rust-0.2.3-evidence.tar.gz')
+    def test_corrupt_packed_public_test_log_cannot_publish(self):
+        self.exercise(corruption='public-rust-packed.log')
     def test_existing_release_requires_every_receipt_and_asset_identical(self):
         self.exercise(existing=True)
         self.exercise(existing=True, corruption='cargo-publication.json')

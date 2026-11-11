@@ -30,8 +30,13 @@ The 27-crate inventory remains mandatory, including versions already public.
    lock checksums must equal the public archive hashes. Compile and execute
    real Candle prepare/export, root inference, parameter/input gradients,
    three-step SGD and AdamW, and immutable frozen snapshots against the actual
-   pinned Candle CPU f64 fixture. Every comparison executes; the producer emits
-   its source-bound receipt only after all commands succeed with nonzero checks,
+   pinned Candle CPU f64 fixture. Every comparison executes. The producer records
+   a separate archive-checksum-bound qualification by safely extracting the public
+   root archive and executing its packaged backpropagation equivalence, single
+   tile, wide overflow and allocation integration tests with the same virgin
+   Cargo home. Four nonempty test summaries must report zero failures, ignored
+   tests and filtered tests; retain the owned command log as a release asset.
+   It emits its source-bound receipt only after all commands succeed with nonzero checks,
    zero failures and zero skips. Preserve command logs and hashes.
 6. Create the Rust GitHub release as a draft with canonical public archives,
    candidate/public/CI receipts, actual fixture and command logs. The accepted
