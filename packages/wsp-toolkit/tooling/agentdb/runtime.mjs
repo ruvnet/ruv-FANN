@@ -1,5 +1,10 @@
 import { createAgentDBRegistry } from '../../packages/registry/src/index.js';
 
+// This private fixture deliberately exercises AgentDB's buffered WASM backend.
+// Optional native SQLite availability must not change disk-flush failure oracles.
+// Published registry adapters never select or alter the caller's database backend.
+process.env.AGENTDB_FORCE_SQLJS = '1';
+
 /** Explicit integration fixture. Dependencies are installed by setup, never here. */
 export async function openDemoRegistry(filename, registryFactory = createAgentDBRegistry) {
   if (typeof filename !== 'string' || filename.length < 1 || filename.length > 4096 || /[\x00-\x1f]/.test(filename))
