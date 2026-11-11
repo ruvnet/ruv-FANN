@@ -11,7 +11,8 @@ are release candidates until publication is verified in the registry.
   crates.io 0.2.2 holds the older copies (#221). No code or dependency change.
   Dependents that pin the root move with it: ruv-fann-candle 0.1.1,
   neuro-divergent{,-core,-models,-training} 0.2.1, ruv-swarm-ml and
-  ruv-swarm-wasm 1.0.7.
+  ruv-swarm-wasm 1.0.7, and ruv-swarm-wasm-unified 2.0.1 (its archive embeds a
+  Cargo.lock that resolves both).
 
 ## [0.2.2] - 2026-11-09
 
