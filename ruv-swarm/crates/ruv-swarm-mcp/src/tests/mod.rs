@@ -9,7 +9,7 @@ use ruv_swarm_core::SwarmConfig;
 
 #[test]
 fn test_version_info() {
-    assert_eq!(env!("CARGO_PKG_VERSION"), "1.0.7");
+    assert_eq!(env!("CARGO_PKG_VERSION"), "1.0.8");
 }
 
 #[tokio::test]
