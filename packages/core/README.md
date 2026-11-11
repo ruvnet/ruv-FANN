@@ -4,11 +4,11 @@ Build small neural networks you can **run, train, inspect and change locally**. 
 
 <p align="center">
   <a href="https://ruvnet.github.io/ruv-FANN/">
-    <img src="https://raw.githubusercontent.com/ruvnet/ruv-FANN/main/packages/core/assets/weight-toolkit.svg" alt="Animated ruv-fann weight programming diagram: run a neural network, propose a bounded weight edit, validate independent gates and explicitly promote a revision." width="1200">
+    <img src="https://raw.githubusercontent.com/ruvnet/ruv-FANN/e573ed708dcc4a5705990f3a8991deaefcf8be74/packages/core/assets/weight-toolkit.svg" alt="Animated ruv-fann weight programming diagram: run a neural network, propose a bounded weight edit, validate independent gates and explicitly promote a revision." width="1200">
   </a>
 </p>
 
-[Explore the interactive field guide and live WASM demo](https://ruvnet.github.io/ruv-FANN/) · [View the illustrated workflow](https://raw.githubusercontent.com/ruvnet/ruv-FANN/main/packages/core/assets/weight-toolkit.svg)
+[Explore the interactive field guide and live WASM demo](https://ruvnet.github.io/ruv-FANN/) · [View the illustrated workflow](https://raw.githubusercontent.com/ruvnet/ruv-FANN/e573ed708dcc4a5705990f3a8991deaefcf8be74/packages/core/assets/weight-toolkit.svg)
 
 [![npm version](https://img.shields.io/npm/v/ruv-fann?color=2d7068)](https://www.npmjs.com/package/ruv-fann)
 [![License: MIT](https://img.shields.io/badge/license-MIT-172c2b)](https://github.com/ruvnet/ruv-FANN/blob/main/packages/core/LICENSE)

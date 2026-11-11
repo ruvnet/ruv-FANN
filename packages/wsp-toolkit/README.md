@@ -2,7 +2,7 @@
 
 Build a local improvement loop for small dense neural networks: propose a bounded weight edit, evaluate independent cases, check finite-domain output rules and explicitly activate a revision through your application's authority. Twelve ESM/TypeScript packages expose focused APIs for search, validation, worker coordination, checkpoint transport and package discovery.
 
-[![Bounded neural weight evolution: proposal workers feed independent holdout and invariant gates, then AgentDB revision CAS and explicit rollback.](https://raw.githubusercontent.com/ruvnet/ruv-FANN/main/docs/assets/wsp-toolkit-loop.svg)](https://ruvnet.github.io/ruv-FANN/)
+[![Bounded neural weight evolution: proposal workers feed independent holdout and invariant gates, then AgentDB revision CAS and explicit rollback.](https://raw.githubusercontent.com/ruvnet/ruv-FANN/e573ed708dcc4a5705990f3a8991deaefcf8be74/docs/assets/wsp-toolkit-loop.svg)](https://ruvnet.github.io/ruv-FANN/)
 
 **[Explore the illustrated field guide and real WASM demo →](https://ruvnet.github.io/ruv-FANN/)**
 

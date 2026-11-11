@@ -93,7 +93,7 @@ of those results and their limits.
 
 ## Bounded weight improvement with independent evaluation
 
-[![Workers propose weight edits, independent holdout and finite-domain gates check candidates, and AgentDB controls revision CAS and explicit rollback.](https://raw.githubusercontent.com/ruvnet/ruv-FANN/main/docs/assets/wsp-toolkit-loop.svg)](https://ruvnet.github.io/ruv-FANN/)
+[![Workers propose weight edits, independent holdout and finite-domain gates check candidates, and AgentDB controls revision CAS and explicit rollback.](https://raw.githubusercontent.com/ruvnet/ruv-FANN/e573ed708dcc4a5705990f3a8991deaefcf8be74/docs/assets/wsp-toolkit-loop.svg)](https://ruvnet.github.io/ruv-FANN/)
 
 **[Explore the animated field guide →](https://ruvnet.github.io/ruv-FANN/)**
 
