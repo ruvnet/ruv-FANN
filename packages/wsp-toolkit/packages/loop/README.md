@@ -1,6 +1,20 @@
-# ruv-fann-wsp-loop
+# ruv-fann-wsp-loop — bounded neural weight evolution
+
+Coordinate proposal workers, independent held-out suites, finite-domain checks and a supplied revision authority. Runs stop at explicit work, proposal, round, deadline and cancellation limits.
+
+**Topics:** adaptive neural weights · independent holdouts · proposal workers · explicit revision promotion.
+
+```sh
+npm install ruv-fann-wsp-loop@0.1.0
+```
+
+[Package on npm](https://www.npmjs.com/package/ruv-fann-wsp-loop) · [Core 0.2.0 entrypoint: `ruv-fann/loop`](https://github.com/ruvnet/ruv-FANN/tree/main/packages/core#capability-entrypoints) · [Interactive ruv-fann field guide](https://ruvnet.github.io/ruv-FANN/) · [Toolkit API and release guide](https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit#readme)
+
+Choose this standalone package for its declared dependency footprint, or use `ruv-fann/loop` from the complete `ruv-fann@0.2.0` facade. Package version: **0.1.0**. [Umbrella release and evidence](https://github.com/ruvnet/ruv-FANN/releases/tag/ruv-fann-toolkit-v0.2.0).
 
 A bounded, local autonomous weight-evolution coordinator. Fixed-operation worker threads propose patches; the coordinator independently evaluates trusted regression suites and output constraints; AgentDB's internal proposal IDs and expected revisions authorize local checkpoint promotion. The loop runs no generated code, provider requests, shell commands, public publishing or financial transactions.
+
+Integration sketch: the registry must already contain the module, and the named datasets/constraints below are application-owned inputs. For a complete persistent example, run `npm run demo:loop` from the source toolkit workspace.
 
 ```js
 import { runEvolutionLoop } from 'ruv-fann-wsp-loop';

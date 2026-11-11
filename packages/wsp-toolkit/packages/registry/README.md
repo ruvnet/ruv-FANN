@@ -1,4 +1,16 @@
-# ruv-fann-wsp-registry
+# ruv-fann-wsp-registry — AgentDB revisions and durability acknowledgement
+
+Adapt an application-owned AgentDB WeightPrograms controller into a bounded serialized API. Explicit persistence callbacks distinguish an acknowledged durable mutation from a memory-only update.
+
+**Topics:** AgentDB weight programs · revision CAS · durable acknowledgements · rollback history.
+
+```sh
+npm install ruv-fann-wsp-registry@0.1.0
+```
+
+[Package on npm](https://www.npmjs.com/package/ruv-fann-wsp-registry) · [Core 0.2.0 entrypoint: `ruv-fann/registry`](https://github.com/ruvnet/ruv-FANN/tree/main/packages/core#capability-entrypoints) · [Interactive ruv-fann field guide](https://ruvnet.github.io/ruv-FANN/) · [Toolkit API and release guide](https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit#readme)
+
+Choose this standalone package for its declared dependency footprint, or use `ruv-fann/registry` from the complete `ruv-fann@0.2.0` facade. Package version: **0.1.0**. [Umbrella release and evidence](https://github.com/ruvnet/ruv-FANN/releases/tag/ruv-fann-toolkit-v0.2.0).
 
 Adapt a caller-owned real AgentDB `WeightPrograms` controller into a serialized promise API with explicit persistence acknowledgement. ESM, Node 20.9+. AgentDB 3.10.0 is an optional peer; the library never installs it or opens a database automatically.
 

@@ -1,11 +1,25 @@
-# ruv-fann-wsp-search
+# ruv-fann-wsp-search — bounded neural weight search
+
+Search a small, explicit set of neural parameters using real WASM predictions. Reuse the baseline measurement, screen bounded candidates and independently validate the winner before asking your application to activate it.
+
+**Topics:** weight-space programming · coordinate search · Boolean truth tables · Hebbian proposals.
+
+```sh
+npm install ruv-fann-wsp-search@0.1.0
+```
+
+[Package on npm](https://www.npmjs.com/package/ruv-fann-wsp-search) · [Core 0.2.0 entrypoint: `ruv-fann/search`](https://github.com/ruvnet/ruv-FANN/tree/main/packages/core#capability-entrypoints) · [Interactive ruv-fann field guide](https://ruvnet.github.io/ruv-FANN/) · [Toolkit API and release guide](https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit#readme)
+
+Choose this standalone package for its declared dependency footprint, or use `ruv-fann/search` from the complete `ruv-fann@0.2.0` facade. Package version: **0.1.0**. [Umbrella release and evidence](https://github.com/ruvnet/ruv-FANN/releases/tag/ruv-fann-toolkit-v0.2.0).
 
 Bounded discrete coordinate search with real WASM inference, plus explicit experimental truth-table compilation and Hebbian patch proposals. ESM, Node 20.9+ and secure-context browsers. Depends on `ruv-fann-wsp@0.2.0` and `ruv-fann@0.1.2`.
+
+Integration sketch: supply `model`, `developmentCases` and your trusted acceptance policy. Keep independent holdout cases away from search.
 
 ```js
 import { searchWeightPatch } from 'ruv-fann-wsp-search';
 
-const result = await searchWeightPatch(model, heldOutCases, {
+const result = await searchWeightPatch(model, developmentCases, {
   maxMSE: 0, maxRegressionMSE: 0
 }, {
   locations: [

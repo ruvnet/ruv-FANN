@@ -1,6 +1,18 @@
-# ruvnet-constellation
+# ruvnet-constellation — discover, plan and scaffold useful packages
 
-A lightweight explicit onramp for a constellation of independently useful packages. ESM, Node 20.9+. Its only runtime dependency is `ruvnet-constellation-contracts@0.1.0`; no ML runtime, model, provider or telemetry collector is pulled in by this package. This source candidate has not been published.
+Explore a supplied package catalog, build an explicit installation plan and scaffold a reviewable local adapter. The onramp installs nothing automatically and keeps namespace proposals separate from ownership proof.
+
+**Topics:** package discovery · explicit install plans · local scaffolding · modular integrations.
+
+```sh
+npm install ruvnet-constellation@0.1.0
+```
+
+[Package on npm](https://www.npmjs.com/package/ruvnet-constellation) · [Core 0.2.0 entrypoint: `ruv-fann/constellation`](https://github.com/ruvnet/ruv-FANN/tree/main/packages/core#capability-entrypoints) · [Interactive ruv-fann field guide](https://ruvnet.github.io/ruv-FANN/) · [Toolkit API and release guide](https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit#readme)
+
+Choose this standalone package for its declared dependency footprint, or use `ruv-fann/constellation` from the complete `ruv-fann@0.2.0` facade. Package version: **0.1.0**. [Umbrella release and evidence](https://github.com/ruvnet/ruv-FANN/releases/tag/ruv-fann-toolkit-v0.2.0).
+
+A lightweight explicit onramp for a constellation of independently useful packages. ESM, Node 20.9+. Its only runtime dependency is `ruvnet-constellation-contracts@0.1.0`; no ML runtime, model, provider or telemetry collector is pulled in by this package.
 
 ```sh
 constellation help

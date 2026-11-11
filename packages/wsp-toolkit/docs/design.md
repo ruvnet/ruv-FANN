@@ -1,5 +1,7 @@
 # WSP toolkit delivery contract
 
+Status: Implemented source architecture. Updated: 2026-11-11. Publication is a separate exact-artifact operation; see [ADR-012](../../../docs/adr/ADR-012-weight-toolkit-release.md).
+
 ## Outcome and scope
 
 Deliver independent ESM/TypeScript subpackages around published `ruv-fann-wsp@0.2.0` with real WASM validation. Keep the existing WSP API unchanged. Actors are local developers, checkpoint reviewers and bounded patch generators. No generated code execution or implicit model promotion. No claim to edit transformer/safetensors checkpoints or validate arbitrary safety tasks.
@@ -23,4 +25,4 @@ Unit tests cover malformed data, bounds, stale revisions and regression rejectio
 
 ## Architecture decision
 
-Use an isolated npm workspace under `packages/wsp-toolkit` rather than adding experimental dependencies to the repository's native/swarm root workspace. Independent packages allow platform adapters and experiments to evolve without inflating the core runtime or changing protected release lanes. Cloudflare operations are stateless; application owners must supply authentication and durable state before exposing a production mutation API. This task prepares and validates artifacts; it does not publish packages or replace existing deployments.
+Use an isolated npm workspace under `packages/wsp-toolkit` rather than adding experimental dependencies to the repository's native/swarm root workspace. Independent packages allow focused installations. Core 0.2.0 additionally offers a complete facade with fourteen explicit subpaths and exact satellite dependencies; its root entrypoint still imports only the numerical runtime. Existing satellite/WSP core 0.1.2 pins remain intact as a finite nested graph. Cloudflare operations are stateless; application owners must supply authentication and durable state before exposing a production mutation API. The new protected toolkit lane qualifies thirteen exact archives and carries those bytes through dependency-ordered publication and public installed-consumer verification. The pre-existing WSP publisher remains separate. No hosted Worker deployment or production checkpoint change follows implicitly from publishing npm packages.

@@ -1,4 +1,16 @@
-# ruv-fann-wsp-ruos
+# ruv-fann-wsp-ruos — WASM canaries and executor completion checks
+
+Run a real numerical lifecycle canary and check trusted executor-owned completion metadata. Use this for operational validation of a supplied host; a matching response is a consistency check, not cryptographic attestation.
+
+**Topics:** ruOS validation · WASM canary · checkpoint rollback · executor completion.
+
+```sh
+npm install ruv-fann-wsp-ruos@0.1.0
+```
+
+[Package on npm](https://www.npmjs.com/package/ruv-fann-wsp-ruos) · [Core 0.2.0 entrypoint: `ruv-fann/ruos`](https://github.com/ruvnet/ruv-FANN/tree/main/packages/core#capability-entrypoints) · [Interactive ruv-fann field guide](https://ruvnet.github.io/ruv-FANN/) · [Toolkit API and release guide](https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit#readme)
+
+Choose this standalone package for its declared dependency footprint, or use `ruv-fann/ruos` from the complete `ruv-fann@0.2.0` facade. Package version: **0.1.0**. [Umbrella release and evidence](https://github.com/ruvnet/ruv-FANN/releases/tag/ruv-fann-toolkit-v0.2.0).
 
 `runWasmCanary()` exercises the real scalar WASM backend: two-weight XOR repair, exhaustive activation oracle, rejected neuron ablation, numerical sensitivity and revision-safe rollback. It throws on any failed assertion. This Node/browser function has no desktop connection or credentials.
 

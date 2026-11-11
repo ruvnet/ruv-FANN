@@ -1,6 +1,8 @@
-# Autonomous loop qualification
+# Autonomous loop qualification — historical generation and current release gates
 
-The implementation adds four local packages to the original five-package toolkit: `invariants`, `swarm`, `registry`, and `loop`, each version 0.1.0. The selected architecture and control-flow contract are in [loop-design.md](loop-design.md). Existing uncommitted toolkit work and the core WSP API are preserved.
+Status: Historical loop-generation evidence plus current regression requirements. Updated: 2026-11-11.
+
+The original implementation added four local packages to the original five-package toolkit: `invariants`, `swarm`, `registry`, and `loop`, each version 0.1.0. The selected architecture and control-flow contract are in [loop-design.md](loop-design.md). The core WSP API and recorded historical receipts are preserved. Current release qualification covers core 0.2.0 plus all twelve toolkit packages and is source/archive-bound separately.
 
 ## Run
 
@@ -33,7 +35,7 @@ Setup explicitly installs the separate locked AgentDB runtime with optional depe
 | Existing edge compatibility | Original Chromium and workerd tests | Existing browser/Cloudflare operations still run actual WASM; the Node-only loop is not bundled into them |
 | Supply-chain qualification | `scripts/validate.mjs` | Root audit and isolated AgentDB installed-tree audit report zero known advisories |
 
-The loop-specific suite contains 47 tests: 14 invariants, 10 swarm, 8 registry and 15 coordinator tests. The integrated workspace contains 94 tests, including the original 47. Final Node 22/24 receipts are saved separately under `docs/evidence/loop-node-*-validation.json`; initial five-package receipts remain historical evidence. Live Hub/ruOS results from the earlier task apply to the original packages and are not presented as a remote run of this loop.
+The historical loop-specific suite captured on 2026-11-11 contained 47 tests: 14 invariants, 10 swarm, 8 registry and 15 coordinator tests. That generation's integrated workspace contained 94 tests, including the original 47. Its Node 22/24 receipts are retained separately under `docs/evidence/loop-node-*-validation.json`; initial five-package receipts remain historical evidence. Live Hub/ruOS results from the earlier task apply to the original packages and are not presented as a remote run of this loop.
 
 ## Demonstrated loop
 
@@ -55,4 +57,10 @@ The AgentDB capability is a local trusted dependency, not an identity or authori
 
 The cloud executor is current and available. Live Ruflo and AgentDB runtime connector probes returned internal errors, so no execution or persistence is attributed to those connectors. Platform subagents performed the engineering work; the implementation itself uses real local Node workers and real `agentdb@3.10.0` with sql.js. The fixture omits optional native drivers, embedding/model packages and telemetry integrations. No provider credentials are copied, no model downloaded, and no external agent jobs or public federation messages are started.
 
-RuVector semantic retrieval, MetaHarness/Agentic Flow routing, generated source packages, public npm publication, hardware actuation, cryptographic alignment guarantees and autonomous financial contracting remain outside this implementation. The adapter/capability boundaries leave room for those integrations without pretending that absent runtimes executed them.
+RuVector semantic retrieval, MetaHarness/Agentic Flow routing, generated source packages, hardware actuation, cryptographic alignment guarantees and autonomous financial contracting remain outside this implementation. The adapter/capability boundaries leave room for those integrations without pretending that absent runtimes executed them.
+
+## Current release qualification additions
+
+The protected thirteen-package lane carries one set of core/satellite archive bytes through Node.js 22/24, strict installed TypeScript, real Chromium/WASM and public installed-consumer checks. New release regressions cover live-record revision CAS, captured authority capabilities, asynchronous objective rejection cleanup, AbortSignal shadowing and Hub streamed-body deadlines. The isolated AgentDB fixture selects sql.js before importing the real controller, making persistence-failure tests independent of optional native driver availability; the published adapter does not change the host environment.
+
+Final source SHA, zero-skip test counts, archive digests, security results and post-publication outcomes belong to the current workflow artifacts and umbrella release `ruv-fann-toolkit-v0.2.0`. Historical JSON receipts are not edited or relabeled as current qualification. Publication remains outside the evolution loop itself.

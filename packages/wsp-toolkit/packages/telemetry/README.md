@@ -1,6 +1,20 @@
-# ruvnet-constellation-telemetry
+# ruvnet-constellation-telemetry — public package observations and local dashboards
+
+Collect public package observations only when invoked, then render a standalone HTML dashboard. Joint adoption needs a separate consenting project sample; download correlations cannot establish an attach rate.
+
+**Topics:** npm download observations · GitHub activity · consenting adoption samples · offline dashboard.
+
+```sh
+npm install ruvnet-constellation-telemetry@0.1.0
+```
+
+[Package on npm](https://www.npmjs.com/package/ruvnet-constellation-telemetry) · [Core 0.2.0 entrypoint: `ruv-fann/telemetry`](https://github.com/ruvnet/ruv-FANN/tree/main/packages/core#capability-entrypoints) · [Interactive ruv-fann field guide](https://ruvnet.github.io/ruv-FANN/) · [Toolkit API and release guide](https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit#readme)
+
+Choose this standalone package for its declared dependency footprint, or use `ruv-fann/telemetry` from the complete `ruv-fann@0.2.0` facade. Package version: **0.1.0**. [Umbrella release and evidence](https://github.com/ruvnet/ruv-FANN/releases/tag/ruv-fann-toolkit-v0.2.0).
 
 Dependency-free public package observations, explicitly sampled project attach metrics, and a standalone interactive dashboard. ESM; Node 20.9+; no install hooks, SDKs, provider calls, hidden collection or uploads.
+
+Integration sketch: supply a validated constellation `catalog`; the call performs explicit public network reads.
 
 ```js
 import { collectPublicMetrics, analyzeConstellation, renderConstellationDashboard }

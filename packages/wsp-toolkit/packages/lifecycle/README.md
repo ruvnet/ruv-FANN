@@ -1,4 +1,16 @@
-# ruv-fann-wsp-lifecycle
+# ruv-fann-wsp-lifecycle — regression gates and checkpoint branches
+
+Evaluate several named datasets against the same bounded weight patch, or compare isolated candidate snapshots. A passing result is evidence; your application still controls promotion.
+
+**Topics:** neural model regression testing · independent holdouts · checkpoint branches · CI gates.
+
+```sh
+npm install ruv-fann-wsp-lifecycle@0.1.0
+```
+
+[Package on npm](https://www.npmjs.com/package/ruv-fann-wsp-lifecycle) · [Core 0.2.0 entrypoint: `ruv-fann/lifecycle`](https://github.com/ruvnet/ruv-FANN/tree/main/packages/core#capability-entrypoints) · [Interactive ruv-fann field guide](https://ruvnet.github.io/ruv-FANN/) · [Toolkit API and release guide](https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit#readme)
+
+Choose this standalone package for its declared dependency footprint, or use `ruv-fann/lifecycle` from the complete `ruv-fann@0.2.0` facade. Package version: **0.1.0**. [Umbrella release and evidence](https://github.com/ruvnet/ruv-FANN/releases/tag/ruv-fann-toolkit-v0.2.0).
 
 Multi-suite regression gates and in-memory candidate branch evaluation around `ruv-fann-wsp@0.2.0`. ESM; Node 20.9+; browser-compatible library, Node-only CLI.
 

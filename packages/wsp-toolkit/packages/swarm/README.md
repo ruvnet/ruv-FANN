@@ -1,6 +1,20 @@
-# ruv-fann-wsp-swarm
+# ruv-fann-wsp-swarm — bounded Node.js proposal workers
+
+Schedule fixed-operation proposal jobs in actual Node.js workers with separate WASM instances. The coordinator receives candidate data and diagnostic metrics; workers never receive promotion authority.
+
+**Topics:** Node.js worker threads · parallel weight proposals · work budgets · cancellation.
+
+```sh
+npm install ruv-fann-wsp-swarm@0.1.0
+```
+
+[Package on npm](https://www.npmjs.com/package/ruv-fann-wsp-swarm) · [Core 0.2.0 entrypoint: `ruv-fann/swarm`](https://github.com/ruvnet/ruv-FANN/tree/main/packages/core#capability-entrypoints) · [Interactive ruv-fann field guide](https://ruvnet.github.io/ruv-FANN/) · [Toolkit API and release guide](https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit#readme)
+
+Choose this standalone package for its declared dependency footprint, or use `ruv-fann/swarm` from the complete `ruv-fann@0.2.0` facade. Package version: **0.1.0**. [Umbrella release and evidence](https://github.com/ruvnet/ruv-FANN/releases/tag/ruv-fann-toolkit-v0.2.0).
 
 A bounded scheduler for actual Node `worker_threads`. Each worker executes a shipped, fixed operation with its own JavaScript/WASM runtime. No provider call, generated JavaScript, shell command, model publication or checkpoint promotion is exposed. Worker threads are **not a security sandbox**.
+
+Integration sketch: supply a dense `model`, development `dataset`, acceptance `policy` and explicit parameter `locations`.
 
 ```js
 import { runProposalSwarm, estimateSwarmWork } from 'ruv-fann-wsp-swarm';

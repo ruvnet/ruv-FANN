@@ -1,8 +1,22 @@
-# ruv-fann-wsp-huggingface
+# ruv-fann-wsp-huggingface — integrity-pinned dense checkpoints
+
+Load a public dense-layer JSON checkpoint from an immutable Hub commit and verify its exact bytes before parsing. An explicit affine-head adapter covers simple weight vectors without pretending to load an arbitrary transformer.
+
+**Topics:** Hugging Face Hub · dense JSON checkpoints · SHA-256 integrity · affine heads.
+
+```sh
+npm install ruv-fann-wsp-huggingface@0.1.0
+```
+
+[Package on npm](https://www.npmjs.com/package/ruv-fann-wsp-huggingface) · [Core 0.2.0 entrypoint: `ruv-fann/huggingface`](https://github.com/ruvnet/ruv-FANN/tree/main/packages/core#capability-entrypoints) · [Interactive ruv-fann field guide](https://ruvnet.github.io/ruv-FANN/) · [Toolkit API and release guide](https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit#readme)
+
+Choose this standalone package for its declared dependency footprint, or use `ruv-fann/huggingface` from the complete `ruv-fann@0.2.0` facade. Package version: **0.1.0**. [Umbrella release and evidence](https://github.com/ruvnet/ruv-FANN/releases/tag/ruv-fann-toolkit-v0.2.0).
 
 Load a public Hugging Face **dense-layers JSON** checkpoint using an immutable
 commit revision and a caller-supplied SHA-256. The adapter verifies downloaded
 bytes before parsing and validates the model with `ruv-fann-wsp@0.2.0`.
+
+Configuration template: replace the repository, immutable commit and independently reviewed raw-file digest before running.
 
 ```js
 import { loadHubModel } from 'ruv-fann-wsp-huggingface';

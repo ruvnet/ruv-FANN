@@ -1,10 +1,26 @@
-# ruv-fann-wsp-invariants
+# ruv-fann-wsp-invariants — finite-domain neural output checks
+
+Check expected outputs and inclusive bounds over an explicit, finite set of inputs. Exhaustive Boolean cases can cover a small binary domain; they do not prove behavior over arbitrary real inputs or deployment conditions.
+
+**Topics:** neural output constraints · exhaustive Boolean domains · bounded WASM evaluation · invariant suites.
+
+```sh
+npm install ruv-fann-wsp-invariants@0.1.0
+```
+
+[Package on npm](https://www.npmjs.com/package/ruv-fann-wsp-invariants) · [Core 0.2.0 entrypoint: `ruv-fann/invariants`](https://github.com/ruvnet/ruv-FANN/tree/main/packages/core#capability-entrypoints) · [Interactive ruv-fann field guide](https://ruvnet.github.io/ruv-FANN/) · [Toolkit API and release guide](https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit#readme)
+
+Choose this standalone package for its declared dependency footprint, or use `ruv-fann/invariants` from the complete `ruv-fann@0.2.0` facade. Package version: **0.1.0**. [Umbrella release and evidence](https://github.com/ruvnet/ruv-FANN/releases/tag/ruv-fann-toolkit-v0.2.0).
 
 Bounded output constraints evaluated with real `ruv-fann@0.1.2` scalar/SIMD WebAssembly. ESM, Node 20.9+ and secure-context browsers; no gradients, providers or automatic promotion.
 
 ```js
 import { checkModelInvariants, createBooleanInvariant } from 'ruv-fann-wsp-invariants';
 
+const candidateModel = {schema: 'ruv-fann.dense-layers/1', layers: [
+  {inputs: 2, outputs: 2, weights: [1,-1,-1,1], bias: [0,0], activation: 'ReLU', steepness: 1},
+  {inputs: 2, outputs: 1, weights: [1,1], bias: [0], activation: 'Linear', steepness: 1}
+]};
 const suite = createBooleanInvariant({inputs: 2, outputs: 1, targets: [0, 1, 1, 0]});
 const result = await checkModelInvariants(candidateModel, suite, {simd: false});
 if (!result.accepted) console.log(result.violations);

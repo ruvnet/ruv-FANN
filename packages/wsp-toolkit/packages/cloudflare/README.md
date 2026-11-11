@@ -1,4 +1,16 @@
-# ruv-fann-wsp-cloudflare
+# ruv-fann-wsp-cloudflare — stateless neural operations for Workers
+
+Expose bounded weight evaluation and diagnostics through stateless Cloudflare Worker routes. The dedicated build helper packages static scalar/SIMD WASM assets; it does not deploy an account or create persistent model authority.
+
+**Topics:** Cloudflare Workers · static WebAssembly · authenticated neural evaluation · bounded HTTP APIs.
+
+```sh
+npm install ruv-fann-wsp-cloudflare@0.1.0
+```
+
+[Package on npm](https://www.npmjs.com/package/ruv-fann-wsp-cloudflare) · [Core 0.2.0 entrypoint: `ruv-fann/cloudflare`](https://github.com/ruvnet/ruv-FANN/tree/main/packages/core#capability-entrypoints) · [Interactive ruv-fann field guide](https://ruvnet.github.io/ruv-FANN/) · [Toolkit API and release guide](https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit#readme)
+
+Choose this standalone package for its declared dependency footprint, or use `ruv-fann/cloudflare` from the complete `ruv-fann@0.2.0` facade. Package version: **0.1.0**. [Umbrella release and evidence](https://github.com/ruvnet/ruv-FANN/releases/tag/ruv-fann-toolkit-v0.2.0).
 
 Stateless HTTP operations over `ruv-fann-wsp@0.2.0`, with a build adapter that imports real precompiled WebAssembly modules into Cloudflare Workers. Reuses one initialized runtime per backend. It never downloads Wasm at runtime and has no JavaScript numerical fallback.
 

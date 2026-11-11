@@ -1,4 +1,6 @@
-# Initial five-package validation evidence
+# Initial five-package validation evidence — historical generation
+
+Status: Historical evidence summary, retained alongside its original receipts recorded 2026-11-11. Updated: 2026-11-11.
 
 This records the original five-package qualification. The expanded nine-package loop is documented in [loop validation](loop-validation.md); its source-bound receipts are separate from the initial records below.
 
@@ -20,7 +22,7 @@ The toolkit was implemented against `ruvnet/ruv-FANN` base commit `4ae155ad300e9
 | Dependency security | `npm run audit`, `npm run validate` | Zero known advisories in full locked tree after pinned Miniflare dependency fixes |
 | Repeatable qualification | `.github/workflows/wsp-toolkit.yml` | Node 22.13/24.22 matrix configured; not yet run on GitHub |
 
-The full new-suite count is 47 tests: 42 package tests, one browser test, one packed-consumer test and three integration/CLI tests. `npm run validate` additionally requires a strict declaration check, zero cancelled/skipped/todo tests, benchmark equality and a clean npm audit. It writes `.artifacts/validation.json` with exact source and lockfile hashes. Captured local qualification reports are stored under `docs/evidence` after final execution; these are evidence records, not signatures.
+The original captured generation contained 47 tests: 42 package tests, one browser test, one packed-consumer test and three integration/CLI tests. `npm run validate` additionally requires a strict declaration check, zero cancelled/skipped/todo tests, benchmark equality and a clean npm audit. It writes `.artifacts/validation.json` with exact source and lockfile hashes. Captured local qualification reports are stored under `docs/evidence` after final execution; these are evidence records, not signatures.
 
 ## What the platform evidence establishes
 
@@ -44,4 +46,4 @@ The benchmark evaluates the identical sequence of sixteen monotonically improvin
 
 ## Remaining boundaries
 
-Packages are prepared and packed, not published to npm. CI is authored but has not executed on GitHub. No hosted Worker was deployed, no Hub model uploaded, and no production checkpoint promoted. Applications must choose appropriate held-out data, provide production authentication/durable state where needed, bound concurrent calls and keep trusted callback execution within their own security boundary. Experimental Boolean compilation, Hebbian proposals and branching remain explicitly scoped to small dense models.
+At this historical capture, packages were prepared and packed rather than published, and CI had not executed on GitHub. The later core 0.2.0/twelve-satellite release uses a separate protected qualification/publication lane; current counts and final publication status must be read from that lane's exact-source receipts, not inferred from this table. No hosted Worker was deployed, no Hub model uploaded, and no production checkpoint promoted. Applications must choose appropriate held-out data, provide production authentication/durable state where needed, bound concurrent calls and keep trusted callback execution within their own security boundary. Experimental Boolean compilation, Hebbian proposals and branching remain explicitly scoped to small dense models.

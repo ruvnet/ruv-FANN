@@ -1,8 +1,10 @@
 # Bounded autonomous loop and swarm
 
+Status: Implemented source architecture. Updated: 2026-11-11. Publication is a separate exact-artifact operation; see [ADR-012](../../../docs/adr/ADR-012-weight-toolkit-release.md).
+
 ## Outcome and executable acceptance
 
-Extend the existing toolkit with a runnable local evolution loop: multiple worker threads propose surgical weight changes, an independent coordinator re-evaluates selection and held-out suites plus output invariants, and AgentDB owns durable proposal IDs, compare-and-swap revisions and rollback. The acceptance demo repairs XOR, rejects a tempting local-only candidate using an independent gate, preserves rejected/stale revisions, stops within explicit budgets, reopens durable state and rolls back exactly. This is a present-day bounded implementation; no physical neuromorphic hardware, universal alignment proof, public registry publication, provider call or financial action is in scope.
+Extend the existing toolkit with a runnable local evolution loop: multiple worker threads propose surgical weight changes, an independent coordinator re-evaluates selection and held-out suites plus output invariants, and AgentDB owns durable proposal IDs, compare-and-swap revisions and rollback. The acceptance demo repairs XOR, rejects a tempting local-only candidate using an independent gate, preserves rejected/stale revisions, stops within explicit budgets, reopens durable state and rolls back exactly. This is a present-day bounded implementation; no physical neuromorphic hardware, universal alignment proof, provider call or financial action is in the evolution loop. Package publication is a separate protected release-controller concern.
 
 ## Ownership
 
@@ -11,7 +13,7 @@ Extend the existing toolkit with a runnable local evolution loop: multiple worke
 - Invariants worker owns `packages/invariants/**`: real WASM finite-domain output constraints. Package name `ruv-fann-wsp-invariants@0.1.0`.
 - Coordinator owns `packages/loop/**`, root manifests/lockfiles, scripts, E2E, examples, docs and integration. Package name `ruv-fann-wsp-loop@0.1.0`.
 
-No overlapping edits. All libraries ESM with public src/index.js and src/index.d.ts, README, MIT LICENSE and test/*.test.mjs. Runtime dependency WSP exact 0.2.0; sibling packages 0.1.0. No worker edits toolkit root lockfile. Existing uncommitted toolkit work is retained.
+No overlapping edits. All libraries ESM with public src/index.js and src/index.d.ts, README, MIT LICENSE and test/*.test.mjs. Runtime dependency WSP exact 0.2.0; sibling packages 0.1.0. No worker edits toolkit root lockfile. The original package interfaces and historical evidence remain retained; current qualification binds the final source and archive generation.
 
 ## Shared interfaces
 
@@ -19,7 +21,7 @@ No overlapping edits. All libraries ESM with public src/index.js and src/index.d
 
 `createAgentDBRegistry(programs, {flush?, close?}?)` receives a real AgentDB WeightPrograms capability (AgentDB 3.10.0); wrapper returns promise methods `create(id,model)`, `get(id)`, `list(limit?)`, `propose(id,patch,dataset,policy)`, `promote(id,proposalId,expectedRevision)`, `rollback(id,targetRevision,expectedRevision)`, `close()`. Serialize mutations across awaits. Snapshot inputs before queueing; do not accept caller-authored receipts as promotion authority. Flush durable mutations before acknowledging. Failed flush poisons mutations until reopen; report failure. Accessors/getters/unknown arguments/bounds must fail safely. AgentDB is an optional peer, not auto-installed by the library.
 
-`tooling/agentdb/package.json` pins agentdb 3.10.0, private, with its own lockfile and `.npmrc` omitting optional dependencies to avoid unrelated native/model packages. `tooling/agentdb/runtime.mjs` exports `openDemoRegistry(filename)` using the real package's WeightPrograms and db-fallback, with explicit flush/close. Root setup command will run npm ci in this fixture; tests must fail with actionable error if absent, never silently skip. Node 20.9+ runtime; do not mutate process-wide environment.
+`tooling/agentdb/package.json` pins agentdb 3.10.0, private, with its own lockfile and `.npmrc` omitting optional dependencies to avoid unrelated native/model packages. `tooling/agentdb/runtime.mjs` exports `openDemoRegistry(filename)` using the real package's WeightPrograms and db-fallback, with explicit flush/close. The setup command explicitly runs npm ci in this fixture; tests fail with an actionable error if it is absent, never silently skip. The private test/demo fixture sets AGENTDB_FORCE_SQLJS before importing AgentDB so host-native driver availability cannot change persistence fault oracles. This backend selection is confined to the isolated fixture process. The published registry adapter does not mutate process-wide environment or select the caller's database backend.
 
 ### Swarm
 
@@ -41,4 +43,8 @@ Failure: a candidate fitting the development slice fails held-out/output constra
 
 ## Architecture decisions and limitations
 
-Use fixed-operation Node workers for real concurrent execution and separate WASM instances; use platform subagents only to build/review this implementation. Keep AgentDB's large optional dependency tree in a separate pinned integration fixture; the registry library accepts a caller-owned real controller. No mocked database success is called persistence evidence. Hosted runtime connectors are currently unavailable; no remote execution is inferred from coordination records. Universal verification, learned semantic routing, code-generation providers, npm publication and physical actuation remain explicit extensions requiring their own contracts.
+Use fixed-operation Node workers for real concurrent execution and separate WASM instances; use platform subagents only to build/review this implementation. Keep AgentDB's large optional dependency tree in a separate pinned integration fixture; the registry library accepts a caller-owned real controller. No mocked database success is called persistence evidence. Hosted runtime connectors are currently unavailable; no remote execution is inferred from coordination records. Universal verification, learned semantic routing, code-generation providers and physical actuation remain explicit extensions requiring their own contracts. npm publication is now handled by the separate protected exact-archive lane; it is never a worker or evolution-loop operation.
+
+## Release review refinements
+
+The release review adds live-record revision checks at the authority boundary and captures trusted capabilities before asynchronous work. It rejects asynchronous search objectives without leaving unhandled rejections, and reads actual AbortSignal state rather than accepting shadowed instance fields. Hub transport deadlines remain active through streamed body reads. The private AgentDB fixture forces sql.js before import so persistence-failure tests retain one reproducible backend. These are regression requirements; final pass counts and source bindings come from the current qualification receipts.
