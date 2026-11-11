@@ -3,7 +3,23 @@
 Changes follow [Semantic Versioning](https://semver.org/). Versions in a checkout
 are release candidates until publication is verified in the registry.
 
-## [0.2.2] - Unreleased
+## [0.2.3] - Unreleased
+
+### Packaging
+
+- Republish so the crate carries the current README and `docs/assets` SVGs.
+  crates.io 0.2.2 holds the older copies (#221). No code or dependency change.
+  Dependents that pin the root move with it: ruv-fann-candle 0.1.1,
+  neuro-divergent{,-core,-models,-training} 0.2.1, ruv-swarm-ml and
+  ruv-swarm-wasm 1.0.7, and ruv-swarm-wasm-unified 2.0.1 (its archive embeds a
+  Cargo.lock that resolves both).
+- Update rustix 1.0.7 -> 1.1.6 in the root and ruv-swarm lockfiles
+  (RUSTSEC-2026-0486). Crates that ship binaries embed that lockfile for
+  `cargo install --locked`, so ruv-swarm-cli, ruv-swarm-daa and ruv-swarm-mcp
+  move to 1.0.8. Library crates whose only change is the embedded lockfile are
+  not republished; cargo ignores a dependency's lockfile.
+
+## [0.2.2] - 2026-11-09
 
 ### Performance
 

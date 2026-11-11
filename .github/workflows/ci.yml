@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, 'release/**']
   pull_request:
     branches: [main, develop]
   workflow_dispatch: {}
@@ -252,7 +252,7 @@ jobs:
       - name: Install explicit browser and WASM build tools
         run: |
           npm install --prefix "$RUNNER_TEMP/browser-tools" --no-save --ignore-scripts playwright@1.62.1
-          "$RUNNER_TEMP/browser-tools/node_modules/.bin/playwright" install --with-deps chromium
+          "$RUNNER_TEMP/browser-tools/node_modules/.bin/playwright" install chromium
           cargo install wasm-pack --version 0.15.1 --locked
       - name: Run repository shaders in a real browser
         env:

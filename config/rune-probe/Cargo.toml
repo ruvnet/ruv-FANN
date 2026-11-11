@@ -8,7 +8,7 @@ license = "MIT OR Apache-2.0"
 description = "Private executable verifying the actual ruv-FANN library through Rune"
 
 [dependencies]
-ruv-fann = { path = "core", version = "=0.2.2" }
+ruv-fann = { path = "core", version = "=0.2.3" }
 
 [profile.release]
 opt-level = 3

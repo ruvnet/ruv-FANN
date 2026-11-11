@@ -158,7 +158,7 @@ def main():
     run(['cargo','install','cuda-rust-wasm','--version','=0.2.1','--locked','--bin','cuda2rust','--root',str(base/'public-compiler')],base)
     consumer(base/'npm-public-consumer',[r['name']+'@'+r['version'] for r in record['packages']],record['packages'],base/'public-compiler/bin/cuda2rust')
     rust = base/'rust-public-consumer';(rust/'src').mkdir(parents=True)
-    (rust/'Cargo.toml').write_text('[package]\nname="release-consumer"\nversion="0.0.0"\nedition="2021"\n[dependencies]\nruv-fann={version="=0.2.2",default-features=false,features=["std","serde"]}\nruv-fann-candle="=0.1.0"\n')
+    (rust/'Cargo.toml').write_text('[package]\nname="release-consumer"\nversion="0.0.0"\nedition="2021"\n[dependencies]\nruv-fann={version="=0.2.3",default-features=false,features=["std","serde"]}\nruv-fann-candle="=0.1.1"\n')
     (rust/'src/main.rs').write_text((ROOT/'examples/dense_autograd.rs').read_text())
     run(['cargo','run','--release'],rust)
     save(base/'public-consumers.json',{'sourceSha':head(),'status':'passed','npmNormalInstall':True,'coreAndSimdTraining':True,'persistentCli':True,'cudaPublicCompiler':True,'cargoPublicDenseTraining':True})

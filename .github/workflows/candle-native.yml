@@ -420,7 +420,9 @@ jobs:
         id: setup
         run: |
           npm install --prefix "$RUNNER_TEMP/candle-native-browser-tools" --no-save --ignore-scripts playwright@1.62.1 2>&1 | tee "$RUNNER_TEMP/candle-native-browser/setup.log"
-          "$RUNNER_TEMP/candle-native-browser-tools/node_modules/.bin/playwright" install --with-deps chromium 2>&1 | tee "$RUNNER_TEMP/candle-native-browser/chromium.log"
+          # Hosted Ubuntu already provides Chromium runtime libraries. Keep the
+          # pinned browser download and actual browser tests; avoid apt mirrors.
+          "$RUNNER_TEMP/candle-native-browser-tools/node_modules/.bin/playwright" install chromium 2>&1 | tee "$RUNNER_TEMP/candle-native-browser/chromium.log"
           node <<'JS'
           const fs = require('node:fs'), path = require('node:path'), assert = require('node:assert/strict'), {chromium} = require('playwright');
           assert.equal(require('playwright/package.json').version, '1.62.1'); assert.equal(require('playwright-core/package.json').version, '1.62.1');
