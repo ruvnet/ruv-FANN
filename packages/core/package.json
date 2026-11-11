@@ -105,9 +105,7 @@
   },
   "keywords": [
     "ruv-fann",
-    "fann",
     "neural-network",
-    "neural-networks",
     "machine-learning",
     "webassembly",
     "wasm",
@@ -120,15 +118,16 @@
     "training",
     "sgd",
     "adamw",
-    "agentdb",
     "weight-space-programming",
-    "weight-editing",
+    "model-editing",
     "bounded-search",
-    "invariants"
+    "model-evaluation",
+    "agentdb",
+    "cloudflare-workers"
   ],
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
-  "homepage": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/core#readme",
+  "homepage": "https://ruvnet.github.io/ruv-FANN/",
   "bugs": {
     "url": "https://github.com/ruvnet/ruv-FANN/issues"
   }
