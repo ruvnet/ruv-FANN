@@ -1515,6 +1515,7 @@ dependencies = [
  "rand 0.8.6",
  "rand_distr",
  "rayon",
+ "ruvector-e-means",
  "serde",
  "serde_json",
  "thiserror",
@@ -1524,6 +1525,14 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "wgpu",
+]
+
+[[package]]
+name = "ruvector-e-means"
+version = "0.1.0"
+dependencies = [
+ "rand_chacha",
+ "rand_core 0.6.4",
 ]
 
 [[package]]

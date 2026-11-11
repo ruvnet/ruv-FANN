@@ -9,5 +9,5 @@
     "skipLibCheck": false,
     "types": []
   },
-  "include": ["src/**/*.d.ts", "test/types.test.mts"]
+  "include": ["src/**/*.d.ts", "test/types.test.mts", "test/clustering-types.test.mts"]
 }
