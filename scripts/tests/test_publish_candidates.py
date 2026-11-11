@@ -116,6 +116,23 @@ optional=["dep:alias"]
                     publisher.publish(archive, publisher.metadata(archive), publisher.sha(archive.read_bytes()), 'test-only')
 
 
+    def test_preflight_rejects_every_drifted_published_version_before_upload(self):
+        with tempfile.TemporaryDirectory() as directory:
+            archive = self.archive(directory, '[package]\nname="fixture"\nversion="1.0.0"')
+            data = publisher.metadata(archive)
+            digest = publisher.sha(archive.read_bytes())
+            other = dict(data, name='other')
+            public = {'fixture': archive.read_bytes(), 'other': b'old bytes'}
+            with patch.object(publisher, 'downloaded', side_effect=lambda name, version: public.get(name)), \
+                 patch.object(publisher.urllib.request, 'urlopen') as upload:
+                self.assertEqual(publisher.preflight([(archive, data, digest)]), ['already-verified'])
+                with self.assertRaisesRegex(ValueError, 'nothing was uploaded.*other 1.0.0'):
+                    publisher.preflight([(archive, data, digest), (archive, other, digest)])
+                upload.assert_not_called()
+            with patch.object(publisher, 'downloaded', return_value=None):
+                self.assertEqual(publisher.preflight([(archive, data, digest)]), ['verified-candidate'])
+
+
 class Clock:
     def __init__(self):
         self.now = 0

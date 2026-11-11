@@ -129,6 +129,23 @@ def wait_public(name, version, timeout=VISIBILITY_TIMEOUT, sleep=time.sleep, clo
         attempt += 1
 
 
+def preflight(items):
+    """Read-only: fail before any upload if a candidate's version is already public with other bytes."""
+    states, drifted = [], []
+    for archive, data, digest in items:
+        existing = downloaded(data['name'], data['vers'])
+        if existing is None:
+            states.append('verified-candidate')
+        elif sha(existing) == digest:
+            states.append('already-verified')
+        else:
+            states.append('published-with-different-bytes')
+            drifted.append(f"{data['name']} {data['vers']}")
+    if drifted:
+        raise ValueError('Published versions exist with different bytes (bump them before releasing; nothing was uploaded): ' + ', '.join(drifted))
+    return states
+
+
 def publish(archive, data, digest, token):
     existing = downloaded(data['name'], data['vers'])
     if existing is not None:
@@ -176,9 +193,10 @@ def main():
         raise ValueError('Missing Cargo registry token')
     report = {'sourceSha': head, 'publicationRequested': args.publish, 'crates': []}
     args.output.parent.mkdir(parents=True, exist_ok=True)
+    states = None if args.publish else preflight(items)
     with args.output.open('x') as stream:
-        for archive, data, digest in items:
-            state = publish(archive, data, digest, token) if args.publish else 'verified-candidate'
+        for index, (archive, data, digest) in enumerate(items):
+            state = publish(archive, data, digest, token) if args.publish else states[index]
             row = {'name': data['name'], 'version': data['vers'], 'sha256': digest, 'status': state}
             print(json.dumps(row), flush=True)
             report['crates'].append(row)
