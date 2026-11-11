@@ -366,7 +366,7 @@ try {
 }
 ```
 
-Reopen the saved lineage with `AgenticMemory.load('weight-memory/manifest.json')`, and close it when finished. Keep the referenced RVF files together; a manifest is not a standalone copy of all its backing files. `branch()` freezes the shared snapshot before either side continues writing. `fork()` is a lighter alternative whose parent must stay read-only; choose deliberately.
+Reopen the saved lineage with `AgenticMemory.load('weight-memory/manifest.json')`, and close it when finished. Close existing handles before loading the same lineage; RVF enforces writer locks. Keep the referenced RVF files together; a manifest is not a standalone copy of all its backing files. `branch()` freezes the shared snapshot before either side continues writing. `fork()` is a lighter alternative whose parent must stay read-only; choose deliberately.
 
 Vectors are Float32 search keys. Store the original dense-layer JSON as `text` to preserve model weights, and validate retrieved models with `loadRuntime().prepare()` before executing them. A nearest-neighbor match does not prove model suitability. The caller must check the regression gate before `promote()`; Agenticow itself does not enforce WSP gates, application permissions or the AgentDB registry's revision/CAS contract. This example assumes one trusted writer and does not turn a memory branch into a code sandbox.
 

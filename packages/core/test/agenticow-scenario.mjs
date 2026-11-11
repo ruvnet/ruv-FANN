@@ -48,6 +48,12 @@ export async function qualifyAgenticow({memory,wsp,lifecycle,core},directory) {
     finally {prepared.dispose();}
     base.rollback(checkpoint.id);
     assert.equal(JSON.parse(query(base).text).hash,hash);
+    const rollbackManifest=join(directory,'rollback.json');base.save(rollbackManifest);
+    good.close();good=null;base.close();base=null;
+    base=memory.AgenticMemory.load(rollbackManifest);
+    assert.equal(JSON.parse(query(base).text).hash,hash);
+    good=base.branch('after-rollback');
+    good.ingest([{id:1,vector,text:await encode(candidate)}]);
     good.promote(base);
     const workingPath=base.lineage()[0].path;
     const manifest=join(directory,'memory.json');base.save(manifest);
