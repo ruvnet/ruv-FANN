@@ -1398,7 +1398,7 @@ dependencies = [
 
 [[package]]
 name = "neuro-divergent"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -1430,7 +1430,7 @@ dependencies = [
 
 [[package]]
 name = "neuro-divergent-core"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "approx",
  "chrono",
@@ -1470,7 +1470,7 @@ dependencies = [
 
 [[package]]
 name = "neuro-divergent-models"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "approx",
  "chrono",
@@ -1526,7 +1526,7 @@ dependencies = [
 
 [[package]]
 name = "neuro-divergent-training"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "approx",
  "criterion",
@@ -2684,7 +2684,7 @@ dependencies = [
 
 [[package]]
 name = "ruv-fann"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "bincode",
  "flate2",

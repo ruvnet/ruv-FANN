@@ -1109,7 +1109,7 @@ checksum = "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f"
 
 [[package]]
 name = "ruv-fann"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "getrandom 0.2.17",
  "num-traits",
@@ -1122,7 +1122,7 @@ dependencies = [
 
 [[package]]
 name = "ruv-fann-candle"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "candle-core",
  "candle-nn",

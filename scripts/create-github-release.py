@@ -37,7 +37,7 @@ def main():
             raise ValueError('Publication source mismatch')
     crates = receipts['cargo-publication']['crates']
     packages = receipts['npm-publication']['packages']
-    if len(crates) != 27 or any(r['status'] not in ('already-verified', 'published-and-byte-verified') for r in crates):
+    if len(crates) != 27 or any(r['status'] not in ('already-verified', 'published-and-byte-verified', 'lockfile-only-drift-library') for r in crates):
         raise ValueError('Incomplete Cargo publication')
     if len(packages) != 2 or any(r['status'] != 'published-and-byte-verified' for r in packages):
         raise ValueError('Incomplete npm publication')
@@ -87,10 +87,13 @@ def main():
     published_now = [r for r in crates if r['status'] == 'published-and-byte-verified']
     listing = ', '.join(f"`{r['name']}@{r.get('version', '?')}`" for r in packages)
     new_crates = ', '.join(f"`{r['name']} {r.get('version', '?')}`" for r in published_now) or 'none (all already on crates.io)'
+    kept = [r for r in crates if r['status'] == 'lockfile-only-drift-library']
+    lock_note = (' Library crates whose only difference from crates.io is the embedded Cargo.lock were not republished (cargo ignores a dependency\'s lockfile); their public bytes are attached: '
+                 + ', '.join(f"`{r['name']} {r.get('version', '?')}`" for r in kept) + '.') if kept else ''
     notes = base / 'release-notes.md'
     notes.write_text(f'''Coordinated registry release from commit `{source}`.
 
-npm packages: {listing}. Cargo crates verified: {len(crates)}; newly published: {new_crates}.
+npm packages: {listing}. Cargo crates verified: {len(crates)}; newly published: {new_crates}.{lock_note}
 
 All attached package archives are the exact bytes verified from the public registries. Fresh public installs passed core/SIMD training, persistent CLI, CUDA compiler and Rust dense training checks. See the attached publication receipts and SHA256SUMS.
 ''')

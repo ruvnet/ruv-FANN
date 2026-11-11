@@ -1,6 +1,6 @@
 [package]
 name = "ruv-fann-candle"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version = "1.99"
 description = "Optional CPU Candle linear-tensor import into owned ruv-FANN prepared inference"
@@ -13,7 +13,7 @@ include = ["/src/**", "/tests/**", "/examples/**", "/Cargo.toml", "/README.md", 
 [dependencies]
 candle-core = { version = "=0.11.1", default-features = false }
 candle-nn = { version = "=0.11.1", default-features = false }
-ruv-fann = { version = "=0.2.2", path = "../..", default-features = false, features = ["serde"] }
+ruv-fann = { version = "=0.2.3", path = "../..", default-features = false, features = ["serde"] }
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = { version = "=1.0.154", features = ["float_roundtrip"] }
 

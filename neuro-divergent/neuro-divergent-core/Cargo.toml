@@ -1,6 +1,6 @@
 [package]
 name = "neuro-divergent-core"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 authors = ["Claude Code <noreply@anthropic.com>"]
 license = "MIT OR Apache-2.0"
@@ -36,7 +36,7 @@ rayon = "1.8"
 rand = "0.8"
 
 # ruv-FANN integration
-ruv-fann = { version = "0.2.2", path = "../.." }
+ruv-fann = { version = "0.2.3", path = "../.." }
 
 # Optional GPU acceleration
 

@@ -1,6 +1,6 @@
 [package]
 name = "neuro-divergent-training"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 authors = ["rUv Contributors"]
 description = "Comprehensive training infrastructure for neural forecasting models"
@@ -12,7 +12,7 @@ categories = ["science", "algorithms", "mathematics"]
 [dependencies]
 # Internal dependencies
 # Core dependencies
-ruv-fann = { version = "0.2.2", path = "../.." }
+ruv-fann = { version = "0.2.3", path = "../.." }
 num-traits = "0.2"
 thiserror = "1.0"
 serde = { version = "1.0", features = ["derive"], optional = true }
