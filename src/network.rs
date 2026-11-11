@@ -406,33 +406,52 @@ impl<T: Float> Network<T> {
 
             let mut current_errors = Vec::with_capacity(current_layer.neurons.len());
 
-            for (i, neuron) in current_layer.neurons.iter().enumerate() {
-                if neuron.is_bias {
-                    current_errors.push(T::zero());
-                    continue;
-                }
+            // Dispatch once per layer so irregular rows retain their original
+            // scan loop, without a dense-path branch inside that hot loop.
+            if canonical {
+                for (i, neuron) in current_layer.neurons.iter().enumerate() {
+                    if neuron.is_bias {
+                        current_errors.push(T::zero());
+                        continue;
+                    }
 
-                let mut error_sum = T::zero();
-
-                // Sum errors from next layer weighted by connections
-                for (j, next_neuron) in next_layer.neurons.iter().enumerate() {
-                    if !next_neuron.is_bias && j < next_errors.len() {
-                        let connection = if canonical {
-                            next_neuron.connections.get(i)
-                        } else {
-                            next_neuron
-                                .connections
-                                .iter()
-                                .find(|connection| connection.from_neuron == i)
-                        };
-                        if let Some(connection) = connection {
-                            error_sum = error_sum + next_errors[j] * connection.weight;
+                    let mut error_sum = T::zero();
+                    for (j, next_neuron) in next_layer.neurons.iter().enumerate() {
+                        if !next_neuron.is_bias && j < next_errors.len() {
+                            // Canonical validation proves every regular row
+                            // contains this source at exactly this position.
+                            error_sum =
+                                error_sum + next_errors[j] * next_neuron.connections[i].weight;
                         }
                     }
-                }
 
-                let delta = error_sum * neuron.activation_derivative();
-                current_errors.push(delta);
+                    let delta = error_sum * neuron.activation_derivative();
+                    current_errors.push(delta);
+                }
+            } else {
+                for (i, neuron) in current_layer.neurons.iter().enumerate() {
+                    if neuron.is_bias {
+                        current_errors.push(T::zero());
+                        continue;
+                    }
+
+                    let mut error_sum = T::zero();
+
+                    // Preserve the original first matching connection scan.
+                    for (j, next_neuron) in next_layer.neurons.iter().enumerate() {
+                        if !next_neuron.is_bias && j < next_errors.len() {
+                            for connection in &next_neuron.connections {
+                                if connection.from_neuron == i {
+                                    error_sum = error_sum + next_errors[j] * connection.weight;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    let delta = error_sum * neuron.activation_derivative();
+                    current_errors.push(delta);
+                }
             }
 
             layer_errors[layer_idx] = current_errors;
