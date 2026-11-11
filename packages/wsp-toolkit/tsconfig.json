@@ -1,4 +1,19 @@
 {
-  "compilerOptions": { "target": "ES2023", "module": "NodeNext", "moduleResolution": "NodeNext", "strict": true, "noEmit": true, "lib": ["ES2023", "DOM"], "skipLibCheck": false },
-  "include": ["packages/*/src/*.d.ts", "test/types.ts"]
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "noEmit": true,
+    "lib": [
+      "ES2023",
+      "DOM"
+    ],
+    "skipLibCheck": false,
+    "types": []
+  },
+  "include": [
+    "packages/*/src/*.d.ts",
+    "test/types.ts"
+  ]
 }
