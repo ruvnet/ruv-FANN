@@ -1,6 +1,6 @@
 {
   "name": "ruv-fann-wsp-lifecycle",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Evaluate bounded neural weight patches across named regression suites and independent candidate branches.",
   "engines": {
@@ -38,10 +38,24 @@
     "weight-space-programming",
     "neural-network",
     "webassembly",
-    "regression-testing",
-    "model-evaluation",
+    "wasm",
+    "model-editing",
     "weight-patches",
-    "checkpoint"
+    "model-evaluation",
+    "javascript",
+    "typescript",
+    "nodejs",
+    "regression-testing",
+    "regression-gates",
+    "checkpoint",
+    "checkpoint-branching",
+    "holdout-validation",
+    "evaluation-suites",
+    "candidate-evaluation",
+    "model-validation",
+    "browser",
+    "simd",
+    "dense-neural-network"
   ],
   "homepage": "https://ruvnet.github.io/ruv-FANN/",
   "bugs": {

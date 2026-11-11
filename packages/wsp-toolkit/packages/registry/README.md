@@ -46,3 +46,7 @@ Explore the [ruv-fann field guide](https://ruvnet.github.io/ruv-FANN/), [constel
 These links describe integrations; package.json defines install-time dependencies. The [versioned catalog](https://github.com/ruvnet/ruv-FANN/blob/main/packages/wsp-toolkit/packages/constellation/catalog.json) declares release profiles and package versions; registry availability and publication provenance require independent verification.
 
 <!-- constellation-links:end -->
+
+## Discoverability topics
+
+AgentDB weight programs · model registry adapters · revision compare-and-swap · serialized mutations · explicit persistence acknowledgements · checkpoint history · rollback · application-owned model authority.

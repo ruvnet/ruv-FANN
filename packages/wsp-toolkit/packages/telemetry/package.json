@@ -1,6 +1,6 @@
 {
   "name": "ruvnet-constellation-telemetry",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Analyze public npm and GitHub observations, consented project samples and standalone package dashboards.",
   "engines": {
@@ -39,7 +39,22 @@
     "dashboard",
     "privacy",
     "local-telemetry",
-    "adoption-metrics"
+    "adoption-metrics",
+    "npm-downloads",
+    "github-metrics",
+    "public-metrics",
+    "package-discovery",
+    "dependency-links",
+    "download-trends",
+    "consented-samples",
+    "offline-dashboard",
+    "html-dashboard",
+    "data-visualization",
+    "javascript",
+    "typescript",
+    "nodejs",
+    "esm",
+    "package-observability"
   ],
   "homepage": "https://ruvnet.github.io/ruv-FANN/",
   "bugs": {

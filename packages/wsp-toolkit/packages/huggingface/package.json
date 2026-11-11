@@ -1,6 +1,6 @@
 {
   "name": "ruv-fann-wsp-huggingface",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Load public Hugging Face dense JSON checkpoints with pinned revisions, SHA-256 integrity and bounded WSP validation.",
   "type": "module",
   "main": "./src/index.js",
@@ -40,10 +40,24 @@
     "weight-space-programming",
     "neural-network",
     "webassembly",
+    "wasm",
+    "checkpoint-loading",
+    "model-inspection",
+    "webcrypto",
+    "javascript",
+    "typescript",
+    "nodejs",
     "huggingface",
+    "hugging-face-hub",
     "model-checkpoints",
     "sha256",
-    "model-validation"
+    "integrity-verification",
+    "pinned-revisions",
+    "dense-models",
+    "json-checkpoints",
+    "affine-model",
+    "model-validation",
+    "browser"
   ],
   "homepage": "https://ruvnet.github.io/ruv-FANN/",
   "bugs": {

@@ -1,6 +1,6 @@
 {
   "name": "ruv-fann-wsp-cloudflare",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Run bounded neural weight patches and regression evaluations in Cloudflare Workers with static WebAssembly modules.",
   "type": "module",
   "main": "./src/index.js",
@@ -49,10 +49,24 @@
     "weight-space-programming",
     "neural-network",
     "webassembly",
+    "wasm",
+    "model-editing",
+    "weight-patches",
+    "model-evaluation",
+    "javascript",
+    "typescript",
+    "nodejs",
+    "cloudflare",
     "cloudflare-workers",
     "edge-computing",
+    "edge-inference",
+    "static-webassembly",
+    "http-api",
     "regression-testing",
-    "weight-patches"
+    "activation-tracing",
+    "neuron-ablation",
+    "sensitivity-analysis",
+    "simd"
   ],
   "homepage": "https://ruvnet.github.io/ruv-FANN/",
   "bugs": {

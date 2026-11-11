@@ -119,3 +119,7 @@ The loader fetches its bindings and binaries from your deployment. It does not d
 - [Typed inference and training SDK](https://www.npmjs.com/package/ruv-fann)
 - [Report an issue](https://github.com/ruvnet/ruv-FANN/issues)
 - [MIT license](https://github.com/ruvnet/ruv-FANN/blob/main/packages/wasm/LICENSE)
+
+## Discoverability topics
+
+WebAssembly neural networks · Rust WASM runtime · scalar and SIMD inference · JavaScript and TypeScript · Node.js and browsers · wasm-bindgen bindings · backend feature detection · manual WASM memory ownership.

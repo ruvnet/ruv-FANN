@@ -1,7 +1,7 @@
 {
   "schema": "ruvnet.constellation-module/1",
   "name": "ruvnet-constellation-contracts",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "role": "primitive",
   "contracts": [
     "ruvnet.constellation-module/1"

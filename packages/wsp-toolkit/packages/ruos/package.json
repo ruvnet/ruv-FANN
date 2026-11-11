@@ -1,6 +1,6 @@
 {
   "name": "ruv-fann-wsp-ruos",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "license": "MIT",
   "description": "Validate real WebAssembly canary output and bind trusted ruOS executor completion evidence to explicit requests.",
@@ -35,10 +35,24 @@
     "weight-space-programming",
     "neural-network",
     "webassembly",
+    "wasm",
+    "model-editing",
+    "weight-patches",
+    "model-evaluation",
+    "javascript",
+    "typescript",
+    "nodejs",
     "ruos",
     "executor",
     "canary",
-    "evidence-validation"
+    "evidence-validation",
+    "executor-completion",
+    "checkpoint",
+    "rollback",
+    "integration-testing",
+    "wasm-canary",
+    "model-validation",
+    "regression-testing"
   ],
   "homepage": "https://ruvnet.github.io/ruv-FANN/",
   "bugs": {

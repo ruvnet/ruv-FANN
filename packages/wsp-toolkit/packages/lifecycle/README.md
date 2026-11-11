@@ -25,3 +25,7 @@ Explore the [ruv-fann field guide](https://ruvnet.github.io/ruv-FANN/), [constel
 These links describe integrations; package.json defines install-time dependencies. The [versioned catalog](https://github.com/ruvnet/ruv-FANN/blob/main/packages/wsp-toolkit/packages/constellation/catalog.json) declares release profiles and package versions; registry availability and publication provenance require independent verification.
 
 <!-- constellation-links:end -->
+
+## Discoverability topics
+
+neural model regression testing · named evaluation suites · independent holdouts · checkpoint branches · candidate comparisons · bounded weight patches · scalar and SIMD inference · application-controlled promotion.

@@ -1,7 +1,7 @@
 {
   "schema": "ruvnet.constellation-module/1",
   "name": "ruv-fann-wsp-registry",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "role": "satellite",
   "contracts": [
     "ruvnet.constellation-module/1",

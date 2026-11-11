@@ -1,6 +1,6 @@
 {
   "name": "ruv-fann-wsp-search",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Search explicit neural weight values without gradients; propose bounded Boolean-table and experimental Hebbian edits.",
   "type": "module",
   "main": "./src/index.js",
@@ -41,10 +41,24 @@
     "weight-space-programming",
     "neural-network",
     "webassembly",
+    "wasm",
+    "model-editing",
+    "weight-patches",
+    "model-evaluation",
+    "javascript",
+    "typescript",
+    "nodejs",
     "derivative-free",
     "coordinate-descent",
+    "coordinate-search",
     "hebbian-learning",
-    "boolean-functions"
+    "boolean-functions",
+    "truth-tables",
+    "discrete-optimization",
+    "candidate-evaluation",
+    "regression-testing",
+    "browser",
+    "simd"
   ],
   "homepage": "https://ruvnet.github.io/ruv-FANN/",
   "bugs": {

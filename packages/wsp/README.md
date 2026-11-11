@@ -248,3 +248,7 @@ For research context, see [Sparks of Weight-Space Programming](https://rikiyat.g
 This is a runtime and review workflow for direct weight edits, not a transformer checkpoint editor, LLM provider, automatic optimizer or proof of generalization. Small symbolic examples demonstrate execution and lifecycle behavior; useful task-specific edits still need appropriate evaluation data and application-level acceptance criteria.
 
 [Source](https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp) · [Issues](https://github.com/ruvnet/ruv-FANN/issues) · [MIT license](https://github.com/ruvnet/ruv-FANN/blob/main/packages/wsp/LICENSE)
+
+## Discoverability topics
+
+weight-space programming · direct neural weight edits · gradient-free model editing · activation traces · neuron ablation · finite-difference sensitivity · regression evaluation · versioned checkpoints and rollback.

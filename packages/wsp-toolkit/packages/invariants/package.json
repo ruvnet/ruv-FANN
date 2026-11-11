@@ -1,6 +1,6 @@
 {
   "name": "ruv-fann-wsp-invariants",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Check finite-domain neural output bounds and expected values using real scalar or SIMD WebAssembly inference.",
   "type": "module",
   "main": "./src/index.js",
@@ -41,10 +41,24 @@
     "weight-space-programming",
     "neural-network",
     "webassembly",
+    "wasm",
+    "neural-inference",
+    "constraint-checking",
+    "model-evaluation",
+    "javascript",
+    "typescript",
+    "nodejs",
     "output-invariants",
     "model-validation",
     "simd",
-    "regression-testing"
+    "regression-testing",
+    "finite-domain",
+    "boolean-functions",
+    "truth-tables",
+    "output-bounds",
+    "expected-values",
+    "browser",
+    "dense-neural-network"
   ],
   "homepage": "https://ruvnet.github.io/ruv-FANN/",
   "bugs": {

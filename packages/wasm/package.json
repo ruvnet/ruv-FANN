@@ -1,6 +1,6 @@
 {
   "name": "ruv-fann-wasm",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "WebAssembly neural network runtime for Node.js and browsers: ruv-FANN binaries, SIMD detection and typed ESM bindings.",
   "type": "module",
   "engines": {
@@ -49,7 +49,13 @@
     "inference",
     "wasm-bindgen",
     "rust",
-    "runtime"
+    "runtime",
+    "dense-neural-network",
+    "esm",
+    "wasm-runtime",
+    "simd-detection",
+    "batch-inference",
+    "neural-inference"
   ],
   "main": "./src/index.js",
   "types": "./src/index.d.ts",

@@ -1,6 +1,6 @@
 {
   "name": "ruv-fann-wsp-registry",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Adapt AgentDB weight programs with serialized operations, revision checks and caller-supplied persistence acknowledgment.",
   "type": "module",
   "main": "./src/index.js",
@@ -48,11 +48,24 @@
     "weight-space-programming",
     "neural-network",
     "webassembly",
+    "wasm",
+    "model-editing",
+    "weight-patches",
+    "model-evaluation",
+    "javascript",
+    "typescript",
+    "nodejs",
     "agentdb",
     "model-registry",
     "checkpoint",
     "persistence",
-    "compare-and-swap"
+    "compare-and-swap",
+    "revision-control",
+    "rollback",
+    "durability",
+    "serialized-operations",
+    "weight-programs",
+    "persistence-acknowledgment"
   ],
   "homepage": "https://ruvnet.github.io/ruv-FANN/",
   "bugs": {

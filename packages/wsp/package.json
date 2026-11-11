@@ -1,6 +1,6 @@
 {
   "name": "ruv-fann-wsp",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Bounded weight-space programming, real WASM activation traces, neuron ablation and numerical sensitivity",
   "type": "module",
   "main": "./src/index.js",
@@ -42,8 +42,24 @@
     "ruv-fann",
     "weight-space-programming",
     "neural-network",
+    "webassembly",
     "wasm",
     "model-editing",
+    "weight-patches",
+    "model-evaluation",
+    "javascript",
+    "typescript",
+    "nodejs",
+    "browser",
+    "gradient-free",
+    "activation-tracing",
+    "neuron-ablation",
+    "sensitivity-analysis",
+    "finite-differences",
+    "regression-testing",
+    "checkpoint",
+    "sha256",
+    "rollback",
     "agentdb"
   ]
 }
