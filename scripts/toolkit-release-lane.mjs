@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // One canonical pack, two installed-runtime qualifications, protected publication, public-byte proof.
 import { execFileSync } from 'node:child_process';
-import { readFile,writeFile,readdir,mkdir,mkdtemp,rm,copyFile } from 'node:fs/promises';
+import { readFile,writeFile,readdir,mkdir,mkdtemp,rm,copyFile,lstat } from 'node:fs/promises';
 import { join,resolve,dirname,basename } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -111,6 +111,9 @@ async function verify(directory){
   const seal=await json(join(directory,'candidate-seal.json'));
   if(seal.schema!==`${schema}.seal/1`||seal.status!=='passed'||seal.sourceSha!==source()||seal.releaseTag!==releaseTag||seal.sourceTree!==run('git',['rev-parse','HEAD^{tree}']))throw Error('Seal source/generation mismatch');
   const manifest=await candidate(directory),expected=['package-manifest.json','public-package-lock.json','node-22-qualification.json','node-24-qualification.json',...manifest.packages.map(row=>row.tarball)];
+  const actual=await readdir(directory);
+  if(JSON.stringify(actual.sort())!==JSON.stringify([...expected,'candidate-seal.json'].sort()))throw Error('Candidate directory contains unsealed files');
+  for(const filename of actual)if(!(await lstat(join(directory,filename))).isFile())throw Error('Candidate contains links or non-files');
   if(!Array.isArray(seal.files)||seal.files.length!==expected.length||new Set(seal.files.map(row=>row.filename)).size!==expected.length)throw Error('Seal file set incomplete');
   for(const filename of expected){const row=seal.files.find(row=>row.filename===filename);if(!row||row.sha256!==sha256(await readFile(join(directory,safeFilename(filename)))))throw Error(`Sealed bytes changed: ${filename}`);}
   const manifestHash=sha256(await readFile(join(directory,'package-manifest.json'))),lockHash=sha256(await readFile(join(directory,'public-package-lock.json')));
@@ -126,7 +129,12 @@ function protectedContext(sha){
   if(run('gh',['api','repos/ruvnet/ruv-FANN/issues?labels=release-blocker&state=open&per_page=1','--jq','length'])!=='0')throw Error('Release blockers prevent publication');
   clean();
 }
-async function publicBytes(row){const response=await fetch(tarballURL(row),{redirect:'error',signal:AbortSignal.timeout(30_000)});if(response.status===404)return null;if(!response.ok)throw Error(`Registry HTTP${response.status}`);const bytes=Buffer.from(await response.arrayBuffer());if(bytes.length>20*1024*1024)throw Error('Oversized registry tarball');return bytes;}
+async function publicBytes(row){
+  const response=await fetch(tarballURL(row),{redirect:'error',signal:AbortSignal.timeout(30_000)});
+  if(response.status===404)return null;if(!response.ok)throw Error(`Registry HTTP${response.status}`);
+  const maximum=20*1024*1024;if(Number(response.headers.get('content-length'))>maximum){await response.body?.cancel();throw Error('Oversized registry tarball');}
+  const chunks=[];let size=0;for await(const chunk of response.body){size+=chunk.length;if(size>maximum)throw Error('Oversized registry tarball');chunks.push(Buffer.from(chunk));}return Buffer.concat(chunks);
+}
 async function awaitPublic(row,timeout=180_000){const deadline=Date.now()+timeout;while(Date.now()<deadline){const bytes=await publicBytes(row);if(bytes){if(sha256(bytes)!==row.sha256||integrity(bytes)!==row.integrity)throw Error(`Public bytes differ: ${row.name}@${row.version}`);return bytes;}await new Promise(resolve=>setTimeout(resolve,5000));}throw Error(`Registry propagation timeout: ${row.name}`);}
 async function publish(){
   const directory=resolve(need('directory')),{seal,manifest}=await verify(directory);protectedContext(seal.sourceSha);
@@ -146,6 +154,7 @@ async function publish(){
 async function publicConsumer(){
   const directory=resolve(need('directory')),{seal,manifest}=await verify(directory),publication=await json(need('publication'));
   if(publication.status!=='passed'||publication.sourceSha!==seal.sourceSha||publication.sealSha256!==sha256(await readFile(join(directory,'candidate-seal.json')))||publication.packages.length!==manifest.packages.length)throw Error('Publication receipt does not match seal');
+  for(const row of manifest.packages)if(!publication.packages.some(item=>item.name===row.name&&item.version===row.version&&item.sha256===row.sha256&&item.integrity===row.integrity))throw Error('Publication package digest mismatch');
   for(const row of manifest.packages)await awaitPublic(row);
   const target=await mkdtemp(join(tmpdir(),'toolkit-public-consumer-')),env=await isolatedEnv(target);
   try{
@@ -162,7 +171,8 @@ function tagCommit(tag){let item=JSON.parse(run('gh',['api',`repos/ruvnet/ruv-FA
 async function githubRelease(){
   const directory=resolve(need('directory')),{seal,manifest}=await verify(directory);protectedContext(seal.sourceSha);
   const publication=await json(need('publication')),consumer=await json(need('public-consumer'));
-  if(publication.status!=='passed'||consumer.status!=='passed'||publication.sourceSha!==seal.sourceSha||consumer.sourceSha!==seal.sourceSha||consumer.sealSha256!==sha256(await readFile(join(directory,'candidate-seal.json'))))throw Error('Public release evidence mismatch');
+  if(publication.status!=='passed'||consumer.status!=='passed'||publication.sourceSha!==seal.sourceSha||consumer.sourceSha!==seal.sourceSha||consumer.sealSha256!==sha256(await readFile(join(directory,'candidate-seal.json')))||publication.sealSha256!==consumer.sealSha256)throw Error('Public release evidence mismatch');
+  for(const row of manifest.packages)for(const receipt of [publication,consumer])if(receipt.packages?.length!==manifest.packages.length||!receipt.packages.some(item=>item.name===row.name&&item.version===row.version&&item.sha256===row.sha256&&item.integrity===row.integrity))throw Error('Release public package evidence differs from seal');
   validateCoreReceipt(consumer.core,seal.sourceSha);for(const row of manifest.packages)await awaitPublic(row);
   const receipt={schema:`${schema}.release/1`,status:'passed',sourceSha:seal.sourceSha,releaseTag,sealSha256:sha256(await readFile(join(directory,'candidate-seal.json'))),publicationSha256:sha256(await readFile(need('publication'))),publicConsumerSha256:sha256(await readFile(need('public-consumer'))),packages:manifest.packages};
   await save(need('output'),receipt);
