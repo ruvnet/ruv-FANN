@@ -122,6 +122,10 @@ console.log('CORE_AGENTICOW_RESULT ' + JSON.stringify(await qualifyAgenticow({me
   assert.deepEqual(legacyCore.metadata.dependencies, {'ruv-fann-wasm': '0.1.2'}, 'finite version graph terminates at WASM');
   const wasm = await findPackage('ruv-fann-wasm', coreDirectory);
   assert.equal(wasm.metadata.version, '0.1.2');
+  const memoryPackage = await findPackage('agenticow', coreDirectory);
+  assert.equal(memoryPackage.metadata.version, '0.3.0', 'Agenticow is the pinned installed dependency');
+  const rvfPackage = await findPackage('@ruvector/rvf-node', memoryPackage.directory);
+  agenticow.rvfVersion = rvfPackage.metadata.version;
   const graph = {core: metadata.version, legacyCore: legacyCore.metadata.version, finite: true};
 
   const typeImports = Object.keys(mappings).map((subpath, index) => `import * as capability${index} from 'ruv-fann/${subpath}';\nvoid capability${index};`).join('\n');
