@@ -14,13 +14,14 @@ Build small neural networks you can **run, train, inspect and change locally**. 
 [![License: MIT](https://img.shields.io/badge/license-MIT-172c2b)](https://github.com/ruvnet/ruv-FANN/blob/main/packages/core/LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20.9-339933)](https://nodejs.org/)
 
-[Quick start](#quick-start) · [Weight editing](#edit-weights-test-holdouts-and-promote-explicitly) · [Capabilities](#capability-entrypoints) · [Training](#train-a-neural-network) · [Browser setup](#browser-setup) · [AgentDB](#persist-models-with-agentdb)
+[Quick start](#quick-start) · [Weight editing](#edit-weights-test-holdouts-and-promote-explicitly) · [Capabilities](#capability-entrypoints) · [Training](#train-a-neural-network) · [Browser setup](#browser-setup) · [Agenticow](#branch-model-memory-with-agenticow) · [AgentDB](#persist-models-with-agentdb)
 
 ## What can you build?
 
 - **Local scoring and agent components:** reusable batch inference for small dense models, reranking features and application-specific numeric decisions.
 - **Inspectable neural experiments:** real WASM activation traces, hidden-neuron ablation and numerical sensitivity to selected weights.
 - **Controlled model improvement:** bounded coordinate search, regression suites, finite-domain invariants, explicit promotion and rollback.
+- **Branchable model memory:** Agenticow copy-on-write experiments with explicit promotion, checkpoints and persisted model JSON.
 - **AgentDB workflows:** persisted weight programs behind a caller-owned authority, with serialized revisions and explicit durability acknowledgement.
 - **Deployment tools:** public Hugging Face dense JSON checkpoint loading, Cloudflare Worker handlers and bounded Node.js proposal workers.
 
@@ -30,19 +31,19 @@ These tools operate on the versioned dense-layer model format. They do not turn 
 
 | Package | Choose it when | Installed dependencies |
 | --- | --- | --- |
-| **[ruv-fann](https://www.npmjs.com/package/ruv-fann) 0.2.0** | You want inference/training plus the toolkit available through explicit `ruv-fann/*` imports | WASM, WSP and twelve toolkit packages, at exact versions |
+| **[ruv-fann](https://www.npmjs.com/package/ruv-fann) 0.3.0** | You want inference/training plus the toolkit available through explicit `ruv-fann/*` imports | WASM, WSP, twelve toolkit packages and Agenticow, at exact direct versions |
 | [ruv-fann-wsp](https://www.npmjs.com/package/ruv-fann-wsp) 0.2.0 | You need only weight inspection, edits, evaluation and local revision workspaces | Published core 0.1.2 → WASM 0.1.2 |
 | [ruv-fann-wasm](https://www.npmjs.com/package/ruv-fann-wasm) 0.1.2 | You want direct wasm-bindgen objects and manual memory ownership | No runtime dependencies |
 | [Individual toolkit packages](https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit#readme) | You want a particular integration with a smaller installation | Only that package's declared dependencies |
 
-The root import remains small and loads only the numerical runtime. Installing core 0.2.0 installs the complete toolkit; choosing a subpath controls what your application imports, not what npm downloads. The Cloudflare build integration brings `esbuild` and its platform-specific optional executable. The neural runtime itself requires no native addon build or Rust toolchain. AgentDB is an optional integration and is not installed automatically.
+The root import remains small and loads only the numerical runtime. Installing core 0.3.0 installs the complete toolkit; choosing a subpath controls what your application imports, not what npm downloads. The Cloudflare build integration brings `esbuild` and its platform-specific optional executable. The neural runtime itself requires no native addon build or Rust toolchain. Agenticow 0.3.0 is installed directly and uses the native `@ruvector/rvf-node` dependency. Loading `ruv-fann/agenticow` requires a supported prebuilt binary; its native bindings are not browser or Cloudflare Worker code. The root WASM import does not load these bindings. AgentDB remains an optional integration and is not installed automatically.
 
 ESM only; Node.js 20.9+ or a browser with WebAssembly support. Model inference and training run locally. Node reads bundled WASM from disk without a runtime download; fetching a Hub model or public package metrics happens only when you explicitly invoke those integrations.
 
 ## Install
 
 ```sh
-npm install ruv-fann@0.2.0
+npm install ruv-fann@0.3.0
 ```
 
 TypeScript declarations, the WASM runtime and toolkit dependencies are included. Start with `import { loadRuntime } from 'ruv-fann'`; import other capabilities only where needed.
@@ -168,7 +169,7 @@ A hash binds model contents; it does not authenticate a caller. This local works
 
 ## Capability entrypoints
 
-Core 0.2.0 provides fourteen explicit, typed subpaths. Each re-exports its corresponding package API; none is eagerly imported by `ruv-fann`.
+Core 0.3.0 provides fifteen explicit, typed subpaths. Each re-exports its corresponding package API; none is eagerly imported by `ruv-fann`.
 
 | Import | Main capabilities | Environment |
 | --- | --- | --- |
@@ -177,6 +178,7 @@ Core 0.2.0 provides fourteen explicit, typed subpaths. Each re-exports its corre
 | `ruv-fann/search` | `searchWeightPatch`, experimental Boolean compilation and bounded Hebbian proposals | Node.js and secure-context browsers |
 | `ruv-fann/lifecycle` | `runRegressionGate`, isolated `evaluatePatchBranches` | Node.js and secure-context browsers |
 | `ruv-fann/invariants` | `checkModelInvariants`, finite Boolean-domain checks | Node.js and secure-context browsers |
+| `ruv-fann/agenticow` | `AgenticMemory`, `open`, `openBase`, branching, checkpoints, promotion and manifest persistence | Node.js with native RVF bindings |
 | `ruv-fann/registry` | `createAgentDBRegistry`, serialized revisions and durability callbacks | Node.js; browser import with a supplied compatible authority |
 | `ruv-fann/huggingface` | `loadHubModel`, `loadHubLinearHead`, integrity-pinned public dense JSON | Node.js; browsers subject to fetch/CORS policy |
 | `ruv-fann/cloudflare` | `createWorkerHandler`, bounded stateless WSP requests | Cloudflare Workers; caller supplies authentication/runtime configuration |
@@ -195,14 +197,15 @@ WSP imposes its own bounded edit, model, dataset and compute limits. Search, inv
 The new facade preserves already-published dependency contracts:
 
 ```text
-ruv-fann@0.2.0
+ruv-fann@0.3.0
+├─ agenticow@0.3.0 ─ @ruvector/rvf-node@^0.4.3 (0.4.7 in the release lock)
 ├─ ruv-fann-wasm@0.1.2
 ├─ ruv-fann-wsp@0.2.0 ─ ruv-fann@0.1.2 ─ ruv-fann-wasm@0.1.2
 └─ twelve toolkit packages@0.1.0
    └─ WSP@0.2.0 and, where declared, core@0.1.2
 ```
 
-This is a finite, versioned dependency graph: core 0.1.2 depends only on WASM, so it never imports core 0.2.0 or the facade. npm may install nested copies of core 0.1.2 to satisfy exact pins. Both generations share the dense-layer JSON format. The facade does not silently repoint old toolkit dependencies or promise a single JavaScript runtime cache across package generations. Keep their separate resolution when constructing a browser import map.
+This is a finite, versioned dependency graph: core 0.1.2 depends only on WASM, so it never imports core 0.3.0 or the facade. npm may install nested copies of core 0.1.2 to satisfy exact pins. Both generations share the dense-layer JSON format. The facade does not silently repoint old toolkit dependencies or promise a single JavaScript runtime cache across package generations. Keep their separate resolution when constructing a browser import map.
 
 ## Browser setup
 
@@ -233,7 +236,7 @@ vendor/
 
 Serve over HTTP(S), with `.wasm` files as `application/wasm`. Keep the WASM package's relative `src`/`dist` paths intact. Bundlers must preserve the dynamic binding imports and WASM asset URLs. Your Content Security Policy must allow WebAssembly compilation. The root-only map above needs no toolkit or legacy-core entries.
 
-For browser WSP/search/gates, also copy the chosen packages and their transitive dependencies, map each `ruv-fann/*` wrapper and bare package name, and use import-map **scopes** so WSP/toolkit package URLs resolve their pinned `ruv-fann` to core 0.1.2. Do not globally replace that pin with core 0.2.0. A bundler can resolve these installed dependency versions for you, but still needs to preserve WASM assets. Use HTTPS or localhost for WebCrypto; do not import the Node-only worker, scaffold or build entrypoints into a browser bundle.
+For browser WSP/search/gates, also copy the chosen packages and their transitive dependencies, map each `ruv-fann/*` wrapper and bare package name, and use import-map **scopes** so WSP/toolkit package URLs resolve their pinned `ruv-fann` to core 0.1.2. Do not globally replace that pin with core 0.3.0. A bundler can resolve these installed dependency versions for you, but still needs to preserve WASM assets. Use HTTPS or localhost for WebCrypto; do not import the Node-only agenticow, worker, scaffold or build entrypoints into a browser bundle.
 
 ## API reference
 
@@ -310,6 +313,63 @@ Only finite primitive numbers and JS-owned, nonshared, nondetached Float64Arrays
 are accepted at array boundaries. Exact lengths and row limits are enforced before
 inference/training. WASM memory views, proxies and spoofed arrays reject.
 
+## Branch model memory with Agenticow
+
+`ruv-fann/agenticow` re-exports the real [agenticow 0.3.0 API](https://www.npmjs.com/package/agenticow/v/0.3.0), including its default export and TypeScript types. Use a branch to keep an experiment separate from the active memory, then explicitly promote it after independent numerical checks. This complete Node.js example stores model JSON beside a caller-supplied task vector:
+
+```js
+import { mkdirSync } from 'node:fs';
+import { open } from 'ruv-fann/agenticow';
+import { createWeightWorkspace, fingerprintModel } from 'ruv-fann/wsp';
+import { runRegressionGate } from 'ruv-fann/lifecycle';
+
+mkdirSync('weight-memory', { recursive: true });
+const base = open('weight-memory/base.rvf', { dimension: 2, metric: 'l2' });
+let experiment;
+try {
+  const model = {
+    schema: 'ruv-fann.dense-layers/1',
+    layers: [{ inputs: 1, outputs: 1, weights: [0], bias: [0],
+      activation: 'Linear', steepness: 1 }]
+  };
+  const vector = [1, 0]; // Your task vector, not rounded model weights.
+  base.ingest([{ id: 1, vector, text: JSON.stringify(model) }]);
+  experiment = base.branch('linear-repair');
+  const workspace = await createWeightWorkspace(model);
+  const patch = {
+    schema: 'ruv-fann.weight-patch/1', baseHash: await fingerprintModel(model),
+    edits: [
+      { layer: 0, parameter: 'weights', index: 0, value: 2 },
+      { layer: 0, parameter: 'bias', index: 0, value: 1 }
+    ]
+  };
+  const policy = { maxMSE: 0, maxRegressionMSE: 0, maxAbsoluteError: 0 };
+  const proposal = await workspace.propose(patch,
+    { inputs: [0, 1, 2], targets: [1, 3, 5], rows: 3 }, policy);
+  const gate = await runRegressionGate({ model, patch, suites: [{
+    name: 'independent-inputs', policy,
+    dataset: { inputs: [0.5, 1.5], targets: [2, 4], rows: 2 }
+  }] });
+  if (!proposal.evaluation.accepted || !gate.accepted) throw new Error('Gate rejected');
+  const accepted = workspace.promote(proposal.id, 1).model;
+  experiment.ingest([{ id: 1, vector, text: JSON.stringify(accepted) }]);
+  // The base still contains the initial model until this explicit call.
+  const checkpoint = base.checkpoint('before-promotion');
+  experiment.promote(base);
+  base.save('weight-memory/manifest.json');
+  console.log(JSON.parse(base.query(vector, 1, { forceExact: true })[0].text));
+  // Optional local recovery: base.rollback(checkpoint.id), then save again.
+  void checkpoint;
+} finally {
+  experiment?.close();
+  base.close();
+}
+```
+
+Reopen the saved lineage with `AgenticMemory.load('weight-memory/manifest.json')`, and close it when finished. Keep the referenced RVF files together; a manifest is not a standalone copy of all its backing files. `branch()` freezes the shared snapshot before either side continues writing. `fork()` is a lighter alternative whose parent must stay read-only; choose deliberately.
+
+Vectors are Float32 search keys. Store the original dense-layer JSON as `text` to preserve model weights, and validate retrieved models with `loadRuntime().prepare()` before executing them. A nearest-neighbor match does not prove model suitability. The caller must check the regression gate before `promote()`; Agenticow itself does not enforce WSP gates, application permissions or the AgentDB registry's revision/CAS contract. This example assumes one trusted writer and does not turn a memory branch into a code sandbox.
+
 ## Persist models with AgentDB
 
 [AgentDB 3.10.0](https://www.npmjs.com/package/agentdb/v/3.10.0) supports persisted neural checkpoints, revision-safe updates and weight-program workflows. Use the [neural model guide](https://github.com/ruvnet/agentdb/blob/main/docs/neural/ruv-fann.md) for controllers and MCP access policies.
@@ -318,7 +378,7 @@ inference/training. WASM memory views, proxies and spoofed arrays reject.
 
 ## Validation and performance
 
-Qualification uses fresh installed archives, real Node.js and Chromium WASM/SIMD inference and training, strict TypeScript for all fourteen capability subpaths, and independent numerical oracles for weight search, holdout gates, finite-domain checks, rejection and rollback. Browser import checks cover ten portable subpaths; Node-only integrations are tested in their own environments. A removed search wrapper must make installed-consumer qualification fail. Release publication separately requires the protected workflow and public archive byte verification; local source tests alone are not release evidence.
+Qualification uses fresh installed archives, real Node.js and Chromium WASM/SIMD inference and training, strict TypeScript for all fifteen capability subpaths, and independent numerical oracles for weight search, holdout gates, finite-domain checks, rejection and rollback. Browser import checks cover ten portable subpaths; Node-only integrations are tested in their own environments. A removed search wrapper must make installed-consumer qualification fail. Release publication separately requires the protected workflow and public archive byte verification; local source tests alone are not release evidence.
 
 For a benchmark on your own machine, run `npm run benchmark` in `packages/core` of the [source repository](https://github.com/ruvnet/ruv-FANN). It compares batched calls with per-row calls and verifies matching outputs. Performance depends on model shape, batch size and hardware; SIMD availability alone does not guarantee a speedup.
 

@@ -10,7 +10,7 @@ Small neural networks you can train, inspect and edit in Rust, JavaScript, TypeS
 [![API documentation](https://docs.rs/ruv-fann/badge.svg)](https://docs.rs/ruv-fann)
 [![CI](https://github.com/ruvnet/ruv-FANN/actions/workflows/ci.yml/badge.svg)](https://github.com/ruvnet/ruv-FANN/actions/workflows/ci.yml)
 
-**For Rust, start with the `ruv-fann` crate. For JavaScript and TypeScript, start with the `ruv-fann` npm package.** Core npm 0.2.0 exposes the weight toolkit through explicit `ruv-fann/*` subpaths. Choose standalone `ruv-fann-wsp` for a smaller weight-editing installation, or individual toolkit packages for focused integrations. The Rust core provides generic floating-point networks, training algorithms and model I/O inspired by [FANN](https://github.com/libfann/fann).
+**For Rust, start with the `ruv-fann` crate. For JavaScript and TypeScript, start with the `ruv-fann` npm package.** Core npm 0.3.0 exposes the weight toolkit through explicit `ruv-fann/*` subpaths. Choose standalone `ruv-fann-wsp` for a smaller weight-editing installation, or individual toolkit packages for focused integrations. The Rust core provides generic floating-point networks, training algorithms and model I/O inspired by [FANN](https://github.com/libfann/fann).
 
 ![Repository map: five independent Rust workspaces for neural networks, agent tools, forecasting, CUDA source translation and image processing.](docs/assets/package-map.svg)
 
@@ -19,7 +19,7 @@ Small neural networks you can train, inspect and edit in Rust, JavaScript, TypeS
 | Location | Available behavior | Version / guide |
 | --- | --- | --- |
 | `packages/wsp/` | **`ruv-fann-wsp`**: inspect and trace models, build bounded weight patches, evaluate candidates, then promote or roll back | Published npm **[0.2.0](https://www.npmjs.com/package/ruv-fann-wsp)** · [WSP guide](packages/wsp/README.md) · [Interactive story](https://ruvnet.github.io/ruv-FANN/) |
-| `packages/core/` | **`ruv-fann` for JavaScript/TypeScript**: WASM inference/training plus fourteen explicit toolkit subpaths | npm release **[0.2.0](https://www.npmjs.com/package/ruv-fann)** · [JavaScript guide](packages/core/README.md) |
+| `packages/core/` | **`ruv-fann` for JavaScript/TypeScript**: WASM inference/training plus fifteen explicit toolkit subpaths, including Agenticow memory | npm release **[0.3.0](https://www.npmjs.com/package/ruv-fann)** · [JavaScript guide](packages/core/README.md) |
 | `packages/wsp-toolkit/` | Twelve focused packages: bounded search, holdout gates, invariants, worker proposals, AgentDB authority, Hub/Workers adapters and constellation tools | **0.1.0** each · [Toolkit guide](packages/wsp-toolkit/README.md) · [Umbrella release](https://github.com/ruvnet/ruv-FANN/releases/tag/ruv-fann-toolkit-v0.2.0) |
 | `packages/wasm/` | **`ruv-fann-wasm`**: direct WASM bindings, bundled runtime binaries and SIMD detection | Published npm **[0.1.2](https://www.npmjs.com/package/ruv-fann-wasm)** · [Runtime guide](packages/wasm/README.md) |
 | Repository root | **`ruv-fann` for Rust**: train feedforward networks, prepare immutable CPU inference snapshots, and use optional WebGPU operations | Checkout `0.2.2` · [Crate](https://crates.io/crates/ruv-fann) · [Core example](examples/basic_usage.rs) · [API](https://docs.rs/ruv-fann) |
@@ -100,7 +100,7 @@ of those results and their limits.
 The toolkit extends local weight editing into a bounded proposal/evaluation loop. Node.js workers explore development cases, while the coordinator keeps holdouts and output constraints separate. A passing candidate is re-proposed through the supplied authority and activated only with an expected-revision comparison. Rollback creates a new revision containing the chosen old weights.
 
 ```sh
-npm install ruv-fann@0.2.0
+npm install ruv-fann@0.3.0
 ```
 
 | Need | Core import | Individual package |
@@ -110,15 +110,16 @@ npm install ruv-fann@0.2.0
 | Test named independent datasets | `ruv-fann/lifecycle` | `ruv-fann-wsp-lifecycle@0.1.0` |
 | Check finite-domain output constraints | `ruv-fann/invariants` | `ruv-fann-wsp-invariants@0.1.0` |
 | Coordinate workers and bounded generations | `ruv-fann/swarm`, `ruv-fann/loop` | `ruv-fann-wsp-swarm`, `ruv-fann-wsp-loop` |
+| Branch model memory, checkpoint experiments and promote explicitly | `ruv-fann/agenticow` | `agenticow@0.3.0` (native Node.js) |
 | Serialize AgentDB revisions and acknowledge persistence | `ruv-fann/registry` | `ruv-fann-wsp-registry@0.1.0` |
 | Load a pinned checkpoint or build a stateless edge handler | `ruv-fann/huggingface`, `ruv-fann/cloudflare` | Hub and Cloudflare adapters |
 | Plan packages, validate metadata and render observations | `ruv-fann/constellation`, `ruv-fann/contracts`, `ruv-fann/telemetry` | Three constellation packages |
 
-Read the [complete runnable rejection→gate→promotion example](packages/wsp-toolkit/README.md#repair-xor-gate-it-independently-and-choose-a-revision), the [core environment matrix](packages/core/README.md#capability-entrypoints), or run the source toolkit's `npm run demo:loop` for actual AgentDB reopen and rollback. The complete facade installs the toolkit, including its build tooling; individual packages provide smaller dependency footprints. Existing satellite pins intentionally retain a nested core 0.1.2 runtime. AgentDB is separately installed and owned by the application.
+Read the [complete runnable rejection→gate→promotion example](packages/wsp-toolkit/README.md#repair-xor-gate-it-independently-and-choose-a-revision), the [core environment matrix](packages/core/README.md#capability-entrypoints), or run the source toolkit's `npm run demo:loop` for actual AgentDB reopen and rollback. The complete facade installs the toolkit, including its build tooling; individual packages provide smaller dependency footprints. Existing satellite pins intentionally retain a nested core 0.1.2 runtime. Agenticow 0.3.0 is a direct dependency exposed through `ruv-fann/agenticow`; its RVF bindings require Node.js and a supported native binary. See the [complete branch-and-gate example](packages/core/README.md#branch-model-memory-with-agenticow). AgentDB is separately installed and owned by the application.
 
 The loop does not call an LLM provider, execute generated code or publish packages. Worker threads are execution contexts, not security sandboxes; finite-domain tests and hashes do not establish universal safety or generalization. Release publication is a separate protected workflow that verifies exact archives and public installations.
 
-**Topics:** Rust neural networks · JavaScript machine learning · TypeScript · WebAssembly SIMD · weight-space programming · model evaluation · neural weight search · AgentDB persistence · Cloudflare Workers.
+**Topics:** Rust neural networks · JavaScript machine learning · TypeScript · WebAssembly SIMD · weight-space programming · model evaluation · neural weight search · AgentDB persistence · Agenticow copy-on-write memory · Cloudflare Workers.
 
 ## Try the neural-network core
 
