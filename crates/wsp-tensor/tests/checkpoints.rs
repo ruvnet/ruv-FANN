@@ -238,3 +238,32 @@ fn preserve_untouched_tensor_and_metadata() {
     assert_eq!(&old[..old.len() - 8], &new[..new.len() - 8]);
     assert_eq!(&old[old.len() - 4..], &new[new.len() - 4..]);
 }
+
+#[test]
+fn forged_receipt_cannot_exceed_apply_replacement_bound() {
+    let d = tempfile::tempdir().unwrap();
+    let base = d.path().join("base");
+    let candidate = d.path().join("candidate");
+    let restored = d.path().join("restored");
+    let header = r#"{"weight":{"dtype":"F32","shape":[1],"data_offsets":[0,4]}}"#;
+    let before = 1_000_000.5f32.to_le_bytes();
+    let after = 1_000_001.0f32.to_le_bytes();
+    write_raw(&base, header, &before);
+    write_raw(&candidate, header, &after);
+    let offset = inspect(&mut File::open(&candidate).unwrap())
+        .unwrap()
+        .data_start;
+    let forged = Receipt {
+        schema: "ruv-fann.tensor-receipt/1".into(),
+        base_sha256: fingerprint(&base).unwrap(),
+        candidate_sha256: fingerprint(&candidate).unwrap(),
+        edits: vec![Undo {
+            offset,
+            before: before.to_vec(),
+            after: after.to_vec(),
+        }],
+        behavioral_validation: "not_run".into(),
+    };
+    assert!(rollback(&candidate, &restored, &forged).is_err());
+    assert!(!restored.exists());
+}

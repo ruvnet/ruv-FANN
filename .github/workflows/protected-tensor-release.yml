@@ -1,0 +1,66 @@
+name: protected-tensor-release
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact unchanged main SHA qualified on release/**
+        required: true
+        type: string
+permissions:
+  contents: read
+  issues: read
+  actions: read
+concurrency:
+  group: protected-registry-release
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      issues: read
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        with:
+          toolchain: '1.99.1'
+      - name: Revalidate exact source and download the sealed pre-main candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: python3 scripts/tensor-release.py download --expected-sha "$EXPECTED_SHA" --directory "$RUNNER_TEMP/tensor-publication"
+      - name: Publish only the qualified immutable Cargo archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: python3 scripts/tensor-release.py publish --expected-sha "$EXPECTED_SHA" --directory "$RUNNER_TEMP/tensor-publication"
+      - name: Verify canonical bytes and fresh public Cargo and CLI consumers without registry credentials
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: python3 scripts/tensor-release.py verify-public --expected-sha "$EXPECTED_SHA" --directory "$RUNNER_TEMP/tensor-publication"
+      - name: Create exact-source release and verify every downloaded asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: python3 scripts/tensor-release.py github-release --expected-sha "$EXPECTED_SHA" --directory "$RUNNER_TEMP/tensor-publication"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: tensor-publication-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/tensor-publication/*.json
+            ${{ runner.temp }}/tensor-publication/*.crate
+            ${{ runner.temp }}/tensor-publication/fresh/*.log
+            ${{ runner.temp }}/tensor-publication/release-assets/*
+            ${{ runner.temp }}/tensor-publication/candidate/*.json
+          if-no-files-found: error
+          retention-days: 90

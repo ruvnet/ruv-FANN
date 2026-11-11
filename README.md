@@ -43,6 +43,19 @@ dependency pins. Examples below retain the corresponding runtime generations.
 
 Each family has a defined scope. Forecasting currently implements a univariate RNN and simple baselines; LSTM/GRU forecasting architectures return unsupported errors. Agent assignment records scheduling decisions; external task execution depends on the integration you supply. CUDA translation emits source and does not execute a GPU kernel. The native OpenCV bridge calls an installed C++ library, while the portable packages implement a smaller set of operations.
 
+## Edit Safetensors checkpoints in Rust
+
+[`ruv-fann-wsp-tensor`](crates/wsp-tensor/README.md) provides a standalone Rust
+library and CLI for bounded F32, F16 and BF16 checkpoint edits. It streams a private
+copy, checks the exact baseline hash, applies at most 128 replacements, and restores
+byte-identical originals from hash-bound rollback receipts. Existing files are never
+overwritten. Install with `cargo install ruv-fann-wsp-tensor --version 0.1.0 --locked`.
+
+This is an offline checkpoint utility. The accompanying paired PAN2 experiment
+harness records input/output provenance; GPU generation and model quality gains
+have not been validated. See its guide for limits, independent evaluation and
+source/packed/public package verification.
+
 ## Weight-space programming in Node.js and browsers
 
 A neural network's weights are the numbers that control how inputs become

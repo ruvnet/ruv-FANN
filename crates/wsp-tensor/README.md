@@ -1,10 +1,19 @@
 # Rust WSP tensor checkpoint experiments
 
-Standalone, unpublished backend for bounded direct edits to Safetensors shards.
+Standalone Rust library and CLI for bounded direct edits to Safetensors shards.
 This extends the WSP workflow concept. It does not replace or import the small
 dense model schema in `ruv-fann-wsp`, and does not implement PAN2 inference.
 
 ## Build and verify
+
+Install the CLI from crates.io with its reviewed dependency lock:
+
+```sh
+cargo install ruv-fann-wsp-tensor --version 0.1.0 --locked
+```
+
+For the library, add `ruv-fann-wsp-tensor = "0.1.0"` to your Cargo dependencies.
+The host MSRV is Rust 1.81. Source builds from this directory:
 
 ```sh
 cargo test --locked
@@ -75,6 +84,7 @@ python3 scripts/pan2_compare.py \
   --candidate /models/candidate/transformer \
   --receipt /evaluation/receipt.json \
   --prompts /evaluation/prompts.json \
+  --hf-home /models/offline-huggingface \
   --output /evaluation/pan2-comparison
 ```
 
@@ -82,9 +92,12 @@ The harness records checkpoint and output hashes, prompt hash, fixed seed,
 upstream revision and timings. It uses fresh output directories, checks inputs
 again after inference, and terminates the process group on timeout or error.
 This is a paired generation harness, not a validated physics evaluator.
-Prompt-referenced images and external text encoder/VAE caches must be separately
-pinned and kept immutable by the operator. Those dependencies are not hashed by
-this initial harness. Review upstream licensing for each component.
+The harness hashes prompt images, all checkpoint files, the receipt and a dedicated
+offline Hugging Face data directory. That directory may contain only `hub/` and/or
+`assets/`; credential files are rejected. Kernel caches are fresh for each run.
+Provision these model components separately and review their upstream licenses.
+CPU tests use an explicitly mocked launcher; they do not establish PAN2 inference
+or generation quality on a GPU.
 
 No automatic promotion is implemented. Score action adherence and physical
 consistency against real observations on an unseen scenario set before choosing
@@ -112,8 +125,11 @@ and offsets checked for contiguous coverage. Checkpoints are local trusted-user
 files, not a public file upload service. Use filesystem permissions and a job
 sandbox before exposing this CLI to other tenants. Filesystem failures, process
 termination and unavailable disk space can interrupt a run; the source remains
-untouched. Receipts are unsigned. Dependency advisory scanning is a separate
-release check. This crate is `publish = false` until review and GPU validation.
+untouched. Receipts are unsigned. The release workflow audits the standalone dependency lock with warnings denied.
+Its source-bound archive is tested before publication, then downloaded from the
+public registry and exercised through fresh library and installed CLI consumers.
+GPU quality evaluation remains a separate experiment, not a capability of this
+checkpoint file utility.
 
 Acceptance: candidates load with the official reader; unchanged tensors retain
 their bytes; invalid and stale edits reject; rollback restores the entire original

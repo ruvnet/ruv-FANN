@@ -355,7 +355,11 @@ pub fn rollback(source: &Path, dest: &Path, r: &Receipt) -> Result<String> {
         let dtype = dtype.ok_or("undo is not an editable tensor element")?;
         let before = decode(dtype, &e.before)?;
         let after = decode(dtype, &e.after)?;
-        if !before.is_finite() || !after.is_finite() || (after - before).abs() > 1.0 {
+        if !before.is_finite()
+            || !after.is_finite()
+            || after.abs() > 1_000_000.0
+            || (after - before).abs() > 1.0
+        {
             return fail("invalid undo values");
         }
         for i in e.offset..e.offset + n as u64 {

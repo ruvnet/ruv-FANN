@@ -3,8 +3,16 @@ name = "ruv-fann-wsp-tensor"
 version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
-publish = false
+publish = ["crates-io"]
 description = "Bounded, streaming Safetensors checkpoint edits for WSP experiments"
+rust-version = "1.81"
+repository = "https://github.com/ruvnet/ruv-FANN"
+homepage = "https://ruvnet.github.io/ruv-FANN/"
+documentation = "https://docs.rs/ruv-fann-wsp-tensor"
+readme = "README.md"
+keywords = ["safetensors", "checkpoint", "model-editing", "weight-space", "machine-learning"]
+categories = ["science", "command-line-utilities"]
+include = ["src/**", "tests/**", "scripts/**", "Cargo.toml", "Cargo.lock", "README.md", "LICENSE-MIT", "LICENSE-APACHE"]
 
 [workspace]
 
