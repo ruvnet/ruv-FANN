@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile,writeFile,rm } from 'node:fs/promises';
 import {execFileSync,spawnSync} from 'node:child_process';
 import {packageSpecs,topologicalOrder,validateRows,validateCoreReceipt,validateQualification,validateToolkitProof,publicLock,safeFilename,sha256,integrity,tarballURL} from './toolkit-release-lib.mjs';
 const sha='a'.repeat(40),manifestHash='b'.repeat(64);
@@ -20,12 +20,26 @@ test('rejects unknown, skipped, zero, failed and mismatched-source qualification
 test('installed proof requires real SIMD and scalar Node/Chromium numerical checks, types, rollback and finite graph',()=>{validateCoreReceipt(core(),sha);for(const mutate of [r=>r.testCount=0,r=>r.skipped=1,r=>r.todo=1,r=>r.browser.realWasm=false,r=>r.browser.checks=[],r=>r.browser.pageErrors=['error'],r=>r.types.strict=false,r=>r.types.subpaths=0,r=>r.graph.finite=false,r=>r.backendChecks[0].rollbackRevision=2,r=>r.backendChecks[0].search=false]){const proof=core();mutate(proof);assert.throws(()=>validateCoreReceipt(proof,sha));}});
 test('full installed toolkit proof requires actual concurrent workers and durable AgentDB reopen/rollback',()=>{validateToolkitProof(toolkit());for(const mutate of [r=>r.results=[],r=>r.results[0].candidateMSE=1,r=>r.evolution.report.workerThreadIds=[1],r=>r.evolution.report.promotions=0,r=>r.evolution.durability.reopened=false,r=>r.evolution.durability.rollbackPersisted=false,r=>r.constellation.scaffoldTests=0]){const proof=toolkit();mutate(proof);assert.throws(()=>validateToolkitProof(proof));}});
 test('public lock preserves resolved transitive versions and replaces only candidate archives with SRI-bound public URLs',()=>{
- const packages=rows(),lock={name:'consumer',version:'1.0.0',lockfileVersion:3,packages:{'':{dependencies:{}},'node_modules/external':{version:'1.2.3',resolved:'https://registry.npmjs.org/external/-/external-1.2.3.tgz',integrity:'sha512-external'}}};
+ const packages=rows(),lock={name:'consumer',version:'1.0.0',lockfileVersion:3,packages:{'':{dependencies:{}},'node_modules/external':{version:'1.2.3',resolved:'https://registry.npmjs.org/external/-/external-1.2.3.tgz',integrity:integrity('external')}}};
  for(const row of packages)lock.packages[`node_modules/${row.name}`]={version:row.version,resolved:`file:/tmp/${row.tarball}`,integrity:row.integrity};
  const result=publicLock(lock,packages);assert.equal(result.packages['node_modules/external'].version,'1.2.3');assert.equal(result.packages['node_modules/ruv-fann'].resolved,tarballURL(packages.find(r=>r.name==='ruv-fann')));assert.equal(lock.packages['node_modules/ruv-fann'].resolved.startsWith('file:'),true);
  lock.packages['node_modules/external'].resolved='https://hostile.test/package.tgz';assert.throws(()=>publicLock(lock,packages));
+ lock.packages['node_modules/external']={link:true};assert.throws(()=>publicLock(lock,packages));
+ lock.packages['node_modules/external']={version:'1.2.3',resolved:'https://registry.npmjs.org/external/-/external-1.2.3.tgz'};assert.throws(()=>publicLock(lock,packages));
 });
 test('archive and evidence filenames reject traversal, shell metacharacters and URLs',()=>{for(const name of ['../x.tgz','x/../x.tgz','x\\y.tgz','https://hostile/x','$(id).tgz','x\n.tgz','..'])assert.throws(()=>safeFilename(name));assert.equal(safeFilename('ruv-fann-0.2.0.tgz'),'ruv-fann-0.2.0.tgz');});
 test('qualification checks out exact PR head and canonical pack precedes both runtime consumers',async()=>{const workflow=await readFile(new URL('../.github/workflows/wsp-toolkit.yml',import.meta.url),'utf8');assert.match(workflow,/ref: \$\{\{ github.event.pull_request.head.sha \|\| inputs.expected_sha \|\| github.sha \}\}/);assert.equal((workflow.match(/toolkit-release-lane.mjs pack /g)??[]).length,1);assert.equal((workflow.match(/toolkit-release-lane.mjs qualify /g)??[]).length,2);assert.match(workflow,/toolkit-candidate-\$\{\{ github.event.pull_request.head.sha/);});
 test('protected publisher selects successful upstream artifact and explicitly uses existing NPM_TOKEN, never source rebuild',async()=>{const workflow=await readFile(new URL('../.github/workflows/protected-toolkit-release.yml',import.meta.url),'utf8');assert.match(workflow,/secrets.NPM_TOKEN/);assert.match(workflow,/toolkit-candidate-download.mjs --expected-sha/);assert.doesNotMatch(workflow,/toolkit-release-lane.mjs (pack|qualify|seal) /);assert.match(workflow,/id-token: write/);assert.match(workflow,/toolkit-release-lane.mjs public-consumer/);assert.match(workflow,/toolkit-release-lane.mjs github-release/);});
 test('actual downloader rejects foreign or local context before gh download',()=>{const result=spawnSync(process.execPath,[new URL('./toolkit-candidate-download.mjs',import.meta.url).pathname,'--expected-sha',sha,'--output','/tmp/never-download-toolkit'],{encoding:'utf8',env:{...process.env,GITHUB_ACTIONS:'false'},timeout:10000});assert.notEqual(result.status,0);assert.match(result.stderr,/Exact protected upstream main context required/);});
+test('ignored JavaScript payload cannot enter a pack even when git status is clean',async()=>{
+ const path=new URL('../packages/core/src/release-provenance-probe.tmp',import.meta.url);
+ try{
+   await writeFile(path,'export const ignoredPayload = true;\n',{flag:'wx'});
+   const root=new URL('..',import.meta.url);
+   execFileSync('git',['check-ignore','packages/core/src/release-provenance-probe.tmp'],{cwd:root,stdio:'pipe'});
+   const listing=JSON.parse(execFileSync('npm',['pack','--dry-run','--json','--ignore-scripts'],{cwd:new URL('../packages/core/',import.meta.url),encoding:'utf8'}));
+   assert.ok(listing[0].files.some(row=>row.path==='src/release-provenance-probe.tmp'),'negative fixture must actually be included by npm pack');
+   const result=spawnSync(process.execPath,[new URL('./toolkit-release-lane.mjs',import.meta.url).pathname,'preflight','--package','ruv-fann'],{encoding:'utf8',timeout:10000});
+   assert.notEqual(result.status,0);assert.match(result.stderr,/Package payload is not tracked at source HEAD/);
+ }finally{await rm(path,{force:true});}
+});

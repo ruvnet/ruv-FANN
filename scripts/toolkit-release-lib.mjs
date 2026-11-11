@@ -71,7 +71,7 @@ export function validateQualification(receipt,sourceSha,manifestHash) {
 }
 export function validateToolkitProof(proof) {
   if(!proof||!['wasm','wasm-simd'].every(backend=>proof.results?.some(row=>row.backend===backend&&row.candidateMSE===0&&row.regressionRejected===true&&row.compiledXor===true&&row.rollbackRevision===3))||
-     proof.evolution?.report?.promotions!==2||proof.evolution.durability?.reopened!==true||proof.evolution.durability.rollbackPersisted!==true||proof.evolution.report.workerThreadIds?.length<2||
+     proof.evolution?.report?.promotions!==2||proof.evolution.durability?.reopened!==true||proof.evolution.durability.rollbackPersisted!==true||!Array.isArray(proof.evolution.report.workerThreadIds)||new Set(proof.evolution.report.workerThreadIds).size<2||
      proof.constellation?.catalogEntries!==24||proof.constellation.scaffoldTests!==3)throw Error('Toolkit installation must prove both real WASM backends, concurrent durable AgentDB promotion/rollback and generated constellation tests');
 }
 export function publicLock(candidateLock,rows) {
@@ -86,7 +86,7 @@ export function publicLock(candidateLock,rows) {
     delete entry.inBundle;
   }
   for(const [path,entry]of Object.entries(lock.packages)) {
-    if(path&&entry.resolved&&(!entry.resolved.startsWith('https://registry.npmjs.org/')||entry.link))throw Error('Public lock contains a non-registry dependency');
+    if(path&&(entry.link||!entry.resolved?.startsWith('https://registry.npmjs.org/')||!/^sha512-[A-Za-z0-9+/]{86}==$/.test(entry.integrity??'')))throw Error('Public lock contains a link, unpinned integrity or non-registry dependency');
   }
   return lock;
 }

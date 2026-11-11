@@ -5,6 +5,7 @@ import { readFile,writeFile,readdir,mkdir,mkdtemp,rm,copyFile,lstat } from 'node
 import { join,resolve,dirname,basename } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import {isDeepStrictEqual} from 'node:util';
 import { schema,releaseTag,packageSpecs,sha256,integrity,tarballURL,safeFilename,assertSourceSha,topologicalOrder,validateRows,validateCoreReceipt,validateQualification,validateToolkitProof,publicLock } from './toolkit-release-lib.mjs';
 import {verifyToolkitInstallation} from '../packages/wsp-toolkit/scripts/packed-consumer.mjs';
 const root=resolve(fileURLToPath(new URL('..',import.meta.url))),toolkit=join(root,'packages/wsp-toolkit');
@@ -26,10 +27,25 @@ async function isolatedEnv(target){
 }
 async function metadata(path){
   const names=run('tar',['-tzf',path]).split('\n');
-  if(names.length>2000||names.some(name=>!name.startsWith('package/')||name.includes('..')||name.includes('\\')||name.startsWith('/')))throw Error('Unsafe package archive paths');
+  if(names.length>2000||new Set(names).size!==names.length||names.some(name=>!name.startsWith('package/')||name.includes('..')||name.includes('\\')||name.startsWith('/')||name.endsWith('/')))throw Error('Unsafe or duplicate package archive paths');
   if(run('tar',['-tvzf',path]).split('\n').some(line=>!/^[-d]/.test(line)))throw Error('Archive links and special files forbidden');
   return JSON.parse(run('tar',['-xOzf',path,'package/package.json']));
 }
+function assertTrackedPayload(spec,relative,bytes){
+  if(typeof relative!=='string'||!relative||relative.startsWith('/')||relative.includes('..')||relative.includes('\\'))throw Error('Unsafe source payload path');
+  const path=`${spec.directory}/${relative}`;
+  let tracked;try{tracked=execFileSync('git',['show',`HEAD:${path}`],{cwd:root,stdio:['ignore','pipe','pipe'],maxBuffer:20*1024*1024});}catch{throw Error(`Package payload is not tracked at source HEAD: ${path}`);}
+  if(relative==='package.json'){
+    // npm can normalize harmless JSON formatting; the entire parsed manifest must still match HEAD.
+    if(!isDeepStrictEqual(JSON.parse(bytes),JSON.parse(tracked)))throw Error(`Packed package manifest differs from tracked HEAD: ${path}`);
+  }else if(!tracked.equals(bytes))throw Error(`Package payload bytes differ from tracked HEAD: ${path}`);
+}
+async function preflightPackage(spec){
+  const listing=JSON.parse(run('npm',['pack','--dry-run','--json','--ignore-scripts'],join(root,spec.directory),cleanEnv()));
+  if(listing.length!==1||!listing[0].files?.length)throw Error('Package preflight returned no files');
+  const names=new Set();for(const file of listing[0].files){if(names.has(file.path))throw Error('Duplicate package preflight path');names.add(file.path);const path=join(root,spec.directory,file.path);if(!(await lstat(path)).isFile())throw Error('Source payload must be a regular tracked file');assertTrackedPayload(spec,file.path,await readFile(path));}
+}
+async function preflight(){clean();const spec=packageSpecs.find(row=>row.name===need('package'));if(!spec)throw Error('Unknown package');await preflightPackage(spec);}
 async function inspectRows(directory,rows){
   validateRows(rows);
   for(const row of rows){
@@ -37,11 +53,17 @@ async function inspectRows(directory,rows){
     if(sha256(bytes)!==row.sha256||integrity(bytes)!==row.integrity||pkg.name!==row.name||pkg.version!==row.version||pkg.private||JSON.stringify(pkg.dependencies??{})!==JSON.stringify(row.dependencies))throw Error(`Archive identity, dependency or digest mismatch: ${row.name}`);
     const spec=packageSpecs.find(spec=>spec.name===row.name),tracked=await json(join(root,spec.directory,'package.json'));
     if(pkg.name!==tracked.name||pkg.version!==tracked.version||JSON.stringify(pkg.dependencies??{})!==JSON.stringify(tracked.dependencies??{}))throw Error('Archive differs from source package identity/dependencies');
+    for(const filename of run('tar',['-tzf',path]).split('\n')){
+      const bytes=execFileSync('tar',['-xOzf',path,filename],{maxBuffer:20*1024*1024});
+      assertTrackedPayload(spec,filename.slice('package/'.length),bytes);
+    }
   }
 }
 async function pack(){
   clean();const directory=resolve(need('directory'));await mkdir(directory,{recursive:true});
   if((await readdir(directory)).length)throw Error('Canonical pack directory must be empty');
+  // Check the complete pack list before creating any archive. git status alone ignores ignored code.
+  for(const spec of packageSpecs)await preflightPackage(spec);
   const rows=[];
   for(const spec of packageSpecs){
     const pkg=await json(join(root,spec.directory,'package.json'));if(pkg.name!==spec.name||pkg.version!==spec.version||pkg.private)throw Error(`Unexpected source package: ${spec.name}`);
@@ -151,7 +173,7 @@ async function publish(){
     // Append-only progress survives a later package failure.
     await save(join(resolve(need('output')),`${row.name}.json`),{schema:`${schema}.package-publication/1`,sourceSha:seal.sourceSha,...results.at(-1)});
   }
-  await save(join(resolve(need('output')),'publication.json'),{schema:`${schema}.publication/1`,status:'passed',sourceSha:seal.sourceSha,releaseTag,sealSha256:sha256(await readFile(join(directory,'candidate-seal.json'))),packages:results});
+  await save(join(resolve(need('output')),'publication.json'),{schema:`${schema}.publication/1`,status:'passed',sourceSha:seal.sourceSha,releaseTag,sealSha256:sha256(await readFile(join(directory,'candidate-seal.json'))),packages:results.map(row=>({...row,status:'public-bytes-verified'}))});
 }
 async function publicConsumer(){
   const directory=resolve(need('directory')),{seal,manifest}=await verify(directory),publication=await json(need('publication'));
@@ -167,6 +189,9 @@ async function publicConsumer(){
     for(const row of manifest.packages)if((await json(join(target,'node_modules',row.name,'package.json'))).version!==row.version)throw Error('Wrong public installed version');
     const core=await coreConsumer(target,join(target,'core-public.json'),seal.sourceSha,env);
     const toolkitProof=await verifyToolkitInstallation(target,{env});validateToolkitProof(toolkitProof);
+    // Public acceptance is repeatable across recovery runs. Timing observations remain
+    // in the sealed qualification reports; this receipt records behavior and work.
+    delete toolkitProof.evolution.report.budget.elapsedMs;
     await save(need('output'),{schema:`${schema}.public-consumer/1`,status:'passed',sourceSha:seal.sourceSha,releaseTag,sealSha256:sha256(await readFile(join(directory,'candidate-seal.json'))),publicLockSha256:sha256(await readFile(join(directory,'public-package-lock.json'))),packages:manifest.packages.map(({name,version,sha256,integrity})=>({name,version,sha256,integrity})),core,toolkit:toolkitProof});
   }finally{await rm(target,{recursive:true,force:true});}
 }
@@ -178,14 +203,37 @@ async function githubRelease(){
   for(const row of manifest.packages)for(const receipt of [publication,consumer])if(receipt.packages?.length!==manifest.packages.length||!receipt.packages.some(item=>item.name===row.name&&item.version===row.version&&item.sha256===row.sha256&&item.integrity===row.integrity))throw Error('Release public package evidence differs from seal');
   validateCoreReceipt(consumer.core,seal.sourceSha);validateToolkitProof(consumer.toolkit);for(const row of manifest.packages)await awaitPublic(row);
   const receipt={schema:`${schema}.release/1`,status:'passed',sourceSha:seal.sourceSha,releaseTag,sealSha256:sha256(await readFile(join(directory,'candidate-seal.json'))),publicationSha256:sha256(await readFile(need('publication'))),publicConsumerSha256:sha256(await readFile(need('public-consumer'))),packages:manifest.packages};
-  await save(need('output'),receipt);
-  const paths=[...seal.files.map(row=>join(directory,row.filename)),join(directory,'candidate-seal.json'),resolve(need('publication')),resolve(need('public-consumer')),resolve(need('output'))];
+  const paths=[...seal.files.map(row=>join(directory,row.filename)),join(directory,'candidate-seal.json'),resolve(need('publication')),resolve(need('public-consumer'))];
+  const receiptName=safeFilename(basename(need('output'))),receiptBytes=Buffer.from(JSON.stringify(receipt,null,2)+'\n');
+  const expected=new Map(await Promise.all(paths.map(async path=>[basename(path),await readFile(path)])));expected.set(receiptName,receiptBytes);
   let existing;try{existing=JSON.parse(run('gh',['release','view',releaseTag,'--json','assets']));}catch{
     run('gh',['release','create',releaseTag,...paths,'--target',seal.sourceSha,'--title','ruv-fann core 0.2.0 and WSP toolkit 0.1.0','--notes',`Thirteen exact npm archives from source ${seal.sourceSha}. Core subpaths expose bounded WSP lifecycle, search, invariants, workers, registry and constellation capabilities. Node22/24 installed consumers, real Chromium/WASM, strict types, public dependency lock and exact-byte receipts attached. No generalization or SOTA claim.`]);
+    existing=JSON.parse(run('gh',['release','view',releaseTag,'--json','assets']));
   }
   if(tagCommit(releaseTag)!==seal.sourceSha)throw Error('GitHub tag source mismatch');
-  if(existing&&JSON.stringify(existing.assets.map(a=>a.name).sort())!==JSON.stringify(paths.map(basename).sort()))throw Error('GitHub release asset set differs');
-  const target=await mkdtemp(join(tmpdir(),'toolkit-github-public-'));try{run('gh',['release','download',releaseTag,'--dir',target]);for(const path of paths)if(sha256(await readFile(path))!==sha256(await readFile(join(target,basename(path)))))throw Error('GitHub release asset bytes differ');}finally{await rm(target,{recursive:true,force:true});}
+  const target=await mkdtemp(join(tmpdir(),'toolkit-github-public-'));
+  try{
+    async function verifyExisting(assets,requireAll=false){
+      const names=assets.map(row=>row.name);
+      if(new Set(names).size!==names.length||names.some(name=>!expected.has(name))||requireAll&&(names.length!==expected.size))throw Error('GitHub release asset set differs');
+      const download=await mkdtemp(join(target,'download-'));
+      if(names.length)run('gh',['release','download',releaseTag,'--dir',download]);
+      for(const name of names)if(!expected.get(name).equals(await readFile(join(download,name))))throw Error(`Existing GitHub asset bytes differ: ${name}`);
+    }
+    // Resume a partial asset set only after every existing asset and tag passes. Never clobber.
+    await verifyExisting(existing.assets);
+    for(const path of paths)if(!existing.assets.some(row=>row.name===basename(path)))run('gh',['release','upload',releaseTag,path]);
+    existing=JSON.parse(run('gh',['release','view',releaseTag,'--json','assets']));
+    for(const path of paths)if(!existing.assets.some(row=>row.name===basename(path)))throw Error('GitHub base asset upload incomplete');
+    await verifyExisting(existing.assets);
+    // The passed receipt is staged only after the public base assets have been downloaded and verified.
+    const staged=join(target,receiptName);await writeFile(staged,receiptBytes,{flag:'wx'});
+    if(!existing.assets.some(row=>row.name===receiptName))run('gh',['release','upload',releaseTag,staged]);
+    const final=JSON.parse(run('gh',['release','view',releaseTag,'--json','assets']));
+    await verifyExisting(final.assets,true);
+    // No successful receipt is exposed until the complete public asset set, including this receipt, matches.
+    await save(need('output'),receipt);
+  }finally{await rm(target,{recursive:true,force:true});}
 }
-const modes={pack,qualify,seal,verify:()=>verify(resolve(need('directory'))),publish,'public-consumer':publicConsumer,'github-release':githubRelease};
+const modes={preflight,pack,qualify,seal,verify:()=>verify(resolve(need('directory'))),publish,'public-consumer':publicConsumer,'github-release':githubRelease};
 if(!modes[mode])throw Error('Unsupported toolkit release mode');await modes[mode]();
