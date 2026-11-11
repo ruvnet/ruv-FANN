@@ -20,6 +20,9 @@ import urllib.request
 ROOT = Path(__file__).resolve().parents[1]
 API = 'https://crates.io/api/v1'
 USER_AGENT = 'ruv-fann-release (https://github.com/ruvnet/ruv-FANN)'
+# static.crates.io can take several minutes to serve a newly uploaded crate.
+VISIBILITY_TIMEOUT = 600
+VISIBILITY_DELAYS = (5, 10, 20, 30, 60)
 
 
 def sha(data):
@@ -111,6 +114,21 @@ def downloaded(name, version):
         raise
 
 
+def wait_public(name, version, timeout=VISIBILITY_TIMEOUT, sleep=time.sleep, clock=time.monotonic):
+    """Return the public crate bytes, or None if static.crates.io still lacks them past the deadline."""
+    deadline = clock() + timeout
+    attempt = 0
+    while True:
+        public = downloaded(name, version)
+        if public is not None:
+            return public
+        remaining = deadline - clock()
+        if remaining <= 0:
+            return None
+        sleep(min(VISIBILITY_DELAYS[min(attempt, len(VISIBILITY_DELAYS) - 1)], remaining))
+        attempt += 1
+
+
 def publish(archive, data, digest, token):
     existing = downloaded(data['name'], data['vers'])
     if existing is not None:
@@ -132,14 +150,12 @@ def publish(archive, data, digest, token):
         raise RuntimeError(f'Crates upload HTTP {error.code}: {detail}') from None
     if result.get('errors'):
         raise RuntimeError(str(result['errors']).replace(token, '[REDACTED]'))
-    for _ in range(24):
-        public = downloaded(data['name'], data['vers'])
-        if public is not None:
-            if sha(public) != digest:
-                raise ValueError('Public bytes differ from verified candidate')
-            return 'published-and-byte-verified'
-        time.sleep(5)
-    raise RuntimeError('Published, but public download is not yet available')
+    public = wait_public(data['name'], data['vers'])
+    if public is None:
+        raise RuntimeError(f"Published, but {data['name']} {data['vers']} was not publicly downloadable within {VISIBILITY_TIMEOUT}s; rerun the failed job to verify the bytes")
+    if sha(public) != digest:
+        raise ValueError('Public bytes differ from verified candidate')
+    return 'published-and-byte-verified'
 
 
 def main():

@@ -2,7 +2,7 @@
 
 `cuda-rust-wasm` is an experimental Rust toolkit for reading a subset of CUDA C++, generating Rust or WGSL text, and experimenting with CPU reference kernels. CUDA is an NVIDIA trademark; this project is independent of NVIDIA.
 
-The Rust library and `cuda2rust` command have a staged 0.2.0 release. The `cuda-wasm` npm package has a staged 2.0.1 release with a smaller, working contract: a Node.js wrapper around that command, returning Rust or WGSL **source text**. These versions are prepared in this checkout; registry publication is a separate step.
+The Rust library and `cuda2rust` command are published on crates.io as `cuda-rust-wasm` 0.2.1. The `cuda-wasm` npm package (2.0.1) has a smaller, working contract: a Node.js wrapper around that command, returning Rust or WGSL **source text**.
 
 ![CUDA source passes through the Node wrapper to a trusted cuda2rust executable, which returns Rust or WGSL source for separate validation.](docs/assets/source-flow.svg)
 
@@ -10,11 +10,11 @@ The Rust library and `cuda2rust` command have a staged 0.2.0 release. The `cuda-
 
 Node.js 22.12 or newer and a trusted `cuda2rust` 0.2.0-or-newer executable are required. npm installation has no install hooks, downloads no executables, and builds no native modules. The package has no npm runtime dependencies.
 
-After the staged versions are published:
+Install both:
 
 ```bash
 npm install cuda-wasm@2
-cargo install cuda-rust-wasm --version 0.2.0 --locked
+cargo install cuda-rust-wasm --version 0.2.1 --locked
 ```
 
 For this checkout, build the real command and point the wrapper at it:
