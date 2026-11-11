@@ -34,7 +34,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '24.22.1'
+          node-version: '24.0.0'
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
       - name: Require exact current main and reviewed SHA
@@ -47,19 +47,14 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
           test "$(gh api repos/${GITHUB_REPOSITORY}/commits/main --jq .sha)" = "$EXPECTED_SHA"
           test "$(gh api "repos/${GITHUB_REPOSITORY}/issues?labels=release-blocker&state=open&per_page=1" --jq length)" = 0
-      - name: Pin npm CLI with trusted publishing support
-        run: |
-          npm install --prefix "$RUNNER_TEMP/wsp-npm-cli" --ignore-scripts --no-audit --no-fund npm@11.9.0
-          echo "$RUNNER_TEMP/wsp-npm-cli/node_modules/.bin" >> "$GITHUB_PATH"
       - name: Download and verify only the exact successful qualification artifact
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/wsp-candidate-download.mjs --expected-sha "${{ inputs.expected_sha }}" --output "$RUNNER_TEMP/wsp-candidate"
-      - name: Publish exact archive using npm OIDC and provenance or verify identical existing version
+      - name: Publish exact archive with npm provenance or verify identical existing version
         env:
           GH_TOKEN: ${{ github.token }}
-          NODE_AUTH_TOKEN: ''
-          NPM_TOKEN: ''
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: node scripts/wsp-release-lane.mjs publish --seal "$RUNNER_TEMP/wsp-candidate/candidate-seal.json" --output "$RUNNER_TEMP/wsp-publication.json"
       - name: Verify fresh-cache public install and full real-WASM consumer
         env:

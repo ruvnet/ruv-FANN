@@ -14,7 +14,22 @@ export async function packToolkit(directory) {
 export async function verifyPackedConsumer() {
   const directory=await mkdtemp(join(tmpdir(),'wsp-consumer-'));
   try {
-    const archives=await packToolkit(directory);
+    // Protected qualification reuses the one canonical candidate pack on both runtimes.
+    // Developer npm test retains the standalone packing smoke test.
+    let archives;
+    if(process.env.WSP_TOOLKIT_CANDIDATE) {
+      const manifestPath=resolve(process.env.WSP_TOOLKIT_CANDIDATE);
+      const manifest=JSON.parse(await readFile(manifestPath,'utf8'));
+      if(manifest.sourceSha!==process.env.EXPECTED_SHA||manifest.packages?.length!==13)throw Error('Canonical candidate source/package count mismatch');
+      archives=manifest.packages.filter(p=>names.includes(p.name)).map(p=>({...p,filename:p.tarball}));
+      if(archives.length!==12)throw Error('Canonical candidate must contain all twelve toolkit packages');
+      for(const item of archives) {
+        if(!/^[A-Za-z0-9][A-Za-z0-9._-]*\.tgz$/.test(item.filename)||item.filename.includes('..'))throw Error('Unsafe candidate archive filename');
+        const bytes=await readFile(join(dirname(manifestPath),item.filename));
+        if(createHash('sha256').update(bytes).digest('hex')!==item.sha256)throw Error('Canonical archive digest mismatch');
+        await copyFile(join(dirname(manifestPath),item.filename),join(directory,item.filename));
+      }
+    } else archives=await packToolkit(directory);
     await writeFile(join(directory,'package.json'),JSON.stringify({private:true,type:'module'}));
     execFileSync('npm',['install','--ignore-scripts','--prefer-offline','--no-audit','--no-fund',...archives.map(p=>join(directory,p.filename))],{cwd:directory,encoding:'utf8'});
     await copyFile(join(toolkitRoot,'test','scenario.mjs'),join(directory,'scenario.mjs'));

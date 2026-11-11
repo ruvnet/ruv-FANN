@@ -101,7 +101,7 @@ test('isolated publish environment removes token/config fallback, retains proxy/
   env.PATH='changed';assert.equal(input.PATH,undefined);
 });
 
-test('actual publication entry point rejects a foreign context before registry or gh operations', async () => {
+test('current publication entry point rejects a foreign context before registry or gh operations', async () => {
   const directory=await mkdtemp(join(tmpdir(),'wsp-oidc-entry-'));
   try {
     const checkoutSha=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8',cwd:new URL('..',import.meta.url)}).trim();
@@ -109,20 +109,18 @@ test('actual publication entry point rejects a foreign context before registry o
     const env={...process.env,...context().env,GITHUB_REPOSITORY:'foreign/forbidden',GITHUB_SHA:checkoutSha};
     const result=spawnSync(process.execPath,[new URL('./wsp-release-lane.mjs',import.meta.url).pathname,'publish','--seal',file,'--output',join(directory,'publication.json')],
       {encoding:'utf8',env,timeout:10000});
-    assert.notEqual(result.status,0);assert.match(result.stderr,/OIDC publishing requires (?:the exact protected|Node >=22\.14\.0)/);
+    assert.notEqual(result.status,0);assert.match(result.stderr,/publication requires/);
     assert.equal(result.stderr.includes(oidcCapability),false);
     await assert.rejects(readFile(join(directory,'publication.json')),error=>error.code==='ENOENT');
   } finally {await rm(directory,{recursive:true,force:true});}
 });
 
-test('protected workflow pins tools, grants OIDC and preserves exact-archive qualification without npm secrets', async () => {
+test('existing protected workflow retains explicit token auth until trusted publisher setup is verified', async () => {
   const workflow=await readFile(new URL('../.github/workflows/protected-wsp-release.yml',import.meta.url),'utf8');
   const lane=await readFile(new URL('./wsp-release-lane.mjs',import.meta.url),'utf8');
-  assert.match(workflow,/id-token: write/);assert.match(workflow,/node-version: '24\.22\.1'/);assert.match(workflow,/npm@11\.9\.0/);
-  assert.doesNotMatch(workflow,/secrets\.NPM_TOKEN/);assert.match(workflow,/NODE_AUTH_TOKEN: ''/);assert.match(workflow,/NPM_TOKEN: ''/);
+  assert.match(workflow,/id-token: write/);assert.match(workflow,/secrets\.NPM_TOKEN/);
   assert.match(workflow,/wsp-candidate-download\.mjs --expected-sha/);
-  assert.match(lane,/validateOIDCPublishContext\(/);assert.match(lane,/await verifySeal\(seal, dirname\(sealPath\)\)/);
+  assert.match(lane,/protectedContext\(seal.sourceSha\)/);assert.match(lane,/await verifySeal\(seal, dirname\(sealPath\)\)/);
   assert.match(lane,/'--ignore-scripts', '--access', 'public', '--provenance'/);
-  assert.match(lane,/createTokenlessPublishEnvironment\(process\.env/);
-  assert.doesNotMatch(lane,/Missing NPM_TOKEN/);
+  assert.match(lane,/Missing NPM_TOKEN/);
 });

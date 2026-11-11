@@ -1,0 +1,84 @@
+name: protected-toolkit-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact qualified current main commit to publish
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  issues: read
+  actions: read
+
+concurrency:
+  group: protected-toolkit-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      issues: read
+      actions: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.expected_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.22.1'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - name: Require exact current main and zero release blockers
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_SHA" = "$EXPECTED_SHA"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test "$(gh api repos/${GITHUB_REPOSITORY}/commits/main --jq .sha)" = "$EXPECTED_SHA"
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/issues?labels=release-blocker&state=open&per_page=1" --jq length)" = 0
+      - name: Download and fully verify the successful exact-source qualification artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/toolkit-candidate-download.mjs --expected-sha "${{ inputs.expected_sha }}" --output "$RUNNER_TEMP/toolkit-candidate"
+      - name: Publish only sealed archives in dependency order with provenance
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: node scripts/toolkit-release-lane.mjs publish --directory "$RUNNER_TEMP/toolkit-candidate" --output "$RUNNER_TEMP/toolkit-publication"
+      - name: Install public-consumer tooling without executing lifecycle scripts
+        env:
+          NODE_AUTH_TOKEN: ''
+        run: |
+          npm ci --prefix packages/wsp-toolkit --ignore-scripts --no-audit --no-fund
+          packages/wsp-toolkit/node_modules/.bin/playwright install --with-deps chromium
+      - name: Require fresh-cache public bytes, sealed dependency lock, strict types and real Chromium/WASM consumer
+        env:
+          NODE_AUTH_TOKEN: ''
+          NPM_TOKEN: ''
+        run: node scripts/toolkit-release-lane.mjs public-consumer --directory "$RUNNER_TEMP/toolkit-candidate" --publication "$RUNNER_TEMP/toolkit-publication/publication.json" --output "$RUNNER_TEMP/toolkit-public-consumer.json"
+      - name: Create and download-verify the exact-source GitHub release and all sealed assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/toolkit-release-lane.mjs github-release --directory "$RUNNER_TEMP/toolkit-candidate" --publication "$RUNNER_TEMP/toolkit-publication/publication.json" --public-consumer "$RUNNER_TEMP/toolkit-public-consumer.json" --output "$RUNNER_TEMP/toolkit-release-receipt.json"
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: toolkit-publication-${{ inputs.expected_sha }}
+          path: |
+            ${{ runner.temp }}/toolkit-candidate/
+            ${{ runner.temp }}/toolkit-publication/
+            ${{ runner.temp }}/toolkit-public-consumer.json
+            ${{ runner.temp }}/toolkit-release-receipt.json
+          if-no-files-found: error
+          retention-days: 90
