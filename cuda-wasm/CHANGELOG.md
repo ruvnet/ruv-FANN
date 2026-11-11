@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Package metadata
 
 - Set `homepage` to https://ruv.io. No code or dependency change.
+- Add truthful search keywords (`cuda2rust`, `code-generation`, `nodejs`).
+- The `cuda-rust-wasm` crate moves to 0.2.1 because its archive contains this directory's `package.json`, README and changelog; crates.io 0.2.0 holds the old bytes. No Rust code change.
 
 ## [2.0.0] - Unreleased
 

@@ -36,7 +36,10 @@
     "rust",
     "wgsl",
     "cli",
-    "source-generation"
+    "source-generation",
+    "cuda2rust",
+    "code-generation",
+    "nodejs"
   ],
   "author": {
     "name": "CUDA-WASM Team",

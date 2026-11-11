@@ -155,7 +155,7 @@ def main():
                 stream.seek(0);json.dump({'sourceSha':head(),'packages':published},stream,indent=2);stream.truncate();stream.flush()
         return
     # Install the Cargo compiler and dense example from public crates.io too.
-    run(['cargo','install','cuda-rust-wasm','--version','=0.2.0','--locked','--bin','cuda2rust','--root',str(base/'public-compiler')],base)
+    run(['cargo','install','cuda-rust-wasm','--version','=0.2.1','--locked','--bin','cuda2rust','--root',str(base/'public-compiler')],base)
     consumer(base/'npm-public-consumer',[r['name']+'@'+r['version'] for r in record['packages']],record['packages'],base/'public-compiler/bin/cuda2rust')
     rust = base/'rust-public-consumer';(rust/'src').mkdir(parents=True)
     (rust/'Cargo.toml').write_text('[package]\nname="release-consumer"\nversion="0.0.0"\nedition="2021"\n[dependencies]\nruv-fann={version="=0.2.2",default-features=false,features=["std","serde"]}\nruv-fann-candle="=0.1.0"\n')
