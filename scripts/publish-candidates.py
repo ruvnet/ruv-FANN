@@ -6,6 +6,7 @@ https://doc.rust-lang.org/cargo/reference/registry-web-api.html#publish
 """
 import argparse
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
@@ -144,17 +145,82 @@ def wait_public(name, version, timeout=VISIBILITY_TIMEOUT, sleep=time.sleep, clo
         attempt += 1
 
 
+LOCKFILE_ONLY_DRIFT = 'lockfile-only-drift-library'
+
+
+def archive_members(data):
+    """Map each regular file in a .crate (gzip tar) to its bytes, keyed without the name-version prefix."""
+    members = {}
+    with tarfile.open(fileobj=io.BytesIO(data), mode='r:gz') as tar:
+        for info in tar.getmembers():
+            if not info.isfile():
+                continue
+            prefix, _, relative = info.name.partition('/')
+            if not prefix or not relative or relative in members:
+                raise ValueError('Unexpected crate archive layout')
+            members[relative] = tar.extractfile(info).read()
+    return members
+
+
+def ships_binary(members):
+    """True when cargo would build an executable from this package (explicit [[bin]] or auto-discovered)."""
+    manifest = tomllib.loads(members['Cargo.toml'].decode())
+    if manifest.get('bin'):
+        return True
+    if manifest.get('package', {}).get('autobins', True) is False:
+        return False
+    return 'src/main.rs' in members or any(name.startswith('src/bin/') and name.endswith('.rs') for name in members)
+
+
+def lockfile_only_library_drift(candidate, published):
+    """True when a library crate differs from its published bytes only in the embedded Cargo.lock.
+
+    Cargo never reads a dependency's embedded lockfile, so dependents of a
+    library receive identical source. Packages that ship binaries are excluded:
+    `cargo install --locked` resolves from that lockfile.
+    """
+    try:
+        ours, theirs = archive_members(candidate), archive_members(published)
+    except (tarfile.TarError, OSError, EOFError, ValueError, KeyError):
+        return False
+    if set(ours) != set(theirs) or 'Cargo.lock' not in ours or ships_binary(ours) or ships_binary(theirs):
+        return False
+    changed = {name for name in ours if ours[name] != theirs[name]}
+    return changed == {'Cargo.lock'}
+
+
+def classify(archive, data, digest, existing):
+    if existing is None:
+        return 'verified-candidate'
+    if sha(existing) == digest:
+        return 'already-verified'
+    if lockfile_only_library_drift(archive.read_bytes(), existing):
+        return LOCKFILE_ONLY_DRIFT
+    return 'published-with-different-bytes'
+
+
+def keep_published(artifacts, data, existing):
+    """Store the public bytes of a lockfile-only drifted library for the GitHub release assets."""
+    folder = artifacts / 'published-lockfile-drift'
+    folder.mkdir(exist_ok=True)
+    target = folder / f"{data['name']}-{data['vers']}.crate"
+    if target.exists() and target.read_bytes() != existing:
+        raise ValueError('Conflicting published bytes for ' + data['name'])
+    target.write_bytes(existing)
+    return sha(existing)
+
+
 def preflight(items):
-    """Read-only: fail before any upload if a candidate's version is already public with other bytes."""
+    """Read-only: fail before any upload if a candidate's version is already public with other bytes.
+
+    A library whose only difference is the embedded Cargo.lock is recorded as
+    lockfile-only drift and skipped (not republished).
+    """
     states, drifted = [], []
     for archive, data, digest in items:
-        existing = downloaded(data['name'], data['vers'])
-        if existing is None:
-            states.append('verified-candidate')
-        elif sha(existing) == digest:
-            states.append('already-verified')
-        else:
-            states.append('published-with-different-bytes')
+        state = classify(archive, data, digest, downloaded(data['name'], data['vers']))
+        states.append(state)
+        if state == 'published-with-different-bytes':
             drifted.append(f"{data['name']} {data['vers']}")
     if drifted:
         raise ValueError('Published versions exist with different bytes (bump them before releasing; nothing was uploaded): ' + ', '.join(drifted))
@@ -164,9 +230,10 @@ def preflight(items):
 def publish(archive, data, digest, token):
     existing = downloaded(data['name'], data['vers'])
     if existing is not None:
-        if sha(existing) != digest:
+        state = classify(archive, data, digest, existing)
+        if state == 'published-with-different-bytes':
             raise ValueError('Published version exists with different bytes: ' + data['name'])
-        return 'already-verified'
+        return state
     meta = json.dumps(data).encode()
     payload = archive.read_bytes()
     if sha(payload) != digest:
@@ -214,6 +281,13 @@ def main():
         for index, (archive, data, digest) in enumerate(items):
             state = publish(archive, data, digest, token) if args.publish else states[index]
             row = {'name': data['name'], 'version': data['vers'], 'sha256': digest, 'status': state}
+            if state == LOCKFILE_ONLY_DRIFT:
+                # Not republished: users keep the public bytes, which the release attaches.
+                public = downloaded(data['name'], data['vers'])
+                if public is None or not lockfile_only_library_drift(archive.read_bytes(), public):
+                    raise ValueError('Lockfile-only drift no longer holds for ' + data['name'])
+                row.update(sha256=keep_published(args.artifacts, data, public), candidate_sha256=digest,
+                           note='lockfile-only drift (library, not used by dependents)')
             print(json.dumps(row), flush=True)
             report['crates'].append(row)
             stream.seek(0); json.dump(report, stream, indent=2); stream.truncate(); stream.flush()

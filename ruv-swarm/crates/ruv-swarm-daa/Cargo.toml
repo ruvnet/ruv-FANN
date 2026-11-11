@@ -11,7 +11,7 @@ include = [
     "/LICENSE*",
 ]
 name = "ruv-swarm-daa"
-version = "1.0.7"
+version = "1.0.8"
 rust-version.workspace = true
 edition = "2021"
 description = "Decentralized Autonomous Agents (DAA) integration for ruv-swarm"

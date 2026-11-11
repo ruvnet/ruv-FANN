@@ -151,6 +151,61 @@ optional=["dep:alias"]
         publisher._last_upload[0] = None
 
 
+    def crate_bytes(self, files, name='lib', version='1.0.0'):
+        buffer = io.BytesIO()
+        with tarfile.open(fileobj=buffer, mode='w:gz') as tar:
+            for path, text in files.items():
+                data = text.encode()
+                info = tarfile.TarInfo(f'{name}-{version}/{path}')
+                info.size = len(data)
+                tar.addfile(info, io.BytesIO(data))
+        return buffer.getvalue()
+
+    LIB = {'Cargo.toml': '[package]\nname="lib"\nversion="1.0.0"\n', 'src/lib.rs': 'pub fn f() {}', 'Cargo.lock': 'rustix 1.0.7'}
+
+    def test_library_with_only_lockfile_drift_is_skipped_not_failed(self):
+        ours = self.crate_bytes({**self.LIB, 'Cargo.lock': 'rustix 1.1.6'})
+        theirs = self.crate_bytes(self.LIB)
+        self.assertTrue(publisher.lockfile_only_library_drift(ours, theirs))
+        with tempfile.TemporaryDirectory() as directory:
+            archive = Path(directory) / 'lib-1.0.0.crate'
+            archive.write_bytes(ours)
+            data = {'name': 'lib', 'vers': '1.0.0'}
+            with patch.object(publisher, 'downloaded', return_value=theirs), \
+                 patch.object(publisher.urllib.request, 'urlopen') as upload:
+                self.assertEqual(publisher.preflight([(archive, data, publisher.sha(ours))]), [publisher.LOCKFILE_ONLY_DRIFT])
+                self.assertEqual(publisher.publish(archive, data, publisher.sha(ours), 'test-only'), publisher.LOCKFILE_ONLY_DRIFT)
+                upload.assert_not_called()
+            kept = publisher.keep_published(Path(directory), data, theirs)
+            self.assertEqual(kept, publisher.sha(theirs))
+            self.assertEqual((Path(directory) / 'published-lockfile-drift/lib-1.0.0.crate').read_bytes(), theirs)
+
+    def test_binaries_must_still_be_bumped_for_lockfile_drift(self):
+        for extra in ({'src/main.rs': 'fn main() {}'}, {'src/bin/tool.rs': 'fn main() {}'},
+                      {'Cargo.toml': self.LIB['Cargo.toml'] + '[[bin]]\nname="tool"\npath="tools/tool.rs"\n', 'tools/tool.rs': 'fn main() {}'}):
+            base = {**self.LIB, **extra}
+            ours = self.crate_bytes({**base, 'Cargo.lock': 'rustix 1.1.6'})
+            self.assertFalse(publisher.lockfile_only_library_drift(ours, self.crate_bytes(base)), extra)
+            with tempfile.TemporaryDirectory() as directory:
+                archive = Path(directory) / 'lib-1.0.0.crate'
+                archive.write_bytes(ours)
+                with patch.object(publisher, 'downloaded', return_value=self.crate_bytes(base)):
+                    with self.assertRaisesRegex(ValueError, 'different bytes'):
+                        publisher.preflight([(archive, {'name': 'lib', 'vers': '1.0.0'}, publisher.sha(ours))])
+
+    def test_autobins_false_keeps_a_main_rs_library(self):
+        base = {**self.LIB, 'Cargo.toml': self.LIB['Cargo.toml'] + 'autobins=false\n', 'src/main.rs': 'fn main() {}'}
+        base['Cargo.toml'] = '[package]\nname="lib"\nversion="1.0.0"\nautobins=false\n'
+        self.assertTrue(publisher.lockfile_only_library_drift(self.crate_bytes({**base, 'Cargo.lock': 'x'}), self.crate_bytes(base)))
+
+    def test_any_other_difference_is_still_drift(self):
+        theirs = self.crate_bytes(self.LIB)
+        for ours in (self.crate_bytes({**self.LIB, 'Cargo.lock': 'new', 'src/lib.rs': 'pub fn g() {}'}),
+                     self.crate_bytes({**self.LIB, 'Cargo.lock': 'new', 'README.md': 'added'}),
+                     self.crate_bytes({k: v for k, v in self.LIB.items() if k != 'Cargo.lock'})):
+            self.assertFalse(publisher.lockfile_only_library_drift(ours, theirs))
+
+
 class Clock:
     def __init__(self):
         self.now = 0
