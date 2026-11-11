@@ -48,7 +48,19 @@ async function fileHash(bytes) {
   return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
-async function readBytes(response, maximum) {
+// Enforce our deadline even when a caller's trusted transport does not honor
+// AbortSignal. Cancellation is cooperative; the caller-facing promise is bounded.
+function abortable(promise, signal) {
+  if (signal.aborted) return Promise.reject(signal.reason);
+  return new Promise((resolve, reject) => {
+    const cleanup = () => signal.removeEventListener('abort', abort);
+    const abort = () => { cleanup(); reject(signal.reason); };
+    signal.addEventListener('abort', abort, { once: true });
+    Promise.resolve(promise).then(value => { cleanup(); resolve(value); }, error => { cleanup(); reject(error); });
+  });
+}
+
+async function readBytes(response, maximum, signal) {
   if (!response.body || typeof response.body.getReader !== 'function') throw new TypeError('Hub response requires a readable stream');
   const reader = response.body.getReader();
   try {
@@ -58,7 +70,7 @@ async function readBytes(response, maximum) {
     const bytes = new Uint8Array(maximum);
     let count = 0;
     for (;;) {
-      const { done, value } = await reader.read();
+      const { done, value } = await abortable(reader.read(), signal);
       if (done) break;
       if (!(value instanceof Uint8Array)) throw new TypeError('Hub response stream must contain bytes');
       if (value.byteLength > maximum - count) throw new RangeError('Hub response exceeds the streamed byte limit');
@@ -67,9 +79,10 @@ async function readBytes(response, maximum) {
     }
     return bytes.subarray(0, count);
   } catch (error) {
-    await reader.cancel().catch(() => {});
+    // An injected transport may also ignore cancellation; do not await it.
+    try { Promise.resolve(reader.cancel()).catch(() => {}); } catch { /* preserve failure */ }
     throw error;
-  } finally { reader.releaseLock(); }
+  } finally { try { reader.releaseLock(); } catch { /* an aborted custom read may still be pending */ } }
 }
 
 function redirectTarget(location, current) {
@@ -103,25 +116,25 @@ async function loadPinnedJSON(source, options = {}) {
     let response;
     for (let redirects = 0; ; redirects++) {
       controller.signal.throwIfAborted();
-      response = await fetcher(current, { redirect: 'manual', credentials: 'omit', referrerPolicy: 'no-referrer', signal: controller.signal });
+      response = await abortable(fetcher(current, { redirect: 'manual', credentials: 'omit', referrerPolicy: 'no-referrer', signal: controller.signal }), controller.signal);
       if (!response || !response.headers || response.redirected || response.type === 'opaqueredirect')
         throw new TypeError('fetch must expose manual redirect responses');
       if (response.url && new URL(response.url).origin !== ORIGIN)
         throw new TypeError('unexpected cross-origin Hub response');
       if (response.status >= 300 && response.status < 400) {
-        await response.body?.cancel();
+        await abortable(response.body?.cancel(), controller.signal);
         const location = response.headers.get('location');
         if (!location || redirects >= MAX_REDIRECTS) throw new Error('Hub redirect is missing a location or exceeds the redirect limit');
         current = redirectTarget(location, current);
         continue;
       }
       if (response.status !== 200) {
-        await response.body?.cancel();
+        await abortable(response.body?.cancel(), controller.signal);
         throw new Error(`Hub download failed with HTTP ${response.status}`);
       }
       break;
     }
-    const bytes = await readBytes(response, pinned.maxBytes);
+    const bytes = await readBytes(response, pinned.maxBytes, controller.signal);
     controller.signal.throwIfAborted();
     const sha256 = await fileHash(bytes);
     if (sha256 !== pinned.sha256) throw new Error('Hub file SHA-256 mismatch');

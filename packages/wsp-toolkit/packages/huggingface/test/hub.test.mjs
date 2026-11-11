@@ -208,3 +208,34 @@ test('linear-head adapter shares digest, redirect and byte-limit enforcement', a
     status: 307, headers: { location: 'https://other.example/model.json' }
   }) }), /redirects must stay/);
 });
+
+
+test('download deadline bounds an injected fetch that ignores AbortSignal', { timeout: 1000 }, async () => {
+  await assert.rejects(loadHubModel(source(), {
+    timeoutMs: 10, fetch: () => new Promise(() => {})
+  }), /timeout/);
+});
+
+test('deadline bounds stalled body reads and uncooperative cancellation', { timeout: 1000 }, async () => {
+  let canceled = false;
+  const stream = new ReadableStream({
+    pull() { return new Promise(() => {}); },
+    cancel() { canceled = true; return new Promise(() => {}); }
+  });
+  await assert.rejects(loadHubModel(source(), {
+    timeoutMs: 10, fetch: async () => new Response(stream)
+  }), /timeout/);
+  assert.equal(canceled, true);
+});
+
+test('external abort bounds a custom body read and redirect body cleanup', { timeout: 1000 }, async () => {
+  const controller = new AbortController();
+  const operation = loadHubModel(source(), { signal: controller.signal, fetch: async () =>
+    new Response(new ReadableStream({ pull() { return new Promise(() => {}); } })) });
+  setTimeout(() => controller.abort(new Error('caller stopped transfer')), 10);
+  await assert.rejects(operation, /caller stopped transfer/);
+  await assert.rejects(loadHubModel(source(), { timeoutMs: 10, fetch: async () =>
+    new Response(new ReadableStream({ cancel() { return new Promise(() => {}); } }), {
+      status: 307, headers: { location: '/same-origin-redirect' }
+    }) }), /timeout/);
+});
