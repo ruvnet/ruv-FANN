@@ -399,6 +399,56 @@ impl<T: Float> PreparedNetwork<T> {
         Ok(())
     }
 
+    /// Keep the larger output tile out of the scalar inference function. Only
+    /// whole canonical layers with enough source values and rows reach here.
+    #[inline(never)]
+    fn run_dense_layer(
+        &self,
+        rows: &[Row<T>],
+        inputs: &[T],
+        input_bias: bool,
+        outputs: &mut [T],
+        layer: usize,
+    ) -> Result<(), PreparedError> {
+        let mut index = 0;
+        while index + 4 <= rows.len() {
+            self.run_dense_four(
+                &rows[index..index + 4],
+                inputs,
+                input_bias,
+                &mut outputs[index..index + 4],
+                layer,
+                index,
+            )?;
+            index += 4;
+        }
+        for (offset, row) in rows[index..].iter().enumerate() {
+            let weights = &self.weights[row.start..row.start + row.len];
+            let mut sum = inputs
+                .iter()
+                .zip(weights)
+                .fold(T::zero(), |sum, (&value, &weight)| sum + value * weight);
+            if input_bias {
+                sum = sum + weights[inputs.len()];
+            }
+            if !sum.is_finite() {
+                return Err(PreparedError::NumericOverflow {
+                    layer,
+                    neuron: index + offset,
+                });
+            }
+            let value = row.activation.apply(sum, row.steepness);
+            if !value.is_finite() {
+                return Err(PreparedError::NumericOverflow {
+                    layer,
+                    neuron: index + offset,
+                });
+            }
+            outputs[index + offset] = value;
+        }
+        Ok(())
+    }
+
     /// No steady-state allocations. Outputs are committed only after all layers
     /// succeed. Non-finite inputs, weighted sums or activation outputs are errors;
     /// stable saturation inside an activation follows the normal scalar API.
@@ -439,45 +489,42 @@ impl<T: Float> PreparedNetwork<T> {
         let mut first = 0;
         if self.direct_first {
             let layer = &self.layers[0];
-            let rows = &self.rows[layer.row_start..layer.row_start + layer.row_count];
-            let mut index = 0;
-            while index < rows.len() {
-                if inputs.len() >= 16 && rows.len() - index >= 4 {
-                    self.run_dense_four(
-                        &rows[index..index + 4],
-                        inputs,
-                        self.input_bias,
-                        &mut target[index..index + 4],
-                        1,
-                        index,
-                    )?;
-                    index += 4;
-                    continue;
-                }
-                let row = &rows[index];
-                let weights = &self.weights[row.start..row.start + row.len];
-                let mut sum = inputs
+            if inputs.len() >= 64 && layer.row_count >= 4 {
+                self.run_dense_layer(
+                    &self.rows[layer.row_start..layer.row_start + layer.row_count],
+                    inputs,
+                    self.input_bias,
+                    target,
+                    1,
+                )?;
+            } else {
+                for (index, row) in self.rows[layer.row_start..layer.row_start + layer.row_count]
                     .iter()
-                    .zip(weights)
-                    .fold(T::zero(), |sum, (&value, &weight)| sum + value * weight);
-                if self.input_bias {
-                    sum = sum + weights[self.inputs];
+                    .enumerate()
+                {
+                    let weights = &self.weights[row.start..row.start + row.len];
+                    let mut sum = inputs
+                        .iter()
+                        .zip(weights)
+                        .fold(T::zero(), |sum, (&value, &weight)| sum + value * weight);
+                    if self.input_bias {
+                        sum = sum + weights[self.inputs];
+                    }
+                    if !sum.is_finite() {
+                        return Err(PreparedError::NumericOverflow {
+                            layer: 1,
+                            neuron: index,
+                        });
+                    }
+                    let value = row.activation.apply(sum, row.steepness);
+                    if !value.is_finite() {
+                        return Err(PreparedError::NumericOverflow {
+                            layer: 1,
+                            neuron: index,
+                        });
+                    }
+                    target[index] = value;
                 }
-                if !sum.is_finite() {
-                    return Err(PreparedError::NumericOverflow {
-                        layer: 1,
-                        neuron: index,
-                    });
-                }
-                let value = row.activation.apply(sum, row.steepness);
-                if !value.is_finite() {
-                    return Err(PreparedError::NumericOverflow {
-                        layer: 1,
-                        neuron: index,
-                    });
-                }
-                target[index] = value;
-                index += 1;
             }
             if layer.bias {
                 target[layer.row_count] = T::one();
@@ -493,56 +540,46 @@ impl<T: Float> PreparedNetwork<T> {
         for (layer_index, layer) in self.layers.iter().enumerate().skip(first) {
             let previous = &source[..layer.source_width];
             let rows = &self.rows[layer.row_start..layer.row_start + layer.row_count];
-            let mut index = 0;
-            while index < rows.len() {
-                if previous.len() >= 16
-                    && rows.len() - index >= 4
-                    && rows[index..index + 4]
-                        .iter()
-                        .all(|row| row.index_start == usize::MAX)
+            if previous.len() >= 64
+                && layer.row_count >= 4
+                && rows.iter().all(|row| row.index_start == usize::MAX)
+            {
+                self.run_dense_layer(rows, previous, false, target, layer_index + 1)?;
+            } else {
+                for (index, row) in self.rows[layer.row_start..layer.row_start + layer.row_count]
+                    .iter()
+                    .enumerate()
                 {
-                    self.run_dense_four(
-                        &rows[index..index + 4],
-                        previous,
-                        false,
-                        &mut target[index..index + 4],
-                        layer_index + 1,
-                        index,
-                    )?;
-                    index += 4;
-                    continue;
+                    let weights = &self.weights[row.start..row.start + row.len];
+                    let sum = if row.index_start == usize::MAX {
+                        previous
+                            .iter()
+                            .zip(weights)
+                            .fold(T::zero(), |sum, (&value, &weight)| sum + value * weight)
+                    } else {
+                        let indices = &self.indices[row.index_start..row.index_start + row.len];
+                        indices
+                            .iter()
+                            .zip(weights)
+                            .fold(T::zero(), |sum, (&source, &weight)| {
+                                sum + previous[source] * weight
+                            })
+                    };
+                    if !sum.is_finite() {
+                        return Err(PreparedError::NumericOverflow {
+                            layer: layer_index + 1,
+                            neuron: index,
+                        });
+                    }
+                    let value = row.activation.apply(sum, row.steepness);
+                    if !value.is_finite() {
+                        return Err(PreparedError::NumericOverflow {
+                            layer: layer_index + 1,
+                            neuron: index,
+                        });
+                    }
+                    target[index] = value;
                 }
-                let row = &rows[index];
-                let weights = &self.weights[row.start..row.start + row.len];
-                let sum = if row.index_start == usize::MAX {
-                    previous
-                        .iter()
-                        .zip(weights)
-                        .fold(T::zero(), |sum, (&value, &weight)| sum + value * weight)
-                } else {
-                    let indices = &self.indices[row.index_start..row.index_start + row.len];
-                    indices
-                        .iter()
-                        .zip(weights)
-                        .fold(T::zero(), |sum, (&source, &weight)| {
-                            sum + previous[source] * weight
-                        })
-                };
-                if !sum.is_finite() {
-                    return Err(PreparedError::NumericOverflow {
-                        layer: layer_index + 1,
-                        neuron: index,
-                    });
-                }
-                let value = row.activation.apply(sum, row.steepness);
-                if !value.is_finite() {
-                    return Err(PreparedError::NumericOverflow {
-                        layer: layer_index + 1,
-                        neuron: index,
-                    });
-                }
-                target[index] = value;
-                index += 1;
             }
             if layer.bias {
                 target[layer.row_count] = T::one();

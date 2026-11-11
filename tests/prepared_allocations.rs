@@ -33,12 +33,12 @@ unsafe impl GlobalAlloc for CountingAllocator {
 #[global_allocator]
 static ALLOCATOR: CountingAllocator = CountingAllocator;
 
-fn repeated<T: Float>() {
-    let network = Network::<T>::new(&[5, 9, 7, 3]);
+fn repeated<T: Float>(shape: &[usize]) {
+    let network = Network::<T>::new(shape);
     let prepared = network.prepare().unwrap();
     let mut workspace = prepared.workspace().unwrap();
     let mut output = [T::zero(); 3];
-    let input = [T::from(0.25).unwrap(); 5];
+    let input = vec![T::from(0.25).unwrap(); shape[0]];
     ALLOCATIONS.with(|count| count.set(0));
     TRACK.with(|track| track.set(true));
     for _ in 0..128 {
@@ -55,11 +55,13 @@ fn repeated<T: Float>() {
 
 #[test]
 fn zero_steady_state_allocations_f32() {
-    repeated::<f32>();
+    repeated::<f32>(&[5, 9, 7, 3]);
+    repeated::<f32>(&[65, 65, 7, 3]);
 }
 #[test]
 fn zero_steady_state_allocations_f64() {
-    repeated::<f64>();
+    repeated::<f64>(&[5, 9, 7, 3]);
+    repeated::<f64>(&[65, 65, 7, 3]);
 }
 
 #[test]

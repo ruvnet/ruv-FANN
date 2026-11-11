@@ -28,7 +28,14 @@ const ACTIVATIONS: [A; 21] = [
 ];
 
 fn equivalence<T: Float + Debug>() {
-    for shape in [&[17, 4][..], &[33, 9, 5], &[19, 25, 7]] {
+    for shape in [
+        &[17, 4][..],
+        &[33, 9, 5],
+        &[63, 25, 7],
+        &[64, 25, 7],
+        &[65, 65, 7],
+        &[67, 25, 7],
+    ] {
         for topology in 0..3 {
             let mut network = Network::<T>::new(shape);
             let weights = (0..network.total_connections())
@@ -98,7 +105,7 @@ fn single_tiles_match_scalar_dense_mixed_and_biasless_f64() {
 }
 
 fn overflow_priority<T: Float + Debug>() {
-    let mut network = Network::<T>::new(&[17, 4]);
+    let mut network = Network::<T>::new(&[65, 4]);
     network
         .set_weights(&vec![T::zero(); network.total_connections()])
         .unwrap();
@@ -109,7 +116,7 @@ fn overflow_priority<T: Float + Debug>() {
     network.layers[1].neurons[1].connections[1].weight = T::max_value();
     let prepared = network.prepare().unwrap();
     let mut workspace = prepared.workspace().unwrap();
-    let mut input = vec![T::zero(); 17];
+    let mut input = vec![T::zero(); 65];
     input[0] = T::from(2).unwrap();
     input[1] = T::from(2).unwrap();
     let marker = T::from(42).unwrap();
@@ -139,7 +146,7 @@ fn single_tiles_keep_error_priority_and_recover_f64() {
 }
 
 fn ordered_cancellation<T: Float + Debug>() {
-    let mut network = Network::<T>::new(&[17, 4]);
+    let mut network = Network::<T>::new(&[65, 4]);
     network.set_activation_function_output(A::Linear);
     network.set_activation_steepness_output(-T::one());
     network
@@ -150,7 +157,7 @@ fn ordered_cancellation<T: Float + Debug>() {
             edge.weight = T::one();
         }
     }
-    let mut input = [T::zero(); 17];
+    let mut input = [T::zero(); 65];
     input[0] = T::from(1e20).unwrap();
     input[1] = T::one();
     input[2] = -input[0];
