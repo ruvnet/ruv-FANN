@@ -1,0 +1,25 @@
+name: Tensor WSP checkpoint validation
+on:
+  pull_request:
+    paths: ['crates/wsp-tensor/**', '.github/workflows/tensor-wsp.yml']
+  push:
+    branches: [main]
+    paths: ['crates/wsp-tensor/**', '.github/workflows/tensor-wsp.yml']
+permissions:
+  contents: read
+jobs:
+  checkpoint-validation:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: crates/wsp-tensor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - run: cargo fmt --check
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: cargo test --locked
+      - run: cargo build --release --locked
+      - run: python3 scripts/e2e.py
