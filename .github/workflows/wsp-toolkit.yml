@@ -63,7 +63,9 @@ jobs:
         run: |
           npm ci --prefix packages/wsp-toolkit --ignore-scripts --no-audit --no-fund
           npm run --prefix packages/wsp-toolkit setup:agentdb
-          packages/wsp-toolkit/node_modules/.bin/playwright install --with-deps chromium
+          # Hosted Ubuntu already provides Chromium's runtime libraries. Avoid
+          # apt mirror/font downloads; the real browser tests still fail closed.
+          packages/wsp-toolkit/node_modules/.bin/playwright install chromium
       - name: Require release guard mutation tests
         run: node --test scripts/toolkit-release.test.mjs
       - name: Pack the core archive exactly once from clean source

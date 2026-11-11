@@ -23,7 +23,6 @@
       "node",
       "packages/wsp-toolkit/node_modules/playwright/cli.js",
       "install",
-      "--with-deps",
       "chromium"
     ]
   ],
