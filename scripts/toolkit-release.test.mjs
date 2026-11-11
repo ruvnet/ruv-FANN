@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile,writeFile,rm } from 'node:fs/promises';
+import { readFile,writeFile,rm,mkdtemp } from 'node:fs/promises';
+import {join} from 'node:path';
+import {tmpdir} from 'node:os';
 import {execFileSync,spawnSync} from 'node:child_process';
 import {packageSpecs,topologicalOrder,validateRows,validateCoreReceipt,validateQualification,validateToolkitProof,publicLock,safeFilename,sha256,integrity,tarballURL} from './toolkit-release-lib.mjs';
 const sha='a'.repeat(40),manifestHash='b'.repeat(64);
@@ -32,14 +34,17 @@ test('qualification checks out exact PR head and canonical pack precedes both ru
 test('protected publisher selects successful upstream artifact and explicitly uses existing NPM_TOKEN, never source rebuild',async()=>{const workflow=await readFile(new URL('../.github/workflows/protected-toolkit-release.yml',import.meta.url),'utf8');assert.match(workflow,/secrets.NPM_TOKEN/);assert.match(workflow,/toolkit-candidate-download.mjs --expected-sha/);assert.doesNotMatch(workflow,/toolkit-release-lane.mjs (pack|qualify|seal) /);assert.match(workflow,/id-token: write/);assert.match(workflow,/toolkit-release-lane.mjs public-consumer/);assert.match(workflow,/toolkit-release-lane.mjs github-release/);});
 test('actual downloader rejects foreign or local context before gh download',()=>{const result=spawnSync(process.execPath,[new URL('./toolkit-candidate-download.mjs',import.meta.url).pathname,'--expected-sha',sha,'--output','/tmp/never-download-toolkit'],{encoding:'utf8',env:{...process.env,GITHUB_ACTIONS:'false'},timeout:10000});assert.notEqual(result.status,0);assert.match(result.stderr,/Exact protected upstream main context required/);});
 test('ignored JavaScript payload cannot enter a pack even when git status is clean',async()=>{
- const path=new URL('../packages/core/src/release-provenance-probe.tmp',import.meta.url);
+ const path=new URL('../packages/core/src/release-provenance-probe.js',import.meta.url),temp=await mkdtemp(join(tmpdir(),'toolkit-ignored-source-'));
  try{
+   const excludes=join(temp,'excludes');await writeFile(excludes,'release-provenance-probe.js\n');
+   // Per-process Git excludes reproduce ignored code without changing the user's ignore files.
+   const env={...process.env,GIT_CONFIG_COUNT:'1',GIT_CONFIG_KEY_0:'core.excludesFile',GIT_CONFIG_VALUE_0:excludes};
    await writeFile(path,'export const ignoredPayload = true;\n',{flag:'wx'});
    const root=new URL('..',import.meta.url);
-   execFileSync('git',['check-ignore','packages/core/src/release-provenance-probe.tmp'],{cwd:root,stdio:'pipe'});
-   const listing=JSON.parse(execFileSync('npm',['pack','--dry-run','--json','--ignore-scripts'],{cwd:new URL('../packages/core/',import.meta.url),encoding:'utf8'}));
-   assert.ok(listing[0].files.some(row=>row.path==='src/release-provenance-probe.tmp'),'negative fixture must actually be included by npm pack');
-   const result=spawnSync(process.execPath,[new URL('./toolkit-release-lane.mjs',import.meta.url).pathname,'preflight','--package','ruv-fann'],{encoding:'utf8',timeout:10000});
+   execFileSync('git',['check-ignore','packages/core/src/release-provenance-probe.js'],{cwd:root,stdio:'pipe',env});
+   const listing=JSON.parse(execFileSync('npm',['pack','--dry-run','--json','--ignore-scripts'],{cwd:new URL('../packages/core/',import.meta.url),encoding:'utf8',env}));
+   assert.ok(listing[0].files.some(row=>row.path==='src/release-provenance-probe.js'),'negative fixture must actually be included by npm pack');
+   const result=spawnSync(process.execPath,[new URL('./toolkit-release-lane.mjs',import.meta.url).pathname,'preflight','--package','ruv-fann'],{encoding:'utf8',timeout:10000,env});
    assert.notEqual(result.status,0);assert.match(result.stderr,/Package payload is not tracked at source HEAD/);
- }finally{await rm(path,{force:true});}
+ }finally{await rm(path,{force:true});await rm(temp,{recursive:true,force:true});}
 });
