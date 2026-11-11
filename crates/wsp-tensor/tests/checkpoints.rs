@@ -1,6 +1,7 @@
 use ruv_fann_wsp_tensor::*;
 use std::{
     fs::{self, File},
+    io::Write,
     path::Path,
 };
 fn fixture(path: &Path, dtype: &str) {
@@ -112,12 +113,20 @@ fn reject_malformed_headers() {
         r#"{"w":{"dtype":"F32","shape":[1],"data_offsets":[4,8]}}"#,
         r#"{"w":{"dtype":"F32","shape":[18446744073709551615,2],"data_offsets":[0,4]}}"#,
         r#"{"w":{"dtype":"F32","shape":[1],"data_offsets":[0,4]},"w":{"dtype":"F32","shape":[1],"data_offsets":[0,4]}}"#,
+        r#"{"w":{"dtype":"F64","dtype":"F32","shape":[1],"data_offsets":[0,4]}}"#,
+        r#"{"w":{"dtype":"F32","shape":[1],"data_offsets":[0,4],"extra":true}}"#,
+        r#"{"__metadata__":{"origin":"a","origin":"b"},"w":{"dtype":"F32","shape":[1],"data_offsets":[0,4]}}"#,
+        r#"{"__metadata__":{"origin":"a"},"__metadata__":{"origin":"b"},"w":{"dtype":"F32","shape":[1],"data_offsets":[0,4]}}"#,
+        r#"{"w":{"dtype":"F32","shape":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],"data_offsets":[0,4]}}"#,
         r#"{"w":{"dtype":"UNKNOWN","shape":[1],"data_offsets":[0,4]}}"#,
     ] {
         let d = tempfile::tempdir().unwrap();
         let b = d.path().join("b");
         write_raw(&b, h, &[0; 4]);
-        assert!(inspect(&mut File::open(b).unwrap()).is_err());
+        assert!(
+            inspect(&mut File::open(b).unwrap()).is_err(),
+            "accepted malformed header: {h}"
+        );
     }
 }
 #[test]
@@ -130,11 +139,76 @@ fn refuse_overwrite_and_forged_rollback() {
     assert!(apply(&b, &b, &patch(&b)).is_err());
     let mut r = apply(&b, &c, &patch(&b)).unwrap();
     assert!(apply(&b, &c, &patch(&b)).is_err());
+    r.behavioral_validation = "passed".into();
+    assert!(rollback(&c, &o, &r).is_err());
+    assert!(!o.exists());
+    r.behavioral_validation = "not_run".into();
+    r.edits[0].offset += 1;
+    assert!(rollback(&c, &o, &r).is_err());
+    assert!(!o.exists());
+    r.edits[0].offset -= 1;
     r.edits[0].before[0] ^= 1;
     assert!(rollback(&c, &o, &r).is_err());
     assert!(!o.exists());
     r.candidate_sha256 = "f".repeat(64);
     assert!(rollback(&c, &o, &r).is_err());
+}
+
+#[cfg(unix)]
+#[test]
+fn inspect_cli_accepts_non_utf8_paths() {
+    use std::os::unix::ffi::OsStrExt;
+    use std::process::Command;
+
+    let d = tempfile::tempdir().unwrap();
+    let path = d
+        .path()
+        .join(std::ffi::OsStr::from_bytes(b"tensor-\xff.safetensors"));
+    fixture(&path, "F32");
+    let result = Command::new(env!("CARGO_BIN_EXE_ruv-fann-wsp-tensor"))
+        .arg("inspect")
+        .arg(&path)
+        .output()
+        .unwrap();
+    assert!(
+        result.status.success(),
+        "{}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    let output: serde_json::Value = serde_json::from_slice(&result.stdout).unwrap();
+    assert_eq!(output["checkpoint"]["tensors"]["weight"]["dtype"], "F32");
+    assert_eq!(output["sha256"], fingerprint(&path).unwrap());
+}
+
+#[test]
+fn file_handle_hash_is_stable_across_path_replacement() {
+    let d = tempfile::tempdir().unwrap();
+    let path = d.path().join("tensor.safetensors");
+    let moved = d.path().join("original.safetensors");
+    fixture(&path, "F32");
+    let original_hash = fingerprint(&path).unwrap();
+    let mut file = File::open(&path).unwrap();
+    inspect(&mut file).unwrap();
+
+    fs::rename(&path, &moved).unwrap();
+    fixture(&path, "BF16");
+    assert_ne!(fingerprint(&path).unwrap(), original_hash);
+    assert_eq!(fingerprint_file(&mut file).unwrap(), original_hash);
+}
+
+#[test]
+fn declared_header_and_json_limits_reject_before_unbounded_reads() {
+    let d = tempfile::tempdir().unwrap();
+    let oversized_header = d.path().join("oversized.safetensors");
+    let mut f = File::create(&oversized_header).unwrap();
+    let declared = 16 * 1024 * 1024 + 8;
+    f.write_all(&(declared as u64).to_le_bytes()).unwrap();
+    f.set_len(declared as u64 + 8).unwrap();
+    assert!(inspect(&mut File::open(oversized_header).unwrap()).is_err());
+
+    let oversized_json = d.path().join("oversized.json");
+    fs::write(&oversized_json, vec![b' '; 1024 * 1024 + 1]).unwrap();
+    assert!(read_json::<serde_json::Value>(&oversized_json).is_err());
 }
 #[test]
 fn dtype_rounding_is_not_an_edit() {

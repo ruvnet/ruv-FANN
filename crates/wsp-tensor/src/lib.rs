@@ -44,6 +44,7 @@ pub struct Receipt {
     pub behavioral_validation: String,
 }
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Tensor {
     pub dtype: String,
     pub shape: Vec<u64>,
@@ -85,14 +86,7 @@ pub fn inspect(f: &mut File) -> Result<Inspection> {
     f.read_exact(&mut raw)?;
     // Streaming validation avoids mapping an entire multi-GB shard into memory.
     let object: UniqueHeader = serde_json::from_slice(&raw)?;
-    let mut tensors = BTreeMap::new();
-    for (k, v) in object.0 {
-        if k == "__metadata__" {
-            let _: BTreeMap<String, String> = serde_json::from_value(v)?;
-            continue;
-        }
-        tensors.insert(k, serde_json::from_value::<Tensor>(v)?);
-    }
+    let tensors = object.0;
     let mut ordered: Vec<_> = tensors.values().collect();
     ordered.sort_by_key(|t| (t.data_offsets[0], t.data_offsets[1]));
     let mut cursor = 0;
@@ -122,26 +116,62 @@ pub fn inspect(f: &mut File) -> Result<Inspection> {
         tensors,
     })
 }
-struct UniqueHeader(BTreeMap<String, serde_json::Value>);
+struct UniqueHeader(BTreeMap<String, Tensor>);
 impl<'de> Deserialize<'de> for UniqueHeader {
     fn deserialize<D: serde::Deserializer<'de>>(d: D) -> std::result::Result<Self, D::Error> {
         struct V;
         impl<'de> serde::de::Visitor<'de> for V {
             type Value = UniqueHeader;
             fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                f.write_str("unique tensor names")
+                f.write_str("unique tensor names and metadata")
             }
             fn visit_map<M: serde::de::MapAccess<'de>>(
                 self,
                 mut m: M,
             ) -> std::result::Result<Self::Value, M::Error> {
                 let mut out = BTreeMap::new();
-                while let Some((k, v)) = m.next_entry::<String, serde_json::Value>()? {
-                    if out.insert(k, v).is_some() {
+                let mut metadata_seen = false;
+                while let Some(k) = m.next_key::<String>()? {
+                    if k == "__metadata__" {
+                        if metadata_seen {
+                            return Err(serde::de::Error::custom("duplicate __metadata__"));
+                        }
+                        metadata_seen = true;
+                        let _: UniqueMetadata = m.next_value()?;
+                        continue;
+                    }
+                    let tensor = m.next_value::<Tensor>()?;
+                    if out.insert(k, tensor).is_some() {
                         return Err(serde::de::Error::custom("duplicate tensor name"));
                     }
                 }
                 Ok(UniqueHeader(out))
+            }
+        }
+        d.deserialize_map(V)
+    }
+}
+struct UniqueMetadata;
+impl<'de> Deserialize<'de> for UniqueMetadata {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> std::result::Result<Self, D::Error> {
+        struct V;
+        impl<'de> serde::de::Visitor<'de> for V {
+            type Value = UniqueMetadata;
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                f.write_str("unique string metadata keys")
+            }
+            fn visit_map<M: serde::de::MapAccess<'de>>(
+                self,
+                mut m: M,
+            ) -> std::result::Result<Self::Value, M::Error> {
+                let mut seen = BTreeSet::new();
+                while let Some(key) = m.next_key::<String>()? {
+                    if !seen.insert(key) {
+                        return Err(serde::de::Error::custom("duplicate metadata key"));
+                    }
+                    let _: String = m.next_value()?;
+                }
+                Ok(UniqueMetadata)
             }
         }
         d.deserialize_map(V)
@@ -162,6 +192,9 @@ fn hash(f: &mut File) -> Result<String> {
 }
 pub fn fingerprint(path: &Path) -> Result<String> {
     hash(&mut File::open(path)?)
+}
+pub fn fingerprint_file(file: &mut File) -> Result<String> {
+    hash(file)
 }
 fn decode(dtype: &str, b: &[u8]) -> Result<f32> {
     Ok(match dtype {
@@ -278,8 +311,12 @@ pub fn apply(source: &Path, dest: &Path, p: &Patch) -> Result<Receipt> {
         behavioral_validation: "not_run".into(),
     })
 }
-pub fn rollback(source: &Path, dest: &Path, r: &Receipt) -> Result<()> {
-    if r.schema != "ruv-fann.tensor-receipt/1" || r.edits.is_empty() || r.edits.len() > 128 {
+pub fn rollback(source: &Path, dest: &Path, r: &Receipt) -> Result<String> {
+    if r.schema != "ruv-fann.tensor-receipt/1"
+        || r.behavioral_validation != "not_run"
+        || r.edits.is_empty()
+        || r.edits.len() > 128
+    {
         return fail("invalid receipt");
     }
     let (mut temp, candidate_hash) = copy_snapshot(source, dest)?;
@@ -301,6 +338,26 @@ pub fn rollback(source: &Path, dest: &Path, r: &Receipt) -> Result<()> {
         {
             return fail("invalid undo range");
         }
+        if e.before == e.after {
+            return fail("no-op undo");
+        }
+        let dtype = info.tensors.values().find_map(|t| {
+            let element_width = width(&t.dtype).ok()?;
+            let start = info.data_start.checked_add(t.data_offsets[0])?;
+            let end = info.data_start.checked_add(t.data_offsets[1])?;
+            (matches!(t.dtype.as_str(), "F32" | "F16" | "BF16")
+                && n as u64 == element_width
+                && e.offset >= start
+                && e.offset.checked_add(n as u64)? <= end
+                && (e.offset - start) % element_width == 0)
+                .then_some(t.dtype.as_str())
+        });
+        let dtype = dtype.ok_or("undo is not an editable tensor element")?;
+        let before = decode(dtype, &e.before)?;
+        let after = decode(dtype, &e.after)?;
+        if !before.is_finite() || !after.is_finite() || (after - before).abs() > 1.0 {
+            return fail("invalid undo values");
+        }
         for i in e.offset..e.offset + n as u64 {
             if !ranges.insert(i) {
                 return fail("overlapping undo");
@@ -315,11 +372,13 @@ pub fn rollback(source: &Path, dest: &Path, r: &Receipt) -> Result<()> {
         f.seek(SeekFrom::Start(e.offset))?;
         f.write_all(&e.before)?;
     }
-    if hash(f)? != r.base_sha256 {
+    let restored = hash(f)?;
+    if restored != r.base_sha256 {
         return fail("restored hash mismatch");
     }
     inspect(f)?;
-    commit(temp, dest)
+    commit(temp, dest)?;
+    Ok(restored)
 }
 pub fn read_json<T: serde::de::DeserializeOwned>(path: &Path) -> Result<T> {
     let mut bytes = Vec::new();
