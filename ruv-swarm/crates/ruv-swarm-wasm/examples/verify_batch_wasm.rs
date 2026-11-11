@@ -162,8 +162,8 @@ mod probe {
             model.layers[1].neurons[0].activation_steepness = T::max_value();
             model.layers[1].neurons[1].connections[1].weight = T::max_value();
             if mixed {
-                // Disable direct-first dispatch while leaving the first tile
-                // canonical; exercise the general layer's wide tile as well.
+                // Disable direct-first and whole-layer canonical dispatch;
+                // this mixed topology exercises the ordered scalar fallback.
                 model.layers[1].neurons[64].connections.reverse();
             }
             let prepared = model.prepare().unwrap();
@@ -194,6 +194,47 @@ mod probe {
             );
             overflow_cases += 1;
         }
+        // A canonical non-first layer reaches the general wide-layer tile.
+        let mut model = Network::<T>::new(&[65, 65, 65]);
+        model
+            .set_weights(&vec![T::zero(); model.total_connections()])
+            .unwrap();
+        model.set_activation_function_hidden(A::Linear);
+        model.set_activation_steepness_hidden(T::one());
+        model.set_activation_function_output(A::Linear);
+        model.set_activation_steepness_output(T::one());
+        model.layers[1].neurons[0].connections[0].weight = T::one();
+        model.layers[1].neurons[1].connections[1].weight = T::one();
+        model.layers[2].neurons[0].connections[0].weight = T::one();
+        model.layers[2].neurons[0].activation_steepness = T::max_value();
+        model.layers[2].neurons[1].connections[1].weight = T::max_value();
+        let prepared = model.prepare().unwrap();
+        let mut workspace = prepared.workspace().unwrap();
+        let mut input = vec![T::zero(); 65];
+        input[0] = T::from(2).unwrap();
+        input[1] = T::from(2).unwrap();
+        let sentinel = T::from(12345).unwrap();
+        let mut output = vec![sentinel; 65];
+        assert_eq!(
+            prepared.run_into(&input, &mut output, &mut workspace),
+            Err(PreparedError::NumericOverflow {
+                layer: 2,
+                neuron: 0
+            })
+        );
+        assert!(
+            output.iter().all(|&value| value == sentinel),
+            "general wide tile mutated output"
+        );
+        input.fill(T::zero());
+        prepared
+            .run_into(&input, &mut output, &mut workspace)
+            .unwrap();
+        assert!(
+            output.iter().all(|&value| value == T::zero()),
+            "general wide tile recovery failed"
+        );
+        overflow_cases += 1;
         (comparisons, overflow_cases)
     }
 

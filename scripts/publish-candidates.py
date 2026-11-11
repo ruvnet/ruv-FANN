@@ -145,6 +145,29 @@ def wait_public(name, version, timeout=VISIBILITY_TIMEOUT, sleep=time.sleep, clo
         attempt += 1
 
 
+def confirm_version_absent(name, version):
+    """Static S3 403/404 alone is not authority to treat an immutable version as new."""
+    key = name.lower()
+    if len(key) <= 2:
+        relative = f'{len(key)}/{key}'
+    elif len(key) == 3:
+        relative = f'3/{key[0]}/{key}'
+    else:
+        relative = f'{key[:2]}/{key[2:4]}/{key}'
+    request = urllib.request.Request('https://index.crates.io/' + relative, headers={'User-Agent': USER_AGENT})
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            records = [json.loads(line) for line in response.read().decode().splitlines() if line.strip()]
+    except urllib.error.HTTPError as error:
+        if error.code == 404:
+            return
+        raise
+    if not records or any(not isinstance(row.get('vers'), str) or row.get('name', '').lower() != key for row in records):
+        raise ValueError('Invalid or empty sparse registry index: ' + name)
+    if any(row['vers'] == version for row in records):
+        raise ValueError(f'Published version {name} {version} exists in the index but its public archive is unavailable; nothing may be uploaded')
+
+
 LOCKFILE_ONLY_DRIFT = 'lockfile-only-drift-library'
 
 
@@ -191,6 +214,7 @@ def lockfile_only_library_drift(candidate, published):
 
 def classify(archive, data, digest, existing):
     if existing is None:
+        confirm_version_absent(data['name'], data['vers'])
         return 'verified-candidate'
     if sha(existing) == digest:
         return 'already-verified'
@@ -239,6 +263,8 @@ def publish(archive, data, digest, token):
     if sha(payload) != digest:
         raise ValueError('Archive changed before upload')
     body = struct.pack('<I', len(meta)) + meta + struct.pack('<I', len(payload)) + payload
+    # Recheck absence immediately before an upload, independently of preflight.
+    confirm_version_absent(data['name'], data['vers'])
     pace()
     request = urllib.request.Request(API + '/crates/new', data=body, method='PUT', headers={
         'User-Agent': USER_AGENT, 'Authorization': token, 'Content-Type': 'application/octet-stream', 'Accept': 'application/json'})

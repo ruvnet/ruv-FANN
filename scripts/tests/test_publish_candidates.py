@@ -129,6 +129,7 @@ optional=["dep:alias"]
             response.__exit__ = lambda *a: False
             with patch.object(publisher, 'downloaded', return_value=None), \
                  patch.object(publisher.urllib.request, 'urlopen', return_value=response), \
+                 patch.object(publisher, 'confirm_version_absent'), \
                  patch.object(publisher, 'wait_public', return_value=None):
                 with self.assertRaisesRegex(RuntimeError, 'not publicly downloadable'):
                     publisher.publish(archive, publisher.metadata(archive), publisher.sha(archive.read_bytes()), 'test-only')
@@ -147,8 +148,36 @@ optional=["dep:alias"]
                 with self.assertRaisesRegex(ValueError, 'nothing was uploaded.*other 1.0.0'):
                     publisher.preflight([(archive, data, digest), (archive, other, digest)])
                 upload.assert_not_called()
-            with patch.object(publisher, 'downloaded', return_value=None):
+            with patch.object(publisher, 'downloaded', return_value=None), patch.object(publisher, 'confirm_version_absent') as absent:
                 self.assertEqual(publisher.preflight([(archive, data, digest)]), ['verified-candidate'])
+                absent.assert_called_once_with('fixture', '1.0.0')
+
+    def test_unavailable_public_archive_with_existing_index_version_cannot_upload(self):
+        with tempfile.TemporaryDirectory() as directory:
+            archive = self.archive(directory, '[package]\nname="fixture"\nversion="1.0.0"')
+            data = publisher.metadata(archive)
+            checksum = publisher.sha(archive.read_bytes())
+            def index(*args, **kwargs):
+                return io.BytesIO(b'{"name":"fixture","vers":"1.0.0"}\n')
+            with patch.object(publisher, 'downloaded', return_value=None), patch.object(publisher.urllib.request, 'urlopen', side_effect=index) as network:
+                with self.assertRaisesRegex(ValueError, 'exists in the index'):
+                    publisher.preflight([(archive, data, checksum)])
+                with self.assertRaisesRegex(ValueError, 'exists in the index'):
+                    publisher.publish(archive, data, checksum, 'test-only')
+                self.assertTrue(all(call.args[0].get_method() == 'GET' for call in network.call_args_list))
+
+    def test_sparse_index_requires_definitive_absence_and_rejects_transient_errors(self):
+        response = io.BytesIO(b'{"name":"fixture","vers":"0.9.0"}\n')
+        with patch.object(publisher.urllib.request, 'urlopen', return_value=response):
+            publisher.confirm_version_absent('fixture', '1.0.0')
+        for code in (403, 429, 500):
+            error = publisher.urllib.error.HTTPError('index', code, 'unavailable', None, None)
+            with self.subTest(code=code), patch.object(publisher.urllib.request, 'urlopen', side_effect=error):
+                with self.assertRaises(publisher.urllib.error.HTTPError):
+                    publisher.confirm_version_absent('fixture', '1.0.0')
+        error = publisher.urllib.error.HTTPError('index', 404, 'not found', None, None)
+        with patch.object(publisher.urllib.request, 'urlopen', side_effect=error):
+            publisher.confirm_version_absent('fixture', '1.0.0')
 
 
     def test_pace_spaces_only_consecutive_uploads(self):
