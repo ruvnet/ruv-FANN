@@ -348,8 +348,7 @@ impl<T: Float> Network<T> {
 
         // Forward propagate through each layer
         for i in 1..self.layers.len() {
-            let prev_outputs = layer_outputs[i - 1].clone();
-            self.layers[i].calculate(&prev_outputs);
+            self.layers[i].calculate(&layer_outputs[i - 1]);
             layer_outputs.push(self.layers[i].get_outputs());
         }
 
@@ -386,9 +385,26 @@ impl<T: Float> Network<T> {
         for layer_idx in (1..num_layers - 1).rev() {
             let current_layer = &self.layers[layer_idx];
             let next_layer = &self.layers[layer_idx + 1];
-            let next_errors = layer_errors[layer_idx + 1].clone(); // Clone to avoid borrowing issues
+            let next_errors = &layer_errors[layer_idx + 1];
 
-            let mut current_errors = Vec::new();
+            // Public topology can be edited between calls. Check it for this
+            // pass rather than caching an assumption about connection order.
+            // Dense rows permit direct lookup instead of scanning a row once
+            // per source neuron. Irregular rows retain first-match semantics.
+            let canonical = next_layer
+                .neurons
+                .iter()
+                .filter(|neuron| !neuron.is_bias)
+                .all(|neuron| {
+                    neuron.connections.len() == current_layer.neurons.len()
+                        && neuron
+                            .connections
+                            .iter()
+                            .enumerate()
+                            .all(|(index, connection)| connection.from_neuron == index)
+                });
+
+            let mut current_errors = Vec::with_capacity(current_layer.neurons.len());
 
             for (i, neuron) in current_layer.neurons.iter().enumerate() {
                 if neuron.is_bias {
@@ -401,12 +417,16 @@ impl<T: Float> Network<T> {
                 // Sum errors from next layer weighted by connections
                 for (j, next_neuron) in next_layer.neurons.iter().enumerate() {
                     if !next_neuron.is_bias && j < next_errors.len() {
-                        // Find connection from current neuron to next neuron
-                        for connection in &next_neuron.connections {
-                            if connection.from_neuron == i {
-                                error_sum = error_sum + next_errors[j] * connection.weight;
-                                break;
-                            }
+                        let connection = if canonical {
+                            next_neuron.connections.get(i)
+                        } else {
+                            next_neuron
+                                .connections
+                                .iter()
+                                .find(|connection| connection.from_neuron == i)
+                        };
+                        if let Some(connection) = connection {
+                            error_sum = error_sum + next_errors[j] * connection.weight;
                         }
                     }
                 }
