@@ -3,12 +3,30 @@
 Changes follow [Semantic Versioning](https://semver.org/). Versions in a checkout
 are release candidates until publication is verified in the registry.
 
-## [0.2.3] - Unreleased
+## [0.2.3] - 2026-11-11
+
+### Performance and correctness
+
+- Validate canonical dense connections once per hidden layer during
+  `Network::train`, then use direct weight lookup. Irregular connections keep
+  their original first-match order, including duplicate edges. Remove
+  redundant training buffer clones without changing arithmetic order.
+- Read a dense prepared first layer directly from the caller's inputs and
+  inline activation dispatch. Sparse first layers retain their indexed path.
+- Evaluate four independent output rows together for sufficiently wide,
+  entirely canonical prepared layers. Keep each neuron's original reduction
+  order, separate multiplication/addition, overflow priority and transactional
+  output behavior. Short and irregular layers retain scalar execution.
+- Add f32/f64 bitwise regressions, wide-layer allocation checks, topology-edit
+  training equivalence tests and deterministic benchmark examples. See the
+  [measured results and limitations](docs/rust-performance-2026-11-11.md).
+- Declare the GPU benchmark example's required feature so ordinary example
+  checks do not require the GPU backend.
 
 ### Packaging
 
 - Republish so the crate carries the current README and `docs/assets` SVGs.
-  crates.io 0.2.2 holds the older copies (#221). No code or dependency change.
+  crates.io 0.2.2 holds the older copies (#221).
   Dependents that pin the root move with it: ruv-fann-candle 0.1.1,
   neuro-divergent{,-core,-models,-training} 0.2.1, ruv-swarm-ml and
   ruv-swarm-wasm 1.0.7, and ruv-swarm-wasm-unified 2.0.1 (its archive embeds a
@@ -18,23 +36,12 @@ are release candidates until publication is verified in the registry.
   `cargo install --locked`, so ruv-swarm-cli, ruv-swarm-daa and ruv-swarm-mcp
   move to 1.0.8. Library crates whose only change is the embedded lockfile are
   not republished; cargo ignores a dependency's lockfile.
+- Publish through a Rust-only protected workflow by default, reusing the
+  exact reviewed CI archives. Test fresh public Candle inference, parameter
+  and input gradients, three-step SGD/AdamW and immutable snapshots before
+  verifying the release tag and every public GitHub asset.
 
 ## [0.2.2] - 2026-11-09
-
-### Performance
-
-- `PreparedNetwork::run_into` reads a dense first layer's inputs in place
-  instead of copying them into the workspace and reading them back, and
-  activation dispatch is inlined. Single-row scoring of a `10 -> 1` sigmoid
-  head went from 35.4 ns to 19.5 ns (x86-64 Windows, criterion,
-  `benches/prepared_single_row.rs`); a `10 -> 4 -> 1` head is unchanged within
-  noise. Results, error reporting and the output-commit rule are bit-identical
-  (`tests/prepared_direct_first_layer.rs`). Sparse first layers keep the copy.
-
-### Fixed
-
-- `gpu_sweet_spot_benchmark` declares `required-features = ["gpu"]`, so a plain
-  `cargo test` or `cargo check --examples` on default features compiles.
 
 ### Security
 
@@ -110,5 +117,6 @@ comparison and are omitted.
   range + non-NaN guarantees, output dimension correctness, input validation,
   deterministic forward pass, and Adam weight-decay activation
 
-[0.2.2]: https://github.com/ruvnet/ruv-FANN/compare/v0.2.1...HEAD
+[0.2.3]: https://github.com/ruvnet/ruv-FANN/compare/v0.2.2...ruv-fann-rust-v0.2.3
+[0.2.2]: https://github.com/ruvnet/ruv-FANN/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/ruvnet/ruv-FANN/releases/tag/v0.2.1

@@ -23,16 +23,23 @@ Small neural networks you can train, inspect and edit in Rust, JavaScript, TypeS
 | `packages/wsp-toolkit/` | Twelve focused packages: bounded search, holdout gates, invariants, worker proposals, AgentDB authority, Hub/Workers adapters and constellation tools | **0.1.0** each · [Toolkit guide](packages/wsp-toolkit/README.md) · [Umbrella release](https://github.com/ruvnet/ruv-FANN/releases/tag/ruv-fann-toolkit-v0.2.0) |
 | `packages/wasm/` | **`ruv-fann-wasm`**: direct WASM bindings, bundled runtime binaries and SIMD detection | Published npm **[0.1.2](https://www.npmjs.com/package/ruv-fann-wasm)** · [Runtime guide](packages/wasm/README.md) |
 | Repository root | **`ruv-fann` for Rust**: train feedforward networks, prepare immutable CPU inference snapshots, and use optional WebGPU operations | Checkout `0.2.3` · [Crate](https://crates.io/crates/ruv-fann) · [Core example](examples/basic_usage.rs) · [API](https://docs.rs/ruv-fann) |
-| `integrations/candle/` | Import actual Candle CPU linear layers and compare training gradients/SGD/AdamW with Candle | `ruv-fann-candle 0.1.0` · [Candle guide](integrations/candle/README.md) |
+| `integrations/candle/` | Import actual Candle CPU linear layers and compare training gradients/SGD/AdamW with Candle | Checkout `ruv-fann-candle 0.1.1` · [Candle guide](integrations/candle/README.md) |
 | `bindings/napi/` | Native Node inference and dense autograd through napi-rs, sharing the Rust core | `@ruv-fann/napi 0.1.0` · [Native Node guide](bindings/napi/README.md) |
-| `ruv-swarm/` | Fourteen Rust packages for scheduling, persistence, transport, MCP, CLI, and WASM | `1.0.6`–`1.0.8`; unified WASM `2.0.0` · [Rust guide](ruv-swarm/README.md) |
+| `ruv-swarm/` | Fourteen Rust packages for scheduling, persistence, transport, MCP, CLI, and WASM | Checkout `1.0.6`–`1.0.8`; unified WASM `2.0.1` · [Rust guide](ruv-swarm/README.md) |
 | `ruv-swarm/npm/` | Node CLI/MCP, SQLite state, prepared WASM inference, historical forecast intervals, and capability assignment | `ruv-swarm 2.0.0` · [npm guide](ruv-swarm/npm/README.md) |
 | `integrations/ruv-fann/` | Use ruv-FANN neural outputs in RuVector search and tune inference batches with MetaHarness | `@ruv-fann/integrations 0.1.0` · [Integration guide](integrations/ruv-fann/README.md) |
-| `neuro-divergent/` | Six Rust packages: RNN training, baselines, chronological evaluation, residual-calibrated intervals, and checkpoints | `0.2.0` · [Forecasting guide](neuro-divergent/README.md) |
+| `neuro-divergent/` | Six Rust packages: RNN training, baselines, chronological evaluation, residual-calibrated intervals, and checkpoints | Checkout `0.2.0`–`0.2.1` · [Forecasting guide](neuro-divergent/README.md) |
 | `cuda-wasm/` | Translate a CUDA subset to Rust or WGSL source; Node wrapper requires the external `cuda2rust` compiler | Rust `0.2.0`; npm `2.0.0` · [Translator guide](cuda-wasm/README.md) |
 | `opencv-rust/` | Portable Rust matrices, browser image operations, a small SDK, and native OpenCV C++ bindings | Portable/SDK `4.9.0`; native `opencv-sys 0.2.0` · [Image-processing guide](opencv-rust/README.md) |
 
 The five main Cargo workspaces have separate build requirements; the optional Candle and napi-rs packages each have their own workspace and lockfile. Running `cargo test` at the repository root tests the core crate; use the verification driver below to cover the other workspaces. The npm WSP, core and WASM releases are identified above; other version numbers describe this checkout and should be checked against their package registries before use. The dated [release inventory](docs/release-inventory.json) records earlier package identities and registry observations; `scripts/verify-packages.py --inventory` reports the current checkout.
+
+The [metadata refresh](https://github.com/ruvnet/ruv-FANN/releases/tag/ruv-fann-metadata-v1)
+also publishes `ruv-fann-wsp@0.2.1`, `ruv-fann-wasm@0.1.3` and toolkit
+satellites at `0.1.1`; `agenticow@0.3.1` has its own
+[release](https://github.com/ruvnet/agenticow/releases/tag/agenticow-v0.3.1).
+Those updates add package discoverability without changing runtime bytes or
+dependency pins. Examples below retain the corresponding runtime generations.
 
 Each family has a defined scope. Forecasting currently implements a univariate RNN and simple baselines; LSTM/GRU forecasting architectures return unsupported errors. Agent assignment records scheduling decisions; external task execution depends on the integration you supply. CUDA translation emits source and does not execute a GPU kernel. The native OpenCV bridge calls an installed C++ library, while the portable packages implement a smaller set of operations.
 
@@ -359,7 +366,19 @@ For a single family, pass `--workspace neuro-divergent` to the verification driv
 
 Measure the workload you intend to deploy. Record the commit, compiler, CPU or GPU, target features, model shape, batch size, thread count, warm-up, and numeric tolerance. Compare identical inputs and weights, and include allocation and transfer costs in end-to-end results. Criterion output is written under `target/criterion/`.
 
-The latest comparison uses actual Float64 WASM in Node and Chromium. A
+The November 11 Rust CPU evaluation measures **4.08× faster dense f32 training**
+and **3.88× faster dense f64 training** for `128 → 128 → 64 → 16`, compared with
+the verified public 0.2.2 source on one Ryzen 9 9950X host. Reordered training
+has measured tradeoffs of up to about 1.3% more latency. The new prepared
+single-inference path interleaves independent output rows while preserving
+each neuron's exact arithmetic order; large f32 networks measure about **2.5×
+faster**, while four small inference cases are **6–8% slower**. See the
+[complete results, paired intervals and rejected experiments](docs/rust-performance-2026-11-11.md)
+and [raw evidence](benchmarks/rust-0.2.3-evidence.tar.gz). These are synthetic
+CPU throughput results; they do not establish global state-of-the-art accuracy
+or throughput.
+
+The November 8 comparison uses actual Float64 WASM in Node and Chromium. A
 128-row SIMD batch produced these mean per-row latencies, including JavaScript
 validation and copies. Speed ratios compare repeated prepared single calls in
 the same binary; setup and compilation are outside the timings.

@@ -1,6 +1,6 @@
 # ADR-007: Immutable prepared inference and explicit conformal calibration
 
-Date: 2026-11-08. Status: accepted implementation direction; validation results belong to the implementation receipts.
+Date: 2026-11-08. Updated: 2026-11-11. Status: accepted implementation direction; validation results belong to the implementation receipts.
 
 ## Context
 
@@ -20,7 +20,7 @@ The prepared object remains a snapshot after the original is edited, trained, or
 
 - Preparation and workspace creation have explicit allocation and copying costs. Repeated inference should allocate zero times after successful setup.
 - The first representation is portable f32/f64 storage. It is not an XNNPACK cache file, KleidiAI microkernel layout, quantized model, or automatic GPU/batch execution path.
-- Preserving reduction order favors reproducibility over unvalidated reassociation or fused arithmetic. Future optimized kernels require explicit numerical tolerances and hardware checks.
+- Preserving reduction order favors reproducibility over unvalidated reassociation or fused arithmetic. The November 11 single-inference kernel interleaves four independent output accumulators while preserving each accumulator's exact connection order and separate multiplication/addition. It is limited to sufficiently wide, entirely canonical layers; short and irregular layers retain scalar execution. Numerical parity, overflow priority and allocation checks are required alongside the measured performance gates. Kernels that change reduction order still require explicit numerical tolerances and hardware checks.
 - An owned snapshot adds memory and can be slower for some workloads. Report preparation, memory, and warm inference separately before making performance claims.
 
 ## Decision 2: Calibration is a separate immutable artifact
