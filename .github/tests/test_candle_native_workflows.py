@@ -133,9 +133,18 @@ def validate(workflow, ci):
     browser = stages('browser')
     require(tasks.get('browser', {}).get('needs') == 'candle', 'browser does not require actual Candle fixture')
     require(all(name in browser for name in ('sdk-install', 'audit', 'setup', 'training', 'evidence', 'unchanged')), 'mandatory browser acceptance incomplete')
-    require('playwright@1.62.1' in browser.get('setup', {}).get('run', '') and
-        'install --with-deps chromium' in browser.get('setup', {}).get('run', '') and
-        'CHROMIUM_PATH=' in browser.get('setup', {}).get('run', ''), 'pinned actual browser setup missing')
+    setup = browser.get('setup', {}).get('run', '')
+    setup_lines = {line.strip() for line in setup.splitlines()}
+    # Hosted Ubuntu supplies runtime libraries. Require the genuine pinned
+    # browser download directly; optional apt bootstrapping is not browser proof.
+    require('npm install --prefix "$RUNNER_TEMP/candle-native-browser-tools" --no-save --ignore-scripts playwright@1.62.1 2>&1 | tee "$RUNNER_TEMP/candle-native-browser/setup.log"' in setup_lines and
+        '"$RUNNER_TEMP/candle-native-browser-tools/node_modules/.bin/playwright" install chromium 2>&1 | tee "$RUNNER_TEMP/candle-native-browser/chromium.log"' in setup_lines and
+        all(command in setup for command in (
+            "assert.equal(require('playwright/package.json').version, '1.62.1')",
+            "assert.equal(require('playwright-core/package.json').version, '1.62.1')",
+            "'browsers.json'", 'CHROMIUM_PATH=${chromium.executablePath()}',
+            'EXPECTED_CHROMIUM_VERSION=${expected}', 'CHROMIUM_VERSION_SOURCE=playwright-core/browsers.json')),
+        'pinned actual browser setup missing')
     require('node ruv-swarm/npm/test/browser-training.cjs --output "$RUNNER_TEMP/candle-native-browser/browser.json"' in browser.get('training', {}).get('run', ''), 'actual browser training not executed')
     require('npm ci --ignore-scripts --omit=optional --prefix integrations/ruv-fann' in browser.get('sdk-install', {}).get('run', ''), 'browser alters a root dependency graph')
     require('npm audit --audit-level=low' in browser.get('audit', {}).get('run', '') and
@@ -309,6 +318,45 @@ class CandleNativeWorkflowTests(unittest.TestCase):
         self.invalid('actual browser training not executed')
         self.workflow['jobs'].pop('browser')
         self.invalid('required numerical/runtime job missing')
+
+    def test_pinned_browser_installer_and_discovery_cannot_be_removed_or_faked(self):
+        setup = self.stage('browser', 'setup')
+        original = setup['run']
+        mutations = (
+            lambda source: source.replace('playwright@1.62.1', 'playwright@1.62.0'),
+            lambda source: source.replace('install chromium 2>&1', 'install --with-deps chromium 2>&1'),
+            lambda source: source.replace('"$RUNNER_TEMP/candle-native-browser-tools/node_modules/.bin/playwright" install chromium', 'echo chromium installed'),
+            lambda source: source.replace("assert.equal(require('playwright-core/package.json').version, '1.62.1');", ''),
+            lambda source: source.replace('CHROMIUM_PATH=${chromium.executablePath()}', 'CHROMIUM_PATH=/fake/chromium'),
+        )
+        for mutate in mutations:
+            with self.subTest(mutation=mutate):
+                setup['run'] = mutate(original)
+                self.invalid('pinned actual browser setup missing')
+        setup['run'] = original
+        self.assertEqual(validate(self.workflow, self.ci), [])
+
+    def test_actual_browser_install_failure_propagates_after_successful_npm_setup(self):
+        with tempfile.TemporaryDirectory(prefix='browser install failure ') as directory:
+            root = pathlib.Path(directory)
+            (root / 'candle-native-browser').mkdir()
+            tools = root / 'candle-native-browser-tools/node_modules/.bin'
+            tools.mkdir(parents=True)
+            installer = tools / 'playwright'
+            installer.write_text('#!/bin/sh\nexit 23\n')
+            installer.chmod(0o700)
+            npm = root / 'npm'
+            npm.write_text('#!/bin/sh\nexit 0\n')
+            npm.chmod(0o700)
+            node = root / 'node'
+            node.write_text('#!/bin/sh\nprintf reached > "$TEST_NODE_MARKER"\n')
+            node.chmod(0o700)
+            marker = root / 'unexpected-node'
+            result = subprocess.run(['bash', '--noprofile', '--norc', '-eo', 'pipefail', '-c', self.stage('browser', 'setup')['run']],
+                env={**os.environ, 'RUNNER_TEMP': directory, 'PATH': directory + os.pathsep + os.environ['PATH'],
+                     'TEST_NODE_MARKER': str(marker)}, text=True, capture_output=True, timeout=10)
+            self.assertEqual(result.returncode, 23, result.stderr)
+            self.assertFalse(marker.exists(), 'browser discovery must not run after failed actual install')
 
     def run_gate(self, mutate=None, faster=False):
         with tempfile.TemporaryDirectory(prefix='candle-native-ci-evidence-') as directory:
