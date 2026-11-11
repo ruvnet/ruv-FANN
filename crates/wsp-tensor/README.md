@@ -73,6 +73,7 @@ python3 scripts/pan2_compare.py \
   --repo /models/PAN2 \
   --baseline /models/base/transformer \
   --candidate /models/candidate/transformer \
+  --receipt /evaluation/receipt.json \
   --prompts /evaluation/prompts.json \
   --output /evaluation/pan2-comparison
 ```
@@ -93,7 +94,7 @@ to deploy a candidate. Generating plausible video does not prove correctness.
 
 No full-shard allocation or mmap is used. Header length is capped at 16 MiB;
 JSON expansion is additional memory. Payload hashing uses a 1 MiB buffer. Copy
-uses the operating system's optimized streaming copy where available. Cost is
+hashes the baseline in the same streaming pass to avoid rereading the shard. Cost is
 linear in shard size and requires an additional shard's worth of disk space.
 Use local NVMe for candidate creation; keep the large model off Workers.
 

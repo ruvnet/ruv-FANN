@@ -1,0 +1,11 @@
+{
+  "schema": "ruv-fann.tensor-e2e/1",
+  "fixture": "independent BF16 Safetensors",
+  "roundtrip": "passed",
+  "overwrite_rejected": true,
+  "base_sha256": "d3b70606f71adf9ee5c2a251f26192a33e7e4a8071479be8e686cc797a2eb53b",
+  "candidate_sha256": "3627b08adb9cd1a21428410d9997b0b569b4d0666e5f9bd38eca1bf28e122c72",
+  "elapsed_ms": 5.249,
+  "pan2_inference": "not_run",
+  "behavioral_improvement": "not_established"
+}

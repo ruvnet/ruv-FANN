@@ -16,12 +16,12 @@ def inventory(p):
 
 def main():
     a = argparse.ArgumentParser()
-    for name in ("repo", "baseline", "candidate", "prompts", "output"):
+    for name in ("repo", "baseline", "candidate", "prompts", "output", "receipt"):
         a.add_argument("--"+name, required=True, type=pathlib.Path)
     a.add_argument("--seed",type=int,default=123)
     a.add_argument("--timeout",type=int,default=7200)
     args = a.parse_args()
-    for name in ("repo","baseline","candidate","prompts","output"):
+    for name in ("repo","baseline","candidate","prompts","output","receipt"):
         setattr(args,name,getattr(args,name).resolve())
     if not shutil.which("nvidia-smi"): raise RuntimeError("CUDA executor unavailable: nvidia-smi missing")
     subprocess.run(["nvidia-smi"],check=True,stdout=subprocess.DEVNULL)
@@ -31,7 +31,13 @@ def main():
         raise RuntimeError("PAN2 checkout must be clean")
     if args.timeout<1 or args.baseline==args.candidate: raise RuntimeError("invalid timeout or identical checkpoint directories")
     before = {"baseline":inventory(args.baseline),"candidate":inventory(args.candidate)}
-    if before["baseline"]==before["candidate"]: raise RuntimeError("candidate has no weight differences")
+    if before["baseline"].keys()!=before["candidate"].keys(): raise RuntimeError("shard sets differ")
+    changed = [k for k in before["baseline"] if before["baseline"][k]!=before["candidate"][k]]
+    if len(changed)!=1: raise RuntimeError("exactly one edited shard is required")
+    receipt = json.loads(args.receipt.read_text())
+    key = changed[0]
+    if receipt.get("schema")!="ruv-fann.tensor-receipt/1" or receipt.get("base_sha256")!=before["baseline"][key] or receipt.get("candidate_sha256")!=before["candidate"][key]:
+        raise RuntimeError("receipt does not match checkpoint pair")
     prompts_hash = digest(args.prompts)
     args.output.mkdir(parents=True,exist_ok=False)
     prompts = args.output / "prompts.json"
@@ -57,7 +63,7 @@ def main():
         runs[label] = {"seconds":time.perf_counter()-start,"videos":{str(p.relative_to(args.output/label)):digest(p) for p in videos}}
     after = {"baseline":inventory(args.baseline),"candidate":inventory(args.candidate)}
     if before!=after or digest(prompts)!=prompts_hash: raise RuntimeError("inputs changed during evaluation")
-    result = {"schema":"ruv-fann.pan2-paired-inference/1","pan2_commit":head,"seed":args.seed,"prompts_sha256":prompts_hash,"checkpoints":before,"runs":runs,"behavioral_validation":"requires independent scoring","promotion":"not_performed"}
+    result = {"schema":"ruv-fann.pan2-paired-inference/1","pan2_commit":head,"seed":args.seed,"prompts_sha256":prompts_hash,"receipt_sha256":digest(args.receipt),"checkpoints":before,"runs":runs,"behavioral_validation":"requires independent scoring","promotion":"not_performed"}
     (args.output/"comparison.json").write_text(json.dumps(result,indent=2))
     print(json.dumps(result,indent=2))
 

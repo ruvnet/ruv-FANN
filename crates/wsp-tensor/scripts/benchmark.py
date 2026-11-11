@@ -18,7 +18,7 @@ for mib in (16, 128):
         p = d / "patch.json"
         p.write_text(json.dumps({"schema":"ruv-fann.tensor-patch/1","base_sha256":digest,"edits":[{"tensor":"weight","index":0,"value":0.75}]}))
         start = time.perf_counter()
-        subprocess.run(["/usr/bin/time","-f","%M","-o",str(d/"rss"),str(BIN),"apply",str(base),str(out),str(p)],check=True,stdout=subprocess.DEVNULL)
+        subprocess.run([str(BIN),"apply",str(base),str(out),str(p)],check=True,stdout=subprocess.DEVNULL)
         elapsed = time.perf_counter()-start
-        rows.append({"payload_mib":mib,"seconds":round(elapsed,4),"effective_mib_per_sec":round(mib/elapsed,2),"child_peak_rss_kib":int((d/"rss").read_text().strip())})
+        rows.append({"payload_mib":mib,"seconds":round(elapsed,4),"effective_mib_per_sec":round(mib/elapsed,2),"child_peak_rss_kib_including_spawn_overhead":resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss})
 print(json.dumps({"scope":"synthetic Safetensors file I/O; warm OS cache; single sample per size", "rows":rows},indent=2))
