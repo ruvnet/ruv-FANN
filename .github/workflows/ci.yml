@@ -156,9 +156,7 @@ jobs:
           python-version: '3.12'
       - name: Install real native OpenCV build prerequisites
         if: matrix.workspace == 'opencv-rust'
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes libopencv-dev libclang-dev
+        run: python3 scripts/hosted-ubuntu-apt.py --packages libopencv-dev libclang-dev
       - name: Check and test all workspace targets
         env:
           TEST_WORKSPACE: ${{ matrix.workspace }}
@@ -237,9 +235,8 @@ jobs:
         with:
           node-version: '24'
           package-manager-cache: false
-      - run: |
-          sudo apt-get update
-          sudo apt-get install --yes mesa-vulkan-drivers
+      - name: Install the real software Vulkan driver
+        run: python3 scripts/hosted-ubuntu-apt.py --packages mesa-vulkan-drivers
       - name: Execute public GPU operations against a real Vulkan adapter
         env:
           WGPU_BACKEND: vulkan
@@ -307,9 +304,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install native archive build prerequisites
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes libopencv-dev libclang-dev
+        run: python3 scripts/hosted-ubuntu-apt.py --packages libopencv-dev libclang-dev
       - name: Build and verify ordered candidates in an isolated snapshot
         run: python3 scripts/verify-release.py --output "$RUNNER_TEMP/cargo-releases"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
