@@ -10,7 +10,8 @@ on:
     branches: [main]
     paths:
       - 'packages/wasm/**'
-      - 'packages/core/**'
+      # Frozen 0.1.x WASM/core pair. Core 0.2.0 and its exact satellite
+      # dependency graph are qualified together by wsp-toolkit.yml.
       - 'scripts/npm-modules-*.mjs'
       - 'scripts/npm-release-*.mjs'
       - '.github/workflows/npm-modules.yml'
