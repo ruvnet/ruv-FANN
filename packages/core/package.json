@@ -70,6 +70,26 @@
     "./agenticow": {
       "types": "./src/capabilities/agenticow.d.ts",
       "import": "./src/capabilities/agenticow.js"
+    },
+    "./clustering": {
+      "types": "./src/capabilities/clustering.d.ts",
+      "import": "./src/capabilities/clustering.js"
+    },
+    "./clustering/quantization": {
+      "types": "./src/capabilities/clustering-quantization.d.ts",
+      "import": "./src/capabilities/clustering-quantization.js"
+    },
+    "./clustering/ivf": {
+      "types": "./src/capabilities/clustering-ivf.d.ts",
+      "import": "./src/capabilities/clustering-ivf.js"
+    },
+    "./clustering/metaharness": {
+      "types": "./src/capabilities/clustering-metaharness.d.ts",
+      "import": "./src/capabilities/clustering-metaharness.js"
+    },
+    "./clustering/cloudflare": {
+      "types": "./src/capabilities/clustering-cloudflare.d.ts",
+      "import": "./src/capabilities/clustering-cloudflare.js"
     }
   },
   "files": [
@@ -93,7 +113,8 @@
     "ruvnet-constellation": "0.1.0",
     "ruvnet-constellation-contracts": "0.1.0",
     "ruvnet-constellation-telemetry": "0.1.0",
-    "agenticow": "0.3.0"
+    "agenticow": "0.3.0",
+    "@ruvector/e-means": "0.1.0"
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
