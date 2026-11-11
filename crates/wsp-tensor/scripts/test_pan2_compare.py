@@ -204,6 +204,12 @@ MOCK
         self.assertNotEqual(baseline['TRITON_CACHE_DIR'], candidate['TRITON_CACHE_DIR'])
         self.assertEqual(baseline['HF_HUB_OFFLINE'], '1')
 
+    def test_matching_but_incomplete_output_sets_cannot_qualify(self):
+        self.prompts.write_text('[{"prompt":"first"},{"prompt":"second"}]')
+        with self.assertRaisesRegex(RuntimeError, 'one video per prompt'):
+            self.invoke()
+        self.assertFalse((self.root / 'result/candidate').exists())
+
     def test_wrong_output_checkpoint_settings_rejected(self):
         def tamper(kw):
             out = self.root / 'result/baseline/clip_config.json'

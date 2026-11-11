@@ -274,6 +274,9 @@ def main(argv=None):
     prompt_data, prompt_bytes = json_snapshot(args.prompts)
     prompts_hash = hashlib.sha256(prompt_bytes).hexdigest()
     images = prompt_images(prompt_data, args.repo)
+    entries = (prompt_data if isinstance(prompt_data, list) else
+               next(prompt_data[key] for key in ("entries", "prompts", "data") if key in prompt_data))
+    prompt_count = len(entries)
     cache = model_cache(args.hf_home)
     source = git(args.repo, "ls-files", "-s")
     if not shutil.which("nvidia-smi"):
@@ -311,8 +314,8 @@ def main(argv=None):
         unchanged()
         outputs = inventory(args.output / label)
         videos = {name: value["sha256"] for name, value in outputs.items() if name.endswith(".mp4")}
-        if not videos:
-            raise RuntimeError("inference produced no videos")
+        if len(videos) != prompt_count:
+            raise RuntimeError("inference must produce one video per prompt entry")
         if runs and videos.keys() != runs["baseline"]["videos"].keys():
             raise RuntimeError("baseline/candidate video sets differ")
         # Upstream saves the actual parsed arguments beside each video. Require
