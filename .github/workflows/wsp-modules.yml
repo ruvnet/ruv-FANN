@@ -1,15 +1,8 @@
 name: WSP npm qualification
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - 'packages/wsp/**'
-      - 'scripts/wsp-*.mjs'
-      - 'scripts/constellation-oidc*.mjs'
-      - 'scripts/wsp-benchmark-tree.py'
-      - '.github/workflows/wsp-modules.yml'
-      - '.github/workflows/protected-wsp-release.yml'
+  # Frozen WSP 0.2.0 lane. Metadata patch releases use metadata-qualification.yml.
+  # Dispatch against the corresponding historical source ref for a legacy release.
   workflow_dispatch:
     inputs:
       expected_sha:

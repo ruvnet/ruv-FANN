@@ -40,3 +40,11 @@ The OIDC helper checks reviewed configuration, GitHub event/job/source constrain
 The 24-entry constellation catalog records release planning identities and statuses. Its `published` field is declared metadata, not a registry query or namespace proof. Public observations may remain missing or stale; a missing npm downloads endpoint is not a zero-download observation. Exact source/archive/public-consumer receipts establish what this release actually published and verified.
 
 Historical toolkit evidence remains unchanged in `packages/wsp-toolkit/docs/evidence`. Current counts, hashes and final publication outcomes belong to the current qualification and release artifacts. The separate [observatory workflow](../.github/workflows/constellation-observatory.yml) collects optional public observations and has no publication authority.
+
+## Metadata-only discoverability releases
+
+`metadata-release.json` selects fourteen npm patch releases: WASM 0.1.3, WSP 0.2.1, and the twelve toolkit packages at 0.1.1. The separate `agenticow` repository uses the same lane for 0.3.1. Core 0.3.0 and all dependency pins remain unchanged.
+
+The metadata qualifier derives each archive from its public predecessor, verifies the registry's SHA512 integrity, and overlays only tracked package version/keywords, an appended plain-text Discoverability topics section, and the corresponding constellation module version. Runtime source, declarations, executable modes, file sets, exported catalog snapshots and WASM binaries must remain byte-identical. A new runtime change requires its normal release lane.
+
+The Node 22/24 qualifiers install the same canonical archives, bind a public dependency lock, and run the repository-specific installed consumer. The protected metadata publisher accepts only a successful exact-source qualification artifact on current main with zero release blockers. It verifies public tarballs and a fresh-cache public installation, then downloads and checks all GitHub release assets before exposing the final receipt. Existing WSP 0.2.0 qualification is retained as a manually dispatched historical lane.
