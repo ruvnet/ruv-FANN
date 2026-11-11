@@ -1,0 +1,266 @@
+{
+  "schema": "ruv-fann.toolkit-validation/1",
+  "createdAt": "2026-11-11T02:02:59.966Z",
+  "node": "v24.22.1",
+  "typecheck": "passed",
+  "tests": {
+    "tests": 47,
+    "pass": 47,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "benchmark": {
+    "schema": "ruv-fann.search-benchmark/1",
+    "node": "v24.22.1",
+    "backend": "wasm",
+    "rows": 32,
+    "candidateCount": 16,
+    "repetitions": 9,
+    "equivalentCandidateHash": "721c85d1df903af2ca8fe07b29bc590e4aff2f5bf4b55291b91f214c9addfd67",
+    "candidateMSE": 0,
+    "referenceInferencePasses": 32,
+    "screenedInferencePasses": 19,
+    "inferencePassReductionPercent": 40.625,
+    "referenceMedianMs": 4.855581999999998,
+    "screenedMedianMs": 1.4889709999999923,
+    "note": "Identical 16-candidate monotonic one-coordinate sequence. Timing is a local observation; work reduction includes final authoritative baseline/candidate revalidation. Not an accuracy or generalization benchmark."
+  },
+  "audit": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "scope": "all production and development dependencies",
+    "lockfileSHA256": "0be668c6142857115029469b5e5a4d7581792d99dfe478d4a6fe0e734fcbe3c9"
+  },
+  "sourceTreeSHA256": "da6e9a00dc86d3296b58c963f276df5c6229f6cb0fa42a86db6d8178e55d73ef",
+  "sourceFiles": [
+    {
+      "path": ".gitignore",
+      "sha256": "f0511d87b6daff32b51effec85f397ff36e7914c7849880d3d0c1d1c4eba600a"
+    },
+    {
+      "path": "docs/design.md",
+      "sha256": "57c6b8f947f6c365a111b6d5052389b53ef2285e1561d81934faefcfa643cb70"
+    },
+    {
+      "path": "docs/huggingface-source.json",
+      "sha256": "935e180aaae0f271ab5b01e20c612a221110c39bba94f74b73c6fd028546c2e4"
+    },
+    {
+      "path": "docs/validation.md",
+      "sha256": "9a1857d074025719b5a00808b41b3101b2ab5e738aeae74182658dbc07c14051"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "0be668c6142857115029469b5e5a4d7581792d99dfe478d4a6fe0e734fcbe3c9"
+    },
+    {
+      "path": "package.json",
+      "sha256": "91f0b1741ae34914478dc16c8ed8577615f04b7f477564ac42f35a4790d97e9d"
+    },
+    {
+      "path": "packages/cloudflare/LICENSE",
+      "sha256": "50fefb93560af4421369c99c93cc214cd835b3181ab7f16323f9e6f2ded870e3"
+    },
+    {
+      "path": "packages/cloudflare/package.json",
+      "sha256": "b7495438311fe4808561548298eb62a29b358756cb20e850190620e648c1460a"
+    },
+    {
+      "path": "packages/cloudflare/README.md",
+      "sha256": "f6bcca9a3605a7e9d8276cf22c02670ccbf36314a01dd16dd374c0a0a0a91793"
+    },
+    {
+      "path": "packages/cloudflare/scripts/build.mjs",
+      "sha256": "7cadbdf90d4a57ce78166b0b789e36ff0dad3aac0e15c2c6f148ce41785a8269"
+    },
+    {
+      "path": "packages/cloudflare/src/build.d.ts",
+      "sha256": "8b24c9683ba896cbd2fa207d8493e280937a6e87e63c81330df5e112c1630cfc"
+    },
+    {
+      "path": "packages/cloudflare/src/build.js",
+      "sha256": "173edfd8dc82aeaee140ab216c10d17dfd76105f281d32097388944f2444043f"
+    },
+    {
+      "path": "packages/cloudflare/src/index.d.ts",
+      "sha256": "d93c5133c21cd2cfcca7ad620c1c7a538007e23c6c3ed3d3ce059002e7ae4af4"
+    },
+    {
+      "path": "packages/cloudflare/src/index.js",
+      "sha256": "1d8cdc902da54f54fa12fc8bc0a60537aaa6fcdfc278a99dd6c911ad0fc9bba7"
+    },
+    {
+      "path": "packages/cloudflare/src/worker.js",
+      "sha256": "d93c4088089aa3f16488484017cde5caaf978782ebe2b7c2058a77d40f9fd390"
+    },
+    {
+      "path": "packages/cloudflare/test/handler.test.mjs",
+      "sha256": "e45b2209c08b6afaefe5cd0fdb56e4160e165f9d6b91061df6e7c6bb9605f54f"
+    },
+    {
+      "path": "packages/cloudflare/test/workerd.test.mjs",
+      "sha256": "8a5664be4b9ace08118af8887d7cab8623bad5f5e90fab28e810b4d9fe47b1b3"
+    },
+    {
+      "path": "packages/cloudflare/wrangler.jsonc",
+      "sha256": "7cda0f7788937ccbbd63d250ef11a4d0b98c66b25872dcc02ecbdef807b814bd"
+    },
+    {
+      "path": "packages/huggingface/LICENSE",
+      "sha256": "50fefb93560af4421369c99c93cc214cd835b3181ab7f16323f9e6f2ded870e3"
+    },
+    {
+      "path": "packages/huggingface/package.json",
+      "sha256": "c5a92b787ca8631874e0f5ff04d5e132ab4032932d5ed1a996e2a3dab511eea6"
+    },
+    {
+      "path": "packages/huggingface/README.md",
+      "sha256": "a78e91609e12a49e74e7a3d3170f9f427da8575f1ac4a4864ded9778d5242775"
+    },
+    {
+      "path": "packages/huggingface/src/index.d.ts",
+      "sha256": "cd4129715700e7d5aae1bab3953a5d9df99931e688b3835b26b6207b457f6465"
+    },
+    {
+      "path": "packages/huggingface/src/index.js",
+      "sha256": "baf61b469ef682e49b94003ebf5ab2e19a2938fb166891ace145f6dc532329e9"
+    },
+    {
+      "path": "packages/huggingface/test/hub.test.mjs",
+      "sha256": "a3f5c794a701b51aebb66d480054cb401ae2ca7ab34f86330f1de8d2889b2450"
+    },
+    {
+      "path": "packages/lifecycle/LICENSE",
+      "sha256": "50fefb93560af4421369c99c93cc214cd835b3181ab7f16323f9e6f2ded870e3"
+    },
+    {
+      "path": "packages/lifecycle/package.json",
+      "sha256": "fa434108ddbd96a20ba84e5fdf2e5cd4b95894b50348ff0c2194a762a8d0f573"
+    },
+    {
+      "path": "packages/lifecycle/README.md",
+      "sha256": "af428aa418c392e5abcc638d8178ee3a99778ea337e574c744880c1152fd18f1"
+    },
+    {
+      "path": "packages/lifecycle/src/cli.js",
+      "sha256": "821c40e837d45bfb5a19911361dc4a60d8cf3e6a2214091a0fe3db266ecd8bb1"
+    },
+    {
+      "path": "packages/lifecycle/src/index.d.ts",
+      "sha256": "79186a80097d7e27b1e570f4f898af303b5c2c5a08fa493a829d0c8e416ed957"
+    },
+    {
+      "path": "packages/lifecycle/src/index.js",
+      "sha256": "2c8fb836ce2e3e41e188e936a6a46c49e7bcd6aa8d73e4aefae4e0e1143357c4"
+    },
+    {
+      "path": "packages/lifecycle/test/gate.test.mjs",
+      "sha256": "0f97063fa4945a7832488306be247689288e4ad5557909324bb811a5811744e1"
+    },
+    {
+      "path": "packages/ruos/LICENSE",
+      "sha256": "50fefb93560af4421369c99c93cc214cd835b3181ab7f16323f9e6f2ded870e3"
+    },
+    {
+      "path": "packages/ruos/package.json",
+      "sha256": "3d1fc67c5464789128d370dce35777902cb23aaee90f0bdc844ecfe61e49e328"
+    },
+    {
+      "path": "packages/ruos/README.md",
+      "sha256": "e0a845b2fe55e69c41b285c154b096b49c61eab4d0234fe049522ff4761fab4d"
+    },
+    {
+      "path": "packages/ruos/src/index.d.ts",
+      "sha256": "780094ec3f3d4ae984b1ccc69f52b84261c42f0749a652df0b8e881878bc697a"
+    },
+    {
+      "path": "packages/ruos/src/index.js",
+      "sha256": "0c9a6070bc1b70af58934b47d6b9be0e49ce884eb2839a2e3580118343d31f39"
+    },
+    {
+      "path": "packages/ruos/test/ruos.test.mjs",
+      "sha256": "2bfac47783a83a569ebfc3526aea4665949eebcb3f147afeaa3047305e50549c"
+    },
+    {
+      "path": "packages/search/LICENSE",
+      "sha256": "50fefb93560af4421369c99c93cc214cd835b3181ab7f16323f9e6f2ded870e3"
+    },
+    {
+      "path": "packages/search/package.json",
+      "sha256": "ba1085c32fe794e9213e0d9b319208d514c1ad12d0f25bffcfa98d586abe7ebc"
+    },
+    {
+      "path": "packages/search/README.md",
+      "sha256": "173e7c5449e3c914c9e8c2311fa6959964715cbec0e2bc4799163ee8d0496b4d"
+    },
+    {
+      "path": "packages/search/src/data.js",
+      "sha256": "5825e0aea30189d3d808dd2e932fadfe20dedad0df574ae1288b97fa3b339a38"
+    },
+    {
+      "path": "packages/search/src/index.d.ts",
+      "sha256": "a28f37a50281e88d31f275dde4ff5f40b90afdf15c6ad9dfe4b4b4b2f6dd947c"
+    },
+    {
+      "path": "packages/search/src/index.js",
+      "sha256": "7bce3367ab680b3e377f0b8eeaae6194f25ee38368c7e5e4f51d9f04771df62c"
+    },
+    {
+      "path": "packages/search/test/search.test.mjs",
+      "sha256": "215740fd17e384c41f9afe47326bf8cfa07a74a48d0f468c319e2f03e846b11d"
+    },
+    {
+      "path": "README.md",
+      "sha256": "9b3782b08bfc29bc07cb41dc54e6e4ec136ee1c65c2bc976616e28f53a2aeef7"
+    },
+    {
+      "path": "scripts/benchmark.mjs",
+      "sha256": "a05680d508d739b6dea6e53196cff1efd6f81d3065e5f08eb980d2f19e3ab289"
+    },
+    {
+      "path": "scripts/huggingface-live.mjs",
+      "sha256": "aa98b72185421cde24a8d45f2db47937724b1429689943fce3e6a9a7cb32ba46"
+    },
+    {
+      "path": "scripts/packed-consumer.mjs",
+      "sha256": "dfcb8b424980a6077ac1b0812a6d165512af1d03846a01cb676fc756af2e5ba7"
+    },
+    {
+      "path": "scripts/validate.mjs",
+      "sha256": "7191e7f1952a85417f829accd7a5e04d97c24d1e729c803078f57092e4da686b"
+    },
+    {
+      "path": "test/browser.test.mjs",
+      "sha256": "8e8383ab9a9d5f974f936a4e97772b88c1411fa5d9c7635bd794f0f1a4e74b71"
+    },
+    {
+      "path": "test/consumer.test.mjs",
+      "sha256": "0c90dff8143b505b6df036d7d6335440ad1dcf62de62fa5e95bc761ed07a3d54"
+    },
+    {
+      "path": "test/integration.test.mjs",
+      "sha256": "403ca92aeaf3ea7c0466989c6fba202fcce8b1c594aa1783b39636dc9041ead2"
+    },
+    {
+      "path": "test/scenario.mjs",
+      "sha256": "9884b953d21aff57f48e0d06de900679cf7d4c41928b67af0cc0d018d2460c45"
+    },
+    {
+      "path": "test/types.ts",
+      "sha256": "fbb5e9c2a990e92a3d38c87c9ec30ea55085ff02e455c4026fc891cb01564678"
+    },
+    {
+      "path": "tsconfig.json",
+      "sha256": "daf2b629ec6c113c62f3c4ee10f1e1632d301575f98b11d1fd6013c5ab717b54"
+    }
+  ],
+  "limits": "Local validation only. Source digest excludes generated .artifacts and docs/evidence. This is not a signature or deployment authorization."
+}

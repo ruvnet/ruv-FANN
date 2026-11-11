@@ -1,0 +1,9 @@
+{
+  "name": "wsp-agentdb-integration-runtime",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": { "node": ">=20.9.0" },
+  "dependencies": { "agentdb": "3.10.0" },
+  "scripts": { "audit": "npm audit --audit-level=high" }
+}

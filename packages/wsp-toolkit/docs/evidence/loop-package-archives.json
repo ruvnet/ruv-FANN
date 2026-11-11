@@ -1,0 +1,65 @@
+[
+  {
+    "name": "ruv-fann-wsp-lifecycle",
+    "version": "0.1.0",
+    "filename": "ruv-fann-wsp-lifecycle-0.1.0.tgz",
+    "bytes": 4474,
+    "sha256": "24b0d3f4c0acf0097e0ca3b067674700776df27b38d4ba6c8d6e05869a29706e"
+  },
+  {
+    "name": "ruv-fann-wsp-search",
+    "version": "0.1.0",
+    "filename": "ruv-fann-wsp-search-0.1.0.tgz",
+    "bytes": 8964,
+    "sha256": "eb9ff647bfe527e4a646164bd0a3492348100181e9cb43511057a91c1749cd79"
+  },
+  {
+    "name": "ruv-fann-wsp-huggingface",
+    "version": "0.1.0",
+    "filename": "ruv-fann-wsp-huggingface-0.1.0.tgz",
+    "bytes": 6023,
+    "sha256": "b755144a2865beb8b9a1446c96ed4195f42fea872d6d1c3a9b2020ea85c26775"
+  },
+  {
+    "name": "ruv-fann-wsp-cloudflare",
+    "version": "0.1.0",
+    "filename": "ruv-fann-wsp-cloudflare-0.1.0.tgz",
+    "bytes": 7106,
+    "sha256": "172c5120dcccf7224420d34ae0f3f7638a0c075397faa0e35652777d105879a2"
+  },
+  {
+    "name": "ruv-fann-wsp-ruos",
+    "version": "0.1.0",
+    "filename": "ruv-fann-wsp-ruos-0.1.0.tgz",
+    "bytes": 3755,
+    "sha256": "f4a773ad61801ca7c7a5f94339fc53516beeddc15a4fb08705c975f367d132d5"
+  },
+  {
+    "name": "ruv-fann-wsp-invariants",
+    "version": "0.1.0",
+    "filename": "ruv-fann-wsp-invariants-0.1.0.tgz",
+    "bytes": 7311,
+    "sha256": "b2acc93847d13231c604f6913150b99e504f326eeb7cdede0b4b81051d8837d8"
+  },
+  {
+    "name": "ruv-fann-wsp-swarm",
+    "version": "0.1.0",
+    "filename": "ruv-fann-wsp-swarm-0.1.0.tgz",
+    "bytes": 8713,
+    "sha256": "e3a14e7c4d5625838709586b14d393e9394d721f5f46cfa90f966c90c1faabf9"
+  },
+  {
+    "name": "ruv-fann-wsp-registry",
+    "version": "0.1.0",
+    "filename": "ruv-fann-wsp-registry-0.1.0.tgz",
+    "bytes": 5983,
+    "sha256": "952c966b4500fcb7837d1383b0a3ebc3b32459a9d1a13d436b7c1bd357a46603"
+  },
+  {
+    "name": "ruv-fann-wsp-loop",
+    "version": "0.1.0",
+    "filename": "ruv-fann-wsp-loop-0.1.0.tgz",
+    "bytes": 9639,
+    "sha256": "b4df5c4ccdaf921f1300a919349424942c8eb9ee7291930d7d99c05f6d144d6a"
+  }
+]

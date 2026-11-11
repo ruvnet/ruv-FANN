@@ -1,0 +1,86 @@
+[
+  {
+    "name": "ruv-fann-wsp-lifecycle",
+    "version": "0.1.0",
+    "filename": "ruv-fann-wsp-lifecycle-0.1.0.tgz",
+    "bytes": 4855,
+    "sha256": "13859e6d7e22bec95c21388878d17572b3df83ea7f14120538a3e5b4d216d1f5"
+  },
+  {
+    "name": "ruv-fann-wsp-search",
+    "version": "0.1.0",
+    "filename": "ruv-fann-wsp-search-0.1.0.tgz",
+    "bytes": 9317,
+    "sha256": "97077fdc06e4a855a7bdbcc53cc623c2aa90222d022b83a2188e0919c3b9c8ce"
+  },
+  {
+    "name": "ruv-fann-wsp-huggingface",
+    "version": "0.1.0",
+    "filename": "ruv-fann-wsp-huggingface-0.1.0.tgz",
+    "bytes": 6370,
+    "sha256": "3b7d938b2204b11cad79906e25e4d9d5060a938536cd672ffa7ab9b69028164f"
+  },
+  {
+    "name": "ruv-fann-wsp-cloudflare",
+    "version": "0.1.0",
+    "filename": "ruv-fann-wsp-cloudflare-0.1.0.tgz",
+    "bytes": 7508,
+    "sha256": "12e7f4b0020ca9bd486f858bffa5c981e4d4df998760863dbb9aa7a8719f4df0"
+  },
+  {
+    "name": "ruv-fann-wsp-ruos",
+    "version": "0.1.0",
+    "filename": "ruv-fann-wsp-ruos-0.1.0.tgz",
+    "bytes": 4124,
+    "sha256": "cf4caee95ea91ed67270eddb20dc42d04499fcfd646c34f61b5a07eb7854cc05"
+  },
+  {
+    "name": "ruv-fann-wsp-invariants",
+    "version": "0.1.0",
+    "filename": "ruv-fann-wsp-invariants-0.1.0.tgz",
+    "bytes": 7679,
+    "sha256": "268bf9b3f8b7f13fc21a639f0be7fa11e1f26eeda0252d1ad1c29c09d3e47ee4"
+  },
+  {
+    "name": "ruv-fann-wsp-swarm",
+    "version": "0.1.0",
+    "filename": "ruv-fann-wsp-swarm-0.1.0.tgz",
+    "bytes": 9086,
+    "sha256": "b8ca6c95776645a2e284cc7c34d773b48bdbc0baba0ee3b959bf2dd449645a25"
+  },
+  {
+    "name": "ruv-fann-wsp-registry",
+    "version": "0.1.0",
+    "filename": "ruv-fann-wsp-registry-0.1.0.tgz",
+    "bytes": 6368,
+    "sha256": "7bb4e5c628c5aeb89d001605a215917b11050013ba752882f674c34c852e56ed"
+  },
+  {
+    "name": "ruv-fann-wsp-loop",
+    "version": "0.1.0",
+    "filename": "ruv-fann-wsp-loop-0.1.0.tgz",
+    "bytes": 10023,
+    "sha256": "906d01e14986ef833655a38539818e76183289a2879aba49b9364fcf150bafea"
+  },
+  {
+    "name": "ruvnet-constellation-contracts",
+    "version": "0.1.0",
+    "filename": "ruvnet-constellation-contracts-0.1.0.tgz",
+    "bytes": 6778,
+    "sha256": "c776adc7055b9389eef1a7f3dca1ed9c3012f5e68545f039c7ccc0e0eb968b31"
+  },
+  {
+    "name": "ruvnet-constellation",
+    "version": "0.1.0",
+    "filename": "ruvnet-constellation-0.1.0.tgz",
+    "bytes": 10887,
+    "sha256": "b0e184ad8b7740d1bfd7d4306b9a49b7391b1a5dd971869ada19cc50718cd2c5"
+  },
+  {
+    "name": "ruvnet-constellation-telemetry",
+    "version": "0.1.0",
+    "filename": "ruvnet-constellation-telemetry-0.1.0.tgz",
+    "bytes": 20135,
+    "sha256": "f649aeff3c3bf51a0a0792f3f787f444ef54bc3527748ad8f919938d93896fe7"
+  }
+]

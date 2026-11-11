@@ -1,0 +1,10 @@
+{
+  "schema": "ruvnet.constellation-module/1",
+  "name": "ruvnet-constellation-contracts",
+  "version": "0.1.0",
+  "role": "primitive",
+  "contracts": [
+    "ruvnet.constellation-module/1"
+  ],
+  "integrations": []
+}

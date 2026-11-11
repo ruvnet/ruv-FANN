@@ -1,0 +1,115 @@
+{
+  "schema": "ruvnet.constellation-live-evidence/1",
+  "observedAt": "2026-11-11T03:22:56.172Z",
+  "start": "2026-09-30",
+  "end": "2026-11-10",
+  "catalog": {
+    "catalogPackages": 24,
+    "publishedPackages": 12,
+    "candidatePackages": 12,
+    "packagesWithLatestDay": 9,
+    "packagesWithLast7": 9,
+    "packagesWithLast30": 9,
+    "unavailablePackages": 3
+  },
+  "observedLast30Downloads": 3826043,
+  "fullCohortLast30Downloads": null,
+  "unavailablePackages": [
+    {
+      "name": "ruv-fann",
+      "error": "public source returned HTTP 404 or a redirect",
+      "metadataStatus": "ok"
+    },
+    {
+      "name": "ruv-fann-wasm",
+      "error": "public source returned HTTP 404 or a redirect",
+      "metadataStatus": "ok"
+    },
+    {
+      "name": "ruv-fann-wsp",
+      "error": "public source returned HTTP 404 or a redirect",
+      "metadataStatus": "ok"
+    }
+  ],
+  "metadataCoverage": {
+    "observed": 12,
+    "expected": 12
+  },
+  "repositories": [
+    {
+      "repository": "ruvnet/RuVector",
+      "status": "ok",
+      "stars": 4685,
+      "openIssuesAndPRs": 273,
+      "source": "https://api.github.com/repos/ruvnet/RuVector"
+    },
+    {
+      "repository": "ruvnet/agentdb",
+      "status": "ok",
+      "stars": 97,
+      "openIssuesAndPRs": 17,
+      "source": "https://api.github.com/repos/ruvnet/agentdb"
+    },
+    {
+      "repository": "ruvnet/agentic-flow",
+      "status": "ok",
+      "stars": 840,
+      "openIssuesAndPRs": 112,
+      "source": "https://api.github.com/repos/ruvnet/agentic-flow"
+    },
+    {
+      "repository": "ruvnet/metaharness",
+      "status": "ok",
+      "stars": 744,
+      "openIssuesAndPRs": 219,
+      "source": "https://api.github.com/repos/ruvnet/metaharness"
+    },
+    {
+      "repository": "ruvnet/ruflo",
+      "status": "ok",
+      "stars": 81443,
+      "openIssuesAndPRs": 580,
+      "source": "https://api.github.com/repos/ruvnet/ruflo"
+    },
+    {
+      "repository": "ruvnet/ruv-FANN",
+      "status": "ok",
+      "stars": 390,
+      "openIssuesAndPRs": 41,
+      "source": "https://api.github.com/repos/ruvnet/ruv-FANN"
+    }
+  ],
+  "attach": {
+    "status": "unavailable",
+    "percentage": null,
+    "unit": "consenting-project-snapshots"
+  },
+  "artifacts": [
+    {
+      "path": ".artifacts/constellation/observations.json",
+      "bytes": 44504,
+      "sha256": "d8bda3b07345e196ab9f4311af5d100c5c5bd0bbb4a334fa183ea13b81726c23"
+    },
+    {
+      "path": ".artifacts/constellation/report.json",
+      "bytes": 79030,
+      "sha256": "6e3cd8da3451da2330a2ab711ae7d26322662d4b9b3edcb54add92e4089a5494"
+    },
+    {
+      "path": ".artifacts/constellation/dashboard.html",
+      "bytes": 68583,
+      "sha256": "333e79f65706f9dbbad68d5be7927bfd66d5ec61919fabb87acc557ed32d9823"
+    },
+    {
+      "path": ".artifacts/constellation/dashboard.png",
+      "bytes": 510509,
+      "sha256": "4ad9cdaf035eb3750403ebaf5e7a71b001a8cf3ce95e80a6b78580a0977c3a5e"
+    }
+  ],
+  "limits": [
+    "This is a verified subset, not the user-provided405-package cohort.",
+    "Downloads include CI/transitive activity; no user attach rate is inferred.",
+    "No adoption sample was provided; public report contains no project identifiers.",
+    "Npm publisher registration and live OIDC publication were not performed."
+  ]
+}

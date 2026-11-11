@@ -1,0 +1,40 @@
+name: Constellation observatory
+
+on:
+  workflow_dispatch:
+    inputs:
+      end:
+        description: Last complete UTC day (YYYY-MM-DD); blank uses yesterday
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: packages/wsp-toolkit
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.22.1'
+          package-manager-cache: false
+      - name: Install locked runtime packages without lifecycle scripts
+        run: npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+      - name: Build public-only report without project adoption data
+        env:
+          CONSTELLATION_REPORT_END: ${{ inputs.end || '' }}
+        run: node scripts/constellation-report.mjs --output "$RUNNER_TEMP/constellation"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: constellation-${{ github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/constellation/
+          if-no-files-found: error
+          retention-days: 30

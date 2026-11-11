@@ -1,0 +1,38 @@
+{
+  "name": "ruv-fann-wsp-huggingface",
+  "version": "0.1.0",
+  "description": "Integrity-pinned public Hugging Face dense JSON checkpoints for ruv-FANN WSP",
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE",
+    "constellation.json"
+  ],
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "dependencies": {
+    "ruv-fann-wsp": "0.2.0"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ruvnet/ruv-FANN.git",
+    "directory": "packages/wsp-toolkit/packages/huggingface"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "name": "ruv-fann-wsp-lifecycle",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Bounded multi-suite regression gates and checkpoint branch evaluation for WSP",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "bin": {
+    "wsp-gate": "./src/cli.js"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE",
+    "constellation.json"
+  ],
+  "dependencies": {
+    "ruv-fann-wsp": "0.2.0"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ruvnet/ruv-FANN.git",
+    "directory": "packages/wsp-toolkit/packages/lifecycle"
+  }
+}

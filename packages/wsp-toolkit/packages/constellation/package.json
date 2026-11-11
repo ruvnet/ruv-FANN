@@ -1,0 +1,43 @@
+{
+  "name": "ruvnet-constellation",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Explicit lightweight constellation discovery, planning and satellite scaffolding",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    },
+    "./catalog.json": "./catalog.json"
+  },
+  "bin": {
+    "constellation": "./src/cli.js"
+  },
+  "files": [
+    "src",
+    "catalog.json",
+    "README.md",
+    "LICENSE",
+    "constellation.json"
+  ],
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "dependencies": {
+    "ruvnet-constellation-contracts": "0.1.0"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ruvnet/ruv-FANN.git",
+    "directory": "packages/wsp-toolkit/packages/constellation"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

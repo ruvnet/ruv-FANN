@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ruvnet/ruv-FANN/packages/wsp-toolkit/packages/contracts/schemas/catalog.schema.json",
+  "title": "Constellation catalog",
+  "description": "Published status and proposed scopes are declarations, not verified namespace ownership. JS validates cross-references and aggregate byte budgets.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "repository",
+    "packages",
+    "profiles"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ruvnet.constellation-catalog/1"
+    },
+    "repository": {
+      "type": "string",
+      "maxLength": 201,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}/[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$"
+    },
+    "packages": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "role",
+          "family",
+          "status",
+          "version",
+          "repository",
+          "description"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 214,
+            "pattern": "^(?:@[a-z0-9][a-z0-9._-]*/)?[a-z0-9][a-z0-9._-]*$",
+            "not": {
+              "enum": [
+                "node_modules",
+                "favicon.ico"
+              ]
+            }
+          },
+          "role": {
+            "enum": [
+              "nucleus",
+              "primitive",
+              "satellite"
+            ]
+          },
+          "family": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,47}$"
+          },
+          "status": {
+            "enum": [
+              "published",
+              "candidate"
+            ]
+          },
+          "version": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)*)?(?:\\+[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)*)?$"
+          },
+          "repository": {
+            "type": "string",
+            "maxLength": 201,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}/[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "directory": {
+            "type": "string",
+            "maxLength": 512,
+            "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*$"
+          },
+          "contracts": {
+            "type": "array",
+            "maxItems": 32,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "maxLength": 128,
+              "pattern": "^[a-z][a-z0-9.-]*(?:/[a-z][a-z0-9.-]*)*/[1-9][0-9]*$"
+            }
+          },
+          "proposedScope": {
+            "type": "string",
+            "maxLength": 100,
+            "pattern": "^@[a-z0-9][a-z0-9._-]*$"
+          },
+          "links": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": false,
+            "properties": {
+              "npm": {
+                "type": "string",
+                "maxLength": 2048,
+                "pattern": "^https://(?:www\\.)?npmjs\\.com/[^?\\s]*$"
+              },
+              "source": {
+                "type": "string",
+                "maxLength": 2048,
+                "pattern": "^https://github\\.com/[^?\\s]*$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "profiles": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "description",
+          "packages"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,47}$"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+          },
+          "packages": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 1000,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 214,
+              "pattern": "^(?:@[a-z0-9][a-z0-9._-]*/)?[a-z0-9][a-z0-9._-]*$",
+              "not": {
+                "enum": [
+                  "node_modules",
+                  "favicon.ico"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

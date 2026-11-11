@@ -1,0 +1,47 @@
+{
+  "name": "ruv-fann-wsp-cloudflare",
+  "version": "0.1.0",
+  "description": "Bounded stateless WSP operations with static WebAssembly modules for Cloudflare Workers",
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    },
+    "./build": {
+      "types": "./src/build.d.ts",
+      "import": "./src/build.js"
+    }
+  },
+  "files": [
+    "src",
+    "scripts",
+    "README.md",
+    "LICENSE",
+    "wrangler.jsonc",
+    "constellation.json"
+  ],
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "dependencies": {
+    "ruv-fann-wsp": "0.2.0",
+    "ruv-fann-wasm": "0.1.2",
+    "esbuild": "0.28.2"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "build": "node scripts/build.mjs"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ruvnet/ruv-FANN.git",
+    "directory": "packages/wsp-toolkit/packages/cloudflare"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

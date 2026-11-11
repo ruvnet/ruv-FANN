@@ -1,0 +1,33 @@
+{
+  "name": "ruvnet-constellation-telemetry",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Public package observations and explicitly sampled project attach metrics with a standalone constellation dashboard",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE",
+    "constellation.json"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ruvnet/ruv-FANN.git",
+    "directory": "packages/wsp-toolkit/packages/telemetry"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

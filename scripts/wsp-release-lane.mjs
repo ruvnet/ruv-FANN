@@ -9,6 +9,7 @@ import { join, resolve, basename, dirname, extname, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { runWorkbenchProbe, runWorkbenchSecurityProbe } from './wsp-workbench-probes.mjs';
 import { validateWorkbenchProof, validateSecurity, validateBenchmark } from './wsp-release-evidence.mjs';
+import { validateOIDCPublishContext, createTokenlessPublishEnvironment } from './constellation-oidc.mjs';
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const argv = process.argv.slice(2);
@@ -429,26 +430,42 @@ async function verifySeal(seal, directory) {
 async function publish() {
   const sealPath = resolve(required('seal'));
   const seal = await json(sealPath);
+  const publishContext = validateOIDCPublishContext({ env: process.env, sourceSha: seal.sourceSha, checkoutSha: gitSha(),
+    nodeVersion: process.version, npmVersion: exec('npm', ['--version']) });
   protectedContext(seal.sourceSha);
-  if (seal.name !== identity.name || seal.version !== identity.version || seal.releaseTag !== identity.tag || !process.env.NODE_AUTH_TOKEN)
-    throw new Error('Missing NPM_TOKEN or invalid WSP sealed identity');
+  if (seal.name !== identity.name || seal.version !== identity.version || seal.releaseTag !== identity.tag)
+    throw new Error('Invalid WSP sealed publication identity');
   const archivePath = join(dirname(sealPath), seal.tarball);
   const archiveBytes = await verifySeal(seal, dirname(sealPath));
   const existing = await publicTarball(seal);
   if (existing) {
     if (sha256(existing) !== seal.sha256) throw new Error('The public WSP version already exists with different bytes');
   } else {
-    try { exec('npm', ['publish', archivePath, '--ignore-scripts', '--access', 'public', '--provenance', '--registry=https://registry.npmjs.org'], root); }
-    catch (error) {
-      // An earlier protected attempt may have completed its upload; accept it only after exact-byte proof.
-      try { await awaitPublic(seal); } catch { throw error; }
-    }
+    // Run outside the checkout with both npm config files under our control. The
+    // only publication credential inherited by npm is the ephemeral Actions OIDC capability.
+    const publishDirectory = await mkdtemp(join(tmpdir(), 'wsp-tokenless-publish-'));
+    try {
+      const userConfig = join(publishDirectory, 'user.npmrc'), globalConfig = join(publishDirectory, 'global.npmrc');
+      await writeFile(userConfig, 'registry=https://registry.npmjs.org\nprovenance=true\n', { mode: 0o600, flag: 'wx' });
+      await writeFile(globalConfig, '', { mode: 0o600, flag: 'wx' });
+      await writeFile(join(publishDirectory, '.npmrc'), 'registry=https://registry.npmjs.org\nprovenance=true\n', { mode: 0o600, flag: 'wx' });
+      await writeFile(join(publishDirectory, 'package.json'), JSON.stringify({ private: true }), { mode: 0o600, flag: 'wx' });
+      const publishArchive = join(publishDirectory, basename(archivePath));
+      await writeFile(publishArchive, archiveBytes, { mode: 0o600, flag: 'wx' });
+      const publishEnvironment = createTokenlessPublishEnvironment(process.env, { userConfig, globalConfig, cache: join(publishDirectory, 'cache') });
+      try { exec('npm', ['publish', publishArchive, '--ignore-scripts', '--access', 'public', '--provenance', '--registry=https://registry.npmjs.org'], publishDirectory, publishEnvironment); }
+      catch (error) {
+        // An earlier protected attempt may have completed its upload; accept it only after exact-byte proof.
+        try { await awaitPublic(seal); } catch { throw error; }
+      }
+    } finally { await rm(publishDirectory, { recursive: true, force: true }); }
   }
   await awaitPublic(seal);
   const output = resolve(required('output'));
   await mkdir(dirname(output), { recursive: true });
   await saveNew(output, { schema: 'ruv-fann-wsp.npm-publication/1', sourceSha: seal.sourceSha,
-    releaseTag: seal.releaseTag, package: seal.name, version: seal.version, sha256: seal.sha256, status: 'public-byte-verified' });
+    releaseTag: seal.releaseTag, package: seal.name, version: seal.version, sha256: seal.sha256, status: 'public-byte-verified',
+    authentication: publishContext, publication: existing ? 'identical-existing-version' : 'published-or-recovered' });
 }
 
 async function publicConsumer() {

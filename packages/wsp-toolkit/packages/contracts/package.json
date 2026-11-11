@@ -1,0 +1,37 @@
+{
+  "name": "ruvnet-constellation-contracts",
+  "version": "0.1.0",
+  "description": "Dependency-free bounded constellation catalog and module contracts",
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    },
+    "./schemas/*": "./schemas/*"
+  },
+  "files": [
+    "src",
+    "schemas",
+    "README.md",
+    "LICENSE",
+    "constellation.json"
+  ],
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ruvnet/ruv-FANN.git",
+    "directory": "packages/wsp-toolkit/packages/contracts"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

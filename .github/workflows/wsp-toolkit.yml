@@ -1,0 +1,51 @@
+name: WSP toolkit qualification
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/wsp-toolkit/**'
+      - 'scripts/constellation-oidc*.mjs'
+      - 'scripts/wsp-release-lane.mjs'
+      - '.github/workflows/protected-wsp-release.yml'
+      - '.github/workflows/constellation-observatory.yml'
+      - '.github/workflows/wsp-toolkit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22.13.0', '24.22.1']
+    defaults:
+      run:
+        working-directory: packages/wsp-toolkit
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+          package-manager-cache: false
+      - name: Install locked dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install locked real AgentDB integration runtime
+        run: npm run setup:agentdb
+      - name: Install real Chromium
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Require types, zero-skip tests, real WASM, packed consumers, benchmark and clean audit
+        run: npm run validate
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: wsp-toolkit-node-${{ matrix.node }}-${{ github.sha }}
+          path: packages/wsp-toolkit/.artifacts/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30

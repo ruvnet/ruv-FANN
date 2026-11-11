@@ -1,0 +1,36 @@
+{
+  "name": "ruv-fann-wsp-swarm",
+  "version": "0.1.0",
+  "description": "Bounded fixed-operation proposal workers using real Node worker threads and WASM",
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE",
+    "constellation.json"
+  ],
+  "dependencies": {
+    "ruv-fann-wsp": "0.2.0",
+    "ruv-fann-wsp-search": "0.1.0"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ruvnet/ruv-FANN.git",
+    "directory": "packages/wsp-toolkit/packages/swarm"
+  }
+}

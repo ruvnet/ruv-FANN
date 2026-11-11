@@ -1,0 +1,18 @@
+{
+  "schema": "ruvnet.constellation-module/1",
+  "name": "ruv-fann-wsp-loop",
+  "version": "0.1.0",
+  "role": "satellite",
+  "contracts": [
+    "ruvnet.constellation-module/1",
+    "ruv-fann.dense-layers/1",
+    "ruv-fann.weight-patch/1",
+    "ruv-fann.weight-evaluation/1"
+  ],
+  "integrations": [
+    "ruv-fann-wsp",
+    "ruv-fann-wsp-invariants",
+    "ruv-fann-wsp-lifecycle",
+    "ruv-fann-wsp-swarm"
+  ]
+}

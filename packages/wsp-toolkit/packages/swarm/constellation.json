@@ -1,0 +1,15 @@
+{
+  "schema": "ruvnet.constellation-module/1",
+  "name": "ruv-fann-wsp-swarm",
+  "version": "0.1.0",
+  "role": "satellite",
+  "contracts": [
+    "ruvnet.constellation-module/1",
+    "ruv-fann.dense-layers/1",
+    "ruv-fann.weight-patch/1"
+  ],
+  "integrations": [
+    "ruv-fann-wsp",
+    "ruv-fann-wsp-search"
+  ]
+}

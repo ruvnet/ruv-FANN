@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ruvnet/ruv-FANN/packages/wsp-toolkit/packages/contracts/schemas/wsp-references.schema.json",
+  "title": "Canonical WSP format identifiers",
+  "description": "Validates a reference identifier only, never a neural model, patch, or evaluation receipt. Use the WSP SDK for numerical limits and SHA-bound evaluation.",
+  "type": "string",
+  "enum": [
+    "ruv-fann.dense-layers/1",
+    "ruv-fann.weight-patch/1",
+    "ruv-fann.weight-evaluation/1",
+    "ruv-fann.weight-dataset/1",
+    "ruv-fann.weight-policy/1",
+    "ruv-fann.invariants/1",
+    "ruv-fann.invariant-check/1",
+    "ruv-fann.evolution-loop/1"
+  ],
+  "x-canonicalSources": {
+    "model": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/core",
+    "patchAndEvaluation": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp",
+    "invariantsAndLoop": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit"
+  }
+}

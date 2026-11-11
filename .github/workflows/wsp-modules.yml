@@ -6,6 +6,7 @@ on:
     paths:
       - 'packages/wsp/**'
       - 'scripts/wsp-*.mjs'
+      - 'scripts/constellation-oidc*.mjs'
       - 'scripts/wsp-benchmark-tree.py'
       - '.github/workflows/wsp-modules.yml'
       - '.github/workflows/protected-wsp-release.yml'
@@ -50,6 +51,8 @@ jobs:
         run: |
           python -m venv "$RUNNER_TEMP/wsp-benchmark-python"
           "$RUNNER_TEMP/wsp-benchmark-python/bin/python" -m pip install --require-hashes --only-binary=:all: -r packages/wsp/benchmarks/requirements.lock
+      - name: Validate tokenless publication context and existing release evidence guards
+        run: node --test scripts/constellation-oidc.test.mjs scripts/wsp-release-evidence.test.mjs
       - name: Run source tests and require zero skips or todos on Node 22
         run: node scripts/wsp-release-lane.mjs unit --output "$RUNNER_TEMP/wsp-receipts/node-22-unit.json"
       - name: Pack candidate exactly once

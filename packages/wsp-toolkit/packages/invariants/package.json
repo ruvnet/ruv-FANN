@@ -1,0 +1,39 @@
+{
+  "name": "ruv-fann-wsp-invariants",
+  "version": "0.1.0",
+  "description": "Bounded real-WASM finite-domain output invariants for surgical weight evolution",
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE",
+    "constellation.json"
+  ],
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "dependencies": {
+    "ruv-fann-wsp": "0.2.0",
+    "ruv-fann": "0.1.2"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ruvnet/ruv-FANN.git",
+    "directory": "packages/wsp-toolkit/packages/invariants"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}
