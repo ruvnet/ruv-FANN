@@ -34,7 +34,10 @@ The 27-crate inventory remains mandatory, including versions already public.
    its source-bound receipt only after all commands succeed with nonzero checks,
    zero failures and zero skips. Preserve command logs and hashes.
 6. Create the Rust GitHub release as a draft with canonical public archives,
-   candidate/public/CI receipts, actual fixture and command logs. Check the tag's
+   candidate/public/CI receipts, actual fixture and command logs. The accepted
+   commit must also bind the required tracked performance report
+   `docs/rust-performance-2026-11-11.md` and raw measurements archive
+   `benchmarks/rust-0.2.3-evidence.tar.gz`; attach both as verified assets. Check the tag's
    commit SHA and redownload **every** asset, including evidence and SHA256SUMS,
    before and after publication. Never move or overwrite an existing tag.
    A retry accepts an existing release only when its source and every asset

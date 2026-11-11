@@ -94,6 +94,10 @@ def receipts(base):
         (base / f'{name}.json').write_text(json.dumps(data))
     for name in ('receipt.json', 'receipt.sha256', 'publication-order.json', 'snapshot-files.json'):
         (base / 'cargo-candidates' / name).write_text('{}')
+    for name in release.PERFORMANCE_ASSETS:
+        path = base / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b'reviewed tracked performance evidence fixture')
     return consumer, publication, fixture
 
 
@@ -115,10 +119,12 @@ class PublicRustReceiptTests(unittest.TestCase):
 
 
 class RustGitHubReleaseTests(unittest.TestCase):
-    def exercise(self, corruption=None, wrong_tag=False, existing=False):
+    def exercise(self, corruption=None, wrong_tag=False, existing=False, missing_performance=False):
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)
             _, _, fixture = receipts(base)
+            if missing_performance:
+                (base / release.PERFORMANCE_ASSETS[1]).unlink()
             calls = []
             def gh(*args):
                 calls.append(args)
@@ -137,8 +143,9 @@ class RustGitHubReleaseTests(unittest.TestCase):
                 return SimpleNamespace(returncode=0 if existing else 1, stdout='{"draft":false}', stderr='HTTP 404: Not Found')
             env = {'GITHUB_ACTIONS': 'true', 'GITHUB_WORKFLOW': 'protected-release', 'GITHUB_REF': 'refs/heads/main',
                    'GITHUB_SHA': SOURCE, 'RUV_FANN_CANDLE_FIXTURE': str(fixture)}
-            with patch.dict(os.environ, env), patch.object(release.sys, 'argv', ['script', str(base)]), patch.object(release, 'run', side_effect=gh), patch.object(release.subprocess, 'run', side_effect=lookup):
-                if corruption or wrong_tag:
+            tracked = '\n'.join(release.PERFORMANCE_ASSETS) + '\n'
+            with patch.dict(os.environ, env), patch.object(release.sys, 'argv', ['script', str(base)]), patch.object(release, 'run', side_effect=gh), patch.object(release.subprocess, 'run', side_effect=lookup), patch.object(release, 'ROOT', base), patch.object(release.subprocess, 'check_output', side_effect=[tracked, '', SOURCE]):
+                if corruption or wrong_tag or missing_performance:
                     with self.assertRaises(ValueError):
                         release.main()
                     self.assertFalse(any(row[:2] == ('release', 'edit') for row in calls))
@@ -146,7 +153,7 @@ class RustGitHubReleaseTests(unittest.TestCase):
                     release.main()
                     result = json.loads((base / 'github-release.json').read_text())
                     self.assertEqual(result['tagSourceSha'], SOURCE)
-                    self.assertEqual(len(result['assets']), 40)
+                    self.assertEqual(len(result['assets']), 42)
                     self.assertEqual(result['status'], 'already-released' if existing else 'published-and-byte-verified')
     def test_every_public_asset_and_source_tag_verified(self):
         self.exercise()
@@ -156,6 +163,10 @@ class RustGitHubReleaseTests(unittest.TestCase):
         self.exercise(corruption='public-rust-consumers.json')
     def test_wrong_tag_cannot_publish(self):
         self.exercise(wrong_tag=True)
+    def test_missing_reviewed_raw_performance_evidence_cannot_publish(self):
+        self.exercise(missing_performance=True)
+    def test_corrupt_performance_evidence_cannot_publish(self):
+        self.exercise(corruption='rust-0.2.3-evidence.tar.gz')
     def test_existing_release_requires_every_receipt_and_asset_identical(self):
         self.exercise(existing=True)
         self.exercise(existing=True, corruption='cargo-publication.json')

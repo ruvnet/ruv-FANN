@@ -15,6 +15,7 @@ public = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(public)
 REPO = 'ruvnet/ruv-FANN'
 TAG = 'ruv-fann-rust-v0.2.3'
+PERFORMANCE_ASSETS = ('docs/rust-performance-2026-11-11.md', 'benchmarks/rust-0.2.3-evidence.tar.gz')
 
 
 def run(*args):
@@ -34,6 +35,20 @@ def tag_source():
 
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def performance_assets(source):
+    tracked = subprocess.check_output(['git', 'ls-files', '--error-unmatch', '--', *PERFORMANCE_ASSETS], cwd=ROOT, text=True).splitlines()
+    if set(tracked) != set(PERFORMANCE_ASSETS):
+        raise ValueError('Reviewed performance report and raw evidence must be tracked')
+    paths = [ROOT / name for name in PERFORMANCE_ASSETS]
+    if any(path.is_symlink() or not path.is_file() or path.stat().st_size == 0 for path in paths):
+        raise ValueError('Missing or empty reviewed performance report/raw evidence')
+    if subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT, text=True):
+        raise ValueError('Performance release assets require the clean accepted source checkout')
+    if subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip() != source:
+        raise ValueError('Performance release assets differ from the accepted source SHA')
+    return paths
 
 
 def validate_evidence(base, source):
@@ -66,6 +81,7 @@ def main():
     source = os.environ['GITHUB_SHA']
     if (os.environ.get('GITHUB_ACTIONS'), os.environ.get('GITHUB_WORKFLOW'), os.environ.get('GITHUB_REF')) != ('true', 'protected-release', 'refs/heads/main'):
         raise ValueError('GitHub releases require the protected main workflow')
+    reviewed_performance = performance_assets(source)
     if json.loads(run('api', f'repos/{REPO}/git/ref/heads/main'))['object']['sha'] != source:
         raise ValueError('Main moved since candidate acceptance')
     if json.loads(run('api', f'repos/{REPO}/issues?labels=release-blocker&state=open&per_page=1')):
@@ -73,6 +89,8 @@ def main():
     receipts = validate_evidence(base, source)
     assets = base / 'github-release-assets'
     assets.mkdir()
+    for path in reviewed_performance:
+        shutil.copyfile(path, assets / path.name)
     for row in receipts['cargo-publication']['crates']:
         archive = base / 'cargo-public-archives' / f"{row['name']}-{row['version']}.crate"
         if digest(archive) != row['sha256']:

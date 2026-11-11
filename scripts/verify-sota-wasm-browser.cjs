@@ -299,6 +299,12 @@ const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
         if (!result.passed || !result.simd128 || !result.bitwise_scalar_equivalence || result.float32_rows !== 2310 || result.float64_rows !== 2310) {
           throw new Error('Native f32/f64 SIMD probe failed');
         }
+        if (result.wide_single_input_width !== 65 || result.wide_single_float32_comparisons !== 105 ||
+            result.wide_single_float64_comparisons !== 105 || result.wide_single_float32_overflow_cases !== 2 ||
+            result.wide_single_float64_overflow_cases !== 2 ||
+            JSON.stringify(result.wide_single_topologies) !== JSON.stringify(['canonical', 'mixed', 'biasless'])) {
+          throw new Error('Actual wide65 single inference parity, overflow atomicity or recovery proof missing');
+        }
         return result;
       });
     }
