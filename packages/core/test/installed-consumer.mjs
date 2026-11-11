@@ -5,6 +5,7 @@ import { join, resolve, dirname, extname, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createServer } from 'node:http';
 import { execFileSync } from 'node:child_process';
+import {qualifyAgenticow} from './agenticow-scenario.mjs';
 
 if (process.argv[3]) assert.match(process.env.EXPECTED_SHA ?? '', /^[a-f0-9]{40}$/, 'receipts require the full exact source SHA');
 const directory = resolve(process.argv[2] ?? '');
@@ -12,19 +13,19 @@ assert.ok(process.argv[2], 'pass the fresh archive installation directory');
 const coreDirectory = join(directory, 'node_modules/ruv-fann');
 assert.equal((await lstat(coreDirectory)).isSymbolicLink(), false, 'core must be an installed archive');
 const metadata = JSON.parse(await readFile(join(coreDirectory, 'package.json'), 'utf8'));
-assert.equal(metadata.version, '0.2.0');
+assert.equal(metadata.version, '0.3.0');
 const mappings = {
   wsp: 'ruv-fann-wsp', lifecycle: 'ruv-fann-wsp-lifecycle', search: 'ruv-fann-wsp-search',
   huggingface: 'ruv-fann-wsp-huggingface', cloudflare: 'ruv-fann-wsp-cloudflare',
   'cloudflare/build': 'ruv-fann-wsp-cloudflare/build', ruos: 'ruv-fann-wsp-ruos',
   invariants: 'ruv-fann-wsp-invariants', swarm: 'ruv-fann-wsp-swarm', registry: 'ruv-fann-wsp-registry',
   loop: 'ruv-fann-wsp-loop', constellation: 'ruvnet-constellation', contracts: 'ruvnet-constellation-contracts',
-  telemetry: 'ruvnet-constellation-telemetry'
+  telemetry: 'ruvnet-constellation-telemetry', agenticow: 'agenticow'
 };
-assert.equal(Object.keys(metadata.dependencies).length, 14);
+assert.equal(Object.keys(metadata.dependencies).length, 15);
 for (const [subpath, dependency] of Object.entries(mappings)) {
   const name = dependency.split('/')[0];
-  assert.equal(metadata.dependencies[name], name === 'ruv-fann-wsp' ? '0.2.0' : '0.1.0');
+  assert.equal(metadata.dependencies[name], name === 'agenticow' ? '0.3.0' : name === 'ruv-fann-wsp' ? '0.2.0' : '0.1.0');
   assert.deepEqual(Object.keys(metadata.exports[`./${subpath}`]).sort(), ['import', 'types']);
 }
 
@@ -96,9 +97,13 @@ for (const [subpath, dependency] of Object.entries(mappings)) {
 }
 const qualify = ${qualify.toString()};
 console.log('CORE_FACADE_RESULT ' + JSON.stringify(await Promise.all([false, true].map(simd => qualify(core, wsp, search, invariants, lifecycle, simd)))));
+const qualifyAgenticow = ${qualifyAgenticow.toString()};
+const memory = await import('ruv-fann/agenticow');
+console.log('CORE_AGENTICOW_RESULT ' + JSON.stringify(await qualifyAgenticow({memory,wsp,lifecycle,core},${JSON.stringify(join(directory, token + '-memory'))})));
 `);
   const stdout = execFileSync(process.execPath, [consumerFile], {cwd: directory, encoding: 'utf8'});
   const backendChecks = JSON.parse(stdout.split('\n').find(line => line.startsWith('CORE_FACADE_RESULT ')).slice('CORE_FACADE_RESULT '.length));
+  const agenticow = JSON.parse(stdout.split('\n').find(line => line.startsWith('CORE_AGENTICOW_RESULT ')).slice('CORE_AGENTICOW_RESULT '.length));
   assert.deepEqual(backendChecks.map(row => row.backend), ['wasm', 'wasm-simd']);
 
   // Verify the actual nested dependency that WSP resolves, rather than globally remapping it.
@@ -117,6 +122,10 @@ console.log('CORE_FACADE_RESULT ' + JSON.stringify(await Promise.all([false, tru
   assert.deepEqual(legacyCore.metadata.dependencies, {'ruv-fann-wasm': '0.1.2'}, 'finite version graph terminates at WASM');
   const wasm = await findPackage('ruv-fann-wasm', coreDirectory);
   assert.equal(wasm.metadata.version, '0.1.2');
+  const memoryPackage = await findPackage('agenticow', coreDirectory);
+  assert.equal(memoryPackage.metadata.version, '0.3.0', 'Agenticow is the pinned installed dependency');
+  const rvfPackage = await findPackage('@ruvector/rvf-node', memoryPackage.directory);
+  agenticow.rvfVersion = rvfPackage.metadata.version;
   const graph = {core: metadata.version, legacyCore: legacyCore.metadata.version, finite: true};
 
   const typeImports = Object.keys(mappings).map((subpath, index) => `import * as capability${index} from 'ruv-fann/${subpath}';\nvoid capability${index};`).join('\n');
@@ -124,6 +133,7 @@ console.log('CORE_FACADE_RESULT ' + JSON.stringify(await Promise.all([false, tru
 import {createWeightWorkspace, type WeightPatch} from 'ruv-fann/wsp';
 import {searchWeightPatch, type SearchOptions} from 'ruv-fann/search';
 import {checkModelInvariants, type InvariantSuite} from 'ruv-fann/invariants';
+import memoryDefault, {AgenticMemory, openBase, type OpenOptions} from 'ruv-fann/agenticow';
 ${typeImports}
 const model: DenseModel = {schema:'ruv-fann.dense-layers/1',layers:[{inputs:1,outputs:1,weights:[1],activation:'Linear',steepness:1}]};
 const patch: WeightPatch = {schema:'ruv-fann.weight-patch/1',baseHash:'0'.repeat(64),edits:[{layer:0,parameter:'weights',index:0,value:2}]};
@@ -133,6 +143,9 @@ void loadRuntime().then(runtime => runtime.prepare(model)); void createWeightWor
 // @ts-expect-error explicit finite numerical inputs remain required
 const invalid: DenseModel = {schema:'ruv-fann.dense-layers/1',layers:[{inputs:1,outputs:1,weights:['bad'],activation:'Linear',steepness:1}]};
 void invalid;
+const memoryOptions: OpenOptions = {dimension:2,metric:'l2'};
+const memoryOpen: typeof AgenticMemory.open = openBase;
+void memoryDefault; void memoryOptions; void memoryOpen;
 `);
   const tsc = process.env.RUV_FANN_TSC;
   assert.ok(tsc, 'RUV_FANN_TSC must identify the pinned TypeScript compiler');
@@ -189,11 +202,12 @@ void invalid;
   const receipt = {schema: 'ruv-fann.core-consumer/1', status: 'passed', sourceSha: process.env.EXPECTED_SHA ?? null,
     testCount: backendChecks.reduce((sum, row) => sum + row.checks, 0) + browserChecks.reduce((sum, row) => sum + row.checks, 0) + Object.keys(mappings).length + 4,
     skipped: 0, todo: 0, runtime: process.version, backendChecks, browser: {engine: 'Chromium', realWasm: true, checks: browserChecks, importedSubpaths: browserImports, pageErrors: errors},
-    types: {strict: true, subpaths: Object.keys(mappings).length}, graph};
+    types: {strict: true, subpaths: Object.keys(mappings).length}, graph, agenticow};
   if (process.argv[3]) await writeFile(resolve(process.argv[3]), JSON.stringify(receipt, null, 2) + '\n');
   console.log(JSON.stringify(receipt, null, 2));
 } finally {
   await browser?.close();
   if (server) await new Promise(resolve => server.close(resolve));
   await rm(consumerFile, {force: true}); await rm(typeFile, {force: true});
+  await rm(join(directory, token + '-memory'), {recursive:true,force:true});
 }

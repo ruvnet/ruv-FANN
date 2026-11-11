@@ -40,7 +40,7 @@ concurrency:
 
 jobs:
   qualify:
-    name: Node 22/24 and Chromium, thirteen sealed archives
+    name: Node 22/24 and Chromium, sealed core archive
     runs-on: ubuntu-24.04
     timeout-minutes: 50
     steps:
@@ -66,7 +66,7 @@ jobs:
           packages/wsp-toolkit/node_modules/.bin/playwright install --with-deps chromium
       - name: Require release guard mutation tests
         run: node --test scripts/toolkit-release.test.mjs
-      - name: Pack all thirteen archives exactly once from clean source
+      - name: Pack the core archive exactly once from clean source
         run: node scripts/toolkit-release-lane.mjs pack --directory "$RUNNER_TEMP/toolkit-candidate"
       - name: Qualify canonical archives, strict types, browser, integration, work benchmark and audits on Node 22
         run: node scripts/toolkit-release-lane.mjs qualify --directory "$RUNNER_TEMP/toolkit-candidate"

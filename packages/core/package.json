@@ -1,7 +1,7 @@
 {
   "name": "ruv-fann",
-  "version": "0.2.0",
-  "description": "Rust/WASM neural inference and training with explicit weight editing, bounded search, invariant gates, evolution loops and AgentDB registry integrations.",
+  "version": "0.3.0",
+  "description": "Rust/WASM neural inference and training with bounded weight programming, AgentDB revisions and Agenticow copy-on-write model memory.",
   "type": "module",
   "engines": {
     "node": ">=20.9.0"
@@ -66,6 +66,10 @@
     "./telemetry": {
       "types": "./src/capabilities/telemetry.d.ts",
       "import": "./src/capabilities/telemetry.js"
+    },
+    "./agenticow": {
+      "types": "./src/capabilities/agenticow.d.ts",
+      "import": "./src/capabilities/agenticow.js"
     }
   },
   "files": [
@@ -88,7 +92,8 @@
     "ruv-fann-wsp-loop": "0.1.0",
     "ruvnet-constellation": "0.1.0",
     "ruvnet-constellation-contracts": "0.1.0",
-    "ruvnet-constellation-telemetry": "0.1.0"
+    "ruvnet-constellation-telemetry": "0.1.0",
+    "agenticow": "0.3.0"
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
@@ -123,7 +128,7 @@
     "bounded-search",
     "model-evaluation",
     "agentdb",
-    "cloudflare-workers"
+    "agenticow"
   ],
   "main": "./src/index.js",
   "types": "./src/index.d.ts",

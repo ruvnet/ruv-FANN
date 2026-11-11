@@ -2,17 +2,17 @@
 
 Status: Implemented release architecture; publication is established separately by exact-source receipts. Updated: 2026-11-11.
 
-The `ruv-fann-toolkit-v0.2.0` release contains thirteen new npm archives: `ruv-fann@0.2.0` and twelve toolkit packages at `0.1.0`. Existing `ruv-fann-wsp@0.2.0`, `ruv-fann@0.1.2` and `ruv-fann-wasm@0.1.2` remain published dependencies. The toolkit lane does not rebuild or republish those earlier releases.
+The historical `ruv-fann-toolkit-v0.2.0` release contained thirteen npm archives: `ruv-fann@0.2.0` and twelve toolkit packages at `0.1.0`. Existing `ruv-fann-wsp@0.2.0`, `ruv-fann@0.1.2` and `ruv-fann-wasm@0.1.2` remain published dependencies. The current `ruv-fann-v0.3.0` generation publishes only `ruv-fann@0.3.0`. It adds the exact `agenticow@0.3.0` dependency and a fifteenth typed capability subpath. Existing toolkit satellites remain at `0.1.0`; qualification installs them transitively from their pinned published versions. The lane does not rebuild or republish unchanged dependencies.
 
 ## Two separate publishers
 
 | Lane | Scope | Authentication |
 | --- | --- | --- |
 | [protected-wsp-release.yml](../.github/workflows/protected-wsp-release.yml) | Existing standalone WSP release contract | Existing `NPM_TOKEN` publisher is preserved |
-| [protected-toolkit-release.yml](../.github/workflows/protected-toolkit-release.yml) | Core facade plus twelve toolkit archives | Existing protected npm credential bootstraps the new packages |
+| [protected-toolkit-release.yml](../.github/workflows/protected-toolkit-release.yml) | Core 0.3.0 archive only; unchanged satellites are published dependencies | Existing protected npm credential |
 | [constellation-oidc.mjs](../scripts/constellation-oidc.mjs) | Optional future configuration guard | Requires deliberately opted-in, package-specific npm trusted-publisher registration |
 
-Current CI calls `wsp-toolkit.yml` for the core 0.2.0 release set. The older
+Current CI calls `wsp-toolkit.yml` for the core 0.3.0 release candidate. The older
 `npm-modules.yml` pair lane remains available only by explicit manual or reusable
 invocation against its 0.1.2 generation; it rejects newer package identities.
 
@@ -20,11 +20,11 @@ A package's catalog status, a successful local pack or possession of the helper 
 
 ## Exact archives move through qualification and publication
 
-1. Review one immutable source SHA. Qualification packs all thirteen packages once and records their identities and archive digests.
-2. Install those exact archives into fresh consumers. Require actual Node.js 22/24 behavior, strict TypeScript declarations, real Chromium/WASM checks, applicable worker/workerd/AgentDB cases, source-bound security checks and zero failed, skipped or todo tests.
+1. Review one immutable source SHA. Qualification packs core 0.3.0 exactly once and records its identity, fifteen exact dependency pins and archive digests.
+2. Install the exact core archive into fresh consumers with its pinned registry dependencies. Seal the complete resolved dependency lock, including platform-specific native packages. Require actual Node.js 22/24 behavior, strict TypeScript declarations, real Chromium/WASM checks, applicable worker/workerd/AgentDB cases, native Agenticow branch isolation, rejected-candidate isolation, promotion, checkpoint rollback and reopen cases, source-bound security checks, a zero-advisory audit of the fresh candidate dependency tree and zero failed, skipped or todo tests.
 3. Seal the exact candidate archives and required receipts together. A passing source checkout alone is insufficient; a receipt from an older generation does not qualify the candidate.
 4. Merge the unchanged qualified SHA to upstream `main`. The protected manual publisher checks the input SHA, checkout, GitHub context, current upstream main and open `release-blocker` issues before using the successful qualification artifact.
-5. Revalidate the seal and publish in dependency order, with the core facade after its new dependencies. Publish the carried archive bytes without repacking. An existing registry version is accepted only if its bytes match the sealed candidate; a different archive is a release failure, not a reason to overwrite it.
+5. Revalidate the seal and publish only core 0.3.0. Agenticow and the existing satellites must already be available as published dependencies. Publish the carried archive bytes without repacking. An existing registry version is accepted only if its bytes match the sealed candidate; a different archive is a release failure, not a reason to overwrite it.
 6. Download every public archive, compare it with the seal and repeat fresh installed-consumer qualification. Attach archives, checksums and publication evidence to the umbrella GitHub release. Publication without successful post-install verification remains incomplete.
 
 The release controller, not a local shell, performs privileged registry and GitHub release writes. Logs and receipts must not contain npm credentials or secret values. Do not weaken source, archive, blocker or consumer checks to get past an authentication or registry failure.
