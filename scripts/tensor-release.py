@@ -99,7 +99,7 @@ def portable(value, base):
 
 def execute(role, argv, cwd, kind, base, commands):
     env = dict(os.environ, CARGO_TARGET_DIR=str(base / 'build'), CARGO_BUILD_JOBS='2', CARGO_INCREMENTAL='0',
-               WSP_TENSOR_BIN=str(base / 'build/release' / NAME))
+               WSP_TENSOR_BIN=str(base / 'build/release' / NAME), PYTHONDONTWRITEBYTECODE='1')
     result = subprocess.run(argv, cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     log = base / f'{role}.log'
     log.write_text(result.stdout)
