@@ -133,6 +133,24 @@ optional=["dep:alias"]
                 self.assertEqual(publisher.preflight([(archive, data, digest)]), ['verified-candidate'])
 
 
+    def test_pace_spaces_only_consecutive_uploads(self):
+        clock = Clock()
+        publisher._last_upload[0] = None
+        env = {publisher.UPLOAD_SPACING_ENV: '420'}
+        publisher.pace(sleep=clock.sleep, clock=clock.time, environ=env)
+        self.assertEqual(clock.sleeps, [])
+        clock.now += 100
+        publisher.pace(sleep=clock.sleep, clock=clock.time, environ=env)
+        self.assertEqual(clock.sleeps, [320])
+        publisher._last_upload[0] = None
+        publisher.pace(sleep=clock.sleep, clock=clock.time, environ={})
+        publisher.pace(sleep=clock.sleep, clock=clock.time, environ={})
+        self.assertEqual(clock.sleeps, [320])
+        with self.assertRaisesRegex(ValueError, 'between 0 and 3600'):
+            publisher.pace(sleep=clock.sleep, clock=clock.time, environ={publisher.UPLOAD_SPACING_ENV: '-1'})
+        publisher._last_upload[0] = None
+
+
 class Clock:
     def __init__(self):
         self.now = 0

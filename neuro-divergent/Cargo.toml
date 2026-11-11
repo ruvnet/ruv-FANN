@@ -1,6 +1,6 @@
 [package]
 name = "neuro-divergent"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 authors = ["Claude Code <noreply@anthropic.com>"]
 description = "Experimental neural forecasting library inspired by NeuralForecast and built on ruv-FANN"
@@ -67,7 +67,7 @@ neuro-divergent-models = { version = "0.2.0", path = "neuro-divergent-models", o
 neuro-divergent-registry = { version = "0.2.0", path = "neuro-divergent-registry", optional = true }
 
 # ruv-FANN dependency
-ruv-fann = { version = "0.2.2", path = ".." }
+ruv-fann = { version = "0.2.3", path = ".." }
 
 [dev-dependencies]
 neuro-divergent-data = { version = "0.2.0", path = "neuro-divergent-data" }

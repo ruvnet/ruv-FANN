@@ -3,7 +3,17 @@
 Changes follow [Semantic Versioning](https://semver.org/). Versions in a checkout
 are release candidates until publication is verified in the registry.
 
-## [0.2.2] - Unreleased
+## [0.2.3] - Unreleased
+
+### Packaging
+
+- Republish so the crate carries the current README and `docs/assets` SVGs.
+  crates.io 0.2.2 holds the older copies (#221). No code or dependency change.
+  Dependents that pin the root move with it: ruv-fann-candle 0.1.1,
+  neuro-divergent{,-core,-models,-training} 0.2.1, ruv-swarm-ml and
+  ruv-swarm-wasm 1.0.7.
+
+## [0.2.2] - 2026-11-09
 
 ### Security
 

@@ -23,6 +23,21 @@ USER_AGENT = 'ruv-fann-release (https://github.com/ruvnet/ruv-FANN)'
 # static.crates.io can take several minutes to serve a newly uploaded crate.
 VISIBILITY_TIMEOUT = 600
 VISIBILITY_DELAYS = (5, 10, 20, 30, 60)
+# Minimum seconds between two new uploads (shared registry pacing). Versions
+# that are already public with identical bytes never wait.
+UPLOAD_SPACING_ENV = 'PUBLISH_SPACING_SECONDS'
+_last_upload = [None]
+
+
+def pace(sleep=time.sleep, clock=time.monotonic, environ=os.environ):
+    spacing = float(environ.get(UPLOAD_SPACING_ENV) or 0)
+    if spacing < 0 or spacing > 3600:
+        raise ValueError('PUBLISH_SPACING_SECONDS must be between 0 and 3600')
+    if _last_upload[0] is not None and spacing:
+        remaining = spacing - (clock() - _last_upload[0])
+        if remaining > 0:
+            sleep(remaining)
+    _last_upload[0] = clock()
 
 
 def sha(data):
@@ -157,6 +172,7 @@ def publish(archive, data, digest, token):
     if sha(payload) != digest:
         raise ValueError('Archive changed before upload')
     body = struct.pack('<I', len(meta)) + meta + struct.pack('<I', len(payload)) + payload
+    pace()
     request = urllib.request.Request(API + '/crates/new', data=body, method='PUT', headers={
         'User-Agent': USER_AGENT, 'Authorization': token, 'Content-Type': 'application/octet-stream', 'Accept': 'application/json'})
     try:
