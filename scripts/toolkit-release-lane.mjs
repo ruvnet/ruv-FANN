@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import {isDeepStrictEqual} from 'node:util';
 import { schema,releaseTag,packageSpecs,sha256,integrity,tarballURL,safeFilename,assertSourceSha,topologicalOrder,validateRows,validateCoreReceipt,validateQualification,validateToolkitProof,publicLock } from './toolkit-release-lib.mjs';
 import {verifyToolkitInstallation} from '../packages/wsp-toolkit/scripts/packed-consumer.mjs';
+import {readPublicArchive} from './toolkit-registry.mjs';
 const root=resolve(fileURLToPath(new URL('..',import.meta.url))),toolkit=join(root,'packages/wsp-toolkit');
 const args=process.argv.slice(2),mode=args.shift(),options=Object.create(null);
 for(let i=0;i<args.length;i+=2){if(!/^--[a-z-]+$/.test(args[i])||!args[i+1]||Object.hasOwn(options,args[i].slice(2)))throw Error('Invalid argument');options[args[i].slice(2)]=args[i+1];}
@@ -153,13 +154,8 @@ function protectedContext(sha){
   if(run('gh',['api','repos/ruvnet/ruv-FANN/issues?labels=release-blocker&state=open&per_page=1','--jq','length'])!=='0')throw Error('Release blockers prevent publication');
   clean();
 }
-async function publicBytes(row){
-  const response=await fetch(tarballURL(row),{redirect:'error',signal:AbortSignal.timeout(30_000)});
-  if(response.status===404)return null;if(!response.ok)throw Error(`Registry HTTP${response.status}`);
-  const maximum=20*1024*1024;if(Number(response.headers.get('content-length'))>maximum){await response.body?.cancel();throw Error('Oversized registry tarball');}
-  const chunks=[];let size=0;for await(const chunk of response.body){size+=chunk.length;if(size>maximum)throw Error('Oversized registry tarball');chunks.push(Buffer.from(chunk));}return Buffer.concat(chunks);
-}
-async function awaitPublic(row,timeout=180_000){const deadline=Date.now()+timeout;while(Date.now()<deadline){const bytes=await publicBytes(row);if(bytes){if(sha256(bytes)!==row.sha256||integrity(bytes)!==row.integrity)throw Error(`Public bytes differ: ${row.name}@${row.version}`);return bytes;}await new Promise(resolve=>setTimeout(resolve,5000));}throw Error(`Registry propagation timeout: ${row.name}`);}
+const publicBytes=readPublicArchive;
+async function awaitPublic(row,timeout=600_000,options={}){const deadline=Date.now()+timeout;while(Date.now()<deadline){const bytes=await publicBytes(row,options);if(bytes){if(sha256(bytes)!==row.sha256||integrity(bytes)!==row.integrity)throw Error(`Public bytes differ: ${row.name}@${row.version}`);return bytes;}await new Promise(resolve=>setTimeout(resolve,5000));}throw Error(`Registry propagation timeout: ${row.name}`);}
 async function publish(){
   const directory=resolve(need('directory')),{seal,manifest}=await verify(directory);protectedContext(seal.sourceSha);
   if(!process.env.NODE_AUTH_TOKEN)throw Error('Explicit protected NPM_TOKEN required; OIDC-only registration has not been verified');
@@ -179,7 +175,8 @@ async function publicConsumer(){
   const directory=resolve(need('directory')),{seal,manifest}=await verify(directory),publication=await json(need('publication'));
   if(publication.status!=='passed'||publication.sourceSha!==seal.sourceSha||publication.sealSha256!==sha256(await readFile(join(directory,'candidate-seal.json')))||publication.packages.length!==manifest.packages.length)throw Error('Publication receipt does not match seal');
   for(const row of manifest.packages)if(!publication.packages.some(item=>item.name===row.name&&item.version===row.version&&item.sha256===row.sha256&&item.integrity===row.integrity))throw Error('Publication package digest mismatch');
-  for(const row of manifest.packages)await awaitPublic(row);
+  // Prove ordinary npm lockfile URLs work too, before the fresh-cache install.
+  await Promise.all(manifest.packages.map(row=>awaitPublic(row,600_000,{canonical:true})));
   const target=await mkdtemp(join(tmpdir(),'toolkit-public-consumer-')),env=await isolatedEnv(target);
   try{
     const lock=await json(join(directory,'public-package-lock.json'));

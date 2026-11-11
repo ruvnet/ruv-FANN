@@ -4,8 +4,27 @@ import { readFile,writeFile,rm,mkdtemp } from 'node:fs/promises';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {execFileSync,spawnSync} from 'node:child_process';
+import {readPublicArchive} from './toolkit-registry.mjs';
 import {packageSpecs,topologicalOrder,validateRows,validateCoreReceipt,validateQualification,validateToolkitProof,publicLock,safeFilename,sha256,integrity,tarballURL} from './toolkit-release-lib.mjs';
 const sha='a'.repeat(40),manifestHash='b'.repeat(64);
+test('registry probes escape cached missing tarballs while canonical consumer checks retain ordinary URLs',async()=>{
+ const row={name:'ruvnet-constellation-contracts',version:'0.1.0'},seen=[];
+ const fetchImpl=async(url,options)=>{
+   seen.push(url);assert.equal(options.redirect,'error');assert.ok(options.signal instanceof AbortSignal);
+   return new URL(url).searchParams.has('release-probe')?new Response('sealed archive'):new Response('cached missing',{status:404});
+ };
+ assert.equal((await readPublicArchive(row,{fetchImpl})).toString(),'sealed archive');
+ assert.equal((await readPublicArchive(row,{fetchImpl})).toString(),'sealed archive');
+ assert.notEqual(seen[0],seen[1]);
+ assert.equal(await readPublicArchive(row,{canonical:true,fetchImpl}),null);
+ assert.equal(seen[2],tarballURL(row));
+});
+test('registry reader rejects HTTP errors and oversized bodies without relaxing digest authority',async()=>{
+ const row={name:'ruv-fann',version:'0.2.0'};
+ await assert.rejects(readPublicArchive(row,{fetchImpl:async()=>new Response('error',{status:403})}),/HTTP403/);
+ await assert.rejects(readPublicArchive(row,{fetchImpl:async()=>new Response('large',{headers:{'content-length':String(21*1024*1024)}})}),/Oversized/);
+ await assert.rejects(readPublicArchive(row,{fetchImpl:async()=>new Response(new Uint8Array(21*1024*1024))}),/Oversized/);
+});
 const rows=()=>topologicalOrder(packageSpecs.map(spec=>({name:spec.name,version:spec.version,tarball:`${spec.name}-${spec.version}.tgz`,sha256:sha256('archive'),integrity:integrity('archive'),dependencies:{}})));
 const backend=name=>({backend:name,checks:12,inference:true,training:true,search:true,gate:true,invariants:true,rejectedPromotion:true,rollbackRevision:3});
 const core=()=>({schema:'ruv-fann.core-consumer/1',status:'passed',sourceSha:sha,testCount:66,skipped:0,todo:0,runtime:'v22.23.2',backendChecks:['wasm','wasm-simd'].map(backend),browser:{engine:'Chromium',realWasm:true,checks:['wasm','wasm-simd'].map(backend),pageErrors:[]},types:{strict:true,subpaths:14},graph:{core:'0.2.0',legacyCore:'0.1.2',finite:true}});
