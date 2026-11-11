@@ -5,7 +5,7 @@
     "rUv Contributors"
   ],
   "description": "WebAssembly bindings for ruv-swarm neural network orchestration",
-  "version": "1.0.7",
+  "version": "1.0.6",
   "license": "MIT OR Apache-2.0",
   "files": [
     "ruv_swarm_wasm_bg.wasm",

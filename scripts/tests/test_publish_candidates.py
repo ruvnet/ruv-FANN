@@ -1,6 +1,7 @@
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import tarfile
 import tempfile
@@ -14,6 +15,23 @@ spec.loader.exec_module(publisher)
 
 
 class PublicationTests(unittest.TestCase):
+    def test_publish_main_preflights_entire_inventory_before_any_upload(self):
+        with tempfile.TemporaryDirectory() as directory:
+            argv = ['publisher', '--publish', '--artifacts', directory, '--expected-sha', 'reviewed',
+                    '--output', str(Path(directory) / 'publication.json')]
+            environment = {'GITHUB_ACTIONS': 'true', 'GITHUB_WORKFLOW': 'protected-release',
+                           'GITHUB_REF': 'refs/heads/main', 'GITHUB_SHA': 'reviewed',
+                           'CARGO_REGISTRY_TOKEN': 'unit-test-only'}
+            with patch.dict(os.environ, environment), patch.object(publisher.subprocess, 'check_output', side_effect=['reviewed', b'']), \
+                 patch.object(publisher, 'candidates', return_value=['first', 'last']) as inventory, \
+                 patch.object(publisher, 'preflight', side_effect=ValueError('late inventory drift')) as preflight, \
+                 patch.object(publisher, 'publish') as upload, patch('sys.argv', argv):
+                with self.assertRaisesRegex(ValueError, 'late inventory drift'):
+                    publisher.main()
+                preflight.assert_called_once_with(['first', 'last'])
+                upload.assert_not_called()
+                self.assertFalse((Path(directory) / 'publication.json').exists())
+
     def archive(self, directory, manifest):
         archive = Path(directory) / 'fixture-1.0.0.crate'
         with tarfile.open(archive, 'w:gz') as tar:

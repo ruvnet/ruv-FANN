@@ -4,9 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       expected_sha:
-        description: Exact reviewed main commit to publish (27 crates and 2 npm packages)
+        description: Exact reviewed main commit with successful release-branch CI (27 crates)
         required: true
         type: string
+      publish_npm:
+        description: Also publish the two legacy npm packages (Rust-only by default)
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -19,7 +24,14 @@ concurrency:
 jobs:
   identity:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+      actions: read
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
       - name: Require the reviewed main commit
         env:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
@@ -30,16 +42,15 @@ jobs:
           test "$ACTUAL_REF" = refs/heads/main
           test "$ACTUAL_SHA" = "$EXPECTED_SHA"
           test "$(gh api 'repos/ruvnet/ruv-FANN/issues?labels=release-blocker&state=open&per_page=1' --jq length)" = 0
-  acceptance:
-    needs: identity
-    uses: ./.github/workflows/ci.yml
+          python3 scripts/select-rust-candidate.py --expected-sha "$EXPECTED_SHA" --output "$RUNNER_TEMP/validated-ci.json"
   publish:
-    needs: acceptance
+    needs: identity
     runs-on: ubuntu-latest
     timeout-minutes: 180
     permissions:
       contents: write
       actions: read
+      issues: read
       id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -56,23 +67,21 @@ jobs:
       - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
         with:
           toolchain: '1.99.1'
-      - name: Download this run's verified Cargo candidates
+      - name: Revalidate and download the exact pre-main CI candidates
         env:
           GH_TOKEN: ${{ github.token }}
-          RUN_ID: ${{ github.run_id }}
-        run: gh run download "$RUN_ID" --repo ruvnet/ruv-FANN --name verified-cargo-release-archives --dir "$RUNNER_TEMP/cargo-candidates"
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          RUN_ID=$(python3 scripts/select-rust-candidate.py --expected-sha "$EXPECTED_SHA" --output "$RUNNER_TEMP/validated-ci.json")
+          gh run download "$RUN_ID" --repo ruvnet/ruv-FANN --name verified-cargo-release-archives --dir "$RUNNER_TEMP/cargo-candidates"
+          gh run download "$RUN_ID" --repo ruvnet/ruv-FANN --name candle-native-oracle --dir "$RUNNER_TEMP/candle-oracle"
+          echo "RUV_FANN_CANDLE_FIXTURE=$RUNNER_TEMP/candle-oracle/candle-f64-fixture.json" >> "$GITHUB_ENV"
       - name: Check source binding and all candidate bytes without credentials
         env:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
         run: python3 scripts/publish-candidates.py --artifacts "$RUNNER_TEMP/cargo-candidates" --expected-sha "$EXPECTED_SHA" --output "$RUNNER_TEMP/cargo-candidate-check.json"
-      - name: Download this run's actual Candle oracle
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RUN_ID: ${{ github.run_id }}
-        run: |
-          gh run download "$RUN_ID" --repo ruvnet/ruv-FANN --name candle-native-oracle --dir "$RUNNER_TEMP/candle-oracle"
-          echo "RUV_FANN_CANDLE_FIXTURE=$RUNNER_TEMP/candle-oracle/candle-f64-fixture.json" >> "$GITHUB_ENV"
       - name: Build and test the exact npm release archives in fresh consumers
+        if: inputs.publish_npm
         run: |
           npm ci --prefix ruv-swarm/npm
           node ruv-swarm/npm/test/check-sqlite-package.mjs --output "$RUNNER_TEMP/npm-swarm"
@@ -90,15 +99,25 @@ jobs:
           PUBLISH_SPACING_SECONDS: '360'
         run: python3 scripts/publish-candidates.py --publish --artifacts "$RUNNER_TEMP/cargo-candidates" --expected-sha "$EXPECTED_SHA" --output "$RUNNER_TEMP/cargo-publication.json"
       - name: Publish the tested npm archives and compare public bytes
+        if: inputs.publish_npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: python3 scripts/publish-npm-candidates.py --publish --directory "$RUNNER_TEMP"
       - name: Test fresh public registry consumers without release credentials
+        if: inputs.publish_npm
         run: python3 scripts/publish-npm-candidates.py --verify-public --directory "$RUNNER_TEMP"
+      - name: Test exact public Rust inference, gradients and optimizer updates
+        run: python3 scripts/verify-public-rust.py "$RUNNER_TEMP"
       - name: Create GitHub release and verify exact published asset bytes
+        if: inputs.publish_npm
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 scripts/create-github-release.py "$RUNNER_TEMP"
+      - name: Create exact-source Rust GitHub release and compare every public asset
+        if: ${{ !inputs.publish_npm }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/create-rust-github-release.py "$RUNNER_TEMP"
       - name: Retain candidate and publication evidence even on partial failure
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
@@ -108,6 +127,9 @@ jobs:
           path: |
             ${{ runner.temp }}/cargo-candidate-check.json
             ${{ runner.temp }}/cargo-publication.json
+            ${{ runner.temp }}/validated-ci.json
+            ${{ runner.temp }}/public-rust-consumers.json
+            ${{ runner.temp }}/public-rust-*.log
             ${{ runner.temp }}/npm-candidate.json
             ${{ runner.temp }}/npm-publication.json
             ${{ runner.temp }}/public-consumers.json

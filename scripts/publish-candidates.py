@@ -276,7 +276,8 @@ def main():
         raise ValueError('Missing Cargo registry token')
     report = {'sourceSha': head, 'publicationRequested': args.publish, 'crates': []}
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    states = None if args.publish else preflight(items)
+    # Check the entire immutable inventory before the first credentialed upload.
+    states = preflight(items)
     with args.output.open('x') as stream:
         for index, (archive, data, digest) in enumerate(items):
             state = publish(archive, data, digest, token) if args.publish else states[index]
