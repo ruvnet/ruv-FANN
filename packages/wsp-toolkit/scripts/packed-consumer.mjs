@@ -32,16 +32,7 @@ export async function verifyPackedConsumer() {
     } else archives=await packToolkit(directory);
     await writeFile(join(directory,'package.json'),JSON.stringify({private:true,type:'module'}));
     execFileSync('npm',['install','--ignore-scripts','--prefer-offline','--no-audit','--no-fund',...archives.map(p=>join(directory,p.filename))],{cwd:directory,encoding:'utf8'});
-    await copyFile(join(toolkitRoot,'test','scenario.mjs'),join(directory,'scenario.mjs'));
-    await copyFile(join(toolkitRoot,'test','types.ts'),join(directory,'types.ts'));
-    await copyFile(join(toolkitRoot,'test','evolution-scenario.mjs'),join(directory,'evolution-scenario.mjs'));
-    for(const file of ['constellation-scenario.mjs','constellation-fixture.mjs'])await copyFile(join(toolkitRoot,'test',file),join(directory,file));
-    execFileSync(process.execPath,[join(toolkitRoot,'node_modules/typescript/bin/tsc'),'--noEmit','--strict','--module','nodenext','--target','es2023','--lib','es2023,dom','types.ts'],{cwd:directory,encoding:'utf8'});
-    const stdout=execFileSync(process.execPath,['--input-type=module','-e',
-      "import {pathToFileURL} from 'node:url'; import {runScenario} from './scenario.mjs'; import {runEvolutionScenario} from './evolution-scenario.mjs'; import {runConstellationScenario} from './constellation-scenario.mjs'; import {createAgentDBRegistry} from 'ruv-fann-wsp-registry'; import {buildWorker} from 'ruv-fann-wsp-cloudflare/build'; const {openDemoRegistry}=await import(pathToFileURL(process.argv[1]).href); await buildWorker('./worker'); const evolution=await runEvolutionScenario(path=>openDemoRegistry(path,createAgentDBRegistry),'.'); console.log('WSP_CONSUMER_RESULT '+JSON.stringify({results:[await runScenario(false),await runScenario(true)],evolution,constellation:await runConstellationScenario()}));",join(toolkitRoot,'tooling/agentdb/runtime.mjs')],{cwd:directory,encoding:'utf8'});
-    const line=stdout.split('\n').find(line=>line.startsWith('WSP_CONSUMER_RESULT '));
-    if(!line)throw new Error('packed consumer result is missing');
-    const result=JSON.parse(line.slice('WSP_CONSUMER_RESULT '.length));
+    const result=await verifyToolkitInstallation(directory);
     const light=await mkdtemp(join(tmpdir(),'constellation-light-'));
     let lightweight;
     try {
@@ -56,4 +47,19 @@ export async function verifyPackedConsumer() {
     }finally{await rm(light,{recursive:true,force:true});}
     return {schema:'ruv-fann.packed-consumer/1',archives,...result,lightweight};
   }finally{await rm(directory,{recursive:true,force:true});}
+}
+
+/** Run real integration fixtures against an already-installed archive/public tree. */
+export async function verifyToolkitInstallation(directory,{env=process.env}={}) {
+    await copyFile(join(toolkitRoot,'test','scenario.mjs'),join(directory,'scenario.mjs'));
+    await copyFile(join(toolkitRoot,'test','types.ts'),join(directory,'types.ts'));
+    await copyFile(join(toolkitRoot,'test','evolution-scenario.mjs'),join(directory,'evolution-scenario.mjs'));
+    for(const file of ['constellation-scenario.mjs','constellation-fixture.mjs'])await copyFile(join(toolkitRoot,'test',file),join(directory,file));
+    execFileSync(process.execPath,[join(toolkitRoot,'node_modules/typescript/bin/tsc'),'--noEmit','--strict','--module','nodenext','--target','es2023','--lib','es2023,dom','types.ts'],{cwd:directory,encoding:'utf8',env});
+    const stdout=execFileSync(process.execPath,['--input-type=module','-e',
+      "import {pathToFileURL} from 'node:url'; import {runScenario} from './scenario.mjs'; import {runEvolutionScenario} from './evolution-scenario.mjs'; import {runConstellationScenario} from './constellation-scenario.mjs'; import {createAgentDBRegistry} from 'ruv-fann-wsp-registry'; import {buildWorker} from 'ruv-fann-wsp-cloudflare/build'; const {openDemoRegistry}=await import(pathToFileURL(process.argv[1]).href); await buildWorker('./worker'); const evolution=await runEvolutionScenario(path=>openDemoRegistry(path,createAgentDBRegistry),'.'); console.log('WSP_CONSUMER_RESULT '+JSON.stringify({results:[await runScenario(false),await runScenario(true)],evolution,constellation:await runConstellationScenario()}));",join(toolkitRoot,'tooling/agentdb/runtime.mjs')],{cwd:directory,encoding:'utf8',env});
+    const line=stdout.split('\n').find(line=>line.startsWith('WSP_CONSUMER_RESULT '));
+    if(!line)throw new Error('packed consumer result is missing');
+    const result=JSON.parse(line.slice('WSP_CONSUMER_RESULT '.length));
+    return result;
 }

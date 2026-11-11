@@ -5,7 +5,8 @@ import { readFile,writeFile,readdir,mkdir,mkdtemp,rm,copyFile,lstat } from 'node
 import { join,resolve,dirname,basename } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { schema,releaseTag,packageSpecs,sha256,integrity,tarballURL,safeFilename,assertSourceSha,topologicalOrder,validateRows,validateCoreReceipt,validateQualification,publicLock } from './toolkit-release-lib.mjs';
+import { schema,releaseTag,packageSpecs,sha256,integrity,tarballURL,safeFilename,assertSourceSha,topologicalOrder,validateRows,validateCoreReceipt,validateQualification,validateToolkitProof,publicLock } from './toolkit-release-lib.mjs';
+import {verifyToolkitInstallation} from '../packages/wsp-toolkit/scripts/packed-consumer.mjs';
 const root=resolve(fileURLToPath(new URL('..',import.meta.url))),toolkit=join(root,'packages/wsp-toolkit');
 const args=process.argv.slice(2),mode=args.shift(),options=Object.create(null);
 for(let i=0;i<args.length;i+=2){if(!/^--[a-z-]+$/.test(args[i])||!args[i+1]||Object.hasOwn(options,args[i].slice(2)))throw Error('Invalid argument');options[args[i].slice(2)]=args[i+1];}
@@ -90,7 +91,8 @@ async function qualify(){
       run('npm',['ci','--ignore-scripts','--no-audit','--no-fund','--cache',join(target,'ci-cache')],target,consumerEnv);
     }
     const core=await coreConsumer(target,join(target,'core-receipt.json'),manifest.sourceSha,consumerEnv);
-    const receipt={schema:`${schema}.qualification/1`,status:'passed',sourceSha:manifest.sourceSha,manifestSha256:sha256(await readFile(join(directory,'package-manifest.json'))),runtime:process.version,validation,core,publicLockSha256:sha256(await readFile(lockPath))};
+    const toolkitProof=await verifyToolkitInstallation(target,{env:consumerEnv});validateToolkitProof(toolkitProof);
+    const receipt={schema:`${schema}.qualification/1`,status:'passed',sourceSha:manifest.sourceSha,manifestSha256:sha256(await readFile(join(directory,'package-manifest.json'))),runtime:process.version,validation,core,toolkit:toolkitProof,publicLockSha256:sha256(await readFile(lockPath))};
     validateQualification(receipt,manifest.sourceSha,receipt.manifestSha256);
     await save(join(directory,`node-${major}-qualification.json`),receipt);
   }finally{await rm(target,{recursive:true,force:true});}
@@ -164,7 +166,8 @@ async function publicConsumer(){
     run('npm',['ci','--ignore-scripts','--no-audit','--no-fund','--registry=https://registry.npmjs.org','--cache',join(target,'fresh-cache')],target,env);
     for(const row of manifest.packages)if((await json(join(target,'node_modules',row.name,'package.json'))).version!==row.version)throw Error('Wrong public installed version');
     const core=await coreConsumer(target,join(target,'core-public.json'),seal.sourceSha,env);
-    await save(need('output'),{schema:`${schema}.public-consumer/1`,status:'passed',sourceSha:seal.sourceSha,releaseTag,sealSha256:sha256(await readFile(join(directory,'candidate-seal.json'))),publicLockSha256:sha256(await readFile(join(directory,'public-package-lock.json'))),packages:manifest.packages.map(({name,version,sha256,integrity})=>({name,version,sha256,integrity})),core});
+    const toolkitProof=await verifyToolkitInstallation(target,{env});validateToolkitProof(toolkitProof);
+    await save(need('output'),{schema:`${schema}.public-consumer/1`,status:'passed',sourceSha:seal.sourceSha,releaseTag,sealSha256:sha256(await readFile(join(directory,'candidate-seal.json'))),publicLockSha256:sha256(await readFile(join(directory,'public-package-lock.json'))),packages:manifest.packages.map(({name,version,sha256,integrity})=>({name,version,sha256,integrity})),core,toolkit:toolkitProof});
   }finally{await rm(target,{recursive:true,force:true});}
 }
 function tagCommit(tag){let item=JSON.parse(run('gh',['api',`repos/ruvnet/ruv-FANN/git/ref/tags/${tag}`])).object;for(let i=0;i<5;i++){if(item.type==='commit')return item.sha;if(item.type!=='tag')throw Error('Tag does not resolve to commit');item=JSON.parse(run('gh',['api',`repos/ruvnet/ruv-FANN/git/tags/${item.sha}`])).object;}throw Error('Tag nesting exceeds limit');}
@@ -173,7 +176,7 @@ async function githubRelease(){
   const publication=await json(need('publication')),consumer=await json(need('public-consumer'));
   if(publication.status!=='passed'||consumer.status!=='passed'||publication.sourceSha!==seal.sourceSha||consumer.sourceSha!==seal.sourceSha||consumer.sealSha256!==sha256(await readFile(join(directory,'candidate-seal.json')))||publication.sealSha256!==consumer.sealSha256)throw Error('Public release evidence mismatch');
   for(const row of manifest.packages)for(const receipt of [publication,consumer])if(receipt.packages?.length!==manifest.packages.length||!receipt.packages.some(item=>item.name===row.name&&item.version===row.version&&item.sha256===row.sha256&&item.integrity===row.integrity))throw Error('Release public package evidence differs from seal');
-  validateCoreReceipt(consumer.core,seal.sourceSha);for(const row of manifest.packages)await awaitPublic(row);
+  validateCoreReceipt(consumer.core,seal.sourceSha);validateToolkitProof(consumer.toolkit);for(const row of manifest.packages)await awaitPublic(row);
   const receipt={schema:`${schema}.release/1`,status:'passed',sourceSha:seal.sourceSha,releaseTag,sealSha256:sha256(await readFile(join(directory,'candidate-seal.json'))),publicationSha256:sha256(await readFile(need('publication'))),publicConsumerSha256:sha256(await readFile(need('public-consumer'))),packages:manifest.packages};
   await save(need('output'),receipt);
   const paths=[...seal.files.map(row=>join(directory,row.filename)),join(directory,'candidate-seal.json'),resolve(need('publication')),resolve(need('public-consumer')),resolve(need('output'))];

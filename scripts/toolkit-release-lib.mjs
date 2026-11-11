@@ -63,10 +63,16 @@ export function validateQualification(receipt,sourceSha,manifestHash) {
      ['fail','cancelled','skipped','todo'].some(key=>report.tests[key]!==0)||report.audit?.vulnerabilities?.total!==0||report.agentdbIntegrationAudit?.vulnerabilities?.total!==0)
     throw Error('Qualification requires nonzero no-skip tests, types and zero-advisory audits');
   validateCoreReceipt(receipt.core,sourceSha);
+  validateToolkitProof(receipt.toolkit);
   if(report.benchmark?.schema!=='ruv-fann.search-benchmark/1'||report.benchmark.candidateMSE!==0||
      report.benchmark.referenceInferencePasses!==32||report.benchmark.screenedInferencePasses!==19||
      !/^[a-f0-9]{64}$/.test(report.benchmark.equivalentCandidateHash))throw Error('Search benchmark must preserve the exact candidate and measured work counts');
   if(receipt.runtime!==report.node||receipt.runtime!==receipt.core.runtime)throw Error('Qualification runtimes disagree');
+}
+export function validateToolkitProof(proof) {
+  if(!proof||!['wasm','wasm-simd'].every(backend=>proof.results?.some(row=>row.backend===backend&&row.candidateMSE===0&&row.regressionRejected===true&&row.compiledXor===true&&row.rollbackRevision===3))||
+     proof.evolution?.report?.promotions!==2||proof.evolution.durability?.reopened!==true||proof.evolution.durability.rollbackPersisted!==true||proof.evolution.report.workerThreadIds?.length<2||
+     proof.constellation?.catalogEntries!==24||proof.constellation.scaffoldTests!==3)throw Error('Toolkit installation must prove both real WASM backends, concurrent durable AgentDB promotion/rollback and generated constellation tests');
 }
 export function publicLock(candidateLock,rows) {
   const lock=structuredClone(candidateLock),root=lock.packages?.[''];
