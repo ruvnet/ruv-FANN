@@ -6,7 +6,7 @@ import {join,resolve,dirname,basename} from 'node:path';
 import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {isDeepStrictEqual as equal} from 'node:util';
-import {schema,assert,sha256,integrity,filename,sourceSha,tarballURL,archiveName,validateConfig,readArchive,writeArchive,validatePayload,validateConsumer,publicLock} from './metadata-release-lib.mjs';
+import {schema,assert,sha256,integrity,filename,sourceSha,tarballURL,archiveName,validateConfig,validateBaselineMetadata,validateProtectedEnvironment,readArchive,writeArchive,validatePayload,validateConsumer,publicLock} from './metadata-release-lib.mjs';
 import {readPublicArchive} from './metadata-registry.mjs';
 
 const root=resolve(fileURLToPath(new URL('..',import.meta.url))),args=process.argv.slice(2),mode=args.shift(),options=Object.create(null);
@@ -33,13 +33,21 @@ async function overlay(spec){const result={};for(const name of ['package.json',.
 const hashes=files=>[...files].map(([path,item])=>({path,mode:item.mode,sha256:sha256(item.bytes)})).sort((a,b)=>a.path<b.path?-1:a.path>b.path?1:0);
 async function empty(path){await mkdir(path,{recursive:true});assert((await readdir(path)).length===0,'Output directory must be empty');}
 async function bootstrap(){clean();const cfg=await config();for(const [bin,...argv]of cfg.bootstrap)run(bin,argv,root,cleanEnv());clean();}
+async function registryMetadata(spec){
+  const response=await fetch(`https://registry.npmjs.org/${encodeURIComponent(spec.name)}/${spec.fromVersion}`,{redirect:'error',signal:AbortSignal.timeout(30_000)});
+  assert(response.ok,`Published baseline metadata unavailable: ${spec.name}`);return response.json();
+}
+async function authenticateBaselines(manifest){
+  const cfg=await config();
+  // Re-read historical registry metadata in the protected job, independently of the
+  // candidate's self-reported digests and qualification archive.
+  for(let i=0;i<cfg.packages.length;i++)validateBaselineMetadata(cfg.packages[i],manifest.packages[i].baseline,await registryMetadata(cfg.packages[i]));
+}
 async function pack(){
   clean();const cfg=await config(),directory=resolve(need('directory'));await empty(directory);const packages=[];
   for(const spec of cfg.packages){
-    const baseline={name:spec.name,version:spec.fromVersion},response=await fetch(`https://registry.npmjs.org/${encodeURIComponent(spec.name)}/${spec.fromVersion}`,{redirect:'error',signal:AbortSignal.timeout(30_000)});
-    assert(response.ok,`Published baseline metadata unavailable: ${spec.name}`);const metadata=await response.json();
-    assert(metadata.name===spec.name&&metadata.version===spec.fromVersion&&metadata.dist?.tarball===tarballURL(baseline)&&/^sha512-[A-Za-z0-9+/]{86}==$/.test(metadata.dist.integrity),'Baseline registry identity/SRI missing');
-    const bytes=await readPublicArchive(baseline);assert(bytes&&integrity(bytes)===metadata.dist.integrity,'Published baseline SRI mismatch');
+    const baseline={name:spec.name,version:spec.fromVersion},metadata=await registryMetadata(spec);
+    const bytes=await readPublicArchive(baseline);assert(bytes,'Published baseline archive unavailable');validateBaselineMetadata(spec,{version:spec.fromVersion,integrity:integrity(bytes)},metadata);
     const before=readArchive(bytes),overlays=await overlay(spec),after=new Map([...before].map(([name,item])=>[name,{...item,bytes:overlays[name.slice(8)]??item.bytes}]));
     validatePayload(before,after,spec,overlays);const packed=writeArchive(after),tarball=archiveName(spec.name,spec.toVersion),baselineTarball=`baseline-${archiveName(spec.name,spec.fromVersion)}`;
     // This writer runs once. Every later stage validates and retains these canonical bytes.
@@ -117,8 +125,7 @@ async function verify(directory){
   await qualifications(directory,manifest);return {seal,manifest};
 }
 async function protectedContext(sha){
-  const cfg=await config(),expected={GITHUB_ACTIONS:'true',GITHUB_REPOSITORY:cfg.repository,GITHUB_REF:'refs/heads/main',GITHUB_SHA:sha,GITHUB_WORKFLOW:'protected-metadata-release',GITHUB_WORKFLOW_REF:`${cfg.repository}/.github/workflows/protected-metadata-release.yml@refs/heads/main`,GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_JOB:'publish'};
-  for(const [key,value]of Object.entries(expected))assert(process.env[key]===value,'Publication requires exact upstream protected main workflow');
+  const cfg=await config();validateProtectedEnvironment(cfg.repository,sha,process.env);
   assert(head()===sha&&run('gh',['api',`repos/${cfg.repository}/commits/main`,'--jq','.sha'])===sha,'Current main differs from sealed source');
   assert(run('gh',['api',`repos/${cfg.repository}/issues?labels=release-blocker&state=open&per_page=1`,'--jq','length'])==='0','Open release blockers');clean();return cfg;
 }
@@ -130,10 +137,10 @@ async function download(){
   const runs=api(`repos/${repo}/actions/workflows/metadata-qualification.yml/runs?head_sha=${sha}&status=completed&per_page=100`).workflow_runs.filter(row=>row.head_sha===sha&&row.head_repository?.full_name===repo&&row.conclusion==='success'&&['pull_request','workflow_dispatch','push','workflow_call'].includes(row.event)).sort((a,b)=>b.run_number-a.run_number),name=`metadata-candidate-${sha}`;
   let selected;for(const row of runs){const artifacts=api(`repos/${repo}/actions/runs/${row.id}/artifacts?per_page=100`).artifacts.filter(item=>item.name===name&&!item.expired);if(artifacts.length===1){selected=row;break;}}
   assert(selected,'No successful upstream exact-SHA qualification artifact');const target=await mkdtemp(join(tmpdir(),'metadata-download-'));
-  try{run('gh',['run','download',String(selected.id),'-R',repo,'-n',name,'-D',target]);await verify(target);const output=resolve(need('output'));await empty(output);for(const name of await readdir(target))await rename(join(target,filename(name)),join(output,name));console.log(JSON.stringify({status:'verified',sourceSha:sha,runId:selected.id,artifact:name}));}finally{await rm(target,{recursive:true,force:true});}
+  try{run('gh',['run','download',String(selected.id),'-R',repo,'-n',name,'-D',target]);const {manifest}=await verify(target);await authenticateBaselines(manifest);const output=resolve(need('output'));await empty(output);for(const name of await readdir(target))await rename(join(target,filename(name)),join(output,name));console.log(JSON.stringify({status:'verified',sourceSha:sha,runId:selected.id,artifact:name}));}finally{await rm(target,{recursive:true,force:true});}
 }
 async function publish(){
-  const directory=resolve(need('directory')),{seal,manifest}=await verify(directory);await protectedContext(seal.sourceSha);assert(process.env.NODE_AUTH_TOKEN,'Explicit protected NPM_TOKEN secret required');const output=resolve(need('output'));await empty(output);
+  const directory=resolve(need('directory')),{seal,manifest}=await verify(directory);await protectedContext(seal.sourceSha);await authenticateBaselines(manifest);assert(process.env.NODE_AUTH_TOKEN,'Explicit protected NPM_TOKEN secret required');const output=resolve(need('output'));await empty(output);
   for(const row of manifest.packages){const bytes=await readPublicArchive(row);assert(!bytes||sha256(bytes)===row.sha256&&integrity(bytes)===row.integrity,`Existing version differs: ${row.name}`);}
   const results=[];for(const row of manifest.packages){await protectedContext(seal.sourceSha);const previous=await readPublicArchive(row);if(!previous){try{run('npm',['publish',join(directory,row.tarball),'--ignore-scripts','--access','public','--provenance','--registry=https://registry.npmjs.org']);}catch(error){try{await awaitPublic(row);}catch{throw error;}}}await awaitPublic(row);const result={name:row.name,version:row.version,sha256:row.sha256,integrity:row.integrity,status:'public-bytes-verified'};results.push(result);await save(join(output,`${archiveName(row.name,row.version)}.json`),{schema,kind:'package-publication',sourceSha:seal.sourceSha,...result});}
   await save(join(output,'publication.json'),{schema,kind:'publication',status:'passed',sourceSha:seal.sourceSha,sealSha256:sha256(await readFile(join(directory,'candidate-seal.json'))),packages:results});

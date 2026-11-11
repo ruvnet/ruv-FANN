@@ -12,6 +12,15 @@ export function filename(value){assert(typeof value==='string'&&/^[a-zA-Z0-9][a-
 export function relative(value){assert(typeof value==='string'&&value.length>0&&!value.startsWith('/')&&!value.includes('\\')&&!value.includes('\0')&&value.split('/').every(p=>p&&p!=='.'&&p!=='..'),'Unsafe relative path');return value;}
 export const tarballURL=row=>`https://registry.npmjs.org/${row.name}/-/${row.name.split('/').at(-1)}-${row.version}.tgz`;
 export const archiveName=(name,version)=>filename(`${name.replace(/^@/,'').replace('/','-')}-${version}.tgz`);
+export function validateBaselineMetadata(spec,baseline,metadata){
+  assert(baseline.version===spec.fromVersion&&metadata?.name===spec.name&&metadata.version===spec.fromVersion,'Historical baseline registry identity mismatch');
+  assert(metadata.dist?.tarball===tarballURL({name:spec.name,version:spec.fromVersion})&&/^sha512-[A-Za-z0-9+/]{86}==$/.test(metadata.dist.integrity)&&metadata.dist.integrity===baseline.integrity,'Historical baseline registry URL/SRI mismatch');
+}
+export function validateProtectedEnvironment(repository,sha,env){
+  sourceSha(sha);
+  const expected={GITHUB_ACTIONS:'true',GITHUB_REPOSITORY:repository,GITHUB_REF:'refs/heads/main',GITHUB_SHA:sha,GITHUB_WORKFLOW:'protected-metadata-release',GITHUB_WORKFLOW_REF:`${repository}/.github/workflows/protected-metadata-release.yml@refs/heads/main`,GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_JOB:'publish'};
+  for(const [key,value]of Object.entries(expected))assert(env[key]===value,`Publication requires exact upstream protected main workflow: ${key}`);
+}
 export function validateConfig(config){
   assert(config.schema===schema&&/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(config.repository),'Invalid release configuration repository/schema');
   filename(config.releaseTag);
