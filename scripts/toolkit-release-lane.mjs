@@ -113,9 +113,11 @@ async function qualify(){
       await writeFile(join(target,'package.json'),JSON.stringify({name:'toolkit-release-consumer',version:'1.0.0',private:true,type:'module',dependencies:sealedLock.packages[''].dependencies}));
       run('npm',['ci','--ignore-scripts','--no-audit','--no-fund','--cache',join(target,'ci-cache')],target,consumerEnv);
     }
+    const candidateAudit=JSON.parse(run('npm',['audit','--json'],target,consumerEnv));
+    if(candidateAudit.metadata?.vulnerabilities?.total!==0)throw Error('Installed candidate dependency audit must report zero known vulnerabilities');
     const core=await coreConsumer(target,join(target,'core-receipt.json'),manifest.sourceSha,consumerEnv);
     const toolkitProof=await verifyToolkitInstallation(target,{env:consumerEnv});validateToolkitProof(toolkitProof);
-    const receipt={schema:`${schema}.qualification/1`,status:'passed',sourceSha:manifest.sourceSha,manifestSha256:sha256(await readFile(join(directory,'package-manifest.json'))),runtime:process.version,validation,core,toolkit:toolkitProof,publicLockSha256:sha256(await readFile(lockPath))};
+    const receipt={schema:`${schema}.qualification/1`,status:'passed',sourceSha:manifest.sourceSha,manifestSha256:sha256(await readFile(join(directory,'package-manifest.json'))),runtime:process.version,validation,candidateAudit:{vulnerabilities:candidateAudit.metadata.vulnerabilities},core,toolkit:toolkitProof,publicLockSha256:sha256(await readFile(lockPath))};
     validateQualification(receipt,manifest.sourceSha,receipt.manifestSha256);
     await save(join(directory,`node-${major}-qualification.json`),receipt);
   }finally{await rm(target,{recursive:true,force:true});}
@@ -204,7 +206,7 @@ async function githubRelease(){
   const receiptName=safeFilename(basename(need('output'))),receiptBytes=Buffer.from(JSON.stringify(receipt,null,2)+'\n');
   const expected=new Map(await Promise.all(paths.map(async path=>[basename(path),await readFile(path)])));expected.set(receiptName,receiptBytes);
   let existing;try{existing=JSON.parse(run('gh',['release','view',releaseTag,'--json','assets']));}catch{
-    run('gh',['release','create',releaseTag,...paths,'--target',seal.sourceSha,'--title','ruv-fann core 0.2.0 and WSP toolkit 0.1.0','--notes',`Thirteen exact npm archives from source ${seal.sourceSha}. Core subpaths expose bounded WSP lifecycle, search, invariants, workers, registry and constellation capabilities. Node22/24 installed consumers, real Chromium/WASM, strict types, public dependency lock and exact-byte receipts attached. No generalization or SOTA claim.`]);
+    run('gh',['release','create',releaseTag,...paths,'--target',seal.sourceSha,'--title','ruv-fann 0.3.0: Agenticow weight branches','--notes',`One exact core npm archive from source ${seal.sourceSha}. Core adds explicit native Agenticow weight branches with rejection isolation, promotion, checkpoint rollback and reopen checks; existing satellites remain pinned published dependencies. Node22/24 installed consumers, real Chromium/WASM, strict types, public dependency lock and exact-byte receipts attached. No generalization or SOTA claim.`]);
     existing=JSON.parse(run('gh',['release','view',releaseTag,'--json','assets']));
   }
   if(tagCommit(releaseTag)!==seal.sourceSha)throw Error('GitHub tag source mismatch');

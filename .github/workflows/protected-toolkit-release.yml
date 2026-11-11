@@ -51,7 +51,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/toolkit-candidate-download.mjs --expected-sha "${{ inputs.expected_sha }}" --output "$RUNNER_TEMP/toolkit-candidate"
-      - name: Publish only sealed archives in dependency order with provenance
+      - name: Publish only the sealed core archive with provenance
         env:
           GH_TOKEN: ${{ github.token }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -5,7 +5,8 @@ import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {execFileSync,spawnSync} from 'node:child_process';
 import {readPublicArchive} from './toolkit-registry.mjs';
-import {packageSpecs,topologicalOrder,validateRows,validateCoreReceipt,validateQualification,validateToolkitProof,publicLock,safeFilename,sha256,integrity,tarballURL} from './toolkit-release-lib.mjs';
+import {packageSpecs,coreDependencies,topologicalOrder,validateRows,validateCoreReceipt,validateQualification,validateToolkitProof,publicLock,safeFilename,sha256,integrity,tarballURL} from './toolkit-release-lib.mjs';
+import {canonicalCoreArchives} from '../packages/wsp-toolkit/scripts/packed-consumer.mjs';
 const sha='a'.repeat(40),manifestHash='b'.repeat(64);
 test('registry probes escape cached missing tarballs while canonical consumer checks retain ordinary URLs',async()=>{
  const row={name:'ruvnet-constellation-contracts',version:'0.1.0'},seen=[];
@@ -20,25 +21,25 @@ test('registry probes escape cached missing tarballs while canonical consumer ch
  assert.equal(seen[2],tarballURL(row));
 });
 test('registry reader rejects HTTP errors and oversized bodies without relaxing digest authority',async()=>{
- const row={name:'ruv-fann',version:'0.2.0'};
+ const row={name:'ruv-fann',version:'0.3.0'};
  await assert.rejects(readPublicArchive(row,{fetchImpl:async()=>new Response('error',{status:403})}),/HTTP403/);
  await assert.rejects(readPublicArchive(row,{fetchImpl:async()=>new Response('large',{headers:{'content-length':String(21*1024*1024)}})}),/Oversized/);
  await assert.rejects(readPublicArchive(row,{fetchImpl:async()=>new Response(new Uint8Array(21*1024*1024))}),/Oversized/);
 });
-const rows=()=>topologicalOrder(packageSpecs.map(spec=>({name:spec.name,version:spec.version,tarball:`${spec.name}-${spec.version}.tgz`,sha256:sha256('archive'),integrity:integrity('archive'),dependencies:{}})));
+const rows=()=>topologicalOrder(packageSpecs.map(spec=>({name:spec.name,version:spec.version,tarball:`${spec.name}-${spec.version}.tgz`,sha256:sha256('archive'),integrity:integrity('archive'),dependencies:{...coreDependencies}})));
 const backend=name=>({backend:name,checks:12,inference:true,training:true,search:true,gate:true,invariants:true,rejectedPromotion:true,rollbackRevision:3});
-const core=()=>({schema:'ruv-fann.core-consumer/1',status:'passed',sourceSha:sha,testCount:66,skipped:0,todo:0,runtime:'v22.23.2',backendChecks:['wasm','wasm-simd'].map(backend),browser:{engine:'Chromium',realWasm:true,checks:['wasm','wasm-simd'].map(backend),pageErrors:[]},types:{strict:true,subpaths:14},graph:{core:'0.2.0',legacyCore:'0.1.2',finite:true}});
+const core=()=>({schema:'ruv-fann.core-consumer/1',status:'passed',sourceSha:sha,testCount:66,skipped:0,todo:0,runtime:'v22.23.2',backendChecks:['wasm','wasm-simd'].map(backend),browser:{engine:'Chromium',realWasm:true,checks:['wasm','wasm-simd'].map(backend),pageErrors:[]},types:{strict:true,subpaths:15},graph:{core:'0.3.0',legacyCore:'0.1.2',finite:true},agenticow:{version:'0.3.0',native:true,branchIsolation:true,rejectedCandidateIsolated:true,promoted:true,checkpointRollback:true,reopened:true}});
 const toolkit=()=>({results:['wasm','wasm-simd'].map(backend=>({backend,candidateMSE:0,regressionRejected:true,compiledXor:true,rollbackRevision:3})),evolution:{report:{promotions:2,workerThreadIds:[1,2]},durability:{reopened:true,rollbackPersisted:true}},constellation:{catalogEntries:24,scaffoldTests:3}});
-const qualification=()=>({schema:'ruv-fann.toolkit.qualification/1',status:'passed',sourceSha:sha,manifestSha256:manifestHash,runtime:'v22.23.2',core:core(),toolkit:toolkit(),validation:{typecheck:'passed',node:'v22.23.2',tests:{tests:100,pass:100,fail:0,cancelled:0,skipped:0,todo:0},audit:{vulnerabilities:{total:0}},agentdbIntegrationAudit:{vulnerabilities:{total:0}},benchmark:{schema:'ruv-fann.search-benchmark/1',candidateMSE:0,referenceInferencePasses:32,screenedInferencePasses:19,equivalentCandidateHash:'c'.repeat(64)}}});
-test('candidate includes exactly twelve satellites and new core with SHA256/SRI',()=>{assert.equal(validateRows(rows()).length,13);for(const mutate of [r=>r.pop(),r=>r.push(r[0]),r=>r[0].version='1.0.0',r=>r[0].sha256='wrong',r=>r[0].integrity='sha512-wrong',r=>r[0].tarball='../escape.tgz']){const data=rows();mutate(data);assert.throws(()=>validateRows(data));}});
+const qualification=()=>({schema:'ruv-fann.toolkit.qualification/1',status:'passed',sourceSha:sha,manifestSha256:manifestHash,runtime:'v22.23.2',candidateAudit:{vulnerabilities:{total:0}},core:core(),toolkit:toolkit(),validation:{typecheck:'passed',node:'v22.23.2',tests:{tests:100,pass:100,fail:0,cancelled:0,skipped:0,todo:0},audit:{vulnerabilities:{total:0}},agentdbIntegrationAudit:{vulnerabilities:{total:0}},benchmark:{schema:'ruv-fann.search-benchmark/1',candidateMSE:0,referenceInferencePasses:32,screenedInferencePasses:19,equivalentCandidateHash:'c'.repeat(64)}}});
+test('candidate includes only core 0.3.0 with SHA256/SRI and exact published dependency pins',()=>{assert.equal(validateRows(rows()).length,1);for(const mutate of [r=>r.pop(),r=>r.push(r[0]),r=>r[0].version='1.0.0',r=>r.push({...r[0],name:'ruv-fann-wsp-loop',version:'0.1.0'}),r=>delete r[0].dependencies.agenticow,r=>r[0].dependencies.agenticow='^0.3.0',r=>r[0].dependencies['ruv-fann-wsp-loop']='0.2.0',r=>r[0].sha256='wrong',r=>r[0].integrity='sha512-wrong',r=>r[0].tarball='../escape.tgz']){const data=rows();mutate(data);assert.throws(()=>validateRows(data));}});
 test('dependency order puts prerequisites first and tolerates explicit nested legacy core only',()=>{
- const data=rows(),coreRow=data.find(r=>r.name==='ruv-fann'),loop=data.find(r=>r.name==='ruv-fann-wsp-loop');coreRow.dependencies={'ruv-fann-wsp-loop':'0.1.0'};loop.dependencies={'ruv-fann':'0.1.2'};
- const ordered=topologicalOrder(data);assert.ok(ordered.indexOf(loop)<ordered.indexOf(coreRow));validateRows(ordered);
- loop.dependencies={'ruv-fann':'0.2.0'};assert.throws(()=>topologicalOrder(data),/cycle/);
- loop.dependencies={'ruv-fann':'^0.1.2'};assert.throws(()=>topologicalOrder(data),/pin/);
+ const coreRow={name:'ruv-fann',version:'0.3.0',dependencies:{'ruv-fann-wsp-loop':'0.1.0'}},loop={name:'ruv-fann-wsp-loop',version:'0.1.0',dependencies:{'ruv-fann':'0.1.2'}};
+ const ordered=topologicalOrder([coreRow,loop]);assert.ok(ordered.indexOf(loop)<ordered.indexOf(coreRow));
+ loop.dependencies={'ruv-fann':'0.3.0'};assert.throws(()=>topologicalOrder([coreRow,loop]),/cycle/);
+ loop.dependencies={'ruv-fann':'^0.1.2'};assert.throws(()=>topologicalOrder([coreRow,loop]),/pin/);
 });
-test('rejects unknown, skipped, zero, failed and mismatched-source qualification',()=>{validateQualification(qualification(),sha,manifestHash);for(const mutate of [r=>r.status='unknown',r=>r.sourceSha='d'.repeat(40),r=>r.manifestSha256='e'.repeat(64),r=>r.validation.tests.tests=0,r=>r.validation.tests.skipped=1,r=>r.validation.tests.todo=1,r=>r.validation.tests.cancelled=1,r=>r.validation.tests.fail=1,r=>r.validation.audit.vulnerabilities.total=1,r=>r.validation.agentdbIntegrationAudit.vulnerabilities.total=1,r=>r.validation.node='v24.22.1',r=>r.validation.benchmark.candidateMSE=1]){const report=qualification();mutate(report);assert.throws(()=>validateQualification(report,sha,manifestHash));}});
-test('installed proof requires real SIMD and scalar Node/Chromium numerical checks, types, rollback and finite graph',()=>{validateCoreReceipt(core(),sha);for(const mutate of [r=>r.testCount=0,r=>r.skipped=1,r=>r.todo=1,r=>r.browser.realWasm=false,r=>r.browser.checks=[],r=>r.browser.pageErrors=['error'],r=>r.types.strict=false,r=>r.types.subpaths=0,r=>r.graph.finite=false,r=>r.backendChecks[0].rollbackRevision=2,r=>r.backendChecks[0].search=false]){const proof=core();mutate(proof);assert.throws(()=>validateCoreReceipt(proof,sha));}});
+test('rejects unknown, skipped, zero, failed and mismatched-source qualification',()=>{validateQualification(qualification(),sha,manifestHash);for(const mutate of [r=>r.status='unknown',r=>r.sourceSha='d'.repeat(40),r=>r.manifestSha256='e'.repeat(64),r=>r.validation.tests.tests=0,r=>r.validation.tests.skipped=1,r=>r.validation.tests.todo=1,r=>r.validation.tests.cancelled=1,r=>r.validation.tests.fail=1,r=>r.validation.audit.vulnerabilities.total=1,r=>r.validation.agentdbIntegrationAudit.vulnerabilities.total=1,r=>r.validation.node='v24.22.1',r=>r.validation.benchmark.candidateMSE=1,r=>delete r.candidateAudit,r=>r.candidateAudit.vulnerabilities.total=1]){const report=qualification();mutate(report);assert.throws(()=>validateQualification(report,sha,manifestHash));}});
+test('installed proof requires real SIMD and scalar Node/Chromium numerical checks, types, rollback and finite graph',()=>{validateCoreReceipt(core(),sha);for(const mutate of [r=>r.testCount=0,r=>r.testCount=65,r=>r.skipped=1,r=>r.todo=1,r=>r.browser.realWasm=false,r=>r.browser.checks=[],r=>r.browser.pageErrors=['error'],r=>r.types.strict=false,r=>r.types.subpaths=0,r=>r.graph.finite=false,r=>r.backendChecks[0].rollbackRevision=2,r=>r.backendChecks[0].search=false,r=>r.graph.core='0.2.0',r=>delete r.agenticow,r=>r.agenticow.version='0.2.0',...['native','branchIsolation','rejectedCandidateIsolated','promoted','checkpointRollback','reopened'].map(key=>r=>r.agenticow[key]=false)]){const proof=core();mutate(proof);assert.throws(()=>validateCoreReceipt(proof,sha));}});
 test('full installed toolkit proof requires actual concurrent workers and durable AgentDB reopen/rollback',()=>{validateToolkitProof(toolkit());for(const mutate of [r=>r.results=[],r=>r.results[0].candidateMSE=1,r=>r.evolution.report.workerThreadIds=[1],r=>r.evolution.report.promotions=0,r=>r.evolution.durability.reopened=false,r=>r.evolution.durability.rollbackPersisted=false,r=>r.constellation.scaffoldTests=0]){const proof=toolkit();mutate(proof);assert.throws(()=>validateToolkitProof(proof));}});
 test('public lock preserves resolved transitive versions and replaces only candidate archives with SRI-bound public URLs',()=>{
  const packages=rows(),lock={name:'consumer',version:'1.0.0',lockfileVersion:3,packages:{'':{dependencies:{}},'node_modules/external':{version:'1.2.3',resolved:'https://registry.npmjs.org/external/-/external-1.2.3.tgz',integrity:integrity('external')}}};
@@ -48,7 +49,7 @@ test('public lock preserves resolved transitive versions and replaces only candi
  lock.packages['node_modules/external']={link:true};assert.throws(()=>publicLock(lock,packages));
  lock.packages['node_modules/external']={version:'1.2.3',resolved:'https://registry.npmjs.org/external/-/external-1.2.3.tgz'};assert.throws(()=>publicLock(lock,packages));
 });
-test('archive and evidence filenames reject traversal, shell metacharacters and URLs',()=>{for(const name of ['../x.tgz','x/../x.tgz','x\\y.tgz','https://hostile/x','$(id).tgz','x\n.tgz','..'])assert.throws(()=>safeFilename(name));assert.equal(safeFilename('ruv-fann-0.2.0.tgz'),'ruv-fann-0.2.0.tgz');});
+test('archive and evidence filenames reject traversal, shell metacharacters and URLs',()=>{for(const name of ['../x.tgz','x/../x.tgz','x\\y.tgz','https://hostile/x','$(id).tgz','x\n.tgz','..'])assert.throws(()=>safeFilename(name));assert.equal(safeFilename('ruv-fann-0.3.0.tgz'),'ruv-fann-0.3.0.tgz');});
 test('qualification checks out exact PR head and canonical pack precedes both runtime consumers',async()=>{const workflow=await readFile(new URL('../.github/workflows/wsp-toolkit.yml',import.meta.url),'utf8');assert.match(workflow,/ref: \$\{\{ github.event.pull_request.head.sha \|\| inputs.expected_sha \|\| github.sha \}\}/);assert.equal((workflow.match(/toolkit-release-lane.mjs pack /g)??[]).length,1);assert.equal((workflow.match(/toolkit-release-lane.mjs qualify /g)??[]).length,2);assert.match(workflow,/toolkit-candidate-\$\{\{ github.event.pull_request.head.sha/);});
 test('protected publisher selects successful upstream artifact and explicitly uses existing NPM_TOKEN, never source rebuild',async()=>{const workflow=await readFile(new URL('../.github/workflows/protected-toolkit-release.yml',import.meta.url),'utf8');assert.match(workflow,/secrets.NPM_TOKEN/);assert.match(workflow,/toolkit-candidate-download.mjs --expected-sha/);assert.doesNotMatch(workflow,/toolkit-release-lane.mjs (pack|qualify|seal) /);assert.match(workflow,/id-token: write/);assert.match(workflow,/toolkit-release-lane.mjs public-consumer/);assert.match(workflow,/toolkit-release-lane.mjs github-release/);});
 test('actual downloader rejects foreign or local context before gh download',()=>{const result=spawnSync(process.execPath,[new URL('./toolkit-candidate-download.mjs',import.meta.url).pathname,'--expected-sha',sha,'--output','/tmp/never-download-toolkit'],{encoding:'utf8',env:{...process.env,GITHUB_ACTIONS:'false'},timeout:10000});assert.notEqual(result.status,0);assert.match(result.stderr,/Exact protected upstream main context required/);});
@@ -66,4 +67,19 @@ test('ignored JavaScript payload cannot enter a pack even when git status is cle
    const result=spawnSync(process.execPath,[new URL('./toolkit-release-lane.mjs',import.meta.url).pathname,'preflight','--package','ruv-fann'],{encoding:'utf8',timeout:10000,env});
    assert.notEqual(result.status,0);assert.match(result.stderr,/Package payload is not tracked at source HEAD/);
  }finally{await rm(path,{force:true});await rm(temp,{recursive:true,force:true});}
+});
+
+test('canonical core consumer rejects satellite repacks, foreign sources and altered archive bytes',async()=>{
+ const directory=await mkdtemp(join(tmpdir(),'core-candidate-reader-'));
+ try{
+   const packages=rows(),path=join(directory,'package-manifest.json'),archive=join(directory,packages[0].tarball);
+   const manifest={schema:'ruv-fann.toolkit.candidate/1',sourceSha:sha,packages};
+   await writeFile(archive,'archive');await writeFile(path,JSON.stringify(manifest));
+   assert.equal((await canonicalCoreArchives(path,sha)).length,1);
+   await assert.rejects(canonicalCoreArchives(path,'c'.repeat(40)),/source/);
+   packages.push({...packages[0],name:'ruv-fann-wsp-loop',version:'0.1.0'});await writeFile(path,JSON.stringify(manifest));
+   await assert.rejects(canonicalCoreArchives(path,sha),/only the core/);
+   packages.pop();await writeFile(path,JSON.stringify(manifest));await writeFile(archive,'changed');
+   await assert.rejects(canonicalCoreArchives(path,sha),/digest/);
+ }finally{await rm(directory,{recursive:true,force:true});}
 });

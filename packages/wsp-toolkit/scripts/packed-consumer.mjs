@@ -4,12 +4,25 @@ import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import {validateRows,integrity,assertSourceSha} from '../../../scripts/toolkit-release-lib.mjs';
 export const toolkitRoot=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 export const names=['lifecycle','search','huggingface','cloudflare','ruos','invariants','swarm','registry','loop'].map(p=>`ruv-fann-wsp-${p}`).concat(['ruvnet-constellation-contracts','ruvnet-constellation','ruvnet-constellation-telemetry']);
 export async function packToolkit(directory) {
   const output=JSON.parse(execFileSync('npm',['pack','--ignore-scripts','--json','--pack-destination',directory,...names.flatMap(n=>['--workspace',n])],{cwd:toolkitRoot,encoding:'utf8'}));
   return Promise.all(output.map(async p=>({name:p.name,version:p.version,filename:p.filename,bytes:p.size,
     sha256:createHash('sha256').update(await readFile(join(directory,p.filename))).digest('hex')})));
+}
+/** Read the single canonical core archive without repacking its published dependencies. */
+export async function canonicalCoreArchives(manifestPath,expectedSha) {
+  const manifest=JSON.parse(await readFile(manifestPath,'utf8'));
+  if(manifest.schema!=='ruv-fann.toolkit.candidate/1'||manifest.sourceSha!==assertSourceSha(expectedSha))throw Error('Canonical candidate source mismatch');
+  validateRows(manifest.packages);
+  const archives=manifest.packages.map(row=>({...row,filename:row.tarball}));
+  for(const item of archives) {
+    const bytes=await readFile(join(dirname(manifestPath),item.filename));
+    if(createHash('sha256').update(bytes).digest('hex')!==item.sha256||integrity(bytes)!==item.integrity)throw Error('Canonical archive digest mismatch');
+  }
+  return archives;
 }
 export async function verifyPackedConsumer() {
   const directory=await mkdtemp(join(tmpdir(),'wsp-consumer-'));
@@ -19,16 +32,8 @@ export async function verifyPackedConsumer() {
     let archives;
     if(process.env.WSP_TOOLKIT_CANDIDATE) {
       const manifestPath=resolve(process.env.WSP_TOOLKIT_CANDIDATE);
-      const manifest=JSON.parse(await readFile(manifestPath,'utf8'));
-      if(manifest.sourceSha!==process.env.EXPECTED_SHA||manifest.packages?.length!==13)throw Error('Canonical candidate source/package count mismatch');
-      archives=manifest.packages.filter(p=>names.includes(p.name)).map(p=>({...p,filename:p.tarball}));
-      if(archives.length!==12)throw Error('Canonical candidate must contain all twelve toolkit packages');
-      for(const item of archives) {
-        if(!/^[A-Za-z0-9][A-Za-z0-9._-]*\.tgz$/.test(item.filename)||item.filename.includes('..'))throw Error('Unsafe candidate archive filename');
-        const bytes=await readFile(join(dirname(manifestPath),item.filename));
-        if(createHash('sha256').update(bytes).digest('hex')!==item.sha256)throw Error('Canonical archive digest mismatch');
-        await copyFile(join(dirname(manifestPath),item.filename),join(directory,item.filename));
-      }
+      archives=await canonicalCoreArchives(manifestPath,process.env.EXPECTED_SHA);
+      for(const item of archives)await copyFile(join(dirname(manifestPath),item.filename),join(directory,item.filename));
     } else archives=await packToolkit(directory);
     await writeFile(join(directory,'package.json'),JSON.stringify({private:true,type:'module'}));
     execFileSync('npm',['install','--ignore-scripts','--prefer-offline','--no-audit','--no-fund',...archives.map(p=>join(directory,p.filename))],{cwd:directory,encoding:'utf8'});
@@ -37,8 +42,10 @@ export async function verifyPackedConsumer() {
     let lightweight;
     try {
       await writeFile(join(light,'package.json'),JSON.stringify({private:true,type:'module'}));
-      const small=archives.filter(p=>['ruvnet-constellation','ruvnet-constellation-contracts'].includes(p.name));
-      execFileSync('npm',['install','--ignore-scripts','--prefer-offline','--no-audit','--no-fund',...small.map(p=>join(directory,p.filename))],{cwd:light,encoding:'utf8'});
+      const small=process.env.WSP_TOOLKIT_CANDIDATE
+        ? ['ruvnet-constellation@0.1.0','ruvnet-constellation-contracts@0.1.0']
+        : archives.filter(p=>['ruvnet-constellation','ruvnet-constellation-contracts'].includes(p.name)).map(p=>join(directory,p.filename));
+      execFileSync('npm',['install','--ignore-scripts','--prefer-offline','--no-audit','--no-fund',...small],{cwd:light,encoding:'utf8'});
       const tree=JSON.parse(execFileSync('npm',['ls','--all','--json'],{cwd:light,encoding:'utf8'}));
       const found=new Set();const walk=tree=>{for(const [name,value]of Object.entries(tree.dependencies??{})){found.add(name);walk(value);}};walk(tree);
       if(found.size!==2||!found.has('ruvnet-constellation')||!found.has('ruvnet-constellation-contracts'))throw Error('lightweight onramp installed unexpected dependencies');
