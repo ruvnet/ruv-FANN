@@ -1,7 +1,7 @@
 {
   "name": "ruv-fann-wsp-registry",
   "version": "0.1.0",
-  "description": "Serialized AgentDB weight-program authority with explicit durable acknowledgement",
+  "description": "Adapt AgentDB weight programs with serialized operations, revision checks and caller-supplied persistence acknowledgment.",
   "type": "module",
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
@@ -42,5 +42,20 @@
   "license": "MIT",
   "publishConfig": {
     "access": "public"
+  },
+  "keywords": [
+    "ruv-fann",
+    "weight-space-programming",
+    "neural-network",
+    "webassembly",
+    "agentdb",
+    "model-registry",
+    "checkpoint",
+    "persistence",
+    "compare-and-swap"
+  ],
+  "homepage": "https://ruvnet.github.io/ruv-FANN/",
+  "bugs": {
+    "url": "https://github.com/ruvnet/ruv-FANN/issues"
   }
 }

@@ -2,7 +2,7 @@
   "name": "ruvnet-constellation-telemetry",
   "version": "0.1.0",
   "type": "module",
-  "description": "Public package observations and explicitly sampled project attach metrics with a standalone constellation dashboard",
+  "description": "Analyze public npm and GitHub observations, consented project samples and standalone package dashboards.",
   "engines": {
     "node": ">=20.9.0"
   },
@@ -29,5 +29,20 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "keywords": [
+    "ruvnet",
+    "constellation",
+    "npm",
+    "github",
+    "package-analytics",
+    "dashboard",
+    "privacy",
+    "local-telemetry",
+    "adoption-metrics"
+  ],
+  "homepage": "https://ruvnet.github.io/ruv-FANN/",
+  "bugs": {
+    "url": "https://github.com/ruvnet/ruv-FANN/issues"
   }
 }

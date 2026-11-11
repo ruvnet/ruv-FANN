@@ -16,8 +16,10 @@ test('the actual default catalog uses versioned contracts and known profile memb
   const value=JSON.parse(await readFile(new URL('../../constellation/catalog.json',import.meta.url),'utf8'));
   const result=validateCatalog(value);
   assert.ok(result.packages.some(pkg=>pkg.name==='ruv-fann-wsp'&&pkg.status==='published'));
-  assert.ok(result.packages.some(pkg=>pkg.name==='ruvnet-constellation'&&pkg.status==='candidate'));
+  assert.ok(result.packages.some(pkg=>pkg.name==='ruvnet-constellation'&&pkg.status==='published'));
   assert.ok(result.profiles.some(profile=>profile.id==='local-loop'));
+  assert.equal(result.packages.length,24);assert.ok(result.packages.every(pkg=>pkg.status==='published'));
+  assert.equal(result.packages.find(pkg=>pkg.name==='ruv-fann').version,'0.2.0');
 });
 test('unknown fields, classes, getters, symbols and hostile arrays reject without invocation',()=>{
   let calls=0;

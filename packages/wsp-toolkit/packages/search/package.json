@@ -1,7 +1,7 @@
 {
   "name": "ruv-fann-wsp-search",
   "version": "0.1.0",
-  "description": "Bounded derivative-free weight search and experimental symbolic/plasticity proposals for ruv-fann-wsp",
+  "description": "Search explicit neural weight values without gradients; propose bounded Boolean-table and experimental Hebbian edits.",
   "type": "module",
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
@@ -35,5 +35,19 @@
   "license": "MIT",
   "publishConfig": {
     "access": "public"
+  },
+  "keywords": [
+    "ruv-fann",
+    "weight-space-programming",
+    "neural-network",
+    "webassembly",
+    "derivative-free",
+    "coordinate-descent",
+    "hebbian-learning",
+    "boolean-functions"
+  ],
+  "homepage": "https://ruvnet.github.io/ruv-FANN/",
+  "bugs": {
+    "url": "https://github.com/ruvnet/ruv-FANN/issues"
   }
 }

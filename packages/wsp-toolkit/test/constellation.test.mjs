@@ -6,7 +6,7 @@ import {join} from 'node:path';
 import {spawnSync,execFileSync} from 'node:child_process';
 import {runConstellationScenario} from './constellation-scenario.mjs';
 test('catalog planning, satellite quality checks and privacy-aware attach compose end-to-end',async()=>{
-  const result=await runConstellationScenario();assert.equal(result.catalogEntries,24);assert.equal(result.published,12);assert.equal(result.scaffoldNoInstall,true);
+  const result=await runConstellationScenario();assert.equal(result.catalogEntries,24);assert.equal(result.published,24);assert.equal(result.releaseProfileInstallSpecs,4);assert.equal(result.candidateProfileBlocked,true);assert.equal(result.scaffoldNoInstall,true);
 });
 test('public report command rejects malformed, oversized and nonregular catalog input before network',async()=>{
   const directory=await mkdtemp(join(tmpdir(),'constellation-cli-')),script=new URL('../scripts/constellation-report.mjs',import.meta.url).pathname;

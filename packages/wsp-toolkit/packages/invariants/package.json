@@ -1,7 +1,7 @@
 {
   "name": "ruv-fann-wsp-invariants",
   "version": "0.1.0",
-  "description": "Bounded real-WASM finite-domain output invariants for surgical weight evolution",
+  "description": "Check finite-domain neural output bounds and expected values using real scalar or SIMD WebAssembly inference.",
   "type": "module",
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
@@ -35,5 +35,19 @@
   "license": "MIT",
   "publishConfig": {
     "access": "public"
+  },
+  "keywords": [
+    "ruv-fann",
+    "weight-space-programming",
+    "neural-network",
+    "webassembly",
+    "output-invariants",
+    "model-validation",
+    "simd",
+    "regression-testing"
+  ],
+  "homepage": "https://ruvnet.github.io/ruv-FANN/",
+  "bugs": {
+    "url": "https://github.com/ruvnet/ruv-FANN/issues"
   }
 }

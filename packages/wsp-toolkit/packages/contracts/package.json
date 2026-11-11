@@ -1,7 +1,7 @@
 {
   "name": "ruvnet-constellation-contracts",
   "version": "0.1.0",
-  "description": "Dependency-free bounded constellation catalog and module contracts",
+  "description": "Validate bounded JSON catalogs and module manifests for independently installable RuvNet packages.",
   "type": "module",
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
@@ -33,5 +33,17 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "keywords": [
+    "ruvnet",
+    "constellation",
+    "json-schema",
+    "validation",
+    "package-catalog",
+    "module-manifest"
+  ],
+  "homepage": "https://ruvnet.github.io/ruv-FANN/",
+  "bugs": {
+    "url": "https://github.com/ruvnet/ruv-FANN/issues"
   }
 }

@@ -10,13 +10,26 @@ import {readCatalog,planProfile,scaffoldSatellite} from '../src/index.js';
 const cli=new URL('../src/cli.js',import.meta.url).pathname;
 async function temp(t){const root=await mkdtemp(join(tmpdir(),'constellation-onramp-'));t.after(()=>rm(root,{recursive:true,force:true}));return root;}
 
-test('default installed catalog plans published pins separately from local candidates',async()=>{
+test('default release catalog plans explicit published pins without installing packages',async()=>{
   const catalog=await readCatalog(),weights=planProfile(catalog,'weights'),local=planProfile(catalog,'local-loop');
   assert.deepEqual(weights.registrySpecs,['ruv-fann-wsp@0.2.0']);assert.equal(weights.publicInstallAvailable,true);
-  assert.equal(local.registrySpecs.length,0);assert.equal(local.localCandidates.length,4);assert.equal(local.publicInstallAvailable,false);
+  assert.deepEqual(local.registrySpecs,['ruv-fann-wsp-loop@0.1.0','ruv-fann-wsp-registry@0.1.0','ruv-fann-wsp-swarm@0.1.0','ruv-fann-wsp-invariants@0.1.0']);
+  assert.equal(local.localCandidates.length,0);assert.equal(local.publicInstallAvailable,true);
+  assert.equal(catalog.packages.length,24);assert.ok(catalog.packages.every(pkg=>pkg.status==='published'));
+  assert.equal(catalog.packages.find(pkg=>pkg.name==='ruv-fann').version,'0.2.0');
   assert.equal(local.automaticInstall,false);assert.equal(local.telemetry,'disabled');
   catalog.profiles[0].description='changed';assert.notEqual(weights.description,'changed');
   assert.throws(()=>planProfile(catalog,'absent'));
+});
+test('independent source-candidate catalog remains distinct from registry install specifications',()=>{
+  const catalog={schema:'ruvnet.constellation-catalog/1',repository:'example/adapters',packages:[
+    {name:'published-adapter',version:'1.2.3',role:'primitive',family:'example',status:'published',repository:'example/adapters',description:'Published fixture'},
+    {name:'source-adapter',version:'0.1.0',role:'satellite',family:'example',status:'candidate',repository:'example/adapters',directory:'packages/source',description:'Source-only fixture'}
+  ],profiles:[{id:'mixed',description:'Explicit fixture status distinction',packages:['published-adapter','source-adapter']}]};
+  const plan=planProfile(catalog,'mixed');
+  assert.deepEqual(plan.registrySpecs,['published-adapter@1.2.3']);
+  assert.equal(plan.publicInstallAvailable,false);assert.equal(plan.localCandidates[0].name,'source-adapter');
+  assert.equal(plan.automaticInstall,false);assert.equal(plan.telemetry,'disabled');
 });
 test('local catalog reader rejects oversized, nonregular, invalid UTF-8 and HTTP inputs',async t=>{
   const root=await temp(t),file=join(root,'catalog.json');
@@ -32,7 +45,7 @@ test('CLI help/catalog/plan produce explicit local output and refuse unknown com
   const help=execFileSync(process.execPath,[cli,'help'],{encoding:'utf8'});
   assert.match(help,/https:\/\/www.npmjs.com\/package\/agentdb/);assert.match(help,/No command/);
   const output=JSON.parse(execFileSync(process.execPath,[cli,'catalog','--json'],{encoding:'utf8'}));assert.ok(output.packages.length>0);
-  const plan=JSON.parse(execFileSync(process.execPath,[cli,'plan','local-loop'],{encoding:'utf8'}));assert.equal(plan.publicInstallAvailable,false);
+  const plan=JSON.parse(execFileSync(process.execPath,[cli,'plan','local-loop'],{encoding:'utf8'}));assert.equal(plan.publicInstallAvailable,true);assert.equal(plan.registrySpecs.length,4);
   for(const args of [['publish'],['plan'],['catalog','--token','example'],['scaffold','x','--name','ok','--exec','id']]) {
     const rejected=spawnSync(process.execPath,[cli,...args],{encoding:'utf8'});assert.equal(rejected.status,2);
   }

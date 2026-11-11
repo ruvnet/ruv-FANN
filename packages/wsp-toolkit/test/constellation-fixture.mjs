@@ -1,7 +1,9 @@
 import {readCatalog} from 'ruvnet-constellation';
 import {analyzeConstellation} from 'ruvnet-constellation-telemetry';
-export async function constellationFixture({adoption=false,hostile=false}={}) {
+export async function constellationFixture({adoption=false,hostile=false,candidates=false}={}) {
   const catalog=await readCatalog();
+  // Explicit source-only test variant; the default fixture retains release declarations.
+  if(candidates)for(const pkg of catalog.packages)if(pkg.directory)pkg.status='candidate';
   if(hostile)catalog.packages[0].description='</script><script>window.constellationPwned=true</script><img src=x onerror="window.constellationPwned=true">';
   const start='2026-09-30',end='2026-11-10';
   const observations={schema:'ruvnet.constellation-observations/1',observedAt:'2026-11-11T12:00:00.000Z',start,end,

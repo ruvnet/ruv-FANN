@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "license": "MIT",
-  "description": "Bounded autonomous weight evolution with worker swarms, independent gates and durable revision authority",
+  "description": "Coordinate bounded local weight evolution with worker proposals, independent regression gates and revision-based promotion.",
   "engines": {
     "node": ">=20.9.0"
   },
@@ -32,5 +32,20 @@
     "type": "git",
     "url": "git+https://github.com/ruvnet/ruv-FANN.git",
     "directory": "packages/wsp-toolkit/packages/loop"
+  },
+  "keywords": [
+    "ruv-fann",
+    "weight-space-programming",
+    "neural-network",
+    "webassembly",
+    "autonomous-agents",
+    "model-evaluation",
+    "worker-threads",
+    "checkpoint",
+    "agentdb"
+  ],
+  "homepage": "https://ruvnet.github.io/ruv-FANN/",
+  "bugs": {
+    "url": "https://github.com/ruvnet/ruv-FANN/issues"
   }
 }

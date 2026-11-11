@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "license": "MIT",
-  "description": "Real WASM canary and trusted executor completion checks for ruOS",
+  "description": "Validate real WebAssembly canary output and bind trusted ruOS executor completion evidence to explicit requests.",
   "engines": {
     "node": ">=20.9.0"
   },
@@ -29,5 +29,19 @@
     "type": "git",
     "url": "git+https://github.com/ruvnet/ruv-FANN.git",
     "directory": "packages/wsp-toolkit/packages/ruos"
+  },
+  "keywords": [
+    "ruv-fann",
+    "weight-space-programming",
+    "neural-network",
+    "webassembly",
+    "ruos",
+    "executor",
+    "canary",
+    "evidence-validation"
+  ],
+  "homepage": "https://ruvnet.github.io/ruv-FANN/",
+  "bugs": {
+    "url": "https://github.com/ruvnet/ruv-FANN/issues"
   }
 }

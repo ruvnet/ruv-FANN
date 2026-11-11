@@ -1,22 +1,22 @@
 import {readFile,writeFile} from 'node:fs/promises';
-import {resolve,dirname,relative,join} from 'node:path';
+import {resolve,dirname,join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {validateCatalog,validateModuleManifest,CONTRACTS} from 'ruvnet-constellation-contracts';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const catalog=validateCatalog(JSON.parse(await readFile(join(root,'packages/constellation/catalog.json'),'utf8')));
-const check=process.argv.slice(2).includes('--check');
-if(process.argv.slice(2).some(arg=>arg!=='--check'))throw new Error('usage: node scripts/constellation-links.mjs [--check]');
-const entries=catalog.packages.filter(p=>p.status==='candidate'&&p.repository===catalog.repository&&p.directory?.startsWith('packages/wsp-toolkit/packages/'));
+const args=process.argv.slice(2),check=args.includes('--check'),print=args.includes('--print');
+if(args.length>1||args.some(arg=>!['--check','--print'].includes(arg)))throw new Error('usage: node scripts/constellation-links.mjs [--check|--print]');
+const entries=catalog.packages.filter(p=>p.repository===catalog.repository&&p.directory?.startsWith('packages/wsp-toolkit/packages/'));
 const start='<!-- constellation-links:start -->',end='<!-- constellation-links:end -->';
-let changes=0;
+let changes=0;const blocks=[];
 for(const entry of entries) {
   const directory=resolve(root,'../..',entry.directory);
-  if(!directory.startsWith(join(root,'packages')+'/'))throw new Error('candidate directory escapes workspace');
+  if(!directory.startsWith(join(root,'packages')+'/'))throw new Error('local package directory escapes workspace');
   const readmePath=join(directory,'README.md'),manifestPath=join(directory,'package.json');
   const manifest=JSON.parse(await readFile(manifestPath,'utf8'));
   if(manifest.name!==entry.name||manifest.version!==entry.version)throw new Error('catalog package identity differs from source');
-  const sourceLink=target=>relative(directory,join(root,'packages',target,'README.md')).split('\\').join('/');
-  const block=`${start}\n\nExplore the [constellation onramp](${sourceLink('constellation')}) and [shared contracts](${sourceLink('contracts')}). Optional ecosystem primitives: [ruv-fann-wsp](https://www.npmjs.com/package/ruv-fann-wsp), [AgentDB](https://www.npmjs.com/package/agentdb), [RuVector](https://www.npmjs.com/package/ruvector). Optional orchestration: [MetaHarness](https://www.npmjs.com/package/metaharness) and [Ruflo](https://www.npmjs.com/package/ruflo).\n\nThese links describe integrations; they do not add install-time dependencies. Workspace package candidates and namespace proposals are listed explicitly in the catalog.\n\n${end}`;
+  const block=`${start}\n\nExplore the [ruv-fann field guide](https://ruvnet.github.io/ruv-FANN/), [constellation onramp](https://www.npmjs.com/package/ruvnet-constellation) and [shared contracts](https://www.npmjs.com/package/ruvnet-constellation-contracts). Optional ecosystem primitives: [ruv-fann-wsp](https://www.npmjs.com/package/ruv-fann-wsp), [AgentDB](https://www.npmjs.com/package/agentdb), [RuVector](https://www.npmjs.com/package/ruvector). Optional orchestration: [MetaHarness](https://www.npmjs.com/package/metaharness) and [Ruflo](https://www.npmjs.com/package/ruflo).\n\nThese links describe integrations; package.json defines install-time dependencies. The [versioned catalog](https://github.com/${catalog.repository}/blob/main/packages/wsp-toolkit/packages/constellation/catalog.json) declares release profiles and package versions; registry availability and publication provenance require independent verification.\n\n${end}`;
+  if(print)blocks.push({name:entry.name,directory:entry.directory,readmeBlock:block});
   const before=await readFile(readmePath,'utf8');
   if((before.includes(start)||before.includes(end))&&!(before.includes(start)&&before.includes(end)))throw new Error('incomplete constellation README markers');
   const after=before.includes(start)?before.slice(0,before.indexOf(start))+block+before.slice(before.indexOf(end)+end.length):before.trimEnd()+'\n\n'+block+'\n';
@@ -30,8 +30,8 @@ for(const entry of entries) {
   const changed=after!==before||oldModule!==moduleJSON||!manifest.files?.includes('constellation.json');
   if(changed) {
     changes++;
-    if(!check){await writeFile(readmePath,after);await writeFile(modulePath,moduleJSON);await writeFile(manifestPath,JSON.stringify(nextManifest,null,2)+'\n');}
+    if(!check&&!print){await writeFile(readmePath,after);await writeFile(modulePath,moduleJSON);await writeFile(manifestPath,JSON.stringify(nextManifest,null,2)+'\n');}
   }
 }
 if(check&&changes)throw new Error(`${changes} constellation metadata/README blocks need regeneration`);
-console.log(JSON.stringify({packages:entries.length,changes,mode:check?'check':'write'}));
+console.log(JSON.stringify({packages:entries.length,changes,mode:check?'check':print?'print':'write',...(print?{blocks}:{})}));

@@ -6,8 +6,8 @@ import {renderConstellationDashboard} from 'ruvnet-constellation-telemetry';
 import {constellationFixture} from './constellation-fixture.mjs';
 test('standalone dashboard filters real report shapes without external requests or executable metadata',async()=>{
   const fixture=await constellationFixture({adoption:true,hostile:true});
-  const unsampled=await constellationFixture();
-  const pages=new Map([['/',renderConstellationDashboard(fixture.report)],['/unsampled',renderConstellationDashboard(unsampled.report)]]);
+  const unsampled=await constellationFixture(),candidates=await constellationFixture({candidates:true});
+  const pages=new Map([['/',renderConstellationDashboard(fixture.report)],['/unsampled',renderConstellationDashboard(unsampled.report)],['/candidates',renderConstellationDashboard(candidates.report)]]);
   const server=createServer((req,res)=>{if(pages.has(req.url)){res.writeHead(200,{'Content-Type':'text/html'});res.end(pages.get(req.url));}else res.writeHead(404).end();});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));let browser;
   try {
@@ -25,9 +25,11 @@ test('standalone dashboard filters real report shapes without external requests 
     assert.equal(await page.locator('#package-table tr[data-package]').count(),9);
     await page.fill('#package-search','loop');assert.equal(await page.locator('#package-table tr[data-package]').count(),1);
     assert.equal(await page.locator('#package-table tr[data-package]').getAttribute('data-package'),'ruv-fann-wsp-loop');
-    assert.match(await page.locator('#package-table').innerText(),/Local candidate/);
+    assert.match(await page.locator('#package-table').innerText(),/Observed/);
     await page.fill('#package-search','no-such-package');assert.match(await page.locator('#package-table').innerText(),/No packages match/);
     await page.goto(origin+'/unsampled');assert.match(await page.locator('#attach-rate').innerText(),/Not measured/);
+    await page.goto(origin+'/candidates');await page.fill('#package-search','ruv-fann-wsp-loop');
+    assert.match(await page.locator('#package-table').innerText(),/Local candidate/);
     assert.deepEqual(errors,[]);assert.deepEqual(external,[]);
   } finally {await browser?.close();await new Promise(resolve=>server.close(resolve));}
 });

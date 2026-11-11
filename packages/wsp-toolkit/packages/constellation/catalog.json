@@ -90,12 +90,12 @@
     },
     {
       "name": "ruv-fann",
-      "version": "0.1.2",
+      "version": "0.2.0",
       "role": "primitive",
       "family": "ruv-fann",
       "status": "published",
       "repository": "ruvnet/ruv-FANN",
-      "description": "Dense neural-network WebAssembly facade",
+      "description": "Dense neural-network WebAssembly facade with optional weight-space toolkit entry points",
       "links": {
         "npm": "https://www.npmjs.com/package/ruv-fann",
         "source": "https://github.com/ruvnet/ruv-FANN"
@@ -182,17 +182,18 @@
       "version": "0.1.0",
       "role": "satellite",
       "family": "ruv-fann",
-      "status": "candidate",
+      "status": "published",
       "repository": "ruvnet/ruv-FANN",
       "directory": "packages/wsp-toolkit/packages/lifecycle",
-      "description": "Bounded multi-suite regression gates and checkpoint branch evaluation for WSP",
+      "description": "Evaluate bounded neural weight patches across named regression suites and independent candidate branches.",
       "contracts": [
         "ruv-fann.dense-layers/1",
         "ruv-fann.weight-patch/1",
         "ruv-fann.weight-evaluation/1"
       ],
       "links": {
-        "source": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit/packages/lifecycle"
+        "source": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit/packages/lifecycle",
+        "npm": "https://www.npmjs.com/package/ruv-fann-wsp-lifecycle"
       }
     },
     {
@@ -200,16 +201,17 @@
       "version": "0.1.0",
       "role": "satellite",
       "family": "ruv-fann",
-      "status": "candidate",
+      "status": "published",
       "repository": "ruvnet/ruv-FANN",
       "directory": "packages/wsp-toolkit/packages/search",
-      "description": "Bounded derivative-free weight search and experimental symbolic/plasticity proposals for ruv-fann-wsp",
+      "description": "Search explicit neural weight values without gradients; propose bounded Boolean-table and experimental Hebbian edits.",
       "contracts": [
         "ruv-fann.dense-layers/1",
         "ruv-fann.weight-patch/1"
       ],
       "links": {
-        "source": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit/packages/search"
+        "source": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit/packages/search",
+        "npm": "https://www.npmjs.com/package/ruv-fann-wsp-search"
       }
     },
     {
@@ -217,15 +219,16 @@
       "version": "0.1.0",
       "role": "satellite",
       "family": "ruv-fann",
-      "status": "candidate",
+      "status": "published",
       "repository": "ruvnet/ruv-FANN",
       "directory": "packages/wsp-toolkit/packages/huggingface",
-      "description": "Integrity-pinned public Hugging Face dense JSON checkpoints for ruv-FANN WSP",
+      "description": "Load public Hugging Face dense JSON checkpoints with pinned revisions, SHA-256 integrity and bounded WSP validation.",
       "contracts": [
         "ruv-fann.dense-layers/1"
       ],
       "links": {
-        "source": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit/packages/huggingface"
+        "source": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit/packages/huggingface",
+        "npm": "https://www.npmjs.com/package/ruv-fann-wsp-huggingface"
       }
     },
     {
@@ -233,17 +236,18 @@
       "version": "0.1.0",
       "role": "satellite",
       "family": "ruv-fann",
-      "status": "candidate",
+      "status": "published",
       "repository": "ruvnet/ruv-FANN",
       "directory": "packages/wsp-toolkit/packages/cloudflare",
-      "description": "Bounded stateless WSP operations with static WebAssembly modules for Cloudflare Workers",
+      "description": "Run bounded neural weight patches and regression evaluations in Cloudflare Workers with static WebAssembly modules.",
       "contracts": [
         "ruv-fann.dense-layers/1",
         "ruv-fann.weight-patch/1",
         "ruv-fann.weight-evaluation/1"
       ],
       "links": {
-        "source": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit/packages/cloudflare"
+        "source": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit/packages/cloudflare",
+        "npm": "https://www.npmjs.com/package/ruv-fann-wsp-cloudflare"
       }
     },
     {
@@ -251,16 +255,17 @@
       "version": "0.1.0",
       "role": "satellite",
       "family": "ruv-fann",
-      "status": "candidate",
+      "status": "published",
       "repository": "ruvnet/ruv-FANN",
       "directory": "packages/wsp-toolkit/packages/ruos",
-      "description": "Real WASM canary and trusted executor completion checks for ruOS",
+      "description": "Validate real WebAssembly canary output and bind trusted ruOS executor completion evidence to explicit requests.",
       "contracts": [
         "ruv-fann.dense-layers/1",
         "ruv-fann.weight-patch/1"
       ],
       "links": {
-        "source": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit/packages/ruos"
+        "source": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit/packages/ruos",
+        "npm": "https://www.npmjs.com/package/ruv-fann-wsp-ruos"
       }
     },
     {
@@ -268,15 +273,16 @@
       "version": "0.1.0",
       "role": "satellite",
       "family": "ruv-fann",
-      "status": "candidate",
+      "status": "published",
       "repository": "ruvnet/ruv-FANN",
       "directory": "packages/wsp-toolkit/packages/invariants",
-      "description": "Bounded real-WASM finite-domain output invariants for surgical weight evolution",
+      "description": "Check finite-domain neural output bounds and expected values using real scalar or SIMD WebAssembly inference.",
       "contracts": [
         "ruv-fann.dense-layers/1"
       ],
       "links": {
-        "source": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit/packages/invariants"
+        "source": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit/packages/invariants",
+        "npm": "https://www.npmjs.com/package/ruv-fann-wsp-invariants"
       }
     },
     {
@@ -284,16 +290,17 @@
       "version": "0.1.0",
       "role": "satellite",
       "family": "ruv-fann",
-      "status": "candidate",
+      "status": "published",
       "repository": "ruvnet/ruv-FANN",
       "directory": "packages/wsp-toolkit/packages/swarm",
-      "description": "Bounded fixed-operation proposal workers using real Node worker threads and WASM",
+      "description": "Run bounded neural patch and search proposals in real Node.js worker threads with isolated WebAssembly instances.",
       "contracts": [
         "ruv-fann.dense-layers/1",
         "ruv-fann.weight-patch/1"
       ],
       "links": {
-        "source": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit/packages/swarm"
+        "source": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit/packages/swarm",
+        "npm": "https://www.npmjs.com/package/ruv-fann-wsp-swarm"
       }
     },
     {
@@ -301,17 +308,18 @@
       "version": "0.1.0",
       "role": "satellite",
       "family": "ruv-fann",
-      "status": "candidate",
+      "status": "published",
       "repository": "ruvnet/ruv-FANN",
       "directory": "packages/wsp-toolkit/packages/registry",
-      "description": "Serialized AgentDB weight-program authority with explicit durable acknowledgement",
+      "description": "Adapt AgentDB weight programs with serialized operations, revision checks and caller-supplied persistence acknowledgment.",
       "contracts": [
         "ruv-fann.dense-layers/1",
         "ruv-fann.weight-patch/1",
         "ruv-fann.weight-evaluation/1"
       ],
       "links": {
-        "source": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit/packages/registry"
+        "source": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit/packages/registry",
+        "npm": "https://www.npmjs.com/package/ruv-fann-wsp-registry"
       }
     },
     {
@@ -319,17 +327,18 @@
       "version": "0.1.0",
       "role": "satellite",
       "family": "ruv-fann",
-      "status": "candidate",
+      "status": "published",
       "repository": "ruvnet/ruv-FANN",
       "directory": "packages/wsp-toolkit/packages/loop",
-      "description": "Bounded autonomous weight evolution with worker swarms, independent gates and durable revision authority",
+      "description": "Coordinate bounded local weight evolution with worker proposals, independent regression gates and revision-based promotion.",
       "contracts": [
         "ruv-fann.dense-layers/1",
         "ruv-fann.weight-patch/1",
         "ruv-fann.weight-evaluation/1"
       ],
       "links": {
-        "source": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit/packages/loop"
+        "source": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit/packages/loop",
+        "npm": "https://www.npmjs.com/package/ruv-fann-wsp-loop"
       }
     },
     {
@@ -337,12 +346,13 @@
       "version": "0.1.0",
       "role": "primitive",
       "family": "constellation",
-      "status": "candidate",
+      "status": "published",
       "repository": "ruvnet/ruv-FANN",
       "directory": "packages/wsp-toolkit/packages/contracts",
-      "description": "Dependency-free module and catalog contracts",
+      "description": "Validate bounded JSON catalogs and module manifests for independently installable RuvNet packages.",
       "links": {
-        "source": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit/packages/contracts"
+        "source": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit/packages/contracts",
+        "npm": "https://www.npmjs.com/package/ruvnet-constellation-contracts"
       }
     },
     {
@@ -350,12 +360,13 @@
       "version": "0.1.0",
       "role": "nucleus",
       "family": "constellation",
-      "status": "candidate",
+      "status": "published",
       "repository": "ruvnet/ruv-FANN",
       "directory": "packages/wsp-toolkit/packages/constellation",
-      "description": "Lightweight explicit discover, plan and scaffold onramp",
+      "description": "Discover versioned RuvNet packages, plan explicit installs and scaffold local integration adapters with a lightweight CLI.",
       "links": {
-        "source": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit/packages/constellation"
+        "source": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit/packages/constellation",
+        "npm": "https://www.npmjs.com/package/ruvnet-constellation"
       }
     },
     {
@@ -363,12 +374,13 @@
       "version": "0.1.0",
       "role": "satellite",
       "family": "constellation",
-      "status": "candidate",
+      "status": "published",
       "repository": "ruvnet/ruv-FANN",
       "directory": "packages/wsp-toolkit/packages/telemetry",
-      "description": "Public cohort metrics and explicit local adoption analysis",
+      "description": "Analyze public npm and GitHub observations, consented project samples and standalone package dashboards.",
       "links": {
-        "source": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit/packages/telemetry"
+        "source": "https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit/packages/telemetry",
+        "npm": "https://www.npmjs.com/package/ruvnet-constellation-telemetry"
       }
     }
   ],
@@ -399,7 +411,7 @@
     },
     {
       "id": "local-loop",
-      "description": "Inspect the local autonomous-loop candidates; these are source artifacts",
+      "description": "Plan explicit version-pinned installs for the local weight-evolution loop and its supporting packages",
       "packages": [
         "ruv-fann-wsp-loop",
         "ruv-fann-wsp-registry",

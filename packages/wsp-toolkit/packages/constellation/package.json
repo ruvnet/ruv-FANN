@@ -2,7 +2,7 @@
   "name": "ruvnet-constellation",
   "version": "0.1.0",
   "type": "module",
-  "description": "Explicit lightweight constellation discovery, planning and satellite scaffolding",
+  "description": "Discover versioned RuvNet packages, plan explicit installs and scaffold local integration adapters with a lightweight CLI.",
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
   "exports": {
@@ -39,5 +39,18 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "keywords": [
+    "ruvnet",
+    "constellation",
+    "package-discovery",
+    "cli",
+    "integration",
+    "scaffolding",
+    "package-catalog"
+  ],
+  "homepage": "https://ruvnet.github.io/ruv-FANN/",
+  "bugs": {
+    "url": "https://github.com/ruvnet/ruv-FANN/issues"
   }
 }
