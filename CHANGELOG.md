@@ -43,21 +43,6 @@ are release candidates until publication is verified in the registry.
 
 ## [0.2.2] - 2026-11-09
 
-### Performance
-
-- `PreparedNetwork::run_into` reads a dense first layer's inputs in place
-  instead of copying them into the workspace and reading them back, and
-  activation dispatch is inlined. Single-row scoring of a `10 -> 1` sigmoid
-  head went from 35.4 ns to 19.5 ns (x86-64 Windows, criterion,
-  `benches/prepared_single_row.rs`); a `10 -> 4 -> 1` head is unchanged within
-  noise. Results, error reporting and the output-commit rule are bit-identical
-  (`tests/prepared_direct_first_layer.rs`). Sparse first layers keep the copy.
-
-### Fixed
-
-- `gpu_sweet_spot_benchmark` declares `required-features = ["gpu"]`, so a plain
-  `cargo test` or `cargo check --examples` on default features compiles.
-
 ### Security
 
 - Check SIMD slice lengths and dimension products in release builds before
