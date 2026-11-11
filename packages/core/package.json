@@ -1,7 +1,7 @@
 {
   "name": "ruv-fann",
-  "version": "0.1.2",
-  "description": "Neural networks for JavaScript and TypeScript: WebAssembly batch inference and SGD/AdamW training in Node.js and browsers.",
+  "version": "0.2.0",
+  "description": "Rust/WASM neural inference and training with explicit weight editing, bounded search, invariant gates, evolution loops and AgentDB registry integrations.",
   "type": "module",
   "engines": {
     "node": ">=20.9.0"
@@ -10,6 +10,62 @@
     ".": {
       "types": "./src/index.d.ts",
       "import": "./src/index.js"
+    },
+    "./wsp": {
+      "types": "./src/capabilities/wsp.d.ts",
+      "import": "./src/capabilities/wsp.js"
+    },
+    "./lifecycle": {
+      "types": "./src/capabilities/lifecycle.d.ts",
+      "import": "./src/capabilities/lifecycle.js"
+    },
+    "./search": {
+      "types": "./src/capabilities/search.d.ts",
+      "import": "./src/capabilities/search.js"
+    },
+    "./huggingface": {
+      "types": "./src/capabilities/huggingface.d.ts",
+      "import": "./src/capabilities/huggingface.js"
+    },
+    "./cloudflare": {
+      "types": "./src/capabilities/cloudflare.d.ts",
+      "import": "./src/capabilities/cloudflare.js"
+    },
+    "./cloudflare/build": {
+      "types": "./src/capabilities/cloudflare/build.d.ts",
+      "import": "./src/capabilities/cloudflare/build.js"
+    },
+    "./ruos": {
+      "types": "./src/capabilities/ruos.d.ts",
+      "import": "./src/capabilities/ruos.js"
+    },
+    "./invariants": {
+      "types": "./src/capabilities/invariants.d.ts",
+      "import": "./src/capabilities/invariants.js"
+    },
+    "./swarm": {
+      "types": "./src/capabilities/swarm.d.ts",
+      "import": "./src/capabilities/swarm.js"
+    },
+    "./registry": {
+      "types": "./src/capabilities/registry.d.ts",
+      "import": "./src/capabilities/registry.js"
+    },
+    "./loop": {
+      "types": "./src/capabilities/loop.d.ts",
+      "import": "./src/capabilities/loop.js"
+    },
+    "./constellation": {
+      "types": "./src/capabilities/constellation.d.ts",
+      "import": "./src/capabilities/constellation.js"
+    },
+    "./contracts": {
+      "types": "./src/capabilities/contracts.d.ts",
+      "import": "./src/capabilities/contracts.js"
+    },
+    "./telemetry": {
+      "types": "./src/capabilities/telemetry.d.ts",
+      "import": "./src/capabilities/telemetry.js"
     }
   },
   "files": [
@@ -19,7 +75,20 @@
     "assets"
   ],
   "dependencies": {
-    "ruv-fann-wasm": "0.1.2"
+    "ruv-fann-wasm": "0.1.2",
+    "ruv-fann-wsp": "0.2.0",
+    "ruv-fann-wsp-lifecycle": "0.1.0",
+    "ruv-fann-wsp-search": "0.1.0",
+    "ruv-fann-wsp-huggingface": "0.1.0",
+    "ruv-fann-wsp-cloudflare": "0.1.0",
+    "ruv-fann-wsp-ruos": "0.1.0",
+    "ruv-fann-wsp-invariants": "0.1.0",
+    "ruv-fann-wsp-swarm": "0.1.0",
+    "ruv-fann-wsp-registry": "0.1.0",
+    "ruv-fann-wsp-loop": "0.1.0",
+    "ruvnet-constellation": "0.1.0",
+    "ruvnet-constellation-contracts": "0.1.0",
+    "ruvnet-constellation-telemetry": "0.1.0"
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
@@ -51,7 +120,11 @@
     "training",
     "sgd",
     "adamw",
-    "agentdb"
+    "agentdb",
+    "weight-space-programming",
+    "weight-editing",
+    "bounded-search",
+    "invariants"
   ],
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
