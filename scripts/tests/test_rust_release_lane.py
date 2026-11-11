@@ -169,20 +169,35 @@ class PublicRustReceiptTests(unittest.TestCase):
 
 
 class RustGitHubReleaseTests(unittest.TestCase):
-    def exercise(self, corruption=None, wrong_tag=False, existing=False, missing_performance=False):
+    def exercise(self, corruption=None, wrong_tag=False, existing=False, missing_performance=False, orphan_tag=False, draft=False):
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)
             _, _, fixture = receipts(base)
             if missing_performance:
                 (base / release.PERFORMANCE_ASSETS[1]).unlink()
             calls = []
+            tag_exists = existing or orphan_tag or wrong_tag
             def gh(*args):
+                nonlocal tag_exists
                 calls.append(args)
                 if args[0] == 'api':
+                    if args[1:3] == ('--method', 'POST'):
+                        self.assertFalse(tag_exists, 'must not overwrite an existing tag')
+                        self.assertIn(f'ref=refs/tags/{release.TAG}', args)
+                        self.assertIn(f'sha={SOURCE}', args)
+                        tag_exists = True
+                        return '{}'
+                    if '/releases?' in args[1]:
+                        return json.dumps([{'tag_name': release.TAG, 'draft': draft}]) if existing or draft else '[]'
                     if 'issues?' in args[1]:
                         return '[]'
+                    if '/tags/' in args[1] and not tag_exists:
+                        raise AssertionError('draft creation does not create a missing git tag')
                     sha = 'b' * 40 if wrong_tag and '/tags/' in args[1] else SOURCE
                     return json.dumps({'object': {'type': 'commit', 'sha': sha}})
+                if args[:2] == ('release', 'create'):
+                    self.assertTrue(tag_exists, 'protected publisher must create the exact tag before the draft')
+                    self.assertIn('--verify-tag', args)
                 if args[:2] == ('release', 'download'):
                     folder = Path(args[args.index('--dir') + 1])
                     shutil.copytree(base / 'github-release-assets', folder)
@@ -190,23 +205,39 @@ class RustGitHubReleaseTests(unittest.TestCase):
                         (folder / corruption).write_text('corrupt')
                 return ''
             def lookup(*args, **kwargs):
-                return SimpleNamespace(returncode=0 if existing else 1, stdout='{"draft":false}', stderr='HTTP 404: Not Found')
+                return SimpleNamespace(returncode=0 if tag_exists else 1, stdout='{}', stderr='HTTP 404: Not Found')
             env = {'GITHUB_ACTIONS': 'true', 'GITHUB_WORKFLOW': 'protected-release', 'GITHUB_REF': 'refs/heads/main',
                    'GITHUB_SHA': SOURCE, 'RUV_FANN_CANDLE_FIXTURE': str(fixture)}
             tracked = '\n'.join(release.PERFORMANCE_ASSETS) + '\n'
             with patch.dict(os.environ, env), patch.object(release.sys, 'argv', ['script', str(base)]), patch.object(release, 'run', side_effect=gh), patch.object(release.subprocess, 'run', side_effect=lookup), patch.object(release, 'ROOT', base), patch.object(release.subprocess, 'check_output', side_effect=[tracked, '', SOURCE]):
-                if corruption or wrong_tag or missing_performance:
+                if corruption or wrong_tag or missing_performance or draft:
                     with self.assertRaises(ValueError):
                         release.main()
                     self.assertFalse(any(row[:2] == ('release', 'edit') for row in calls))
+                    if wrong_tag or draft:
+                        self.assertFalse(any(row[:3] == ('api', '--method', 'POST') or row[:2] == ('release', 'create') for row in calls))
                 else:
                     release.main()
                     result = json.loads((base / 'github-release.json').read_text())
                     self.assertEqual(result['tagSourceSha'], SOURCE)
                     self.assertEqual(len(result['assets']), 43)
                     self.assertEqual(result['status'], 'already-released' if existing else 'published-and-byte-verified')
+                    creates = [row for row in calls if row[:3] == ('api', '--method', 'POST')]
+                    self.assertEqual(len(creates), 0 if existing or orphan_tag else 1)
     def test_every_public_asset_and_source_tag_verified(self):
         self.exercise()
+    def test_exact_source_orphan_tag_can_resume_without_mutating_it(self):
+        self.exercise(orphan_tag=True)
+    def test_existing_draft_with_missing_git_tag_cannot_create_or_overwrite(self):
+        self.exercise(draft=True)
+    def test_nonprotected_invocations_cannot_create_tags_or_releases(self):
+        for invalid in ({'GITHUB_ACTIONS': 'false'}, {'GITHUB_WORKFLOW': 'other'}, {'GITHUB_REF': 'refs/heads/release/test'}):
+            environment = {'GITHUB_SHA': SOURCE, 'GITHUB_ACTIONS': 'true', 'GITHUB_WORKFLOW': 'protected-release', 'GITHUB_REF': 'refs/heads/main', **invalid}
+            with self.subTest(invalid=invalid), patch.dict(os.environ, environment), patch.object(release.sys, 'argv', ['script', '/not-used']), patch.object(release, 'run') as gh, patch.object(release.subprocess, 'run') as lookup:
+                with self.assertRaises(ValueError):
+                    release.main()
+                gh.assert_not_called()
+                lookup.assert_not_called()
     def test_corrupt_archive_cannot_publish(self):
         self.exercise(corruption='ruv-fann-0.2.3.crate')
     def test_corrupt_receipt_cannot_publish(self):

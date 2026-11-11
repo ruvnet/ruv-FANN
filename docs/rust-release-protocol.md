@@ -38,7 +38,12 @@ The 27-crate inventory remains mandatory, including versions already public.
    tests and filtered tests; retain the owned command log as a release asset.
    It emits its source-bound receipt only after all commands succeed with nonzero checks,
    zero failures and zero skips. Preserve command logs and hashes.
-6. Create the Rust GitHub release as a draft with canonical public archives,
+6. After validating all evidence and assets, the protected controller creates
+   the tag at the exact accepted source SHA if it is absent, then creates the
+   draft with `--verify-tag`. GitHub draft creation alone does not create its
+   pending tag. An existing same-SHA tag without a release can resume; a
+   conflicting tag or an existing draft requires inspection and is never changed.
+   Create the Rust GitHub release as a draft with canonical public archives,
    candidate/public/CI receipts, actual fixture and command logs. The accepted
    commit must also bind the required tracked performance report
    `docs/rust-performance-2026-11-11.md` and raw measurements archive

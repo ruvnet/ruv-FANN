@@ -33,6 +33,23 @@ def tag_source():
     raise ValueError('Release tag does not identify a commit')
 
 
+def existing_release():
+    # REST's releases/tags endpoint finds published releases, not drafts with a
+    # pending tag. Authenticated release listing includes both and prevents a
+    # retry from creating another draft or overwriting partial release assets.
+    matches = []
+    for page in range(1, 101):
+        rows = json.loads(run('api', f'repos/{REPO}/releases?per_page=100&page={page}'))
+        if not isinstance(rows, list):
+            raise ValueError('Invalid release inventory')
+        matches.extend(row for row in rows if row.get('tag_name') == TAG)
+        if len(rows) < 100:
+            if len(matches) > 1:
+                raise ValueError('Multiple releases identify the same tag; inspect before retrying')
+            return matches[0] if matches else None
+    raise ValueError('Release inventory exceeded the explicit pagination bound')
+
+
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -122,24 +139,36 @@ def main():
         run('release', 'download', TAG, '--repo', REPO, '--dir', str(folder))
         if {p.name: digest(p) for p in folder.iterdir()} != manifest:
             raise ValueError('GitHub release asset byte mismatch')
-    existing = subprocess.run(['gh', 'api', f'repos/{REPO}/releases/tags/{TAG}'], capture_output=True, text=True)
+    existing = existing_release()
     ref = subprocess.run(['gh', 'api', f'repos/{REPO}/git/ref/tags/{TAG}'], capture_output=True, text=True)
-    if existing.returncode == 0 or ref.returncode == 0:
-        if existing.returncode or json.loads(existing.stdout).get('draft') is not False:
-            raise ValueError('Existing tag or draft requires inspection; never overwrite')
+    if ref.returncode and '404' not in ref.stderr:
+        raise ValueError('Could not establish release tag identity or absence')
+    if existing is not None:
+        if existing.get('draft') is not False or ref.returncode:
+            raise ValueError('Existing draft or release without a tag requires inspection; never overwrite')
         verify(base / 'github-existing-download')
         status = 'already-released'
     else:
-        # A lookup failure other than an actual absence cannot authorize creation.
-        if '404' not in existing.stderr or '404' not in ref.stderr:
-            raise ValueError('Could not establish release/tag absence')
+        if ref.returncode == 0:
+            # A protected run may have created the tag before failing to create
+            # its draft. Resume only the exact immutable accepted source tag.
+            if tag_source() != source:
+                raise ValueError('Existing release tag points to a different source; never overwrite')
+        else:
+            # GitHub does not create a missing tag until a draft is published.
+            # Create it explicitly after all evidence/asset validation so the
+            # draft's assets and source can both be verified before publishing.
+            run('api', '--method', 'POST', f'repos/{REPO}/git/refs',
+                '-f', f'ref=refs/tags/{TAG}', '-f', f'sha={source}')
+            if tag_source() != source:
+                raise ValueError('New release tag source mismatch')
         notes = base / 'rust-release-notes.md'
         notes.write_text(f'Rust registry release from `{source}`.\n\n'
             'ruv-fann 0.2.3 and ruv-fann-candle 0.1.1; all 27 Cargo candidates verified. '
             'Canonical public archives, candidate/public receipts and the actual Candle fixture are attached. '
             'A fresh public Cargo consumer passed inference and three-step SGD/AdamW gradients and updates. '
             'Library-only Cargo.lock differences retain their immutable public bytes and candidate digests in the receipts.\n')
-        run('release', 'create', TAG, '--repo', REPO, '--target', source, '--draft', '--title',
+        run('release', 'create', TAG, '--repo', REPO, '--target', source, '--verify-tag', '--draft', '--title',
             'ruv-FANN Rust 0.2.3 / Candle 0.1.1', '--notes-file', str(notes), *[str(p) for p in sorted(assets.iterdir())])
         verify(base / 'github-draft-download')
         run('release', 'edit', TAG, '--repo', REPO, '--draft=false')
