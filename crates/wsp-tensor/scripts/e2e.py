@@ -22,7 +22,8 @@ def binary():
     target = pathlib.Path(os.environ.get("CARGO_TARGET_DIR", "target"))
     if not target.is_absolute():
         target = ROOT / target
-    return (target / "release/ruv-fann-wsp-tensor").resolve(strict=True)
+    name = "ruv-fann-wsp-tensor.exe" if os.name == "nt" else "ruv-fann-wsp-tensor"
+    return (target / "release" / name).resolve(strict=True)
 
 
 def check(condition, message):

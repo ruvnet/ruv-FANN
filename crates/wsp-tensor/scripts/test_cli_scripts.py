@@ -7,6 +7,7 @@ import pathlib
 import subprocess
 import sys
 import tempfile
+import types
 import unittest
 from unittest import mock
 
@@ -30,6 +31,19 @@ class CliScripts(unittest.TestCase):
             with mock.patch.dict(os.environ, {'CARGO_TARGET_DIR': directory}):
                 os.environ.pop('WSP_TENSOR_BIN', None)
                 self.assertEqual(e2e.binary(), executable)
+
+    def test_windows_target_directory_resolves_exe_without_changing_explicit_path(self):
+        with tempfile.TemporaryDirectory() as directory:
+            executable = pathlib.Path(directory) / 'release/ruv-fann-wsp-tensor.exe'
+            executable.parent.mkdir()
+            executable.write_bytes(b'Windows path selection fixture only')
+            explicit = pathlib.Path(directory) / 'explicit-installed-name'
+            explicit.write_bytes(b'explicit selection fixture only')
+            windows = types.SimpleNamespace(name='nt', environ={'CARGO_TARGET_DIR': directory})
+            with mock.patch.object(e2e, 'os', windows):
+                self.assertEqual(e2e.binary(), executable)
+                windows.environ['WSP_TENSOR_BIN'] = str(explicit)
+                self.assertEqual(e2e.binary(), explicit)
 
     def test_optimized_python_rejects_wrong_native_candidate_bytes(self):
         # Fake external CLI reports correct hashes of a deliberately unchanged
