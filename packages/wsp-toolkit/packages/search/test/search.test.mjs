@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { loadRuntime } from 'ruv-fann';
 import { applyWeightPatch, createWeightWorkspace, fingerprintModel } from 'ruv-fann-wsp';
 import { searchWeightPatch, compileBooleanTable, createHebbianPatch, SEARCH_LIMITS } from '../src/index.js';
@@ -199,4 +200,24 @@ test('source schema and aggregate multi-candidate work reject before callbacks e
   const malformed = linear(); malformed.layers[0].activation = 'made-up';
   await assert.rejects(searchWeightPatch(malformed, data(), policy(), options({ objective: () => { calls++; return 0; } })), /activation/);
   assert.equal(calls, 0);
+});
+
+test('invalid objective thenables reject without reading their executable then getter', async () => {
+  let calls=0;
+  const thenable=Object.defineProperty({},'then',{get(){calls++;throw new Error('then getter executed');}});
+  await assert.rejects(searchWeightPatch(linear(),data(),policy(),options({objective:()=>thenable})),/objective score/);
+  assert.equal(calls,0);
+});
+
+test('invalid asynchronous objective rejection is contained after the caller catches validation', () => {
+  const source = `import assert from 'node:assert/strict';
+    import {searchWeightPatch} from ${JSON.stringify(new URL('../src/index.js', import.meta.url).href)};
+    const model=${JSON.stringify(linear())}, dataset=${JSON.stringify(data())}, policy=${JSON.stringify(policy())};
+    for (const objective of [async()=>{throw new Error('async failure');},()=>Promise.reject(new Error('promise failure'))]) {
+      await assert.rejects(searchWeightPatch(model,dataset,policy,{...${JSON.stringify(options())},objective}),/objective score/);
+    }
+    await new Promise(resolve=>setTimeout(resolve,10));
+    const valid=await searchWeightPatch(model,dataset,policy,${JSON.stringify(options())});
+    assert.equal(valid.evaluation.accepted,true);console.log('contained');`;
+  assert.equal(execFileSync(process.execPath,['--input-type=module','-e',source],{encoding:'utf8',timeout:10000}).trim(),'contained');
 });

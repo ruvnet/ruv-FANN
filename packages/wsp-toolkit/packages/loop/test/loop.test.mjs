@@ -48,6 +48,15 @@ test('abort and deadline terminate workers and prevent new promotion',async t=>{
   const deadline=await runEvolutionLoop({registry,modules:[evolutionModules()[0]],maxDurationMs:1});
   assert.equal(deadline.stopReason,'deadline');assert.equal(deadline.promotions,0);assert.equal((await registry.get('xor')).revision,1);
 });
+
+test('native abort state is honored without executing shadow signal properties',async t=>{
+  const registry=await setup(t),controller=new AbortController();controller.abort();let getters=0;
+  Object.defineProperty(controller.signal,'aborted',{get(){getters++;return false;}});
+  Object.defineProperty(controller.signal,'addEventListener',{get(){getters++;throw new Error('shadow event getter');}});
+  const result=await runEvolutionLoop({registry,modules:[evolutionModules()[0]],signal:controller.signal,simd:false});
+  assert.equal(result.stopReason,'aborted');assert.equal(result.budget.proposals,0);assert.equal(getters,0);
+  await assert.rejects(runEvolutionLoop({registry,modules:[evolutionModules()[0]],signal:Object.create(AbortSignal.prototype)}),/signal|AbortSignal/);
+});
 test('newer revision wins when a competing coordinator changes state during proposal',async t=>{
   const registry=await setup(t);let changed=false;
   const authority={
@@ -152,4 +161,39 @@ test('cancellation during final registry refresh preserves commits and reports c
   const report=await runEvolutionLoop({registry:authority,modules:[module],signal:controller.signal,simd:false});
   assert.equal(report.stopReason,'aborted');assert.equal(report.promotions,1);
   assert.equal((await registry.get('xor')).revision,2);assert.ok(report.events.some(e=>e.type==='promoted'));
+});
+
+test('registry capability accessors are rejected without executing them',async t=>{
+  const registry=await setup(t),module=evolutionModules()[0];module.strategies=[module.strategies[2]];
+  let getters=0;
+  const accessor={get get(){getters++;return id=>registry.get(id);},propose:(...args)=>registry.propose(...args),promote:(...args)=>registry.promote(...args)};
+  await assert.rejects(runEvolutionLoop({registry:accessor,modules:[module],simd:false}),/data method/);
+  assert.equal(getters,0);
+});
+
+test('registry capability replacement during an await cannot change promotion authority',async t=>{
+  const registry=await setup(t),module=evolutionModules()[0];module.strategies=[module.strategies[2]];
+  let release,changedCalls=0;
+  const entered=new Promise(resolve=>{release=resolve;});
+  const authority={async get(id){await entered;return registry.get(id);},propose:(...args)=>registry.propose(...args),promote:(...args)=>registry.promote(...args)};
+  const pending=runEvolutionLoop({registry:authority,modules:[module],simd:false});
+  authority.propose=authority.promote=()=>{changedCalls++;throw new Error('replaced capability');};
+  release();
+  assert.equal((await pending).promotions,1);
+  assert.equal(changedCalls,0);
+});
+
+test('live registry results cannot rewrite the original same-hash CAS revision',async t=>{
+  const registry=await setup(t),module=evolutionModules()[0];module.strategies=[module.strategies[2]];
+  let reads=0,live;
+  const authority={async get(id){
+    if(++reads===1){live=await registry.get(id);return live;}
+    if(reads===2){await registry.rollback(id,1,1);Object.assign(live,await registry.get(id));}
+    return registry.get(id);
+  },propose:(...args)=>registry.propose(...args),promote:(...args)=>registry.promote(...args)};
+  const result=await runEvolutionLoop({registry:authority,modules:[module],maxRounds:1,simd:false});
+  assert.equal(result.promotions,0);
+  assert.ok(result.events.some(event=>event.type==='stale'));
+  assert.equal(result.modules[0].initialRevision,1);
+  assert.equal((await registry.get('xor')).revision,2);
 });

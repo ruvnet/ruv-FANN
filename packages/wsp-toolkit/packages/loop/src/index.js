@@ -77,18 +77,59 @@ function gateWork(module,parameters,invariantWork) {
   return work+invariantWork+2*module.development.dataset.rows*parameters;
 }
 function cleanError(error) {return String(error?.message??error).slice(0,256);}
+function registryCapabilities(registry) {
+  if(!registry||typeof registry!=='object')throw new TypeError('registry capabilities are required');
+  const methods=Object.create(null);
+  for(const name of ['get','propose','promote']) {
+    let owner=registry,descriptor;
+    while(owner&&owner!==Object.prototype) {
+      descriptor=Object.getOwnPropertyDescriptor(owner,name);
+      if(descriptor)break;
+      owner=Object.getPrototypeOf(owner);
+    }
+    if(!descriptor||!Object.hasOwn(descriptor,'value')||typeof descriptor.value!=='function')
+      throw new TypeError(`registry.${name} must be a data method`);
+    methods[name]=descriptor.value.bind(registry);
+  }
+  return methods;
+}
+function programSnapshot(value) {
+  if(value===null)return null;
+  if(!value||typeof value!=='object'||Array.isArray(value))throw new TypeError('registry program must be a data record');
+  const program=Object.create(null);
+  // Ignore registry metadata while detaching the fields that define CAS authority.
+  // A registry may return a live record that another coordinator updates in place.
+  for(const key of ['revision','hash','model']) {
+    const descriptor=Object.getOwnPropertyDescriptor(value,key);
+    if(!descriptor||!Object.hasOwn(descriptor,'value'))throw new TypeError(`registry program ${key} must be own data`);
+    program[key]=descriptor.value;
+  }
+  integer(program.revision,1,Number.MAX_SAFE_INTEGER,'registry revision');
+  if(typeof program.hash!=='string'||!/^[a-f0-9]{64}$/.test(program.hash))throw new TypeError('invalid registry model hash');
+  program.model=snapshot(program.model);
+  return program;
+}
+function abortCapability(source) {
+  if(source===undefined)return undefined;
+  if(!(source instanceof AbortSignal))throw new TypeError('signal must be an AbortSignal');
+  const aborted=Object.getOwnPropertyDescriptor(AbortSignal.prototype,'aborted').get;
+  const reason=Object.getOwnPropertyDescriptor(AbortSignal.prototype,'reason').get;
+  aborted.call(source); // Do not trust shadow properties or forged prototype chains.
+  return {get aborted(){return aborted.call(source);},get reason(){return reason.call(source);},
+    addEventListener:EventTarget.prototype.addEventListener.bind(source),
+    removeEventListener:EventTarget.prototype.removeEventListener.bind(source)};
+}
 
 /** Execute a finite local loop. Only trusted coordinator data can define acceptance criteria. */
 export async function runEvolutionLoop(configuration) {
   const raw=record(configuration,['registry','modules','maxRounds','maxProposals','maxWork','concurrency','jobTimeoutMs','maxDurationMs','simd','signal'],['registry','modules'],'loop configuration');
-  const registry=raw.registry;
-  for(const name of ['get','propose','promote'])if(typeof registry?.[name]!=='function')throw new TypeError(`registry.${name} capability is required`);
+  const registry=registryCapabilities(raw.registry);
   const modules=modulesSnapshot(raw.modules);
   const budget={maxRounds:integer(raw.maxRounds??4,1,LOOP_LIMITS.maxRounds,'maxRounds'),maxProposals:integer(raw.maxProposals??32,1,LOOP_LIMITS.maxProposals,'maxProposals'),
     maxWork:integer(raw.maxWork??LOOP_LIMITS.maxWork,1,LOOP_LIMITS.maxWork,'maxWork'),concurrency:integer(raw.concurrency??2,1,LOOP_LIMITS.maxConcurrency,'concurrency'),
     jobTimeoutMs:integer(raw.jobTimeoutMs??10000,1,60000,'jobTimeoutMs'),maxDurationMs:integer(raw.maxDurationMs??60000,1,LOOP_LIMITS.maxDurationMs,'maxDurationMs')};
   const simd=raw.simd??'auto';if(![true,false,'auto'].includes(simd))throw new TypeError('simd must be boolean or auto');
-  const signal=raw.signal;if(signal!==undefined&&!(signal instanceof AbortSignal))throw new TypeError('signal must be an AbortSignal');
+  const signal=abortCapability(raw.signal);
   const controller=new AbortController();let abortReason='aborted';
   const abort=()=>controller.abort(signal?.reason);
   if(signal?.aborted)abort();else signal?.addEventListener('abort',abort,{once:true});
@@ -111,7 +152,7 @@ export async function runEvolutionLoop(configuration) {
       rounds=round;let roundPromotions=0;
       for(const module of modules) {
         if(interrupted()){stopReason=abortReason;break outer;}
-        const source=await registry.get(module.id);
+        const source=programSnapshot(await registry.get(module.id));
         if(interrupted()){stopReason=abortReason;break outer;}
         if(!source)throw new Error(`module ${module.id} is not registered`);
         const info=await inspectWeightModel(source.model);
@@ -179,7 +220,7 @@ export async function runEvolutionLoop(configuration) {
           const context={round,moduleId:module.id,revision:source.revision,strategy:winner.strategy};
           let commitEntered=false;
           try {
-            const current=await registry.get(module.id);
+            const current=programSnapshot(await registry.get(module.id));
             if(current?.revision!==source.revision||current?.hash!==source.hash){observe(module.id,current);emit({...context,type:'stale'});continue;}
             if(interrupted()){stopReason=abortReason;break outer;}
             const proposal=await registry.propose(module.id,winner.patch,module.development.dataset,module.development.policy);
@@ -195,7 +236,7 @@ export async function runEvolutionLoop(configuration) {
             emit({...context,type:'promoted',nextRevision:next.revision,candidateHash:next.hash,candidateMSE:winner.score});
           } catch(error) {
             if(error?.code==='WSP_REGISTRY_PERSISTENCE'||(commitEntered&&error?.code!=='WSP_REGISTRY_STALE'))throw error;
-            const current=await registry.get(module.id);
+            const current=programSnapshot(await registry.get(module.id));
             if(error?.code==='WSP_REGISTRY_STALE'||current?.revision!==source.revision||current?.hash!==source.hash){observe(module.id,current);emit({...context,type:'stale',reason:cleanError(error)});}
             else throw error; // Durability/runtime failures cannot be hidden as rejected mutations.
           }
@@ -206,7 +247,7 @@ export async function runEvolutionLoop(configuration) {
       // Refresh behavioral goal evidence against active content before claiming convergence.
       for(const state of states.values()) {
         if(interrupted()){stopReason=abortReason;break outer;}
-        const current=await registry.get(state.id);
+        const current=programSnapshot(await registry.get(state.id));
         if(interrupted()){stopReason=abortReason;break outer;}
         if(!current)throw new Error('registered module disappeared during loop');
         observe(state.id,current);

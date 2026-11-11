@@ -14,8 +14,16 @@ function configuration(value = {}) {
   const timeoutMs = options.timeoutMs === undefined ? 5000 : integer(options.timeoutMs, 1, SWARM_LIMITS.maxTimeoutMs, 'timeoutMs');
   const maxTotalWork = options.maxTotalWork === undefined ? SWARM_LIMITS.maxTotalWork :
     integer(options.maxTotalWork, 0, SWARM_LIMITS.maxTotalWork, 'maxTotalWork');
-  if (options.signal !== undefined && !(options.signal instanceof AbortSignal)) throw new TypeError('signal must be an AbortSignal');
-  return { concurrency, timeoutMs, maxTotalWork, signal: options.signal };
+  let signal;
+  if (options.signal !== undefined) {
+    const source = options.signal, aborted = Object.getOwnPropertyDescriptor(AbortSignal.prototype, 'aborted').get;
+    if (!(source instanceof AbortSignal)) throw new TypeError('signal must be an AbortSignal');
+    aborted.call(source); // Native brand check also rejects forged prototype chains.
+    signal = { get aborted() { return aborted.call(source); },
+      addEventListener: EventTarget.prototype.addEventListener.bind(source),
+      removeEventListener: EventTarget.prototype.removeEventListener.bind(source) };
+  }
+  return { concurrency, timeoutMs, maxTotalWork, signal };
 }
 function errorText(value) { return typeof value?.message === 'string' ? value.message.slice(0, 512) : 'proposal worker failed'; }
 

@@ -51,7 +51,17 @@ function measure(runtime, model, data, objective) {
     }
   } finally { prepared.dispose(); }
   const metrics = { mse, maxAbsoluteError };
-  const score = objective ? finite(objective(deepFreeze({ predictions, metrics: { ...metrics }, model: clone(model) })), 'objective score') : mse;
+  let score = mse;
+  if (objective) {
+    const proposedScore = objective(deepFreeze({ predictions, metrics: { ...metrics }, model: clone(model) }));
+    if (proposedScore && typeof proposedScore === 'object') {
+      // Async objectives are invalid, but their rejection must not crash the host
+      // after it catches our validation error. The intrinsic brand-check refuses
+      // ordinary thenables without reading or calling their `then` property.
+      try { Promise.prototype.then.call(proposedScore, undefined, () => {}); } catch { /* not a native promise */ }
+    }
+    score = finite(proposedScore, 'objective score');
+  }
   return { score, metrics };
 }
 function patchFor(base, current, locations, baseHash) {

@@ -107,6 +107,15 @@ test('abort terminates active workers, never starts queued jobs and ignores late
   assert.equal(queued[0].status,'cancelled');assert.equal(queued[0].workerThreadId,undefined);
 });
 
+test('native abort state cannot be hidden by shadow getters or forged signal prototypes',async()=>{
+  const controller=new AbortController();controller.abort();let getters=0;
+  Object.defineProperty(controller.signal,'aborted',{get(){getters++;return false;}});
+  Object.defineProperty(controller.signal,'addEventListener',{get(){getters++;throw new Error('shadow event getter');}});
+  const [result]=await runProposalSwarm([patchJob('pre-aborted')],{signal:controller.signal});
+  assert.equal(result.status,'cancelled');assert.equal(result.workerThreadId,undefined);assert.equal(getters,0);
+  await assert.rejects(runProposalSwarm([patchJob('forged')],{signal:Object.create(AbortSignal.prototype)}),/signal|AbortSignal/);
+});
+
 test('unknown operations/options, executable values, accessors and malformed data reject without executing getters',async()=>{
   let invoked=0;
   for(const mutate of [
