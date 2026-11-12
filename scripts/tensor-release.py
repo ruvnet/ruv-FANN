@@ -401,7 +401,7 @@ def validate_empty_log_assets(assets, originals, source, archive_sha):
     entries = [{'asset': name, 'origin': originals[name][1], 'size': 0, 'sha256': hashlib.sha256(b'').hexdigest(),
                 'container': container.name, 'member': name}
                for name in empty]
-    expected = {'schema': 'ruv-fann.tensor-empty-log-encoding/1', 'sourceSha': source,
+    expected = {'schema': 'ruv-fann.tensor-release-empty-logs/1', 'sourceSha': source,
                 'archiveSha256': archive_sha, 'containerSha256': sha(container), 'entries': entries}
     if json.loads(encoding.read_text()) != expected:
         raise ValueError('Empty-log encoding/source/hash mismatch')
@@ -442,7 +442,7 @@ def github_assets(base, source, receipt):
         entries = [{'asset': name, 'origin': originals[name][1], 'size': 0,
                     'sha256': hashlib.sha256(b'').hexdigest(), 'container': container.name, 'member': name} for name in empty]
         (assets / 'empty-log-encoding.json').write_text(json.dumps({
-            'schema': 'ruv-fann.tensor-empty-log-encoding/1', 'sourceSha': source,
+            'schema': 'ruv-fann.tensor-release-empty-logs/1', 'sourceSha': source,
             'archiveSha256': receipt['archiveSha256'], 'containerSha256': sha(container), 'entries': entries}, indent=2) + '\n')
     validate_empty_log_assets(assets, originals, source, receipt['archiveSha256'])
     manifest = {p.name: sha(p) for p in assets.iterdir()}

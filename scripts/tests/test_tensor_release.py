@@ -84,7 +84,9 @@ class TensorReleaseTests(unittest.TestCase):
             base = Path(directory); receipt, originals = self.release_fixture(base)
             assets, _ = release.github_assets(base, SHA, receipt)
             path = assets / 'empty-log-encoding.json'; mapping = json.loads(path.read_text())
-            for key, value in [('sourceSha', 'b' * 40), ('archiveSha256', '0' * 64), ('containerSha256', '0' * 64), ('entries', [])]:
+            for key, value in [('schema', 'ruv-fann.tensor-empty-log-encoding/1'),
+                               ('sourceSha', 'b' * 40), ('archiveSha256', '0' * 64),
+                               ('containerSha256', '0' * 64), ('entries', [])]:
                 path.write_text(json.dumps(dict(mapping, **{key: value})))
                 with self.assertRaises(ValueError): release.validate_empty_log_assets(assets, originals, SHA, receipt['archiveSha256'])
             for content in (b'fabricated formatter success', b''):
