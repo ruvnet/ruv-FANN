@@ -31,3 +31,4 @@ jobs:
         with:
           name: wsp-playground-evidence
           path: examples/wsp-playground/.artifacts/
+          include-hidden-files: true

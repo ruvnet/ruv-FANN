@@ -46,12 +46,16 @@ robotics or WiFi accuracy benchmarks.
 The local automated Chromium test could not launch because the managed process
 environment denies the Unix socket used by Chromium's singleton mechanism.
 The test is retained and a GitHub Actions workflow installs Chromium and runs
-the complete desktop/mobile acceptance suite. Its CI result must be checked;
-live browser verification is not a claim that the local automated suite passed.
+the complete desktop/mobile acceptance suite. The dedicated workflow passed
+for commit `28e443ad1ea2914f0f0adcf8a4bda0cb73793ebc`:
+https://github.com/ruvnet/ruv-FANN/actions/runs/43274468988
 
-The browser acceptance suite additionally checks receipt downloads and simulated
-edge network failure. Those cases require a successful automated or equivalent
-live run before claiming complete browser-suite coverage.
+That successful automated suite also verifies receipt downloads, bounded search,
+edit invalidation and simulated edge network failure blocking promotion. Eight
+tests passed in CI: the browser acceptance test and seven numerical/API tests.
+The initial artifact upload omitted the hidden output directory; the workflow
+now explicitly includes hidden files. Local socket restrictions remain a local
+environment limitation, separate from the successful hosted browser test.
 
 ## Threat review and residual limits
 
