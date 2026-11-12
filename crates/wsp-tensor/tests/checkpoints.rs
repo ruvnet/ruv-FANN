@@ -156,14 +156,19 @@ fn refuse_overwrite_and_forged_rollback() {
 
 #[cfg(unix)]
 #[test]
-fn inspect_cli_accepts_non_utf8_paths() {
+fn inspect_cli_accepts_native_unix_paths() {
     use std::os::unix::ffi::OsStrExt;
     use std::process::Command;
 
     let d = tempfile::tempdir().unwrap();
-    let path = d
-        .path()
-        .join(std::ffi::OsStr::from_bytes(b"tensor-\xff.safetensors"));
+    // Linux permits arbitrary non-NUL filename bytes. Darwin's filesystem
+    // rejects invalid UTF-8 before the CLI runs, so exercise a real Unicode
+    // path there instead of treating Linux filesystem behavior as universal.
+    #[cfg(not(target_os = "macos"))]
+    let name = std::ffi::OsStr::from_bytes(b"tensor-\xff.safetensors");
+    #[cfg(target_os = "macos")]
+    let name = std::ffi::OsStr::from_bytes("tensor-e\u{301}-\u{1f9e0}.safetensors".as_bytes());
+    let path = d.path().join(name);
     fixture(&path, "F32");
     let result = Command::new(env!("CARGO_BIN_EXE_ruv-fann-wsp-tensor"))
         .arg("inspect")
