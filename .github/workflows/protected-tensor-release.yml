@@ -2,9 +2,19 @@ name: protected-tensor-release
 on:
   workflow_dispatch:
     inputs:
-      expected_sha:
-        description: Exact unchanged main SHA qualified on release/**
+      mode:
+        description: Qualify this recovery controller, or recover the pinned original draft
         required: true
+        type: choice
+        options: [qualify, recover]
+        default: qualify
+      expected_controller_sha:
+        description: Exact reviewed recovery-controller SHA; published crate source stays fc575c8c
+        required: true
+        type: string
+      qualification_run:
+        description: Successful exact-controller qualify run ID (required only for recover)
+        required: false
         type: string
 permissions:
   contents: read
@@ -14,53 +24,60 @@ concurrency:
   group: protected-registry-release
   cancel-in-progress: false
 jobs:
-  publish:
+  controller:
+    if: github.ref == 'refs/heads/ops/tensor-release-recovery'
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 20
     permissions:
       contents: write
       issues: read
       actions: read
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          ref: ${{ github.sha }}
+          path: controller
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: fc575c8c6cdbd18cca92fb07ddfdcd87c60d34a8
+          path: qualified-source
           persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: '3.12'
-      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+      - name: Qualify exact controller guards and original sealed publication evidence without mutations
+        if: inputs.mode == 'qualify'
+        working-directory: controller
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_CONTROLLER: ${{ inputs.expected_controller_sha }}
+        run: python3 scripts/tensor-gh-recovery.py qualify --expected-controller-sha "$EXPECTED_CONTROLLER" --source-directory "$GITHUB_WORKSPACE/qualified-source" --directory "$RUNNER_TEMP/tensor-recovery-qualification"
+      - name: Recover only the pinned draft using the successful controller qualifier
+        if: inputs.mode == 'recover'
+        working-directory: controller
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_CONTROLLER: ${{ inputs.expected_controller_sha }}
+          QUALIFICATION_RUN: ${{ inputs.qualification_run }}
+        run: python3 scripts/tensor-gh-recovery.py recover --expected-controller-sha "$EXPECTED_CONTROLLER" --source-directory "$GITHUB_WORKSPACE/qualified-source" --qualification-run "$QUALIFICATION_RUN" --directory "$RUNNER_TEMP/tensor-recovery"
+      - name: Preserve successful source-bound controller qualification
+        if: success() && inputs.mode == 'qualify'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
-          toolchain: '1.99.1'
-      - name: Revalidate exact source and download the sealed pre-main candidate
-        env:
-          GH_TOKEN: ${{ github.token }}
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
-        run: python3 scripts/tensor-release.py download --expected-sha "$EXPECTED_SHA" --directory "$RUNNER_TEMP/tensor-publication"
-      - name: Publish only the qualified immutable Cargo archive
-        env:
-          GH_TOKEN: ${{ github.token }}
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: python3 scripts/tensor-release.py publish --expected-sha "$EXPECTED_SHA" --directory "$RUNNER_TEMP/tensor-publication"
-      - name: Verify canonical bytes and fresh public Cargo and CLI consumers without registry credentials
-        env:
-          GH_TOKEN: ${{ github.token }}
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
-        run: python3 scripts/tensor-release.py verify-public --expected-sha "$EXPECTED_SHA" --directory "$RUNNER_TEMP/tensor-publication"
-      - name: Create exact-source release and verify every downloaded asset
-        env:
-          GH_TOKEN: ${{ github.token }}
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
-        run: python3 scripts/tensor-release.py github-release --expected-sha "$EXPECTED_SHA" --directory "$RUNNER_TEMP/tensor-publication"
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
-        if: always()
-        with:
-          name: tensor-publication-${{ github.sha }}
+          name: tensor-recovery-qualification-${{ github.sha }}
           path: |
-            ${{ runner.temp }}/tensor-publication/*.json
-            ${{ runner.temp }}/tensor-publication/*.crate
-            ${{ runner.temp }}/tensor-publication/fresh/*.log
-            ${{ runner.temp }}/tensor-publication/release-assets/*
-            ${{ runner.temp }}/tensor-publication/candidate/*.json
+            ${{ runner.temp }}/tensor-recovery-qualification/qualification.json
+            ${{ runner.temp }}/tensor-recovery-qualification/qualification.log
+          if-no-files-found: error
+          retention-days: 90
+      - name: Preserve recovery evidence and actual partial progress
+        if: always() && inputs.mode == 'recover'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: tensor-github-recovery-${{ github.sha }}
+          path: ${{ runner.temp }}/tensor-recovery
           if-no-files-found: error
           retention-days: 90
