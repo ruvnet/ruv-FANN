@@ -1,6 +1,6 @@
 {
-  "source": "e925b905fb1f1fa66cd526c6ee34a86301c64079",
-  "workerVersion": "006f6211-3d32-4fdd-81df-9039985647a3",
+  "source": "2ea99998163915d8990055e35f0673cb3b3ddd6b",
+  "workerVersion": "99a6b723-7d52-4651-bd01-2aa2b1647eed",
   "modules": {
     "worker.js": {
       "bytes": 159956,
@@ -8,8 +8,8 @@
       "contentType": "application/javascript+module"
     },
     "site-assets.js": {
-      "bytes": 198164,
-      "sha256": "4fd11691256dd547824c8dc43796a90f1e6cd91b6661f4c60cd5fc77be3c2c50",
+      "bytes": 207703,
+      "sha256": "92b0da17530a4447e3ddf3a8d745ba6b37484df74a355cb128eb267ae626dde4",
       "contentType": "application/javascript+module"
     },
     "core-base64.txt": {
