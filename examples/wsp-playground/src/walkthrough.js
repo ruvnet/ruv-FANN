@@ -19,7 +19,7 @@ export function nextWalkthroughStep(step, event) {
   if (event === 'edit') return 1;
   if (event === 'shortcut') return 2;
   if (event === 'repair') return 4;
-  if (event === 'rejected') return 3;
+  if (event === 'rejected') return step === 2 ? 3 : step;
   if (event === 'accepted') return 5;
   if (event === 'promote') return 6;
   if (event === 'rollback') return 7;
