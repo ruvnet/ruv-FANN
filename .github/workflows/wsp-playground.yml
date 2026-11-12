@@ -1,0 +1,34 @@
+name: WSP playground
+on:
+  pull_request:
+    paths:
+      - 'examples/wsp-playground/**'
+      - '.github/workflows/wsp-playground.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser-and-numerics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: examples/wsp-playground
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: examples/wsp-playground/package-lock.json
+      - run: npm ci --ignore-scripts --no-fund
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npm audit
+      - run: CHROMIUM_PATH="$(node --input-type=module -e "import {chromium} from 'playwright';console.log(chromium.executablePath())")" npm test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wsp-playground-evidence
+          path: examples/wsp-playground/.artifacts/
+          include-hidden-files: true
