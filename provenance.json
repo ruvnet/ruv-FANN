@@ -1,0 +1,36 @@
+{
+  "source": "e925b905fb1f1fa66cd526c6ee34a86301c64079",
+  "workerVersion": "006f6211-3d32-4fdd-81df-9039985647a3",
+  "modules": {
+    "worker.js": {
+      "bytes": 159956,
+      "sha256": "a8033d9ee35d8c5e2af0865c10753f4563d5edb4a0bf1f167e9cfe442dea4199",
+      "contentType": "application/javascript+module"
+    },
+    "site-assets.js": {
+      "bytes": 198164,
+      "sha256": "4fd11691256dd547824c8dc43796a90f1e6cd91b6661f4c60cd5fc77be3c2c50",
+      "contentType": "application/javascript+module"
+    },
+    "core-base64.txt": {
+      "bytes": 750512,
+      "sha256": "645df9e02c819ae5b2496b933b43062da39600f070e20500b5ff45e5d0664e4f",
+      "contentType": "text/plain"
+    },
+    "simd-base64.txt": {
+      "bytes": 744444,
+      "sha256": "6ad0db034157f0ae13c34f7f36bfaeec9a0d937c7b98c45423eb808ae77dcb6e",
+      "contentType": "text/plain"
+    },
+    "core.wasm": {
+      "bytes": 562883,
+      "sha256": "a46f30ba9f7abafa7e77fbd8b686ab8b4785dd325f3e792b5a0fb39628a894f9",
+      "contentType": "application/wasm"
+    },
+    "simd.wasm": {
+      "bytes": 558331,
+      "sha256": "4aec422bae909a8e3b765af396834522520c1432c61b6c37aac72e093d27ee01",
+      "contentType": "application/wasm"
+    }
+  }
+}

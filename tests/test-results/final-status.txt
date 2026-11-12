@@ -1,1 +1,0 @@
-Testing completed. Key findings: 1) Global install works with all features. 2) Local npx fails due to syntax error. 3) WASM files missing from npm package.

@@ -1,9 +1,0 @@
-{
-  "model": "invalid_model",
-  "iterations": 1,
-  "learningRate": 0.001,
-  "finalAccuracy": "88.5",
-  "finalLoss": "0.0436",
-  "timestamp": "2025-07-01T16:47:43.889Z",
-  "duration": 100
-}

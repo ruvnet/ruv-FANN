@@ -1,3 +1,0 @@
-# Git submodule configuration
-# This file was created to fix CI warnings about missing submodule paths
-# The 'claude-code-flow' submodule reference was removed as it doesn't exist

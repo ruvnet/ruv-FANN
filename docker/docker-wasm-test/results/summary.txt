@@ -1,6 +1,0 @@
-Test Summary - Wed Jul  2 23:56:00 UTC 2025
-========================
-NPM Installation Test: FAILED
-Global Installation Test: FAILED
-Production Simulation: FAILED
-All Tests Combined: FAILED
