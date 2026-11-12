@@ -111,6 +111,7 @@ $('evaluate').addEventListener('click', () => operation(async () => {
         s.evaluation.datasetHash !== result.regression.suites[i].evaluation.datasetHash ||
         s.evaluation.policyHash !== result.regression.suites[i].evaluation.policyHash)) throw new Error('Browser and edge evidence disagree. Promotion blocked.');
   result.edge = edge; evidence = result;
+  lab.log.push({ action: 'edge-evaluate', at: new Date().toISOString(), ...edge });
   const results = [result.regression.suites[0].evaluation.accepted, result.regression.suites[1].evaluation.accepted, result.invariant.accepted];
   [...$('gates').children].forEach((row, i) => {
     row.querySelector('.gate-icon').textContent = results[i] ? '✓' : '×';

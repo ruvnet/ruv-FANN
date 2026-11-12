@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 import { mkdir, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { createAppServer } from '../server.mjs';
 const external = process.env.PLAYGROUND_URL;
 
@@ -10,7 +11,7 @@ test('real Chromium: desktop/mobile, rejection, edge agreement, promotion, rollb
   if (!external) { server = createAppServer(); await new Promise(resolve => server.listen(0, '127.0.0.1', resolve)); }
   const url = external || `http://127.0.0.1:${server.address().port}`;
   let browser;
-  try { browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', headless: true, args: ['--no-sandbox'] }); } catch (error) { if (server) await new Promise(resolve => server.close(resolve)); throw error; }
+  try { browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : chromium.executablePath()), headless: true, args: ['--no-sandbox'] }); } catch (error) { if (server) await new Promise(resolve => server.close(resolve)); throw error; }
   await mkdir('.artifacts', { recursive: true });
   const observations = [];
   try {

@@ -6,6 +6,8 @@ Small neural networks you can train, inspect and edit in Rust, JavaScript, TypeS
 
 **[Explore the interactive field guide →](https://ruvnet.github.io/ruv-FANN/)** Follow a prediction through a network, make a real WASM weight edit in your browser, and see why evaluation comes before promotion. The guide includes animated diagrams, package choices and reproducible benchmark results.
 
+**[Open the WSP Live Lab →](https://wsp-live-lab.cognitum-consulting-mail.workers.dev)** Repair a robot's steering, tune a simulated ambient room, and benchmark scalar versus SIMD WASM. Edit two real weights, compare browser and Cloudflare evaluation gates, explicitly promote a local revision, and restore the original checkpoint. [Source and deployment boundaries](examples/wsp-playground/README.md).
+
 [![Crates.io](https://img.shields.io/crates/v/ruv-fann.svg)](https://crates.io/crates/ruv-fann)
 [![API documentation](https://docs.rs/ruv-fann/badge.svg)](https://docs.rs/ruv-fann)
 [![CI](https://github.com/ruvnet/ruv-FANN/actions/workflows/ci.yml/badge.svg)](https://github.com/ruvnet/ruv-FANN/actions/workflows/ci.yml)
