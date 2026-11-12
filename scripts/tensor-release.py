@@ -12,6 +12,7 @@ import subprocess
 import tarfile
 import time
 import tomllib
+import urllib.parse
 import urllib.request
 import zipfile
 
@@ -390,55 +391,201 @@ def validate_public(base, source):
     return receipt
 
 
-def github_release(base, source):
-    receipt = validate_public(base, source)
-    public = registry.downloaded(NAME, VERSION)
-    if public is None or registry.sha(public) != receipt['archiveSha256']:
-        raise ValueError('Canonical bytes changed before GitHub release')
+def validate_empty_log_assets(assets, originals, source, archive_sha):
+    empty = sorted(name for name, (path, _) in originals.items() if path.stat().st_size == 0)
+    encoding, container = assets / 'empty-log-encoding.json', assets / 'empty-logs.zip'
+    if not empty:
+        if encoding.exists() or container.exists():
+            raise ValueError('Unexpected empty-log encoding')
+        return
+    entries = [{'asset': name, 'origin': originals[name][1], 'size': 0, 'sha256': hashlib.sha256(b'').hexdigest(),
+                'container': container.name, 'member': name}
+               for name in empty]
+    expected = {'schema': 'ruv-fann.tensor-empty-log-encoding/1', 'sourceSha': source,
+                'archiveSha256': archive_sha, 'containerSha256': sha(container), 'entries': entries}
+    if json.loads(encoding.read_text()) != expected:
+        raise ValueError('Empty-log encoding/source/hash mismatch')
+    with zipfile.ZipFile(container) as stream:
+        if (stream.namelist() != empty or any(stream.read(name) != b'' for name in empty)
+                or any((info.external_attr >> 16) & 0o170000 != 0o100000 for info in stream.infolist())):
+            raise ValueError('Empty-log container does not preserve original bytes')
+    if any((assets / name).exists() for name in empty):
+        raise ValueError('Zero-length log must use the lossless container')
+
+
+def github_assets(base, source, receipt):
     assets = base / 'release-assets'
     assets.mkdir()
     shutil.copyfile(base / 'public.crate', assets / ARCHIVE)
     for name in ('ci.json', 'publication.json', 'public-consumers.json'):
         shutil.copyfile(base / name, assets / name)
-    for path in (base / 'candidate').glob('*.log'):
-        shutil.copyfile(path, assets / ('candidate-' + path.name))
+    originals = {}
+    for folder, prefix in [('candidate', 'candidate-'), ('fresh', '')]:
+        for path in sorted((base / folder).glob('*.log')):
+            name = prefix + path.name
+            if name in originals:
+                raise ValueError('Colliding release log name: ' + name)
+            originals[name] = (path, folder + '/' + path.name)
+            shutil.copyfile(path, assets / name)
     shutil.copyfile(base / 'candidate/candidate.json', assets / 'candidate.json')
-    for path in (base / 'fresh').glob('*.log'):
-        shutil.copyfile(path, assets / path.name)
+    empty = sorted(name for name, (path, _) in originals.items() if path.stat().st_size == 0)
+    if empty:
+        container = assets / 'empty-logs.zip'
+        # Stored entries and explicit metadata keep the lossless ZIP byte deterministic.
+        with zipfile.ZipFile(container, 'w', compression=zipfile.ZIP_STORED) as stream:
+            for name in empty:
+                info = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
+                info.create_system = 3
+                info.external_attr = 0o100600 << 16
+                stream.writestr(info, originals[name][0].read_bytes())
+                (assets / name).unlink()
+        entries = [{'asset': name, 'origin': originals[name][1], 'size': 0,
+                    'sha256': hashlib.sha256(b'').hexdigest(), 'container': container.name, 'member': name} for name in empty]
+        (assets / 'empty-log-encoding.json').write_text(json.dumps({
+            'schema': 'ruv-fann.tensor-empty-log-encoding/1', 'sourceSha': source,
+            'archiveSha256': receipt['archiveSha256'], 'containerSha256': sha(container), 'entries': entries}, indent=2) + '\n')
+    validate_empty_log_assets(assets, originals, source, receipt['archiveSha256'])
     manifest = {p.name: sha(p) for p in assets.iterdir()}
     (assets / 'SHA256SUMS').write_text(''.join(f'{digest}  {name}\n' for name, digest in sorted(manifest.items())))
     manifest['SHA256SUMS'] = sha(assets / 'SHA256SUMS')
+    if any(not p.stat().st_size for p in assets.iterdir()):
+        raise ValueError('Cannot upload a zero-length release asset')
+    return assets, manifest
+
+
+def github_asset_bytes(identifier):
+    # gh's terminal sanitizer otherwise rejects legitimate ANSI bytes inside captured logs.
+    # Capture bytes only; never render untrusted release content to the terminal.
+    return subprocess.check_output(['gh', 'api', '--allow-escape-sequences', '-H', 'Accept: application/octet-stream',
+                                    f'repos/{REPO}/releases/assets/{identifier}'])
+
+
+def github_inventory(identifier, source):
+    release = gh(f'repos/{REPO}/releases/{identifier}')
+    if (release.get('id') != identifier or release.get('tag_name') != TAG
+            or release.get('target_commitish') != source or type(release.get('draft')) is not bool):
+        raise ValueError('GitHub release source/identity changed')
+    rows = []
+    for page in range(1, 11):
+        batch = gh(f'repos/{REPO}/releases/{identifier}/assets?per_page=100&page={page}')
+        if not isinstance(batch, list):
+            raise ValueError('Invalid GitHub asset inventory')
+        rows.extend(batch)
+        if len(batch) < 100:
+            break
+    else:
+        raise ValueError('GitHub asset inventory exceeded bound')
+    if len({row['name'] for row in rows}) != len(rows):
+        raise ValueError('Duplicate GitHub release assets')
+    return release, rows
+
+
+def github_checked_assets(identifier, source, manifest, *, draft=False, complete=False, cache=None, folder=None):
+    release, rows = github_inventory(identifier, source)
+    if draft and release['draft'] is not True:
+        raise ValueError('Draft became public; refuse mutation')
+    if (complete or not release['draft']) and {row['name'] for row in rows} != set(manifest):
+        raise ValueError('GitHub release asset inventory differs')
+    if folder is not None:
+        folder.mkdir()
+    if cache is None:
+        cache = {}
+    for row in rows:
+        name = row['name']
+        if name not in manifest or row.get('state') != 'uploaded':
+            raise ValueError('Unknown or incomplete GitHub asset: ' + name)
+        fingerprint = tuple(row.get(k) for k in ('id', 'name', 'size', 'digest', 'state', 'updated_at'))
+        if fingerprint not in cache:
+            cache[fingerprint] = github_asset_bytes(row['id'])
+        data = cache[fingerprint]
+        if len(data) != row.get('size') or hashlib.sha256(data).hexdigest() != manifest[name]:
+            raise ValueError('Conflicting GitHub release asset: ' + name)
+        if folder is not None:
+            (folder / name).write_bytes(data)
+    return release, rows
+
+
+def github_upload(identifier, path):
+    data = path.read_bytes()
+    if not data:
+        raise ValueError('Zero-length GitHub upload refused')
+    request = urllib.request.Request(
+        f'https://uploads.github.com/repos/{REPO}/releases/{identifier}/assets?name=' + urllib.parse.quote(path.name, safe=''),
+        data=data, method='POST', headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],
+        'Content-Type': 'application/octet-stream', 'Accept': 'application/vnd.github+json'})
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, *args, **kwargs):
+            return None
+    with urllib.request.build_opener(NoRedirect()).open(request, timeout=120) as response:
+        if response.status != 201:
+            raise ValueError('GitHub upload did not return 201')
+        row = json.load(response)
+    if row.get('name') != path.name or row.get('state') != 'uploaded' or row.get('size') != len(data):
+        raise ValueError('GitHub uploaded asset metadata differs')
+
+
+def github_resume(identifier, source, assets, manifest, guard):
+    cache = {}
+    for _ in range(len(manifest) + 1):
+        guard()
+        _, rows = github_checked_assets(identifier, source, manifest, draft=True, cache=cache)
+        missing = sorted(set(manifest) - {row['name'] for row in rows})
+        if not missing:
+            return
+        github_upload(identifier, assets / missing[0])
+    raise ValueError('GitHub draft upload exceeded bounded progress')
+
+
+def github_release(base, source):
+    receipt = validate_public(base, source)
+    def canonical():
+        public = registry.downloaded(NAME, VERSION)
+        if public is None or registry.sha(public) != receipt['archiveSha256']:
+            raise ValueError('Canonical bytes changed before GitHub release')
+    canonical()
+    assets, manifest = github_assets(base, source, receipt)
     release_tools = load('tensor_github', 'create-rust-github-release.py')
     release_tools.TAG = TAG
     existing = release_tools.existing_release()
+    if existing and (existing.get('tag_name') != TAG or existing.get('target_commitish') != source
+                     or type(existing.get('draft')) is not bool):
+        raise ValueError('Existing release identifies another source')
     ref = subprocess.run(['gh', 'api', f'repos/{REPO}/git/ref/tags/{TAG}'], capture_output=True, text=True)
     if ref.returncode:
         if '404' not in ref.stderr:
             raise ValueError('Could not establish immutable tag absence')
         if existing:
             raise ValueError('Release exists without the exact tag')
+        protected(source)
         subprocess.run(['gh', 'api', '--method', 'POST', f'repos/{REPO}/git/refs', '-f', f'ref=refs/tags/{TAG}', '-f', f'sha={source}'], check=True, stdout=subprocess.DEVNULL)
-    if release_tools.tag_source() != source:
-        raise ValueError('Existing tag identifies another source')
+    def guard():
+        protected(source)
+        if release_tools.tag_source() != source:
+            raise ValueError('Existing tag identifies another source')
+        canonical()
+    guard()
     if not existing:
         notes = base / 'release-notes.md'
         notes.write_text(f"Bounded F32/F16/BF16 Safetensors checkpoint editing and byte-exact rollback.\n\nSource: {source}\nArchive SHA-256: {receipt['archiveSha256']}\n\nQualified source and packed integration tests, cross-platform CLI roundtrips, Rust 1.81, audit with warnings denied, and fresh public registry consumers.\n\nPAN2 GPU inference has not run; no behavioral improvement or automatic promotion is claimed.\n")
-        subprocess.run(['gh', 'release', 'create', TAG, '--repo', REPO, '--target', source, '--draft',
-                        '--title', f'{NAME} {VERSION}', '--notes-file', str(notes), *map(str, sorted(assets.iterdir()))], check=True)
-    def verify(folder):
-        folder.mkdir()
-        subprocess.run(['gh', 'release', 'download', TAG, '--repo', REPO, '--dir', str(folder)], check=True)
-        if {p.name: sha(p) for p in folder.iterdir()} != manifest or release_tools.tag_source() != source:
-            raise ValueError('GitHub release bytes or source differ')
-    verify(base / 'github-before')
-    protected(source)
-    if not existing or existing.get('draft') is True:
-        release_id = release_tools.existing_release()['id']
-        subprocess.run(['gh', 'api', '--method', 'PATCH', f'repos/{REPO}/releases/{release_id}', '-F', 'draft=false'], check=True, stdout=subprocess.DEVNULL)
-    verify(base / 'github-after')
-    metadata = gh(f'repos/{REPO}/releases/tags/{TAG}')
-    if metadata.get('draft') is not False:
-        raise ValueError('Release remains draft')
+        subprocess.run(['gh', 'release', 'create', TAG, '--repo', REPO, '--target', source, '--draft', '--verify-tag',
+                        '--title', f'{NAME} {VERSION}', '--notes-file', str(notes)], check=True)
+        existing = release_tools.existing_release()
+        if not existing:
+            raise ValueError('Created draft not found')
+    identifier = existing['id']
+    initial, _ = github_checked_assets(identifier, source, manifest)
+    if initial['draft']:
+        github_resume(identifier, source, assets, manifest, guard)
+    before, _ = github_checked_assets(identifier, source, manifest, complete=True, folder=base / 'github-before')
+    if before['draft'] is not initial['draft']:
+        raise ValueError('Release state changed during upload')
+    guard()
+    if before['draft']:
+        github_checked_assets(identifier, source, manifest, draft=True, complete=True)
+        subprocess.run(['gh', 'api', '--method', 'PATCH', f'repos/{REPO}/releases/{identifier}', '-F', 'draft=false'], check=True, stdout=subprocess.DEVNULL)
+    metadata, _ = github_checked_assets(identifier, source, manifest, complete=True, folder=base / 'github-after')
+    if metadata['draft'] is not False or release_tools.tag_source() != source:
+        raise ValueError('Release remains draft or tag changed')
     (base / 'github-release.json').write_text(json.dumps({'sourceSha': source, 'tag': TAG, 'url': metadata['html_url'], 'assets': manifest, 'verified': True}, indent=2))
 
 
