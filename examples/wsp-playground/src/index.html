@@ -15,6 +15,13 @@
 <nav class="tabs" aria-label="Playground experiments"><button class="tab selected" data-tab="robot" aria-selected="true"><span>01</span> Robot repair <b>↗</b></button><button class="tab" data-tab="room" aria-selected="false"><span>02</span> Ambient room <b>↗</b></button><button class="tab" data-tab="bench" aria-selected="false"><span>03</span> Runtime bench <b>↗</b></button></nav>
 <div id="loading" role="status">Initializing the real WebAssembly engine…</div>
 <section id="lab" hidden>
+<section class="walkthrough" id="walkthrough" aria-labelledby="walk-title">
+  <div class="walk-top"><span class="eyebrow">NEW HERE? TAKE THE TWO MINUTE TOUR</span><button id="walk-dismiss" class="walk-text-button">Explore on my own</button></div>
+  <div id="walk-progress" class="walk-progress" aria-label="Walkthrough progress"></div>
+  <div class="walk-content"><div aria-live="polite" aria-atomic="true"><span class="walk-step" id="walk-step">A guided first experiment</span><h2 id="walk-title">Change a decision. See why it changed.</h2><p id="walk-copy">Weights are numbers that shape a model’s decisions. This tour lets you try a change, check whether it works, and undo it. No coding or AI background needed.</p><p class="walk-look" id="walk-look">Starts from the original weights for this lab. Your other lab keeps its own experiment.</p></div><div class="walk-buttons"><button class="primary" id="walk-action">Start walkthrough →</button><button id="walk-restart" class="walk-text-button" hidden>Start over</button></div></div>
+  <details class="walk-glossary"><summary>What do these words mean?</summary><dl><div><dt>Weight</dt><dd>A number that controls how strongly a signal affects a decision.</dd></div><div><dt>Active model</dt><dd>The version currently making decisions. Shown in gray.</dd></div><div><dt>Candidate</dt><dd>Your proposed version. Shown in green until you choose to use it.</dd></div><div><dt>Evaluate</dt><dd>Check the proposed version against examples with known answers.</dd></div><div><dt>Promote</dt><dd>Make a tested candidate the active version in this session.</dd></div><div><dt>Rollback</dt><dd>Bring back the original weights. The experiment history stays.</dd></div></dl></details>
+</section>
+<button id="walk-open" class="walk-reopen" hidden>New here? Show the walkthrough →</button>
 <div class="workspace">
   <div class="visual-panel">
     <div class="panel-top"><div><span class="eyebrow" id="scene-label">ROBOT SENSOR FIELD</span><h2 id="scene-title">Same world. Different decisions.</h2></div><button class="icon-button" id="pause" aria-label="Pause animation">Ⅱ</button></div>

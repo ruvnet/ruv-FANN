@@ -20,6 +20,13 @@ to `.artifacts/` and are intentionally ignored by Git.
 
 ## Experiences
 
+Each model lab opens with a plain language walkthrough. Start it to compare the
+two versions, load and reject a shortcut, test a repair, explicitly promote it
+and restore the original weights. Steps follow completed operations; a failed
+edge check cannot advance the tour. Highlighted controls and a small glossary
+explain the next action. Visitors can hide, resume or restart the tour. Starting
+over restores original weights only in the current lab and retains its history.
+
 * Robot repair: two obstacle sensors feed two ReLU units and a linear steering
   output. Edit the two output weights, trace the actual WASM activations,
   inspect the decision grid and compare active and candidate behavior.

@@ -1,9 +1,11 @@
 import { createLab, grid, benchmarkRuntime } from './engine.js';
 import { drawScene, drawHeatmap } from './visuals.js';
+import { walkthroughSteps, nextWalkthroughStep } from './walkthrough.js';
 
 const $ = id => document.getElementById(id);
 let current = 'robot', labs = {}, lab, candidate, evidence = null, busy = false, paused = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let scene = { name: current, inputs: [.85, .15], active: 0, candidate: 0 }, renderTicket = 0, traceTimer, toastTimer, clock = 0, lastTime;
+let walkStep = 0, walkVisible = true;
 const value = id => Number($(id).value);
 const weights = () => [value('weight-a'), value('weight-b')];
 const inputs = () => [value('sensor-a'), value('sensor-b')];
@@ -18,7 +20,41 @@ function syncButtons() {
   $('promote').disabled = busy || !evidence?.accepted;
   $('rollback').disabled = busy || lab?.snapshot().revision === 1;
   $('evaluate').firstChild.textContent = busy ? 'Running real WASM… ' : 'Evaluate candidate ';
+  renderWalkthrough();
 }
+function renderWalkthrough() {
+  $('walkthrough').dataset.step = String(walkStep);
+  $('walkthrough').hidden = !walkVisible; $('walk-open').hidden = walkVisible;
+  document.querySelectorAll('.walk-highlight').forEach(node => node.classList.remove('walk-highlight'));
+  const steps = walkthroughSteps(current), step = steps[walkStep];
+  $('walk-title').textContent = step.title; $('walk-copy').textContent = step.copy;
+  $('walk-look').textContent = step.look;
+  $('walk-step').textContent = walkStep ? `Step ${walkStep} of 7` : 'A guided first experiment';
+  $('walk-action').textContent = busy ? 'Checking your experiment…' : step.action;
+  $('walk-action').disabled = busy || !!(step.target && $(step.target).disabled);
+  $('walk-restart').hidden = walkStep === 0; $('walk-restart').disabled = busy;
+  $('walk-progress').setAttribute('aria-label', walkStep ? `Step ${walkStep} of 7` : 'Walkthrough not started');
+  const bars = Array.from({ length: 7 }, (_, i) => { const bar = document.createElement('span'); bar.classList.toggle('complete', i < walkStep); return bar; });
+  $('walk-progress').replaceChildren(...bars);
+  if (walkVisible && walkStep && step.target) $(step.target).classList.add('walk-highlight');
+}
+function walkEvent(event) { walkStep = nextWalkthroughStep(walkStep, event); renderWalkthrough(); }
+async function startWalkthrough() {
+  const original = lab.scenario.initial, active = lab.snapshot().model.layers[1].weights;
+  if (active.some((v, i) => v !== original[i])) lab.rollback();
+  $('sensor-a').value = '0.85'; $('sensor-b').value = '0.15';
+  await setWeights(original); walkStep = 1; walkVisible = true; renderWalkthrough();
+}
+$('walk-action').addEventListener('click', () => {
+  if (busy) return;
+  if (walkStep === 0) { operation(startWalkthrough); return; }
+  if (walkStep === 7) { operation(() => selectTab(current === 'robot' ? 'room' : 'robot')); return; }
+  const target = walkthroughSteps(current)[walkStep].target;
+  if (target && !$(target).disabled) $(target).click();
+});
+$('walk-restart').addEventListener('click', () => operation(startWalkthrough));
+$('walk-dismiss').addEventListener('click', () => { walkVisible = false; renderWalkthrough(); });
+$('walk-open').addEventListener('click', () => { walkVisible = true; renderWalkthrough(); });
 async function operation(fn) {
   if (busy) return;
   busy = true; syncButtons();
@@ -73,7 +109,7 @@ async function render() {
   }, 60);
 }
 async function selectTab(name) {
-  ++renderTicket; current = name;
+  ++renderTicket; current = name; walkStep = 0;
   document.querySelectorAll('.tab').forEach(button => {
     const selected = button.dataset.tab === name;
     button.classList.toggle('selected', selected); button.setAttribute('aria-selected', String(selected));
@@ -90,12 +126,13 @@ async function selectTab(name) {
   await setWeights(lab.snapshot().model.layers[1].weights); syncButtons();
 }
 for (const id of ['sensor-a', 'sensor-b']) $(id).addEventListener('input', () => { render().catch(e => notify(e.message, true)); });
-for (const id of ['weight-a', 'weight-b']) $(id).addEventListener('input', () => { resetGates(); render().catch(e => notify(e.message, true)); });
+for (const id of ['weight-a', 'weight-b']) $(id).addEventListener('input', () => { resetGates(); walkEvent('edit'); render().catch(e => notify(e.message, true)); });
 document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => operation(() => selectTab(b.dataset.tab))));
-$('shortcut').addEventListener('click', () => operation(async () => { await setWeights(lab.scenario.shortcut); notify('This fits the development case. Will the other cases agree?'); }));
-$('repair').addEventListener('click', () => operation(async () => { await setWeights(lab.scenario.good); notify('Repair loaded as a candidate. Evaluate it before promotion.'); }));
+$('shortcut').addEventListener('click', () => operation(async () => { await setWeights(lab.scenario.shortcut); walkEvent('shortcut'); notify('This fits the development case. Will the other cases agree?'); }));
+$('repair').addEventListener('click', () => operation(async () => { await setWeights(lab.scenario.good); walkEvent('repair'); notify('Repair loaded as a candidate. Evaluate it before promotion.'); }));
 $('search').addEventListener('click', () => operation(async () => {
   const found = await lab.search(); await setWeights(found.weights);
+  walkEvent('edit');
   $('search-note').textContent = `${found.result.evaluations} candidate screens · development error ${format(found.result.bestScore, 4)}. Separate tests still required.`;
   notify('Bounded search finished. A development win can still fail the gates.');
 }));
@@ -121,17 +158,20 @@ $('evaluate').addEventListener('click', () => operation(async () => {
   $('gate-status').textContent = result.accepted ? 'READY TO PROMOTE' : 'REJECTED';
   $('gate-status').className = `status-tag ${result.accepted ? 'pass' : 'fail'}`;
   $('receipt-summary').textContent = result.accepted ? 'Browser and edge gates agree. Active weights are unchanged until you choose Promote.' : 'Browser and edge rejected this candidate. Active weights remain unchanged.';
+  walkEvent(result.accepted ? 'accepted' : 'rejected');
   notify(result.accepted ? 'Candidate passed all gates. You can now promote it.' : 'Shortcut rejected. The active model did not change.', !result.accepted);
 }));
 $('promote').addEventListener('click', () => operation(async () => {
   const next = lab.promote(); evidence = null;
   $('receipt-summary').textContent = `Promoted revision ${next.revision}. The active model now uses the evaluated weights.`;
   $('gate-status').textContent = 'PROMOTED'; await render(); notify(`Revision ${next.revision} is active in your local session.`);
+  walkEvent('promote');
 }));
 $('rollback').addEventListener('click', () => operation(async () => {
   const next = lab.rollback(); await setWeights(next.model.layers[1].weights);
   $('receipt-summary').textContent = `Revision ${next.revision} restores the exact original checkpoint. History is retained.`;
   $('gate-status').textContent = 'ROLLED BACK'; notify('Original weights restored. The revision number moves forward.');
+  walkEvent('rollback');
 }));
 $('export').addEventListener('click', () => {
   const exported = { schema: 'ruv-fann.playground-receipt/1', scenario: current, generatedAt: new Date().toISOString(),

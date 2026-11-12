@@ -37,6 +37,25 @@ test('real Chromium: desktop/mobile, rejection, edge agreement, promotion, rollb
       const downloadEvent = page.waitForEvent('download'); await page.locator('#export').click(); const download = await downloadEvent;
       assert.equal(download.suggestedFilename(), 'wsp-robot-experiment.json');
       await download.saveAs(`.artifacts/${viewport.width}-receipt.json`);
+      // The guided buttons drive the real lifecycle, including gated promotion.
+      async function completeWalkthrough(name) {
+        const before = await page.locator('#checkpoint').innerText();
+        for (let step = 1; step <= 7; step++) {
+          await page.locator('#walk-action').click();
+          await page.waitForFunction(expected => document.getElementById('walkthrough').dataset.step === String(expected), step);
+          if (step === 3) {
+            assert.equal(await page.locator('#gate-status').innerText(), 'REJECTED');
+            assert.equal(await page.locator('#promote').isDisabled(), true);
+          }
+          if (step === 5) assert.equal(await page.locator('#gate-status').innerText(), 'READY TO PROMOTE');
+        }
+        assert.equal(await page.locator('#checkpoint').innerText(), before);
+        assert.match(await page.locator('#walk-title').innerText(), /brought it back/);
+        await page.screenshot({ path: `.artifacts/${viewport.width}-${name}-walkthrough.png`, fullPage: true });
+        await page.locator('#walk-dismiss').click(); assert.equal(await page.locator('#walkthrough').isVisible(), false);
+        await page.locator('#walk-open').click(); assert.equal(await page.locator('#walkthrough').isVisible(), true);
+      }
+      await completeWalkthrough('robot');
       await page.locator('[data-tab="room"]').click(); await page.waitForFunction(() => document.getElementById('scene-label').textContent.includes('RUVIEW'));
       await page.locator('#shortcut').click(); await page.locator('#evaluate').click();
       await page.waitForFunction(() => document.getElementById('gate-status').textContent === 'REJECTED');
@@ -46,6 +65,7 @@ test('real Chromium: desktop/mobile, rejection, edge agreement, promotion, rollb
       // Any edit invalidates previously passing promotion evidence.
       await page.locator('#weight-a').evaluate(e => { e.value = '0.5'; e.dispatchEvent(new Event('input', { bubbles: true })); });
       assert.equal(await page.locator('#promote').isDisabled(), true);
+      await completeWalkthrough('room');
       await page.locator('[data-tab="bench"]').click(); await page.locator('#run-benchmark').click();
       await page.waitForFunction(() => document.querySelectorAll('#benchmark-results dl').length === 2);
       await page.screenshot({ path: `.artifacts/${viewport.width}-benchmark.png`, fullPage: true });
@@ -59,7 +79,15 @@ test('real Chromium: desktop/mobile, rejection, edge agreement, promotion, rollb
     await page.locator('#repair').click(); await page.locator('#evaluate').click();
     await page.waitForFunction(() => document.getElementById('notice').textContent.includes('fetch') || document.getElementById('notice').textContent.includes('unavailable'));
     assert.equal(await page.locator('#promote').isDisabled(), true);
-    observations.push({ failedEdgeBlocksPromotion: true, boundedSearchShortcutRejected: true });
+    await page.locator('#walk-action').click();
+    await page.waitForFunction(() => document.getElementById('walkthrough').dataset.step === '1');
+    await page.locator('#walk-action').click();
+    await page.waitForFunction(() => document.getElementById('walkthrough').dataset.step === '2');
+    await page.locator('#walk-action').click();
+    await page.waitForFunction(() => !document.getElementById('walk-action').disabled);
+    assert.equal(await page.locator('#walkthrough').getAttribute('data-step'), '2');
+    assert.equal(await page.locator('#promote').isDisabled(), true);
+    observations.push({ failedEdgeBlocksPromotion: true, boundedSearchShortcutRejected: true, walkthroughFailureDoesNotAdvance: true });
     await page.close();
     await writeFile('.artifacts/browser-results.json', JSON.stringify({ url, observations }, null, 2));
   } finally { await browser.close(); if (server) await new Promise(resolve => server.close(resolve)); }
