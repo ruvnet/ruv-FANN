@@ -247,6 +247,13 @@ def qualify(base, controller, module):
     require(result.returncode == 0, 'Recovery guard command failed: ' + log.read_text()[-8000:])
     count = test_evidence(log.read_text())
     prepare(base / 'evidence', module)
+    # Exercise the actual draft download path too: successful command logs may
+    # contain ANSI bytes, and those bytes must survive capture unchanged.
+    existing, rows = release_inventory()
+    require(existing['draft'] is True, 'Qualifier requires the original draft')
+    original = base / 'evidence/publication/release-assets'
+    classify_assets(rows, {p.name: p for p in original.iterdir()},
+                    (original / 'SHA256SUMS').read_bytes(), True)
     receipt = {'schema': 'ruv-fann.tensor-recovery-qualification/1', 'controllerSha': controller, 'sourceSha': SOURCE,
                'files': controller_files(), 'command': argv, 'exitCode': result.returncode, 'tests': count,
                'logSha256': sha(log), 'publicationZipSha256': PUBLICATION_SHA, 'candidateZipSha256': CANDIDATE_SHA,
@@ -314,7 +321,8 @@ def release_inventory():
 
 
 def asset_bytes(identifier):
-    return subprocess.check_output(['gh', 'api', '-H', 'Accept: application/octet-stream', f'repos/{REPO}/releases/assets/{identifier}'])
+    # Binary output is captured for hashing/storage, never rendered in a terminal.
+    return subprocess.check_output(['gh', 'api', '--allow-escape-sequences', '-H', 'Accept: application/octet-stream', f'repos/{REPO}/releases/assets/{identifier}'])
 
 
 def classify_assets(rows, assets, original_sums, is_draft, fetch=asset_bytes):
