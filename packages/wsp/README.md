@@ -4,12 +4,6 @@ Propose, evaluate and version direct neural-network weight edits in **Node.js an
 
 An LLM, a human or an algorithm supplies the patch. This package does not call a model provider, execute generated code, or guarantee that a weight edit generalizes beyond your evaluation cases.
 
-## Choose your weight editing workflow
-
-Use this package to inspect a small dense network, trace its activations, propose a checkpoint-bound patch and compare baseline and candidate predictions through Rust-backed WASM. It fits local numeric scoring experiments and inspectable neural components in JavaScript or TypeScript.
-
-Need training as well as direct edits? Start with the [ruv-fann core package](https://github.com/ruvnet/ruv-FANN/tree/main/packages/core). For search, regression gates and deployment adapters, see the [focused toolkit packages](https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp-toolkit). Try the [interactive browser guide](https://ruvnet.github.io/ruv-FANN/) or explore [ruv.io](https://ruv.io).
-
 ## Install
 
 ```sh
@@ -258,3 +252,5 @@ This is a runtime and review workflow for direct weight edits, not a transformer
 ## Discoverability topics
 
 weight-space programming · direct neural weight edits · gradient-free model editing · activation traces · neuron ablation · finite-difference sensitivity · regression evaluation · versioned checkpoints and rollback.
+
+JavaScript and TypeScript weight-space programming for small dense neural networks: inspect activations, compare direct weight edits with baseline predictions, and explicitly promote or roll back a checkpoint. Runs Rust-backed WebAssembly in Node.js and compatible browsers. For training and the full toolkit, see https://github.com/ruvnet/ruv-FANN/tree/main/packages/core . Try the interactive browser guide at https://ruvnet.github.io/ruv-FANN/ and explore the ecosystem at https://ruv.io .
