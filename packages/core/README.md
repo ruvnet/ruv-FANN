@@ -2,6 +2,8 @@
 
 Build small neural networks you can **run, train, inspect and change locally**. `ruv-fann` combines Rust-backed WebAssembly inference and SGD/AdamW training with explicit tools for weight-space programming: trace activations, search bounded edits, test independent holdouts and promote a model revision by choice.
 
+For **JavaScript neural networks, TypeScript applications and browser machine learning**, start with the [quick start](#quick-start), then follow the [weight editing workflow](#edit-weights-test-holdouts-and-promote-explicitly). Use [standalone ruv-fann-wsp](https://github.com/ruvnet/ruv-FANN/tree/main/packages/wsp) when you only need weight inspection, patches and evaluation. Explore the broader ecosystem at [ruv.io](https://ruv.io).
+
 <p align="center">
   <a href="https://ruvnet.github.io/ruv-FANN/">
     <img src="https://raw.githubusercontent.com/ruvnet/ruv-FANN/e573ed708dcc4a5705990f3a8991deaefcf8be74/packages/core/assets/weight-toolkit.svg" alt="Animated ruv-fann weight programming diagram: run a neural network, propose a bounded weight edit, validate independent gates and explicitly promote a revision." width="1200">

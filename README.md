@@ -1,6 +1,8 @@
-# ruv-FANN — neural networks, WebAssembly and weight-space programming
+# ruv-FANN: Rust neural networks and weight-space programming
 
-Small neural networks you can train, inspect and edit in Rust, JavaScript, TypeScript and the browser. Add bounded weight search, independent model evaluation, finite-domain checks and explicit AgentDB revisions. The repository also contains separate forecasting, agent, GPU-compute and image-processing projects.
+Build, train and inspect small neural networks in **Rust, JavaScript, TypeScript and WebAssembly**. Use **weight-space programming (WSP)** to propose direct weight edits, compare a candidate with its baseline, and explicitly promote or roll back a model revision. Bounded search, independent evaluation and finite-domain checks help you test the behavior you intend to deploy.
+
+The repository also contains separate forecasting, agent, GPU-compute and image-processing projects.
 
 [![See the weights. Prove the change. An illustrated guide to inspecting a network, editing a weight and evaluating the result.](docs/assets/weight-space-story.svg)](https://ruvnet.github.io/ruv-FANN/)
 
@@ -13,6 +15,18 @@ Small neural networks you can train, inspect and edit in Rust, JavaScript, TypeS
 **For Rust, start with the `ruv-fann` crate. For JavaScript and TypeScript, start with the `ruv-fann` npm package.** Core npm 0.3.0 exposes the weight toolkit through explicit `ruv-fann/*` subpaths. Choose standalone `ruv-fann-wsp` for a smaller weight-editing installation, or individual toolkit packages for focused integrations. The Rust core provides generic floating-point networks, training algorithms and model I/O inspired by [FANN](https://github.com/libfann/fann).
 
 ![Repository map: five independent Rust workspaces for neural networks, agent tools, forecasting, CUDA source translation and image processing.](docs/assets/package-map.svg)
+
+## Weight-space programming for local applications
+
+A weight edit changes selected model parameters directly. The edit is a proposal until you evaluate it; it is not proof that a model improved or generalized.
+
+| Your job | Start here |
+| --- | --- |
+| Inspect activations and test a direct weight patch in Node.js or a browser | [Standalone ruv-fann-wsp guide](packages/wsp/README.md) |
+| Train a small neural network and add weight editing, model memory or deployment adapters | [JavaScript and TypeScript core guide](packages/core/README.md) |
+| Run prepared inference or dense training in native Rust | [Rust quick start](#try-the-neural-network-core) |
+
+Run the [interactive WASM demo](https://ruvnet.github.io/ruv-FANN/) before choosing a package. For the wider ecosystem, visit [ruv.io](https://ruv.io). Model files, supported environments and evaluation limits remain specific to each guide.
 
 ## Choose a package
 
