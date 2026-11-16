@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="308" viewBox="0 0 960 308" role="img" aria-labelledby="title description">
+  <title id="title">From a RuFANN checkpoint to a score on the ESP32 C5</title>
+  <desc id="description">At build time, the model JSON is converted to a margin of 128 and a cap of 768. On the chip, those constants turn two evidence values into a bounded score.</desc>
+  <defs>
+    <linearGradient id="background" x2="1" y2="1">
+      <stop stop-color="#101e30"/>
+      <stop offset="1" stop-color="#0a1421"/>
+    </linearGradient>
+    <linearGradient id="trace" gradientUnits="userSpaceOnUse" x1="42" y1="270" x2="918" y2="270">
+      <stop stop-color="#79b8ff"/>
+      <stop offset="1" stop-color="#51e0b3"/>
+    </linearGradient>
+  </defs>
+  <style>
+    text { font-family: system-ui, sans-serif; }
+    .code { font-family: ui-monospace, monospace; }
+    .travel { animation: travel 3s ease-in-out infinite; }
+    @keyframes travel {
+      0%, 10% { transform: translateX(0); opacity: 0; }
+      20% { opacity: 1; }
+      85% { opacity: 1; }
+      100% { transform: translateX(876px); opacity: 0; }
+    }
+    @media (prefers-reduced-motion: reduce) { .travel { display: none; } }
+  </style>
+  <rect x="1" y="1" width="958" height="306" rx="25" fill="url(#background)" stroke="#31465e" stroke-width="2"/>
+  <text x="34" y="44" fill="#8abfff" font-size="13" font-weight="700" letter-spacing="2.4">RUFANN / ESP32 C5</text>
+  <text x="34" y="82" fill="#f1f6fb" font-size="29" font-weight="700">From checkpoint to chip</text>
+
+  <g fill="#15263a" stroke="#34506b" stroke-width="1.5">
+    <rect x="34" y="108" width="268" height="138" rx="15"/>
+    <rect x="346" y="108" width="268" height="138" rx="15"/>
+    <rect x="658" y="108" width="268" height="138" rx="15"/>
+  </g>
+  <g fill="none" stroke="#6faef2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M314 177h20m-6-6 6 6-6 6"/>
+    <path d="M626 177h20m-6-6 6 6-6 6"/>
+  </g>
+
+  <g fill="#9bc9ff" font-size="13" font-weight="700" letter-spacing="1.5">
+    <text x="54" y="137">01 / MODEL</text>
+    <text x="366" y="137">02 / BUILD</text>
+    <text x="678" y="137" fill="#76e7c1">03 / ON THE CHIP</text>
+  </g>
+  <g fill="#f1f6fb" font-size="21" font-weight="700">
+    <text x="54" y="168">RuFANN checkpoint</text>
+    <text x="366" y="168">Firmware constants</text>
+    <text x="678" y="168">Integer score</text>
+  </g>
+  <g fill="#c5d5e8" font-size="15">
+    <text x="54" y="194">Two biases set the rule.</text>
+    <text x="366" y="194">Cargo checks the model.</text>
+    <text x="678" y="194">Compare the two rooms.</text>
+  </g>
+  <g class="code" fill="#dbeaff" font-size="15">
+    <text x="54" y="223">[−0.125, −0.875]</text>
+    <text x="366" y="223">Margin 128 · Cap 768</text>
+    <text x="678" y="223" fill="#93f2d2">896 and 256 → 512</text>
+  </g>
+
+  <path d="M42 270H918" stroke="url(#trace)" stroke-width="2" stroke-linecap="round" opacity="0.48"/>
+  <circle cx="42" cy="270" r="5" fill="#a8f7df" class="travel"/>
+  <g fill="#b8ccdf" font-size="12" font-weight="600" letter-spacing="0.75">
+    <text x="42" y="290">ON YOUR COMPUTER</text>
+    <text x="918" y="290" text-anchor="end">ON THE ESP32 C5</text>
+  </g>
+</svg>

@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="406" viewBox="0 0 960 406" role="img" aria-labelledby="title description">
+  <title id="title">How the local evidence lead becomes a score</title>
+  <desc id="description">The output is zero through an evidence lead of 0.125, rises one for one with the lead after the margin, and caps at 0.75 once the lead reaches 0.875. A lead of 0.625 yields 0.50.</desc>
+  <defs>
+    <linearGradient id="background" x2="1" y2="1">
+      <stop stop-color="#101e30"/>
+      <stop offset="1" stop-color="#0a1421"/>
+    </linearGradient>
+    <linearGradient id="area" x2="0" y2="1">
+      <stop stop-color="#51e0b3" stop-opacity="0.26"/>
+      <stop offset="1" stop-color="#51e0b3" stop-opacity="0.02"/>
+    </linearGradient>
+  </defs>
+  <style>
+    text { font-family: system-ui, sans-serif; }
+    .pulse { animation: pulse 2.4s ease-out infinite; }
+    @keyframes pulse {
+      0% { r: 7; opacity: 0.9; }
+      72%, 100% { r: 23; opacity: 0; }
+    }
+    @media (prefers-reduced-motion: reduce) { .pulse { display: none; } }
+  </style>
+  <rect x="1" y="1" width="958" height="404" rx="25" fill="url(#background)" stroke="#31465e" stroke-width="2"/>
+  <text x="34" y="42" fill="#8abfff" font-size="13" font-weight="700" letter-spacing="2.3">RUFANN / THE SCORING RULE</text>
+  <text x="34" y="77" fill="#f1f6fb" font-size="27" font-weight="700">A local lead earns a score</text>
+
+  <rect x="104" y="107" width="536" height="211" rx="8" fill="#102235"/>
+  <rect x="104" y="107" width="161" height="211" rx="8" fill="#192d44"/>
+  <g stroke="#2a455a" stroke-width="1">
+    <path d="M104 154.5h536M104 209h536M104 263.5h536"/>
+  </g>
+  <path d="M104 318H265L586.4 154.5H640V318Z" fill="url(#area)"/>
+  <path d="M104 107v211h536" fill="none" stroke="#7892ab" stroke-width="1.5"/>
+  <path d="M265 107v211M586.4 154.5V318" fill="none" stroke="#6486a2" stroke-dasharray="5 6"/>
+  <path d="M104 318h161l321.4-163.5H640" fill="none" stroke="#51e0b3" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M104 209H479.2V318" fill="none" stroke="#ffd18a" stroke-width="1.5" stroke-dasharray="4 5"/>
+  <circle cx="479.2" cy="209" r="7" fill="none" stroke="#ffd18a" stroke-width="2" class="pulse"/>
+  <circle cx="479.2" cy="209" r="6" fill="#ffd18a" stroke="#102235" stroke-width="2"/>
+
+  <g fill="#c5d5e8" font-size="14">
+    <text x="92" y="112" text-anchor="end">Score</text>
+    <text x="92" y="159" text-anchor="end">0.75</text>
+    <text x="92" y="214" text-anchor="end">0.50</text>
+    <text x="92" y="322" text-anchor="end">0</text>
+    <text x="104" y="342" text-anchor="middle">−0.25</text>
+    <text x="211.2" y="342" text-anchor="middle">0</text>
+    <text x="265" y="342" text-anchor="middle">0.125</text>
+    <text x="479.2" y="342" text-anchor="middle" fill="#ffd18a">0.625</text>
+    <text x="586.4" y="342" text-anchor="middle">0.875</text>
+    <text x="640" y="342" text-anchor="middle">1</text>
+    <text x="372" y="378" text-anchor="middle" font-size="17" font-weight="650">Local evidence minus adjacent evidence</text>
+  </g>
+  <text x="123" y="134" fill="#b6cce2" font-size="14" font-weight="650">Score is zero</text>
+  <text x="590" y="141" fill="#93f2d2" font-size="14" font-weight="650">Cap</text>
+
+  <rect x="678" y="107" width="248" height="245" rx="15" fill="#15263a" stroke="#34506b" stroke-width="1.5"/>
+  <text x="700" y="140" fill="#9bc9ff" font-size="13" font-weight="700" letter-spacing="1.4">WORKED EXAMPLE</text>
+  <g fill="#c5d5e8" font-size="16">
+    <text x="700" y="177">Local evidence</text>
+    <text x="700" y="209">Adjacent evidence</text>
+    <text x="700" y="241">Subtract the margin</text>
+  </g>
+  <g fill="#f1f6fb" font-size="17" font-weight="700" text-anchor="end">
+    <text x="902" y="177">0.875</text>
+    <text x="902" y="209">0.250</text>
+    <text x="902" y="241">0.125</text>
+  </g>
+  <path d="M700 261h202" stroke="#34506b" stroke-width="1.5"/>
+  <text x="700" y="302" fill="#f1f6fb" font-size="19" font-weight="700">Score</text>
+  <text x="902" y="304" fill="#ffd18a" font-size="28" font-weight="750" text-anchor="end">0.50</text>
+  <text x="700" y="328" fill="#c5d5e8" font-size="14">512 in Q10 units</text>
+</svg>
