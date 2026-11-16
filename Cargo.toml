@@ -38,6 +38,8 @@ serde = { version = "1.0", features = ["derive"], optional = true }
 serde_json = { version = "1.0", optional = true, features = ["float_roundtrip"] }
 thiserror = "1.0"
 num-traits = "0.2"
+# Optional unsupervised input/codebook clustering, shared with RuVector.
+ruvector-e-means = { version = "0.1.0", optional = true }
 
 # Parallel processing
 rayon = { version = "1.8", optional = true }
@@ -102,6 +104,7 @@ simd = []
 binary = ["dep:bincode"]
 compression = ["dep:flate2"]
 io = ["binary", "compression", "serde"]
+clustering = ["dep:ruvector-e-means", "std"]
 
 # no_std support
 no_std = []

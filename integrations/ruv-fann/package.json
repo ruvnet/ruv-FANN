@@ -9,7 +9,12 @@
     ".": { "types": "./src/index.d.ts", "import": "./src/index.mjs" },
     "./ruvector": { "types": "./src/ruvector.d.ts", "import": "./src/ruvector.mjs" },
     "./metaharness": { "types": "./src/metaharness.d.ts", "import": "./src/metaharness.mjs" },
-    "./node": { "types": "./src/node.d.ts", "import": "./src/node.mjs" }
+    "./node": { "types": "./src/node.d.ts", "import": "./src/node.mjs" },
+    "./clustering": { "types": "./src/clustering.d.ts", "import": "./src/clustering.mjs" },
+    "./clustering/quantization": { "types": "./src/clustering-quantization.d.ts", "import": "./src/clustering-quantization.mjs" },
+    "./clustering/ivf": { "types": "./src/clustering-ivf.d.ts", "import": "./src/clustering-ivf.mjs" },
+    "./clustering/metaharness": { "types": "./src/clustering-metaharness.d.ts", "import": "./src/clustering-metaharness.mjs" },
+    "./clustering/cloudflare": { "types": "./src/clustering-cloudflare.d.ts", "import": "./src/clustering-cloudflare.mjs" }
   },
   "files": ["src/", "README.md", "LICENSE-MIT", "LICENSE-APACHE"],
   "engines": { "node": ">=22.13.0" },
@@ -25,7 +30,8 @@
   },
   "dependencies": {
     "@ruvector/wasm": "0.2.1",
-    "@metaharness/darwin": "0.13.0"
+    "@metaharness/darwin": "0.13.0",
+    "@ruvector/e-means": "0.1.0"
   },
   "devDependencies": { "typescript": "5.9.3" }
 }

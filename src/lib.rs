@@ -44,6 +44,8 @@ pub mod activation;
 pub mod autograd;
 pub mod calibration;
 pub mod cascade;
+#[cfg(feature = "clustering")]
+pub mod clustering;
 pub mod connection;
 pub mod errors;
 #[cfg(test)]
