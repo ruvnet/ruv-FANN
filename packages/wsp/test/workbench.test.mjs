@@ -214,7 +214,7 @@ async function instrumented(runtime, mutant = false) {
   const slot = `wsp-runtime-${Math.random()}`;
   globalThis[slot] = runtime;
   source = source.replace("import { loadRuntime } from 'ruv-fann';", `const runtime = globalThis[${JSON.stringify(slot)}]; const loadRuntime = async () => runtime;`);
-  for (const name of ['validation', 'crypto']) source = source.replace(`'./${name}.js'`, JSON.stringify(new URL(`../src/${name}.js`, import.meta.url).href));
+  for (const name of ['validation', 'crypto', 'readout-fit']) source = source.replace(`'./${name}.js'`, JSON.stringify(new URL(`../src/${name}.js`, import.meta.url).href));
   if (mutant) source = source.replace('finally { prepared.dispose(); }', 'finally { /* missing dispose mutant */ }');
   try { return await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`); }
   finally { delete globalThis[slot]; }
