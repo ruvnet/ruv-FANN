@@ -28,6 +28,8 @@ A weight edit changes selected model parameters directly. The edit is a proposal
 
 Run the [interactive WASM demo](https://ruvnet.github.io/ruv-FANN/) before choosing a package. For the wider ecosystem, visit [ruv.io](https://ruv.io). Model files, supported environments and evaluation limits remain specific to each guide.
 
+The development checkout can [fit a readout correction from shared probes](docs/readout-transfer.md). This gives a receiver with different hidden layers a bounded patch for one output.
+
 ## Choose a package
 
 | Location | Available behavior | Version / guide |
