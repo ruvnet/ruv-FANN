@@ -1,0 +1,23 @@
+name: WSP source tests
+on:
+  pull_request:
+    paths: ['packages/wsp/**', '.github/workflows/wsp-source.yml']
+  push:
+    branches: [main]
+    paths: ['packages/wsp/**', '.github/workflows/wsp-source.yml']
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - run: npm install --ignore-scripts --no-package-lock --no-audit --no-fund --workspaces=false
+        working-directory: packages/wsp
+      - run: node --test packages/wsp/test/*.test.mjs packages/wsp/test-source/*.test.mjs

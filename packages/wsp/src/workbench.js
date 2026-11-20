@@ -1,7 +1,8 @@
 import { loadRuntime } from 'ruv-fann';
-import { WSP_LIMITS, snapshotModel, snapshotDataset, snapshotLimits, record, integer, finite,
+import { WSP_LIMITS, snapshotModel, snapshotDataset, snapshotLimits, snapshotOptions, record, integer, finite,
   arrayLength, element, patchCandidate, cloneModel } from './validation.js';
 import { hashJSON } from './crypto.js';
+import { fitReadout } from './readout-fit.js';
 
 function options(value = {}, sensitivity = false) {
   const data = record(value, sensitivity ? ['simd', 'epsilon'] : ['simd'], [], 'workbench options');
@@ -131,4 +132,50 @@ export async function createNeuronAblationPatch(model, layerIndex, neuronIndex, 
   const prepared = patchCandidate({ schema: 'ruv-fann.weight-patch/1', baseHash: '0'.repeat(64), edits }, source, bounds);
   prepared.patch.baseHash = await hashJSON(source.json);
   return prepared.patch;
+}
+
+/** Fit observed output deltas in the receiver's own final hidden basis. Proposal only. */
+export async function proposeReadoutDelta(model, inputBatch, request, configuration) {
+  const source = snapshotModel(model);
+  const data = batch(inputBatch, source);
+  const settings = snapshotOptions(configuration);
+  const fields = ['baseHash', 'inputHash', 'output', 'deltas'];
+  const spec = record(request, fields, fields, 'readout delta');
+  for (const key of ['baseHash', 'inputHash']) {
+    if (typeof spec[key] !== 'string' || !/^[a-f0-9]{64}$/.test(spec[key]))
+      throw new TypeError('expected SHA-256 for ' + key);
+  }
+  const layer = source.model.layers.length - 1;
+  const head = source.model.layers[layer];
+  if (head.activation !== 'Linear' || head.steepness !== 1)
+    throw new RangeError('readout requires a Linear head with unit steepness');
+  const output = integer(spec.output, 0, head.outputs - 1, 'readout output');
+  const size = integer(head.inputs + 1, 1, settings.limits.maxEdits, 'readout row including bias');
+  if (data.rows < size) throw new RangeError('too few probes for readout width plus bias');
+  work(data.rows * (source.parameters + size * size) + size ** 3);
+  if (arrayLength(spec.deltas, WSP_LIMITS.maxRows, 'deltas') !== data.rows)
+    throw new RangeError('one output delta is required per probe');
+  const deltas = Array.from({ length: data.rows }, (_, i) => finite(element(spec.deltas, i, 'deltas'), 'output delta'));
+  const [baseHash, inputHash] = await Promise.all([hashJSON(source.json), hashJSON(JSON.stringify(data.canonical))]);
+  if (baseHash !== spec.baseHash || inputHash !== spec.inputHash)
+    throw new Error('readout baseHash or ordered inputHash mismatch');
+  if (deltas.every(value => value === 0)) return null;
+
+  let features = data.inputs;
+  if (layer > 0) {
+    const runtime = await loadRuntime({ simd: settings.simd });
+    const hidden = { schema: source.model.schema, layers: source.model.layers.slice(0, layer) };
+    features = infer(runtime, hidden, data.inputs, data.rows);
+  }
+  const correction = fitReadout(features, data.rows, head.inputs, deltas);
+  const edits = [];
+  for (let i = 0; i < size; i++) {
+    const parameter = i === head.inputs ? 'bias' : 'weights';
+    const index = parameter === 'bias' ? output : output * head.inputs + i;
+    const previous = head[parameter][index];
+    const value = finite(previous + correction[i], 'fitted readout parameter');
+    if (value !== previous) edits.push({ layer, parameter, index, value });
+  }
+  if (!edits.length) return null;
+  return patchCandidate({ schema: 'ruv-fann.weight-patch/1', baseHash, edits }, source, settings.limits).patch;
 }

@@ -83,6 +83,17 @@ export interface WeightModelInspection {
 }
 export interface WeightBatch { inputs: number[]; rows: number }
 export interface WeightTraceOptions { simd?: boolean | 'auto' }
+export interface ReadoutDelta {
+  baseHash: string;
+  /** Ordered probe hash from a WeightTrace. */
+  inputHash: string;
+  output: number;
+  /** Desired additive change in one output per probe, in probe order. */
+  deltas: number[];
+}
+/** Ridge projection onto one unit-steepness Linear output. Null denotes no representable edit. */
+export function proposeReadoutDelta(model: DenseModel | string, batch: WeightBatch,
+  request: ReadoutDelta, options?: EvaluationOptions): Promise<WeightPatch | null>;
 export interface WeightLayerTrace {
   layer: number;
   inputs: number;
