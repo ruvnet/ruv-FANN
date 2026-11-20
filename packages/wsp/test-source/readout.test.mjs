@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { applyWeightPatch, createWeightWorkspace, proposeReadoutDelta, traceWeightModel } from '../src/index.js';
-import { linearModel } from './fixtures.mjs';
+import { linearModel } from '../test/fixtures.mjs';
 
 const probes = { rows: 5, inputs: [-2, -1, 0, 1, 2] };
 const options = { simd: false };

@@ -27,3 +27,9 @@ cannot establish transfer on fresh inputs. The caller supplies holdout and
 retention cases and controls promotion.
 
 [LatentMesh experiment and measured controls](https://github.com/ruvnet/LatentMesh/pull/34)
+
+Run the source regression suite from the repository root.
+
+```sh
+node --test packages/wsp/test/*.test.mjs packages/wsp/test-source/*.test.mjs
+```
