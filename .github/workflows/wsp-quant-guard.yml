@@ -1,0 +1,53 @@
+name: Certified WSP research
+on:
+  pull_request:
+    paths: ['crates/wsp-quant-guard/**', '.github/workflows/wsp-quant-guard.yml']
+  push:
+    branches: [main, 'research/certified-quantized-wsp']
+    paths: ['crates/wsp-quant-guard/**', '.github/workflows/wsp-quant-guard.yml']
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: certified-wsp-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
+        with:
+          toolchain: '1.88.0'
+          components: clippy, rustfmt
+      - name: Check and execute integer implementation
+        working-directory: crates/wsp-quant-guard
+        run: |
+          cargo fmt --check
+          cargo clippy --locked --all-targets -- -D warnings
+          cargo test --release --locked
+          cargo build --release --locked
+          python3 scripts/acceptance.py --binary target/release/ruv-fann-wsp-quant-guard --output "$RUNNER_TEMP/wsp-acceptance.json"
+          python3 scripts/digits_experiment.py --replay-only evidence/digits-replay.jsonl --rust-cli target/release/ruv-fann-wsp-quant-guard --output "$RUNNER_TEMP/wsp-digits.json"
+          python3 proofs/verify_theory.py > "$RUNNER_TEMP/wsp-theory.json"
+      - name: Verify pinned Lean mathematics
+        run: |
+          curl --fail --location --silent --show-error https://github.com/leanprover/lean4/releases/download/v4.19.0/lean-4.19.0-linux.tar.zst --output "$RUNNER_TEMP/lean.tar.zst"
+          python3 - "$RUNNER_TEMP/lean.tar.zst" <<'PY'
+          import hashlib,sys
+          assert hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest() == '6fe3ce97a58f44e2b3567d455b994eacec5bfe9ae7774f2a573444480ba813fe'
+          PY
+          tar --zstd -xf "$RUNNER_TEMP/lean.tar.zst" -C "$RUNNER_TEMP"
+          python3 crates/wsp-quant-guard/proofs/check_lean.py "$RUNNER_TEMP/lean-4.19.0-linux/bin/lean" > "$RUNNER_TEMP/wsp-lean.json"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: certified-wsp-${{ github.sha }}
+          path: ${{ runner.temp }}/wsp-*.json
+          if-no-files-found: error
+          retention-days: 30

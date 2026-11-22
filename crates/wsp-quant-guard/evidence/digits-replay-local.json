@@ -1,0 +1,13 @@
+{
+  "schema": "wsp-quant-guard-digits-replay-v1",
+  "cases": 28,
+  "feasible": 16,
+  "infeasible": 12,
+  "all_matched": true,
+  "fixture_sha256": "a3440dc92f5120d171549173867db2a9973fa9ba611c94cce707642ceed85960",
+  "elapsed_seconds": 0.05452055099885911,
+  "python": "3.12.14",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "solve_total_us": 28524,
+  "verify_total_us": 543
+}

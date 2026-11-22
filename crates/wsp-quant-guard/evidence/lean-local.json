@@ -1,0 +1,33 @@
+{
+  "status": "passed",
+  "lean_version": "Lean (version 4.19.0, x86_64-unknown-linux-gnu, commit 6caaee842e94, Release)",
+  "source_sha256": "57419c8f7cb139cdcc8cbfa61fb9b3f33cfc16ce5ddc9a2f6cc61b4eb1150fba",
+  "checked_theorems": 17,
+  "theorems": [
+    "WspQuantGuard.floor8_cell",
+    "WspQuantGuard.quantize8_range",
+    "WspQuantGuard.quantize8_lower_cell",
+    "WspQuantGuard.quantize8_upper_cell",
+    "WspQuantGuard.quantize8_interior_cell",
+    "WspQuantGuard.quantize8_cell_iff",
+    "WspQuantGuard.anchored_edit8",
+    "WspQuantGuard.anchored_composition8",
+    "WspQuantGuard.exact_step_composition",
+    "WspQuantGuard.bounded_sum",
+    "WspQuantGuard.sparse_target_lower_bound128",
+    "WspQuantGuard.minimum_support128",
+    "WspQuantGuard.support128_remainder",
+    "WspQuantGuard.basis_accumulator_edit_is_zero",
+    "WspQuantGuard.integer_separation",
+    "WspQuantGuard.diamond_scale2_impossible",
+    "WspQuantGuard.diamond_scale3_witness"
+  ],
+  "axiom_dependencies": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+  ],
+  "custom_axioms": [],
+  "unchecked_placeholders": [],
+  "scope": "Integer quantizer lemmas, anchored composition, scale 128 support arithmetic, affine separation, and diamond obstruction. Does not verify Rust code or hardware."
+}

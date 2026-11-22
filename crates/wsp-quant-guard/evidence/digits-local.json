@@ -1,0 +1,2844 @@
+{
+  "schema": "wsp-quant-guard-digits-v1",
+  "setup": {
+    "seed": 42,
+    "split_sizes": {
+      "train": 988,
+      "calibration": 269,
+      "edit": 270,
+      "test": 270
+    },
+    "split_sha256": "c2475bceaec2e569c8bb6e65ca22c7f750d7d62793cfd01151422b5df397a627",
+    "dataset_sha256": "490c62251c3ef5ebb6a0508f12c052960486769b43ab8afcdd99e1283875e2bb",
+    "prefix": {
+      "dataset": "sklearn.load_digits",
+      "features": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63
+      ],
+      "feature_semantics": "raw integer pixels 0..16; no mutable upstream network"
+    },
+    "input_dimensions": 60,
+    "classes": 10,
+    "weight_multiplier": 471.16038875394304,
+    "calibration_scores": [
+      {
+        "scale": 1,
+        "accuracy": 0.9330855018587361
+      },
+      {
+        "scale": 2,
+        "accuracy": 0.9330855018587361
+      },
+      {
+        "scale": 4,
+        "accuracy": 0.9330855018587361
+      },
+      {
+        "scale": 8,
+        "accuracy": 0.9330855018587361
+      },
+      {
+        "scale": 16,
+        "accuracy": 0.929368029739777
+      },
+      {
+        "scale": 32,
+        "accuracy": 0.9330855018587361
+      },
+      {
+        "scale": 64,
+        "accuracy": 0.9182156133828996
+      },
+      {
+        "scale": 128,
+        "accuracy": 0.8921933085501859
+      },
+      {
+        "scale": 256,
+        "accuracy": 0.8475836431226765
+      },
+      {
+        "scale": 512,
+        "accuracy": 0.20817843866171004
+      },
+      {
+        "scale": 1024,
+        "accuracy": 0.20074349442379183
+      }
+    ],
+    "selected_scale": 32,
+    "scale_rule": "coarsest declared scale within 1 percentage point of scale1 calibration accuracy",
+    "training_seconds": 0.002186622004956007,
+    "setup_seconds": 0.020242831989889964,
+    "base_model_sha256": "70c3bc02df5781c5f1d87ab2e175ed56fbdfa2077cbd47de1f79ff286987e0b0",
+    "float_test_accuracy": 0.9296296296296296
+  },
+  "runs": [
+    {
+      "method": "accumulator",
+      "protected_anchor_count": 4,
+      "engine": "python",
+      "protected_feature_rank": 4,
+      "input_dimensions": 60,
+      "initial_edit_pool_errors": 23,
+      "solver_calls": 21,
+      "accepted_effective_edits": 4,
+      "already_correct_from_other_edits": 2,
+      "final_retained_target_labels": 4,
+      "final_retained_target_codes": 4,
+      "max_changed_anchor_codes_after_any_patch": 0,
+      "final_changed_anchor_codes": 0,
+      "test_accuracy_before": 0.9296296296296296,
+      "test_accuracy_after": 0.5074074074074074,
+      "test_cases_helped": 0,
+      "test_cases_harmed": 114,
+      "test_changed_exact_codes": 230,
+      "final_changed_weights": 4,
+      "synthesis_total_seconds": 0.006116048956755549,
+      "python_reference_total_seconds": 0.006116048956755549,
+      "synthesis_median_seconds": 0.0002102209982695058,
+      "rollback_equal": true,
+      "final_model_sha256": "9137e51f78219131e77655c0b6196d30b9c9631fe8c82d3216d5812c3dfb0550",
+      "accepted_edits": [
+        {
+          "dataset_index": 69,
+          "label": 9,
+          "expected_codes": [
+            -2,
+            2,
+            2,
+            -3,
+            0,
+            -1,
+            -3,
+            4,
+            5,
+            6
+          ],
+          "base_sha256": "70c3bc02df5781c5f1d87ab2e175ed56fbdfa2077cbd47de1f79ff286987e0b0",
+          "result_sha256": "d42efabfeff6999d303e3958a0c1594942c8ec4a4ecc5886ca05543c9f3f3512",
+          "edit": {
+            "row": 9,
+            "col": 47,
+            "delta": 35
+          }
+        },
+        {
+          "dataset_index": 1747,
+          "label": 1,
+          "expected_codes": [
+            -2,
+            16,
+            1,
+            -1,
+            4,
+            -2,
+            1,
+            0,
+            5,
+            15
+          ],
+          "base_sha256": "d42efabfeff6999d303e3958a0c1594942c8ec4a4ecc5886ca05543c9f3f3512",
+          "result_sha256": "b93eebaeb90a5eb6c80889d7f007186ab5ce8239b5b9b5a57097d789cc044b02",
+          "edit": {
+            "row": 1,
+            "col": 38,
+            "delta": 124
+          }
+        },
+        {
+          "dataset_index": 1618,
+          "label": 2,
+          "expected_codes": [
+            3,
+            4,
+            7,
+            6,
+            0,
+            -3,
+            0,
+            3,
+            -5,
+            2
+          ],
+          "base_sha256": "b93eebaeb90a5eb6c80889d7f007186ab5ce8239b5b9b5a57097d789cc044b02",
+          "result_sha256": "7ccf2f0ed69d8fd6cab8ccff0c974422e5cfe306780db9d0da37ea08b639ad16",
+          "edit": {
+            "row": 2,
+            "col": 52,
+            "delta": 7
+          }
+        },
+        {
+          "dataset_index": 1264,
+          "label": 1,
+          "expected_codes": [
+            4,
+            6,
+            0,
+            -3,
+            5,
+            -2,
+            3,
+            -3,
+            1,
+            2
+          ],
+          "base_sha256": "7ccf2f0ed69d8fd6cab8ccff0c974422e5cfe306780db9d0da37ea08b639ad16",
+          "result_sha256": "9137e51f78219131e77655c0b6196d30b9c9631fe8c82d3216d5812c3dfb0550",
+          "edit": {
+            "row": 1,
+            "col": 15,
+            "delta": 45
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "dataset_index": 69,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1284,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1747,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1618,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 122,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1162,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1628,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 329,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1790,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 38,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 770,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 621,
+          "status": "already_correct_after_prior_edit"
+        },
+        {
+          "dataset_index": 253,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 325,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 683,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1384,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 648,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1264,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1443,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 638,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 5,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 906,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1412,
+          "status": "already_correct_after_prior_edit"
+        }
+      ]
+    },
+    {
+      "method": "cells",
+      "protected_anchor_count": 4,
+      "engine": "rust_with_python_crosscheck",
+      "protected_feature_rank": 4,
+      "input_dimensions": 60,
+      "initial_edit_pool_errors": 23,
+      "solver_calls": 22,
+      "accepted_effective_edits": 9,
+      "already_correct_from_other_edits": 1,
+      "final_retained_target_labels": 9,
+      "final_retained_target_codes": 9,
+      "max_changed_anchor_codes_after_any_patch": 0,
+      "final_changed_anchor_codes": 0,
+      "test_accuracy_before": 0.9296296296296296,
+      "test_accuracy_after": 0.9222222222222223,
+      "test_cases_helped": 0,
+      "test_cases_harmed": 2,
+      "test_changed_exact_codes": 237,
+      "final_changed_weights": 8,
+      "synthesis_total_seconds": 0.011629,
+      "python_reference_total_seconds": 0.01144883494998794,
+      "synthesis_median_seconds": 0.000564,
+      "rollback_equal": true,
+      "final_model_sha256": "28c11dae2d27fcdbbe8ffaff77be6333fa2bf8623bb2bed02e3f83c0bae0dcd1",
+      "accepted_edits": [
+        {
+          "dataset_index": 69,
+          "label": 9,
+          "expected_codes": [
+            -2,
+            2,
+            2,
+            -3,
+            0,
+            -1,
+            -3,
+            4,
+            5,
+            6
+          ],
+          "base_sha256": "70c3bc02df5781c5f1d87ab2e175ed56fbdfa2077cbd47de1f79ff286987e0b0",
+          "result_sha256": "ae2e69666f33221f926cd39a448e33420513243b81205b27501402332f06bb7c",
+          "edit": {
+            "row": 9,
+            "col": 40,
+            "delta": 3
+          }
+        },
+        {
+          "dataset_index": 1284,
+          "label": 8,
+          "expected_codes": [
+            0,
+            5,
+            -2,
+            2,
+            -1,
+            0,
+            -1,
+            2,
+            6,
+            0
+          ],
+          "base_sha256": "ae2e69666f33221f926cd39a448e33420513243b81205b27501402332f06bb7c",
+          "result_sha256": "9a321cbdcbf9b95c50a7324b0817046928f1beb0bf5638b34b1305307744fe61",
+          "edit": {
+            "row": 8,
+            "col": 1,
+            "delta": 1
+          }
+        },
+        {
+          "dataset_index": 1747,
+          "label": 1,
+          "expected_codes": [
+            -2,
+            6,
+            1,
+            -1,
+            4,
+            -2,
+            1,
+            0,
+            5,
+            4
+          ],
+          "base_sha256": "9a321cbdcbf9b95c50a7324b0817046928f1beb0bf5638b34b1305307744fe61",
+          "result_sha256": "c00e1da84e1b70e0472512bf1455f077d6c2e5e99a22d79cf0abe51ba6bacbe4",
+          "edit": {
+            "row": 1,
+            "col": 38,
+            "delta": 17
+          }
+        },
+        {
+          "dataset_index": 1618,
+          "label": 2,
+          "expected_codes": [
+            3,
+            4,
+            7,
+            6,
+            0,
+            -3,
+            0,
+            3,
+            -5,
+            -1
+          ],
+          "base_sha256": "c00e1da84e1b70e0472512bf1455f077d6c2e5e99a22d79cf0abe51ba6bacbe4",
+          "result_sha256": "3d73c6c3e4c04a11a81fae7036984e256fe8d0df41301fb4ad7b9d23d1871036",
+          "edit": {
+            "row": 2,
+            "col": 52,
+            "delta": 7
+          }
+        },
+        {
+          "dataset_index": 122,
+          "label": 8,
+          "expected_codes": [
+            1,
+            6,
+            0,
+            2,
+            1,
+            -2,
+            -3,
+            -2,
+            7,
+            1
+          ],
+          "base_sha256": "3d73c6c3e4c04a11a81fae7036984e256fe8d0df41301fb4ad7b9d23d1871036",
+          "result_sha256": "9b05aab6090dcd75068e080e87a1b5abfbb0fe45278e173f6e284b92ff61b31d",
+          "edit": {
+            "row": 8,
+            "col": 1,
+            "delta": 1
+          }
+        },
+        {
+          "dataset_index": 1162,
+          "label": 5,
+          "expected_codes": [
+            -2,
+            -5,
+            0,
+            6,
+            2,
+            7,
+            3,
+            -1,
+            0,
+            1
+          ],
+          "base_sha256": "9b05aab6090dcd75068e080e87a1b5abfbb0fe45278e173f6e284b92ff61b31d",
+          "result_sha256": "bbdb1a5560836ebe5fc4be5e64aa166279a8e0c9b3779e594d32e94ea7df176e",
+          "edit": {
+            "row": 5,
+            "col": 8,
+            "delta": 1
+          }
+        },
+        {
+          "dataset_index": 621,
+          "label": 9,
+          "expected_codes": [
+            -1,
+            1,
+            -1,
+            4,
+            -2,
+            0,
+            2,
+            2,
+            0,
+            5
+          ],
+          "base_sha256": "bbdb1a5560836ebe5fc4be5e64aa166279a8e0c9b3779e594d32e94ea7df176e",
+          "result_sha256": "aaffb52b17694cd3fd6cb9cc046d6283b6c8bf12dc89ba579299679a4066eb07",
+          "edit": {
+            "row": 9,
+            "col": 16,
+            "delta": 1
+          }
+        },
+        {
+          "dataset_index": 648,
+          "label": 2,
+          "expected_codes": [
+            2,
+            -2,
+            10,
+            9,
+            -2,
+            -1,
+            3,
+            -1,
+            1,
+            -1
+          ],
+          "base_sha256": "aaffb52b17694cd3fd6cb9cc046d6283b6c8bf12dc89ba579299679a4066eb07",
+          "result_sha256": "02d45c59553db90a324d453f5d273e8756db19a290b8d0942616a3955e266191",
+          "edit": {
+            "row": 2,
+            "col": 0,
+            "delta": 53
+          }
+        },
+        {
+          "dataset_index": 1264,
+          "label": 1,
+          "expected_codes": [
+            4,
+            6,
+            0,
+            -3,
+            5,
+            -2,
+            3,
+            -3,
+            1,
+            3
+          ],
+          "base_sha256": "02d45c59553db90a324d453f5d273e8756db19a290b8d0942616a3955e266191",
+          "result_sha256": "28c11dae2d27fcdbbe8ffaff77be6333fa2bf8623bb2bed02e3f83c0bae0dcd1",
+          "edit": {
+            "row": 1,
+            "col": 15,
+            "delta": 45
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "dataset_index": 69,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1284,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1747,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1618,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 122,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1162,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1628,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 329,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1790,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 38,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 770,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 621,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 253,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 325,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 683,
+          "status": "already_correct_after_prior_edit"
+        },
+        {
+          "dataset_index": 1384,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 648,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1264,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1443,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 638,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 5,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 906,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1412,
+          "status": "no_single_coordinate_solution"
+        }
+      ]
+    },
+    {
+      "method": "target_only",
+      "protected_anchor_count": 4,
+      "engine": "python",
+      "protected_feature_rank": 4,
+      "input_dimensions": 60,
+      "initial_edit_pool_errors": 23,
+      "solver_calls": 15,
+      "accepted_effective_edits": 15,
+      "already_correct_from_other_edits": 8,
+      "final_retained_target_labels": 6,
+      "final_retained_target_codes": 1,
+      "max_changed_anchor_codes_after_any_patch": 4,
+      "final_changed_anchor_codes": 4,
+      "test_accuracy_before": 0.9296296296296296,
+      "test_accuracy_after": 0.5814814814814815,
+      "test_cases_helped": 7,
+      "test_cases_harmed": 101,
+      "test_changed_exact_codes": 270,
+      "final_changed_weights": 13,
+      "synthesis_total_seconds": 0.0031172220333246514,
+      "python_reference_total_seconds": 0.0031172220333246514,
+      "synthesis_median_seconds": 0.00019381599850021303,
+      "rollback_equal": true,
+      "final_model_sha256": "1438bee8c4af69d737c418e998e35032cbd4f7dc029f9e5e637efdd0930b694c",
+      "accepted_edits": [
+        {
+          "dataset_index": 69,
+          "label": 9,
+          "expected_codes": [
+            -2,
+            2,
+            2,
+            -3,
+            0,
+            -1,
+            -3,
+            4,
+            5,
+            6
+          ],
+          "base_sha256": "70c3bc02df5781c5f1d87ab2e175ed56fbdfa2077cbd47de1f79ff286987e0b0",
+          "result_sha256": "561e02b9ede87403ba526b511bd827c712bf428470d4c206f72b9360d7137b0e",
+          "edit": {
+            "row": 9,
+            "col": 2,
+            "delta": 3
+          }
+        },
+        {
+          "dataset_index": 1284,
+          "label": 8,
+          "expected_codes": [
+            0,
+            5,
+            -2,
+            2,
+            -1,
+            0,
+            -1,
+            2,
+            6,
+            1
+          ],
+          "base_sha256": "561e02b9ede87403ba526b511bd827c712bf428470d4c206f72b9360d7137b0e",
+          "result_sha256": "ad4d3fe5c5ddf02de3572c8350d0b6fa77a00ce5578581c9bd3170f383706f54",
+          "edit": {
+            "row": 8,
+            "col": 1,
+            "delta": 1
+          }
+        },
+        {
+          "dataset_index": 1747,
+          "label": 1,
+          "expected_codes": [
+            -2,
+            6,
+            1,
+            -1,
+            4,
+            -2,
+            1,
+            0,
+            5,
+            3
+          ],
+          "base_sha256": "ad4d3fe5c5ddf02de3572c8350d0b6fa77a00ce5578581c9bd3170f383706f54",
+          "result_sha256": "9dc1d580882c5e148695bc38cfade87b4a25f2373ed42bcc35417c4720f03f21",
+          "edit": {
+            "row": 1,
+            "col": 9,
+            "delta": 4
+          }
+        },
+        {
+          "dataset_index": 1618,
+          "label": 2,
+          "expected_codes": [
+            3,
+            5,
+            7,
+            6,
+            0,
+            -3,
+            0,
+            3,
+            -5,
+            0
+          ],
+          "base_sha256": "9dc1d580882c5e148695bc38cfade87b4a25f2373ed42bcc35417c4720f03f21",
+          "result_sha256": "0f8b6eb92eb29d6ef264f97b37c36cefea6495d193ec978bd99df6087132ce77",
+          "edit": {
+            "row": 2,
+            "col": 2,
+            "delta": 5
+          }
+        },
+        {
+          "dataset_index": 122,
+          "label": 8,
+          "expected_codes": [
+            1,
+            7,
+            1,
+            2,
+            1,
+            -2,
+            -3,
+            -2,
+            8,
+            1
+          ],
+          "base_sha256": "0f8b6eb92eb29d6ef264f97b37c36cefea6495d193ec978bd99df6087132ce77",
+          "result_sha256": "209112de21db0351a028a6dfa0736c45997220afcae6795655b9681f26ed8dbf",
+          "edit": {
+            "row": 8,
+            "col": 3,
+            "delta": 3
+          }
+        },
+        {
+          "dataset_index": 1162,
+          "label": 5,
+          "expected_codes": [
+            -2,
+            -3,
+            2,
+            6,
+            2,
+            7,
+            3,
+            -1,
+            2,
+            2
+          ],
+          "base_sha256": "209112de21db0351a028a6dfa0736c45997220afcae6795655b9681f26ed8dbf",
+          "result_sha256": "007b2c143ae66b3d092a2973f9af34abdc0cdeb25f169ed526519e19123d4cbd",
+          "edit": {
+            "row": 5,
+            "col": 1,
+            "delta": 1
+          }
+        },
+        {
+          "dataset_index": 1628,
+          "label": 4,
+          "expected_codes": [
+            -2,
+            6,
+            2,
+            -4,
+            7,
+            -2,
+            -1,
+            3,
+            4,
+            6
+          ],
+          "base_sha256": "007b2c143ae66b3d092a2973f9af34abdc0cdeb25f169ed526519e19123d4cbd",
+          "result_sha256": "aa28dfb8d02b8d8075360555b346d2b9dca64915f36409cae715abaa87238eec",
+          "edit": {
+            "row": 4,
+            "col": 17,
+            "delta": 11
+          }
+        },
+        {
+          "dataset_index": 329,
+          "label": 9,
+          "expected_codes": [
+            -1,
+            3,
+            1,
+            -1,
+            3,
+            1,
+            -3,
+            6,
+            7,
+            8
+          ],
+          "base_sha256": "aa28dfb8d02b8d8075360555b346d2b9dca64915f36409cae715abaa87238eec",
+          "result_sha256": "34731c795be73335c29f3168eaa967f021306019063bb00493b6914f90a01b2c",
+          "edit": {
+            "row": 9,
+            "col": 3,
+            "delta": 9
+          }
+        },
+        {
+          "dataset_index": 1790,
+          "label": 8,
+          "expected_codes": [
+            -2,
+            5,
+            3,
+            6,
+            4,
+            -7,
+            1,
+            2,
+            7,
+            3
+          ],
+          "base_sha256": "34731c795be73335c29f3168eaa967f021306019063bb00493b6914f90a01b2c",
+          "result_sha256": "50360f319de76422d9a95daddb77ff8f9ad867b7fc098a4a48c0d81d5983efcc",
+          "edit": {
+            "row": 8,
+            "col": 10,
+            "delta": 4
+          }
+        },
+        {
+          "dataset_index": 38,
+          "label": 8,
+          "expected_codes": [
+            -2,
+            0,
+            3,
+            1,
+            5,
+            3,
+            -2,
+            1,
+            10,
+            9
+          ],
+          "base_sha256": "50360f319de76422d9a95daddb77ff8f9ad867b7fc098a4a48c0d81d5983efcc",
+          "result_sha256": "517d79825af5beebb9694c781d56f0c6be4b51c2ce4fdde6d465d94d9f3c54cc",
+          "edit": {
+            "row": 8,
+            "col": 4,
+            "delta": 7
+          }
+        },
+        {
+          "dataset_index": 325,
+          "label": 9,
+          "expected_codes": [
+            -3,
+            3,
+            0,
+            -1,
+            4,
+            5,
+            -2,
+            5,
+            9,
+            10
+          ],
+          "base_sha256": "517d79825af5beebb9694c781d56f0c6be4b51c2ce4fdde6d465d94d9f3c54cc",
+          "result_sha256": "22b7f7634d019e4c750223b15d04e1f0473fb36dc1d5ee339e5214aec544b911",
+          "edit": {
+            "row": 9,
+            "col": 3,
+            "delta": 4
+          }
+        },
+        {
+          "dataset_index": 1264,
+          "label": 1,
+          "expected_codes": [
+            4,
+            12,
+            2,
+            -3,
+            11,
+            -2,
+            3,
+            -3,
+            4,
+            6
+          ],
+          "base_sha256": "22b7f7634d019e4c750223b15d04e1f0473fb36dc1d5ee339e5214aec544b911",
+          "result_sha256": "c15f234f1b1b0c969916c97e6937214557d38a5f7baa007220cc9ee5f6971183",
+          "edit": {
+            "row": 1,
+            "col": 10,
+            "delta": 15
+          }
+        },
+        {
+          "dataset_index": 1443,
+          "label": 8,
+          "expected_codes": [
+            -1,
+            8,
+            3,
+            5,
+            3,
+            -4,
+            2,
+            1,
+            14,
+            13
+          ],
+          "base_sha256": "c15f234f1b1b0c969916c97e6937214557d38a5f7baa007220cc9ee5f6971183",
+          "result_sha256": "19ab68e0e01191464c81dcc3eb1a2884ef3c7c1a6df358e70df743c0aba06463",
+          "edit": {
+            "row": 8,
+            "col": 27,
+            "delta": 17
+          }
+        },
+        {
+          "dataset_index": 5,
+          "label": 5,
+          "expected_codes": [
+            2,
+            15,
+            -1,
+            4,
+            5,
+            16,
+            -2,
+            -4,
+            11,
+            8
+          ],
+          "base_sha256": "19ab68e0e01191464c81dcc3eb1a2884ef3c7c1a6df358e70df743c0aba06463",
+          "result_sha256": "ead0bfeef452de76613a41d3de08a72a8a5a0c21bc226af8f32d966182e089c4",
+          "edit": {
+            "row": 5,
+            "col": 10,
+            "delta": 30
+          }
+        },
+        {
+          "dataset_index": 906,
+          "label": 1,
+          "expected_codes": [
+            -3,
+            18,
+            10,
+            -5,
+            7,
+            17,
+            2,
+            -5,
+            6,
+            5
+          ],
+          "base_sha256": "ead0bfeef452de76613a41d3de08a72a8a5a0c21bc226af8f32d966182e089c4",
+          "result_sha256": "1438bee8c4af69d737c418e998e35032cbd4f7dc029f9e5e637efdd0930b694c",
+          "edit": {
+            "row": 1,
+            "col": 10,
+            "delta": 5
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "dataset_index": 69,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1284,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1747,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1618,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 122,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1162,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1628,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 329,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1790,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 38,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 770,
+          "status": "already_correct_after_prior_edit"
+        },
+        {
+          "dataset_index": 621,
+          "status": "already_correct_after_prior_edit"
+        },
+        {
+          "dataset_index": 253,
+          "status": "already_correct_after_prior_edit"
+        },
+        {
+          "dataset_index": 325,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 683,
+          "status": "already_correct_after_prior_edit"
+        },
+        {
+          "dataset_index": 1384,
+          "status": "already_correct_after_prior_edit"
+        },
+        {
+          "dataset_index": 648,
+          "status": "already_correct_after_prior_edit"
+        },
+        {
+          "dataset_index": 1264,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1443,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 638,
+          "status": "already_correct_after_prior_edit"
+        },
+        {
+          "dataset_index": 5,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 906,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1412,
+          "status": "already_correct_after_prior_edit"
+        }
+      ]
+    },
+    {
+      "method": "accumulator",
+      "protected_anchor_count": 16,
+      "engine": "python",
+      "protected_feature_rank": 16,
+      "input_dimensions": 60,
+      "initial_edit_pool_errors": 23,
+      "solver_calls": 23,
+      "accepted_effective_edits": 2,
+      "already_correct_from_other_edits": 0,
+      "final_retained_target_labels": 2,
+      "final_retained_target_codes": 2,
+      "max_changed_anchor_codes_after_any_patch": 0,
+      "final_changed_anchor_codes": 0,
+      "test_accuracy_before": 0.9296296296296296,
+      "test_accuracy_after": 0.9296296296296296,
+      "test_cases_helped": 0,
+      "test_cases_harmed": 0,
+      "test_changed_exact_codes": 13,
+      "final_changed_weights": 2,
+      "synthesis_total_seconds": 0.011655256021185778,
+      "python_reference_total_seconds": 0.011655256021185778,
+      "synthesis_median_seconds": 0.00042392600153107196,
+      "rollback_equal": true,
+      "final_model_sha256": "3da7f1e215cdf11dcdf7227cb20527b0f2ffebb563fc34ff1e47a00e8d16300b",
+      "accepted_edits": [
+        {
+          "dataset_index": 1618,
+          "label": 2,
+          "expected_codes": [
+            3,
+            4,
+            7,
+            6,
+            0,
+            -3,
+            0,
+            3,
+            -5,
+            -1
+          ],
+          "base_sha256": "70c3bc02df5781c5f1d87ab2e175ed56fbdfa2077cbd47de1f79ff286987e0b0",
+          "result_sha256": "d371b0e309fc60d9a1e2c06194c883c5e1f269e96bf1bf8b34569de14466f4c4",
+          "edit": {
+            "row": 2,
+            "col": 52,
+            "delta": 7
+          }
+        },
+        {
+          "dataset_index": 1264,
+          "label": 1,
+          "expected_codes": [
+            4,
+            6,
+            0,
+            -3,
+            5,
+            -2,
+            3,
+            -3,
+            1,
+            1
+          ],
+          "base_sha256": "d371b0e309fc60d9a1e2c06194c883c5e1f269e96bf1bf8b34569de14466f4c4",
+          "result_sha256": "3da7f1e215cdf11dcdf7227cb20527b0f2ffebb563fc34ff1e47a00e8d16300b",
+          "edit": {
+            "row": 1,
+            "col": 15,
+            "delta": 45
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "dataset_index": 69,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1284,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1747,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1618,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 122,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1162,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1628,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 329,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1790,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 38,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 770,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 621,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 253,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 325,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 683,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1384,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 648,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1264,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1443,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 638,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 5,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 906,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1412,
+          "status": "no_single_coordinate_solution"
+        }
+      ]
+    },
+    {
+      "method": "cells",
+      "protected_anchor_count": 16,
+      "engine": "rust_with_python_crosscheck",
+      "protected_feature_rank": 16,
+      "input_dimensions": 60,
+      "initial_edit_pool_errors": 23,
+      "solver_calls": 22,
+      "accepted_effective_edits": 5,
+      "already_correct_from_other_edits": 1,
+      "final_retained_target_labels": 5,
+      "final_retained_target_codes": 5,
+      "max_changed_anchor_codes_after_any_patch": 0,
+      "final_changed_anchor_codes": 0,
+      "test_accuracy_before": 0.9296296296296296,
+      "test_accuracy_after": 0.9333333333333333,
+      "test_cases_helped": 2,
+      "test_cases_harmed": 1,
+      "test_changed_exact_codes": 76,
+      "final_changed_weights": 5,
+      "synthesis_total_seconds": 0.020866,
+      "python_reference_total_seconds": 0.015725855992059223,
+      "synthesis_median_seconds": 0.0009735,
+      "rollback_equal": true,
+      "final_model_sha256": "2bd95fa9048edaa77a92aae2462cdb10e1fd537a3b24c5f058d170810f696616",
+      "accepted_edits": [
+        {
+          "dataset_index": 1284,
+          "label": 8,
+          "expected_codes": [
+            0,
+            5,
+            -2,
+            2,
+            -1,
+            0,
+            -1,
+            2,
+            6,
+            -1
+          ],
+          "base_sha256": "70c3bc02df5781c5f1d87ab2e175ed56fbdfa2077cbd47de1f79ff286987e0b0",
+          "result_sha256": "f1afb43d8cdcf07a7e10edd006d704de0d5a0564c0f71f91b63a3b3602eb0737",
+          "edit": {
+            "row": 8,
+            "col": 13,
+            "delta": 1
+          }
+        },
+        {
+          "dataset_index": 1618,
+          "label": 2,
+          "expected_codes": [
+            3,
+            4,
+            7,
+            6,
+            0,
+            -3,
+            0,
+            3,
+            -5,
+            -1
+          ],
+          "base_sha256": "f1afb43d8cdcf07a7e10edd006d704de0d5a0564c0f71f91b63a3b3602eb0737",
+          "result_sha256": "855269a26910ea93e01bac5e9decce0ae145d5bac9050ef50c7743a5324bb9c3",
+          "edit": {
+            "row": 2,
+            "col": 52,
+            "delta": 7
+          }
+        },
+        {
+          "dataset_index": 1162,
+          "label": 5,
+          "expected_codes": [
+            -2,
+            -5,
+            0,
+            6,
+            2,
+            7,
+            3,
+            -1,
+            0,
+            1
+          ],
+          "base_sha256": "855269a26910ea93e01bac5e9decce0ae145d5bac9050ef50c7743a5324bb9c3",
+          "result_sha256": "269e8234ee73c385dd87a82f05b039bef8393c3bc719e872ed851e17b9f5ff5d",
+          "edit": {
+            "row": 5,
+            "col": 8,
+            "delta": 1
+          }
+        },
+        {
+          "dataset_index": 38,
+          "label": 8,
+          "expected_codes": [
+            -2,
+            -1,
+            2,
+            1,
+            1,
+            3,
+            -2,
+            1,
+            5,
+            4
+          ],
+          "base_sha256": "269e8234ee73c385dd87a82f05b039bef8393c3bc719e872ed851e17b9f5ff5d",
+          "result_sha256": "054b636fe68f6cc92d00f932c403ccfd87797247fe11967585fd07934dc6c7b4",
+          "edit": {
+            "row": 8,
+            "col": 46,
+            "delta": 11
+          }
+        },
+        {
+          "dataset_index": 1264,
+          "label": 1,
+          "expected_codes": [
+            4,
+            6,
+            0,
+            -3,
+            5,
+            -2,
+            3,
+            -3,
+            1,
+            1
+          ],
+          "base_sha256": "054b636fe68f6cc92d00f932c403ccfd87797247fe11967585fd07934dc6c7b4",
+          "result_sha256": "2bd95fa9048edaa77a92aae2462cdb10e1fd537a3b24c5f058d170810f696616",
+          "edit": {
+            "row": 1,
+            "col": 15,
+            "delta": 45
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "dataset_index": 69,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1284,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1747,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1618,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 122,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1162,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1628,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 329,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1790,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 38,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 770,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 621,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 253,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 325,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 683,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1384,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 648,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1264,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1443,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 638,
+          "status": "already_correct_after_prior_edit"
+        },
+        {
+          "dataset_index": 5,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 906,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1412,
+          "status": "no_single_coordinate_solution"
+        }
+      ]
+    },
+    {
+      "method": "target_only",
+      "protected_anchor_count": 16,
+      "engine": "python",
+      "protected_feature_rank": 16,
+      "input_dimensions": 60,
+      "initial_edit_pool_errors": 23,
+      "solver_calls": 15,
+      "accepted_effective_edits": 15,
+      "already_correct_from_other_edits": 8,
+      "final_retained_target_labels": 6,
+      "final_retained_target_codes": 1,
+      "max_changed_anchor_codes_after_any_patch": 16,
+      "final_changed_anchor_codes": 16,
+      "test_accuracy_before": 0.9296296296296296,
+      "test_accuracy_after": 0.5814814814814815,
+      "test_cases_helped": 7,
+      "test_cases_harmed": 101,
+      "test_changed_exact_codes": 270,
+      "final_changed_weights": 13,
+      "synthesis_total_seconds": 0.002992923022247851,
+      "python_reference_total_seconds": 0.002992923022247851,
+      "synthesis_median_seconds": 0.00018626499513629824,
+      "rollback_equal": true,
+      "final_model_sha256": "1438bee8c4af69d737c418e998e35032cbd4f7dc029f9e5e637efdd0930b694c",
+      "accepted_edits": [
+        {
+          "dataset_index": 69,
+          "label": 9,
+          "expected_codes": [
+            -2,
+            2,
+            2,
+            -3,
+            0,
+            -1,
+            -3,
+            4,
+            5,
+            6
+          ],
+          "base_sha256": "70c3bc02df5781c5f1d87ab2e175ed56fbdfa2077cbd47de1f79ff286987e0b0",
+          "result_sha256": "561e02b9ede87403ba526b511bd827c712bf428470d4c206f72b9360d7137b0e",
+          "edit": {
+            "row": 9,
+            "col": 2,
+            "delta": 3
+          }
+        },
+        {
+          "dataset_index": 1284,
+          "label": 8,
+          "expected_codes": [
+            0,
+            5,
+            -2,
+            2,
+            -1,
+            0,
+            -1,
+            2,
+            6,
+            1
+          ],
+          "base_sha256": "561e02b9ede87403ba526b511bd827c712bf428470d4c206f72b9360d7137b0e",
+          "result_sha256": "ad4d3fe5c5ddf02de3572c8350d0b6fa77a00ce5578581c9bd3170f383706f54",
+          "edit": {
+            "row": 8,
+            "col": 1,
+            "delta": 1
+          }
+        },
+        {
+          "dataset_index": 1747,
+          "label": 1,
+          "expected_codes": [
+            -2,
+            6,
+            1,
+            -1,
+            4,
+            -2,
+            1,
+            0,
+            5,
+            3
+          ],
+          "base_sha256": "ad4d3fe5c5ddf02de3572c8350d0b6fa77a00ce5578581c9bd3170f383706f54",
+          "result_sha256": "9dc1d580882c5e148695bc38cfade87b4a25f2373ed42bcc35417c4720f03f21",
+          "edit": {
+            "row": 1,
+            "col": 9,
+            "delta": 4
+          }
+        },
+        {
+          "dataset_index": 1618,
+          "label": 2,
+          "expected_codes": [
+            3,
+            5,
+            7,
+            6,
+            0,
+            -3,
+            0,
+            3,
+            -5,
+            0
+          ],
+          "base_sha256": "9dc1d580882c5e148695bc38cfade87b4a25f2373ed42bcc35417c4720f03f21",
+          "result_sha256": "0f8b6eb92eb29d6ef264f97b37c36cefea6495d193ec978bd99df6087132ce77",
+          "edit": {
+            "row": 2,
+            "col": 2,
+            "delta": 5
+          }
+        },
+        {
+          "dataset_index": 122,
+          "label": 8,
+          "expected_codes": [
+            1,
+            7,
+            1,
+            2,
+            1,
+            -2,
+            -3,
+            -2,
+            8,
+            1
+          ],
+          "base_sha256": "0f8b6eb92eb29d6ef264f97b37c36cefea6495d193ec978bd99df6087132ce77",
+          "result_sha256": "209112de21db0351a028a6dfa0736c45997220afcae6795655b9681f26ed8dbf",
+          "edit": {
+            "row": 8,
+            "col": 3,
+            "delta": 3
+          }
+        },
+        {
+          "dataset_index": 1162,
+          "label": 5,
+          "expected_codes": [
+            -2,
+            -3,
+            2,
+            6,
+            2,
+            7,
+            3,
+            -1,
+            2,
+            2
+          ],
+          "base_sha256": "209112de21db0351a028a6dfa0736c45997220afcae6795655b9681f26ed8dbf",
+          "result_sha256": "007b2c143ae66b3d092a2973f9af34abdc0cdeb25f169ed526519e19123d4cbd",
+          "edit": {
+            "row": 5,
+            "col": 1,
+            "delta": 1
+          }
+        },
+        {
+          "dataset_index": 1628,
+          "label": 4,
+          "expected_codes": [
+            -2,
+            6,
+            2,
+            -4,
+            7,
+            -2,
+            -1,
+            3,
+            4,
+            6
+          ],
+          "base_sha256": "007b2c143ae66b3d092a2973f9af34abdc0cdeb25f169ed526519e19123d4cbd",
+          "result_sha256": "aa28dfb8d02b8d8075360555b346d2b9dca64915f36409cae715abaa87238eec",
+          "edit": {
+            "row": 4,
+            "col": 17,
+            "delta": 11
+          }
+        },
+        {
+          "dataset_index": 329,
+          "label": 9,
+          "expected_codes": [
+            -1,
+            3,
+            1,
+            -1,
+            3,
+            1,
+            -3,
+            6,
+            7,
+            8
+          ],
+          "base_sha256": "aa28dfb8d02b8d8075360555b346d2b9dca64915f36409cae715abaa87238eec",
+          "result_sha256": "34731c795be73335c29f3168eaa967f021306019063bb00493b6914f90a01b2c",
+          "edit": {
+            "row": 9,
+            "col": 3,
+            "delta": 9
+          }
+        },
+        {
+          "dataset_index": 1790,
+          "label": 8,
+          "expected_codes": [
+            -2,
+            5,
+            3,
+            6,
+            4,
+            -7,
+            1,
+            2,
+            7,
+            3
+          ],
+          "base_sha256": "34731c795be73335c29f3168eaa967f021306019063bb00493b6914f90a01b2c",
+          "result_sha256": "50360f319de76422d9a95daddb77ff8f9ad867b7fc098a4a48c0d81d5983efcc",
+          "edit": {
+            "row": 8,
+            "col": 10,
+            "delta": 4
+          }
+        },
+        {
+          "dataset_index": 38,
+          "label": 8,
+          "expected_codes": [
+            -2,
+            0,
+            3,
+            1,
+            5,
+            3,
+            -2,
+            1,
+            10,
+            9
+          ],
+          "base_sha256": "50360f319de76422d9a95daddb77ff8f9ad867b7fc098a4a48c0d81d5983efcc",
+          "result_sha256": "517d79825af5beebb9694c781d56f0c6be4b51c2ce4fdde6d465d94d9f3c54cc",
+          "edit": {
+            "row": 8,
+            "col": 4,
+            "delta": 7
+          }
+        },
+        {
+          "dataset_index": 325,
+          "label": 9,
+          "expected_codes": [
+            -3,
+            3,
+            0,
+            -1,
+            4,
+            5,
+            -2,
+            5,
+            9,
+            10
+          ],
+          "base_sha256": "517d79825af5beebb9694c781d56f0c6be4b51c2ce4fdde6d465d94d9f3c54cc",
+          "result_sha256": "22b7f7634d019e4c750223b15d04e1f0473fb36dc1d5ee339e5214aec544b911",
+          "edit": {
+            "row": 9,
+            "col": 3,
+            "delta": 4
+          }
+        },
+        {
+          "dataset_index": 1264,
+          "label": 1,
+          "expected_codes": [
+            4,
+            12,
+            2,
+            -3,
+            11,
+            -2,
+            3,
+            -3,
+            4,
+            6
+          ],
+          "base_sha256": "22b7f7634d019e4c750223b15d04e1f0473fb36dc1d5ee339e5214aec544b911",
+          "result_sha256": "c15f234f1b1b0c969916c97e6937214557d38a5f7baa007220cc9ee5f6971183",
+          "edit": {
+            "row": 1,
+            "col": 10,
+            "delta": 15
+          }
+        },
+        {
+          "dataset_index": 1443,
+          "label": 8,
+          "expected_codes": [
+            -1,
+            8,
+            3,
+            5,
+            3,
+            -4,
+            2,
+            1,
+            14,
+            13
+          ],
+          "base_sha256": "c15f234f1b1b0c969916c97e6937214557d38a5f7baa007220cc9ee5f6971183",
+          "result_sha256": "19ab68e0e01191464c81dcc3eb1a2884ef3c7c1a6df358e70df743c0aba06463",
+          "edit": {
+            "row": 8,
+            "col": 27,
+            "delta": 17
+          }
+        },
+        {
+          "dataset_index": 5,
+          "label": 5,
+          "expected_codes": [
+            2,
+            15,
+            -1,
+            4,
+            5,
+            16,
+            -2,
+            -4,
+            11,
+            8
+          ],
+          "base_sha256": "19ab68e0e01191464c81dcc3eb1a2884ef3c7c1a6df358e70df743c0aba06463",
+          "result_sha256": "ead0bfeef452de76613a41d3de08a72a8a5a0c21bc226af8f32d966182e089c4",
+          "edit": {
+            "row": 5,
+            "col": 10,
+            "delta": 30
+          }
+        },
+        {
+          "dataset_index": 906,
+          "label": 1,
+          "expected_codes": [
+            -3,
+            18,
+            10,
+            -5,
+            7,
+            17,
+            2,
+            -5,
+            6,
+            5
+          ],
+          "base_sha256": "ead0bfeef452de76613a41d3de08a72a8a5a0c21bc226af8f32d966182e089c4",
+          "result_sha256": "1438bee8c4af69d737c418e998e35032cbd4f7dc029f9e5e637efdd0930b694c",
+          "edit": {
+            "row": 1,
+            "col": 10,
+            "delta": 5
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "dataset_index": 69,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1284,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1747,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1618,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 122,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1162,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1628,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 329,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1790,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 38,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 770,
+          "status": "already_correct_after_prior_edit"
+        },
+        {
+          "dataset_index": 621,
+          "status": "already_correct_after_prior_edit"
+        },
+        {
+          "dataset_index": 253,
+          "status": "already_correct_after_prior_edit"
+        },
+        {
+          "dataset_index": 325,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 683,
+          "status": "already_correct_after_prior_edit"
+        },
+        {
+          "dataset_index": 1384,
+          "status": "already_correct_after_prior_edit"
+        },
+        {
+          "dataset_index": 648,
+          "status": "already_correct_after_prior_edit"
+        },
+        {
+          "dataset_index": 1264,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1443,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 638,
+          "status": "already_correct_after_prior_edit"
+        },
+        {
+          "dataset_index": 5,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 906,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1412,
+          "status": "already_correct_after_prior_edit"
+        }
+      ]
+    },
+    {
+      "method": "accumulator",
+      "protected_anchor_count": 64,
+      "engine": "python",
+      "protected_feature_rank": 50,
+      "input_dimensions": 60,
+      "initial_edit_pool_errors": 23,
+      "solver_calls": 23,
+      "accepted_effective_edits": 2,
+      "already_correct_from_other_edits": 0,
+      "final_retained_target_labels": 2,
+      "final_retained_target_codes": 2,
+      "max_changed_anchor_codes_after_any_patch": 0,
+      "final_changed_anchor_codes": 0,
+      "test_accuracy_before": 0.9296296296296296,
+      "test_accuracy_after": 0.9296296296296296,
+      "test_cases_helped": 0,
+      "test_cases_harmed": 0,
+      "test_changed_exact_codes": 13,
+      "final_changed_weights": 2,
+      "synthesis_total_seconds": 0.04206854595395271,
+      "python_reference_total_seconds": 0.04206854595395271,
+      "synthesis_median_seconds": 0.001529631990706548,
+      "rollback_equal": true,
+      "final_model_sha256": "3da7f1e215cdf11dcdf7227cb20527b0f2ffebb563fc34ff1e47a00e8d16300b",
+      "accepted_edits": [
+        {
+          "dataset_index": 1618,
+          "label": 2,
+          "expected_codes": [
+            3,
+            4,
+            7,
+            6,
+            0,
+            -3,
+            0,
+            3,
+            -5,
+            -1
+          ],
+          "base_sha256": "70c3bc02df5781c5f1d87ab2e175ed56fbdfa2077cbd47de1f79ff286987e0b0",
+          "result_sha256": "d371b0e309fc60d9a1e2c06194c883c5e1f269e96bf1bf8b34569de14466f4c4",
+          "edit": {
+            "row": 2,
+            "col": 52,
+            "delta": 7
+          }
+        },
+        {
+          "dataset_index": 1264,
+          "label": 1,
+          "expected_codes": [
+            4,
+            6,
+            0,
+            -3,
+            5,
+            -2,
+            3,
+            -3,
+            1,
+            1
+          ],
+          "base_sha256": "d371b0e309fc60d9a1e2c06194c883c5e1f269e96bf1bf8b34569de14466f4c4",
+          "result_sha256": "3da7f1e215cdf11dcdf7227cb20527b0f2ffebb563fc34ff1e47a00e8d16300b",
+          "edit": {
+            "row": 1,
+            "col": 15,
+            "delta": 45
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "dataset_index": 69,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1284,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1747,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1618,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 122,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1162,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1628,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 329,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1790,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 38,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 770,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 621,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 253,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 325,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 683,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1384,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 648,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1264,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1443,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 638,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 5,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 906,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1412,
+          "status": "no_single_coordinate_solution"
+        }
+      ]
+    },
+    {
+      "method": "cells",
+      "protected_anchor_count": 64,
+      "engine": "rust_with_python_crosscheck",
+      "protected_feature_rank": 50,
+      "input_dimensions": 60,
+      "initial_edit_pool_errors": 23,
+      "solver_calls": 23,
+      "accepted_effective_edits": 2,
+      "already_correct_from_other_edits": 0,
+      "final_retained_target_labels": 2,
+      "final_retained_target_codes": 2,
+      "max_changed_anchor_codes_after_any_patch": 0,
+      "final_changed_anchor_codes": 0,
+      "test_accuracy_before": 0.9296296296296296,
+      "test_accuracy_after": 0.9296296296296296,
+      "test_cases_helped": 0,
+      "test_cases_harmed": 0,
+      "test_changed_exact_codes": 13,
+      "final_changed_weights": 2,
+      "synthesis_total_seconds": 0.06717,
+      "python_reference_total_seconds": 0.04270253099093679,
+      "synthesis_median_seconds": 0.002862,
+      "rollback_equal": true,
+      "final_model_sha256": "3da7f1e215cdf11dcdf7227cb20527b0f2ffebb563fc34ff1e47a00e8d16300b",
+      "accepted_edits": [
+        {
+          "dataset_index": 1618,
+          "label": 2,
+          "expected_codes": [
+            3,
+            4,
+            7,
+            6,
+            0,
+            -3,
+            0,
+            3,
+            -5,
+            -1
+          ],
+          "base_sha256": "70c3bc02df5781c5f1d87ab2e175ed56fbdfa2077cbd47de1f79ff286987e0b0",
+          "result_sha256": "d371b0e309fc60d9a1e2c06194c883c5e1f269e96bf1bf8b34569de14466f4c4",
+          "edit": {
+            "row": 2,
+            "col": 52,
+            "delta": 7
+          }
+        },
+        {
+          "dataset_index": 1264,
+          "label": 1,
+          "expected_codes": [
+            4,
+            6,
+            0,
+            -3,
+            5,
+            -2,
+            3,
+            -3,
+            1,
+            1
+          ],
+          "base_sha256": "d371b0e309fc60d9a1e2c06194c883c5e1f269e96bf1bf8b34569de14466f4c4",
+          "result_sha256": "3da7f1e215cdf11dcdf7227cb20527b0f2ffebb563fc34ff1e47a00e8d16300b",
+          "edit": {
+            "row": 1,
+            "col": 15,
+            "delta": 45
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "dataset_index": 69,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1284,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1747,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1618,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 122,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1162,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1628,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 329,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1790,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 38,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 770,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 621,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 253,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 325,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 683,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1384,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 648,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1264,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1443,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 638,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 5,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 906,
+          "status": "no_single_coordinate_solution"
+        },
+        {
+          "dataset_index": 1412,
+          "status": "no_single_coordinate_solution"
+        }
+      ]
+    },
+    {
+      "method": "target_only",
+      "protected_anchor_count": 64,
+      "engine": "python",
+      "protected_feature_rank": 50,
+      "input_dimensions": 60,
+      "initial_edit_pool_errors": 23,
+      "solver_calls": 15,
+      "accepted_effective_edits": 15,
+      "already_correct_from_other_edits": 8,
+      "final_retained_target_labels": 6,
+      "final_retained_target_codes": 1,
+      "max_changed_anchor_codes_after_any_patch": 64,
+      "final_changed_anchor_codes": 64,
+      "test_accuracy_before": 0.9296296296296296,
+      "test_accuracy_after": 0.5814814814814815,
+      "test_cases_helped": 7,
+      "test_cases_harmed": 101,
+      "test_changed_exact_codes": 270,
+      "final_changed_weights": 13,
+      "synthesis_total_seconds": 0.0030914080125512555,
+      "python_reference_total_seconds": 0.0030914080125512555,
+      "synthesis_median_seconds": 0.00018139800522476435,
+      "rollback_equal": true,
+      "final_model_sha256": "1438bee8c4af69d737c418e998e35032cbd4f7dc029f9e5e637efdd0930b694c",
+      "accepted_edits": [
+        {
+          "dataset_index": 69,
+          "label": 9,
+          "expected_codes": [
+            -2,
+            2,
+            2,
+            -3,
+            0,
+            -1,
+            -3,
+            4,
+            5,
+            6
+          ],
+          "base_sha256": "70c3bc02df5781c5f1d87ab2e175ed56fbdfa2077cbd47de1f79ff286987e0b0",
+          "result_sha256": "561e02b9ede87403ba526b511bd827c712bf428470d4c206f72b9360d7137b0e",
+          "edit": {
+            "row": 9,
+            "col": 2,
+            "delta": 3
+          }
+        },
+        {
+          "dataset_index": 1284,
+          "label": 8,
+          "expected_codes": [
+            0,
+            5,
+            -2,
+            2,
+            -1,
+            0,
+            -1,
+            2,
+            6,
+            1
+          ],
+          "base_sha256": "561e02b9ede87403ba526b511bd827c712bf428470d4c206f72b9360d7137b0e",
+          "result_sha256": "ad4d3fe5c5ddf02de3572c8350d0b6fa77a00ce5578581c9bd3170f383706f54",
+          "edit": {
+            "row": 8,
+            "col": 1,
+            "delta": 1
+          }
+        },
+        {
+          "dataset_index": 1747,
+          "label": 1,
+          "expected_codes": [
+            -2,
+            6,
+            1,
+            -1,
+            4,
+            -2,
+            1,
+            0,
+            5,
+            3
+          ],
+          "base_sha256": "ad4d3fe5c5ddf02de3572c8350d0b6fa77a00ce5578581c9bd3170f383706f54",
+          "result_sha256": "9dc1d580882c5e148695bc38cfade87b4a25f2373ed42bcc35417c4720f03f21",
+          "edit": {
+            "row": 1,
+            "col": 9,
+            "delta": 4
+          }
+        },
+        {
+          "dataset_index": 1618,
+          "label": 2,
+          "expected_codes": [
+            3,
+            5,
+            7,
+            6,
+            0,
+            -3,
+            0,
+            3,
+            -5,
+            0
+          ],
+          "base_sha256": "9dc1d580882c5e148695bc38cfade87b4a25f2373ed42bcc35417c4720f03f21",
+          "result_sha256": "0f8b6eb92eb29d6ef264f97b37c36cefea6495d193ec978bd99df6087132ce77",
+          "edit": {
+            "row": 2,
+            "col": 2,
+            "delta": 5
+          }
+        },
+        {
+          "dataset_index": 122,
+          "label": 8,
+          "expected_codes": [
+            1,
+            7,
+            1,
+            2,
+            1,
+            -2,
+            -3,
+            -2,
+            8,
+            1
+          ],
+          "base_sha256": "0f8b6eb92eb29d6ef264f97b37c36cefea6495d193ec978bd99df6087132ce77",
+          "result_sha256": "209112de21db0351a028a6dfa0736c45997220afcae6795655b9681f26ed8dbf",
+          "edit": {
+            "row": 8,
+            "col": 3,
+            "delta": 3
+          }
+        },
+        {
+          "dataset_index": 1162,
+          "label": 5,
+          "expected_codes": [
+            -2,
+            -3,
+            2,
+            6,
+            2,
+            7,
+            3,
+            -1,
+            2,
+            2
+          ],
+          "base_sha256": "209112de21db0351a028a6dfa0736c45997220afcae6795655b9681f26ed8dbf",
+          "result_sha256": "007b2c143ae66b3d092a2973f9af34abdc0cdeb25f169ed526519e19123d4cbd",
+          "edit": {
+            "row": 5,
+            "col": 1,
+            "delta": 1
+          }
+        },
+        {
+          "dataset_index": 1628,
+          "label": 4,
+          "expected_codes": [
+            -2,
+            6,
+            2,
+            -4,
+            7,
+            -2,
+            -1,
+            3,
+            4,
+            6
+          ],
+          "base_sha256": "007b2c143ae66b3d092a2973f9af34abdc0cdeb25f169ed526519e19123d4cbd",
+          "result_sha256": "aa28dfb8d02b8d8075360555b346d2b9dca64915f36409cae715abaa87238eec",
+          "edit": {
+            "row": 4,
+            "col": 17,
+            "delta": 11
+          }
+        },
+        {
+          "dataset_index": 329,
+          "label": 9,
+          "expected_codes": [
+            -1,
+            3,
+            1,
+            -1,
+            3,
+            1,
+            -3,
+            6,
+            7,
+            8
+          ],
+          "base_sha256": "aa28dfb8d02b8d8075360555b346d2b9dca64915f36409cae715abaa87238eec",
+          "result_sha256": "34731c795be73335c29f3168eaa967f021306019063bb00493b6914f90a01b2c",
+          "edit": {
+            "row": 9,
+            "col": 3,
+            "delta": 9
+          }
+        },
+        {
+          "dataset_index": 1790,
+          "label": 8,
+          "expected_codes": [
+            -2,
+            5,
+            3,
+            6,
+            4,
+            -7,
+            1,
+            2,
+            7,
+            3
+          ],
+          "base_sha256": "34731c795be73335c29f3168eaa967f021306019063bb00493b6914f90a01b2c",
+          "result_sha256": "50360f319de76422d9a95daddb77ff8f9ad867b7fc098a4a48c0d81d5983efcc",
+          "edit": {
+            "row": 8,
+            "col": 10,
+            "delta": 4
+          }
+        },
+        {
+          "dataset_index": 38,
+          "label": 8,
+          "expected_codes": [
+            -2,
+            0,
+            3,
+            1,
+            5,
+            3,
+            -2,
+            1,
+            10,
+            9
+          ],
+          "base_sha256": "50360f319de76422d9a95daddb77ff8f9ad867b7fc098a4a48c0d81d5983efcc",
+          "result_sha256": "517d79825af5beebb9694c781d56f0c6be4b51c2ce4fdde6d465d94d9f3c54cc",
+          "edit": {
+            "row": 8,
+            "col": 4,
+            "delta": 7
+          }
+        },
+        {
+          "dataset_index": 325,
+          "label": 9,
+          "expected_codes": [
+            -3,
+            3,
+            0,
+            -1,
+            4,
+            5,
+            -2,
+            5,
+            9,
+            10
+          ],
+          "base_sha256": "517d79825af5beebb9694c781d56f0c6be4b51c2ce4fdde6d465d94d9f3c54cc",
+          "result_sha256": "22b7f7634d019e4c750223b15d04e1f0473fb36dc1d5ee339e5214aec544b911",
+          "edit": {
+            "row": 9,
+            "col": 3,
+            "delta": 4
+          }
+        },
+        {
+          "dataset_index": 1264,
+          "label": 1,
+          "expected_codes": [
+            4,
+            12,
+            2,
+            -3,
+            11,
+            -2,
+            3,
+            -3,
+            4,
+            6
+          ],
+          "base_sha256": "22b7f7634d019e4c750223b15d04e1f0473fb36dc1d5ee339e5214aec544b911",
+          "result_sha256": "c15f234f1b1b0c969916c97e6937214557d38a5f7baa007220cc9ee5f6971183",
+          "edit": {
+            "row": 1,
+            "col": 10,
+            "delta": 15
+          }
+        },
+        {
+          "dataset_index": 1443,
+          "label": 8,
+          "expected_codes": [
+            -1,
+            8,
+            3,
+            5,
+            3,
+            -4,
+            2,
+            1,
+            14,
+            13
+          ],
+          "base_sha256": "c15f234f1b1b0c969916c97e6937214557d38a5f7baa007220cc9ee5f6971183",
+          "result_sha256": "19ab68e0e01191464c81dcc3eb1a2884ef3c7c1a6df358e70df743c0aba06463",
+          "edit": {
+            "row": 8,
+            "col": 27,
+            "delta": 17
+          }
+        },
+        {
+          "dataset_index": 5,
+          "label": 5,
+          "expected_codes": [
+            2,
+            15,
+            -1,
+            4,
+            5,
+            16,
+            -2,
+            -4,
+            11,
+            8
+          ],
+          "base_sha256": "19ab68e0e01191464c81dcc3eb1a2884ef3c7c1a6df358e70df743c0aba06463",
+          "result_sha256": "ead0bfeef452de76613a41d3de08a72a8a5a0c21bc226af8f32d966182e089c4",
+          "edit": {
+            "row": 5,
+            "col": 10,
+            "delta": 30
+          }
+        },
+        {
+          "dataset_index": 906,
+          "label": 1,
+          "expected_codes": [
+            -3,
+            18,
+            10,
+            -5,
+            7,
+            17,
+            2,
+            -5,
+            6,
+            5
+          ],
+          "base_sha256": "ead0bfeef452de76613a41d3de08a72a8a5a0c21bc226af8f32d966182e089c4",
+          "result_sha256": "1438bee8c4af69d737c418e998e35032cbd4f7dc029f9e5e637efdd0930b694c",
+          "edit": {
+            "row": 1,
+            "col": 10,
+            "delta": 5
+          }
+        }
+      ],
+      "attempts": [
+        {
+          "dataset_index": 69,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1284,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1747,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1618,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 122,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1162,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1628,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 329,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1790,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 38,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 770,
+          "status": "already_correct_after_prior_edit"
+        },
+        {
+          "dataset_index": 621,
+          "status": "already_correct_after_prior_edit"
+        },
+        {
+          "dataset_index": 253,
+          "status": "already_correct_after_prior_edit"
+        },
+        {
+          "dataset_index": 325,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 683,
+          "status": "already_correct_after_prior_edit"
+        },
+        {
+          "dataset_index": 1384,
+          "status": "already_correct_after_prior_edit"
+        },
+        {
+          "dataset_index": 648,
+          "status": "already_correct_after_prior_edit"
+        },
+        {
+          "dataset_index": 1264,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1443,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 638,
+          "status": "already_correct_after_prior_edit"
+        },
+        {
+          "dataset_index": 5,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 906,
+          "status": "accepted"
+        },
+        {
+          "dataset_index": 1412,
+          "status": "already_correct_after_prior_edit"
+        }
+      ]
+    }
+  ],
+  "environment": {
+    "python": "3.12.14",
+    "numpy": "2.3.5",
+    "sklearn": "1.8.0",
+    "platform": "Linux-6.18.57-x86_64-with-glibc2.41"
+  },
+  "rust_crosscheck": {
+    "enabled": true,
+    "cases": 67,
+    "feasible": 16,
+    "same_candidate": 16,
+    "solve_total_us": 99665,
+    "verify_total_us": 546
+  },
+  "scope": "single integer weight edits to a fixed linear readout; exact listed input code preservation",
+  "limitations": [
+    "one fixed split; no claim of statistical significance or new theorem",
+    "no GPU or hardware deployment measurement",
+    "no claim about unconstrained multiweight feasibility",
+    "anchor protection does not imply unseen data protection",
+    "this is constrained synthesis, not an LLM weight discovery benchmark"
+  ]
+}

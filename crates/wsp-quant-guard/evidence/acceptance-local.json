@@ -1,0 +1,39 @@
+{
+  "schema": "wsp-quant-acceptance-v1",
+  "seed": 20261122,
+  "python": "3.12.14",
+  "machine": "x86_64",
+  "oracle": {
+    "cases": 400,
+    "feasible": 165,
+    "exact_agreements": 400,
+    "constant_box_cases": 63,
+    "independently_verified_patches": 165,
+    "altered_certificates_rejected": 165
+  },
+  "sequential": {
+    "dimensions": 128,
+    "protected_points": 129,
+    "augmented_protected_rank": 129,
+    "accepted_distinct_edits": 100,
+    "distinct_targets_corrected_and_retained": 100,
+    "original_protected_checks": 12900,
+    "accumulated_target_checks": 5050,
+    "protected_mismatches": 0,
+    "rolled_back": 100,
+    "baseline_restored": true,
+    "changed_parameter_fraction": 0.78125,
+    "certificate_check_us_p50": 40,
+    "certificate_check_us_p95": 50,
+    "scope": "Constructed synthetic layer. 100 scalar target outputs, not 100 learned capabilities."
+  },
+  "counterexamples": {
+    "cumulative_violation_rejected": true,
+    "rejected_update_atomic": true,
+    "float_nullspace_rounding_target_lost": true,
+    "float_nullspace_rounding_accumulator_leak": 1
+  },
+  "elapsed_seconds": 0.27749603398842737,
+  "source_sha256": "496793835f44547d01ca7b30da12273a2e331e6382d8d06080fd1b57cad11595",
+  "binary_sha256": "cb4c2880644e02bc32906ea067038b29a807663d11f5b484d8c886c1e356d83c"
+}
