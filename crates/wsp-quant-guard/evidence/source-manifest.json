@@ -1,0 +1,24 @@
+{
+  "schema": "wsp-research-source-v1",
+  "base_commit": "02431fd3b3d5639f38feee8f964ec9a8bcc27fc5",
+  "rust_version": "1.88.0",
+  "lean_version": "4.19.0",
+  "source_sha256": {
+    ".github/workflows/wsp-quant-guard.yml": "88ffcb9f68a7816add01693ab8e6662d5bef838b3833a45e0d0c7115dd966d53",
+    "crates/wsp-quant-guard/Cargo.lock": "7ed726d631f55c4b4f8540f0cdaccf4234bdaa6554839884a85b47d6360ab168",
+    "crates/wsp-quant-guard/Cargo.toml": "2e9626fc58247bc0f1a1b1a3aa7c9dce82664d13ae0e0700e083a042fdc80a4e",
+    "crates/wsp-quant-guard/proofs/QuantCells.lean": "57419c8f7cb139cdcc8cbfa61fb9b3f33cfc16ce5ddc9a2f6cc61b4eb1150fba",
+    "crates/wsp-quant-guard/proofs/check_lean.py": "fa8ca328511bedfe8d5ed0dc7619d6d9fce616d5b938f1446b1fc864dd426210",
+    "crates/wsp-quant-guard/proofs/verify_theory.py": "a03b1f3526390c27cc094081cc3a7039854debc083282f8d8009e7a8ea6d097f",
+    "crates/wsp-quant-guard/scripts/acceptance.py": "496793835f44547d01ca7b30da12273a2e331e6382d8d06080fd1b57cad11595",
+    "crates/wsp-quant-guard/scripts/digits_experiment.py": "e08b3807f5875abccd4441e9042a7d82c8b937584e2b2152a42746e33fd4281c",
+    "crates/wsp-quant-guard/src/ledger.rs": "73384ed918c0aa3fc6ac69864a3bb2ff420b4ca3cc8415308f8c8688c5a607a9",
+    "crates/wsp-quant-guard/src/lib.rs": "a324eb95917d7f01011c3c30ca7722b495c23753e1e4ae03e1c17aa9c54f1ed5",
+    "crates/wsp-quant-guard/src/main.rs": "38c186cdf926fd07d38a52be471e055d83a11943e689c5867d02c9115aa998b3",
+    "crates/wsp-quant-guard/src/model.rs": "737a811bd9c3d209888295d5c49438bfcec60acf3ba4438d6df3ba72f349adda",
+    "crates/wsp-quant-guard/src/search.rs": "ada68899be9243eb1b2c2aae0460b38936703f1ccf6a703f28e08ebd35548de7",
+    "crates/wsp-quant-guard/tests/certificates.rs": "c22474ba3cb35868b4bdc90ff26233e078d196217ba9f94610c11519baa6d226",
+    "crates/wsp-quant-guard/tests/cli.rs": "a2f1df9084b5047aed74dadef87cf654cb5423e0b9e7102cf68e099074a4efe5",
+    "crates/wsp-quant-guard/tests/solver_exhaustive.rs": "ba26450d8762d18e7a65a4e9195c498cf3e418e16d0737bcaabc43f84c37dca7"
+  }
+}

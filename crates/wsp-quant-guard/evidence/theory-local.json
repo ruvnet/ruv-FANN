@@ -1,0 +1,83 @@
+{
+  "status": "passed",
+  "oracle": "Python arbitrary precision integers independent of Rust implementation",
+  "cell_equivalence_cases": 590112,
+  "capacity_exhaustive_vectors": 72079,
+  "capacity_configurations": 35,
+  "direction_membership_cases": 650000,
+  "affine_direction_configurations": 1445,
+  "minimum_diamond_scale": 3,
+  "diamond_witnesses": {
+    "3": {
+      "weights": [
+        1,
+        1
+      ],
+      "bias": 1
+    },
+    "4": {
+      "weights": [
+        1,
+        1
+      ],
+      "bias": 2
+    },
+    "5": {
+      "weights": [
+        1,
+        1
+      ],
+      "bias": 3
+    }
+  },
+  "counterexamples": {
+    "stale_slack": {
+      "baseline_accumulator": 1,
+      "scale": 4,
+      "increment": 1,
+      "outputs": [
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    "requantized_nullspace": {
+      "real_before": [
+        "49/100",
+        "49/100"
+      ],
+      "real_delta": [
+        "3/5",
+        "-3/5"
+      ],
+      "integer_before": [
+        0,
+        0
+      ],
+      "integer_after": [
+        1,
+        0
+      ],
+      "protected_feature": [
+        1,
+        1
+      ]
+    }
+  },
+  "heterogeneous_sequence": {
+    "dimension": 128,
+    "scale": 128,
+    "protected_points": 129,
+    "augmented_protected_rank": 129,
+    "accepted_productive_patches": 100,
+    "protected_output_mismatches": 0,
+    "target_before": -56,
+    "target_after": 44,
+    "changed_coordinate_events": 205,
+    "cumulative_l1_weight_change": 12800,
+    "seed": 110226,
+    "scope": "Designed synthetic witness, not trained model accuracy"
+  },
+  "formal_scope": "Bounded checks supplement paper proofs; no novelty certification"
+}

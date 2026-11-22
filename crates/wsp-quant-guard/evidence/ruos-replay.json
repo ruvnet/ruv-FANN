@@ -1,0 +1,147 @@
+{
+  "schema": "wsp-ruos-replay-v1",
+  "source_commit": "1c077410a7c5aef2b122c942ed25a29106429da0",
+  "source_manifest_verified": 16,
+  "rust_tests_passed": 24,
+  "acceptance": {
+    "schema": "wsp-quant-acceptance-v1",
+    "seed": 20261122,
+    "python": "3.12.3",
+    "machine": "x86_64",
+    "oracle": {
+      "cases": 400,
+      "feasible": 165,
+      "exact_agreements": 400,
+      "constant_box_cases": 63,
+      "independently_verified_patches": 165,
+      "altered_certificates_rejected": 165
+    },
+    "sequential": {
+      "dimensions": 128,
+      "protected_points": 129,
+      "augmented_protected_rank": 129,
+      "accepted_distinct_edits": 100,
+      "distinct_targets_corrected_and_retained": 100,
+      "original_protected_checks": 12900,
+      "accumulated_target_checks": 5050,
+      "protected_mismatches": 0,
+      "rolled_back": 100,
+      "baseline_restored": true,
+      "changed_parameter_fraction": 0.78125,
+      "certificate_check_us_p50": 76,
+      "certificate_check_us_p95": 94,
+      "scope": "Constructed synthetic layer. 100 scalar target outputs, not 100 learned capabilities."
+    },
+    "counterexamples": {
+      "cumulative_violation_rejected": true,
+      "rejected_update_atomic": true,
+      "float_nullspace_rounding_target_lost": true,
+      "float_nullspace_rounding_accumulator_leak": 1
+    },
+    "elapsed_seconds": 0.6449951399999918,
+    "source_sha256": "496793835f44547d01ca7b30da12273a2e331e6382d8d06080fd1b57cad11595",
+    "binary_sha256": "80f9d000be6616233663ee935e4b6c9007400498795ce30088108d8402f3f7bb"
+  },
+  "digits": {
+    "schema": "wsp-quant-guard-digits-replay-v1",
+    "cases": 28,
+    "feasible": 16,
+    "infeasible": 12,
+    "all_matched": true,
+    "fixture_sha256": "a3440dc92f5120d171549173867db2a9973fa9ba611c94cce707642ceed85960",
+    "elapsed_seconds": 0.11725173999980143,
+    "python": "3.12.3",
+    "platform": "Linux-6.12.118-fly-x86_64-with-glibc2.39",
+    "solve_total_us": 61398,
+    "verify_total_us": 1101
+  },
+  "theory": {
+    "status": "passed",
+    "oracle": "Python arbitrary precision integers independent of Rust implementation",
+    "cell_equivalence_cases": 590112,
+    "capacity_exhaustive_vectors": 72079,
+    "capacity_configurations": 35,
+    "direction_membership_cases": 650000,
+    "affine_direction_configurations": 1445,
+    "minimum_diamond_scale": 3,
+    "diamond_witnesses": {
+      "3": {
+        "weights": [
+          1,
+          1
+        ],
+        "bias": 1
+      },
+      "4": {
+        "weights": [
+          1,
+          1
+        ],
+        "bias": 2
+      },
+      "5": {
+        "weights": [
+          1,
+          1
+        ],
+        "bias": 3
+      }
+    },
+    "counterexamples": {
+      "stale_slack": {
+        "baseline_accumulator": 1,
+        "scale": 4,
+        "increment": 1,
+        "outputs": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "requantized_nullspace": {
+        "real_before": [
+          "49/100",
+          "49/100"
+        ],
+        "real_delta": [
+          "3/5",
+          "-3/5"
+        ],
+        "integer_before": [
+          0,
+          0
+        ],
+        "integer_after": [
+          1,
+          0
+        ],
+        "protected_feature": [
+          1,
+          1
+        ]
+      }
+    },
+    "heterogeneous_sequence": {
+      "dimension": 128,
+      "scale": 128,
+      "protected_points": 129,
+      "augmented_protected_rank": 129,
+      "accepted_productive_patches": 100,
+      "protected_output_mismatches": 0,
+      "target_before": -56,
+      "target_after": 44,
+      "changed_coordinate_events": 205,
+      "cumulative_l1_weight_change": 12800,
+      "seed": 110226,
+      "scope": "Designed synthetic witness, not trained model accuracy"
+    },
+    "formal_scope": "Bounded checks supplement paper proofs; no novelty certification"
+  },
+  "executor_receipt": {
+    "completionVerified": true,
+    "completionVersion": 1,
+    "status": "ok",
+    "exitCode": 0
+  }
+}
