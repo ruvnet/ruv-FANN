@@ -36,8 +36,9 @@ support results, counterexamples, and exact formal proof scope.
   The same single coordinate search under exact accumulator preservation
   retained 4, 2 and 2. Every protected code vector remained unchanged for both
   guarded methods. More protection consumed available editing capacity.
-* At 16 anchors, untouched test accuracy changed from 251/270 to 252/270.
-  One additional correct example does not establish a general accuracy gain.
+* At 16 anchors, untouched test accuracy changed from 251/270 to 252/270:
+  two test cases improved and one regressed. This net gain of one correct
+  example does not establish a general accuracy gain.
   With 4 anchors, cell editing reduced it to 249/270 despite certified anchor
   preservation. No model wide safety claim follows.
 * Seventeen Lean lemmas compile with the standard foundation axioms only.

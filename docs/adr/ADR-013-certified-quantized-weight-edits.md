@@ -53,7 +53,7 @@ and independent retention separately from certificate validity.
 | Requirement | Executable evidence |
 |:--|:--|
 | Exact integer arithmetic including negatives and saturation | Rust boundary tests and independent cell oracle |
-| Solver agrees with complete declared search class | 1,000 Rust exhaustive fixtures and 400 independent Python fixtures |
+| Solver agrees with complete declared search class | 753 Rust exhaustive comparisons from 1,000 generated cases, and 400 independent Python fixtures |
 | Repeated changes preserve original outputs | 100 distinct patches, 12,900 original output checks, 5,050 prior target checks |
 | Rejection is atomic and rollback is exact | Tampering, stale parent, overflow and rollback tests |
 | Mathematical arguments are checked independently | 17 Lean declarations and finite Python theory checks |

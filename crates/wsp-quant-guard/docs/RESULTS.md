@@ -117,12 +117,13 @@ The target only control lost earlier repairs and damaged all anchor sets.
 These are strong warnings against advertising finite example certificates
 as model wide preservation.
 
-The 16 anchor cell run improved one untouched test label, from 251 to 252
-correct. This is insufficient for statistical superiority. We did not tune
-on that test split or hide the less favorable protection sizes.
+The 16 anchor cell run helped two untouched test cases and harmed one,
+for a net change from 251 to 252 correct. This is insufficient for statistical
+superiority. We did not tune on that test split or hide the less favorable
+protection sizes.
 
-Training the tiny baseline ridge model took approximately 2.7 milliseconds
-in the recorded run. Cumulative Rust synthesis was approximately 11 to 78
+Training the tiny baseline ridge model took approximately 2.2 milliseconds
+in the retained evidence run. Cumulative Rust synthesis was approximately 12 to 67
 milliseconds depending on the anchor count. The experiment does not show
 that this workflow is cheaper than retraining. A cost matched retraining
 study remains necessary, especially for larger networks.
@@ -136,7 +137,9 @@ target objective binding and disjoint quality gates must be added by that host.
 ## Verification evidence
 
 * 24 Rust tests cover boundaries, transaction behavior, CLI work limits,
-  1,000 complete tiny search comparisons and the 100 patch construction.
+  753 complete tiny search comparisons and the 100 patch construction.
+  The solver test generates 1,000 cases; 247 have varying baseline box
+  outputs and are excluded from the constant output box comparison.
 * The independent Python acceptance script agrees on all 400 additional
   search fixtures, including 63 constant output boxes. It independently
   verifies 165 accepted patches and rejects 165 altered certificates.

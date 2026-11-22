@@ -120,8 +120,8 @@ experiment is one small linear classifier and one split; it establishes neither
 statistical superiority nor performance on large language models.
 
 No adaptation cost advantage over retraining is established. In the recorded
-local run, fitting the small ridge model takes about 2.7 milliseconds, while
-cumulative cell constrained synthesis takes roughly 11 to 78 milliseconds
+local run, fitting the small ridge model takes about 2.2 milliseconds, while
+cumulative cell constrained synthesis takes roughly 12 to 67 milliseconds
 depending on the anchor count. Rust timings and Python timings must not be
 presented as an algorithmic speed comparison. Report measured workload,
 language, host, and scope alongside latency.
