@@ -99,6 +99,64 @@ separate test of fault detection is needed before automatic activation.
 The full cohort result digest is
 `cb10f844c43b333ed98583a2d7163885fda1ca5f408c34e836ef4dd7cbdecc74`.
 
+## Sensor placement repair on MHEALTH
+
+This follow-up changes the input location while leaving the original model
+bytes intact. It tests real shifts in recorded wearable acceleration by feeding
+the wrist or ankle signal into a chest model. It is a proxy for sensor drift.
+RuView Wi-Fi CSI and installed sensors require separate validation.
+
+Use Node 22.13+ and Python 3.11+. The extractor verifies the UCI archive hash
+and reads the three accelerometers and activity labels. Raw and derived arrays
+stay outside the repository.
+
+```sh
+npm install --prefix packages/wsp --ignore-scripts --no-save --package-lock=false ruv-fann@0.1.2
+study_dir=$(mktemp -d)
+curl -fL 'https://archive.ics.uci.edu/static/public/319/mhealth+dataset.zip' -o "$study_dir/mhealth.zip"
+python3 scripts/wsp-mhealth-features.py "$study_dir/mhealth.zip" "$study_dir/features.json"
+node scripts/wsp-sensor-placement-repair.mjs "$study_dir/features.json" "$study_dir/report.json"
+node --test scripts/wsp-sensor-placement-repair.test.mjs
+python3 scripts/wsp-mhealth-features.test.py
+```
+
+The fixture contains 3,355 paired two second windows, 12 activities and
+10 subjects. Every fold uses different people for source training, trigger,
+refit, gate and final test. Source normalization is frozen. The trigger tests
+an accuracy drop of 10 points against a separate set of chest windows from the
+trigger subject. The gate requires a three point improvement in balanced
+accuracy and MSE nonregression on two other subjects. The refit, full weight fine
+tuning and training from scratch use the same labeled fit data and frozen
+source normalization. Checkpoint
+restore and no edit are identical under this pure input shift.
+
+| Mean test balanced accuracy | Chest control | Wrist | Ankle |
+| --- | ---: | ---: | ---: |
+| Restore checkpoint | 59.26% | 15.58% | 15.55% |
+| Gated readout refit | 59.26% | 49.32% | 50.83% |
+| Full model fine tuning | 61.46% | 57.35% | 49.73% |
+| Train from scratch | 50.58% | 47.15% | 40.35% |
+
+The policy passed zero clean edits and exact rollback of all 20 accepted
+shifted cases. Ankle recovered 80.72% of the lost accuracy and exceeded
+fine tuning. Wrist recovered 77.24% and trailed fine tuning by 8.03 points.
+The cohort missed the predeclared 80% recovery and two point fine
+tuning tolerance on both shifts. Individually, two ankle subjects and one
+wrist subject met both targets. The shifted patches scored 15.08% to 17.17%
+back at the chest placement, demonstrating the need to bind a candidate to
+its placement profile. Across the shifted cases, median host fit time was
+about 1.1 ms for the refit and 5.6 ms for fine tuning. Fit timings exclude
+deployment and activation.
+
+Result digest
+`86eae5e98837ed5184d8cd13dc771d8de6926ecf0cd84829bd63b301b6763a9e`.
+Repeated folds share training subjects. The reported means weight test
+subjects equally and are descriptive. The trigger assumes labeled check
+windows and a known healthy reference. It has no unlabeled drift claim.
+
+MHEALTH data credited to Oresti Banos, Rafael Garcia and Alejandro Saez, UCI
+Machine Learning Repository, DOI `10.24432/C5TW22`. [Source and CC BY 4.0 license](https://archive.ics.uci.edu/dataset/319/mhealth%2Bdataset)
+
 ## Dataset attribution and integrity
 
 The original raw files under `data/` were downloaded unchanged from the official UCI server on 2026-11-10. No runtime network access is needed. Every run verifies the pinned bytes and SHA-256 values against `datasets.lock.json` and fixed identities in the benchmark helper. Iris uses the original `iris.data` version; known discrepancies documented on UCI's page have not been corrected.
