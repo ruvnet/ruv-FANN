@@ -1,0 +1,987 @@
+{
+  "schema": "ruv-fann.blind-repair-plan/1",
+  "inputSha256": "a10596481727eec7a3a770aae235e98792d75cdf5c2972f32b6dbe6f9b343d4a",
+  "cases": {
+    "07a42acab6981945": [],
+    "0bdb39a1ee490da9": [],
+    "0d6e2bbb7d9dcbe3": [
+      {
+        "op": "refit",
+        "ridge": 0.1
+      },
+      {
+        "op": "refit",
+        "ridge": 0.01
+      },
+      {
+        "op": "refit",
+        "ridge": 1
+      }
+    ],
+    "1069b9e2b419fc1f": [],
+    "14c55eb928cecabe": [
+      {
+        "op": "refit",
+        "ridge": 0.1
+      },
+      {
+        "op": "refit",
+        "ridge": 0.01
+      },
+      {
+        "op": "refit",
+        "ridge": 1
+      },
+      {
+        "op": "scale",
+        "layer": 1,
+        "row": 0,
+        "factor": 0.05
+      },
+      {
+        "op": "scale",
+        "layer": 1,
+        "row": 0,
+        "factor": 0
+      },
+      {
+        "op": "scale",
+        "layer": 1,
+        "row": 0,
+        "factor": 0.1
+      },
+      {
+        "op": "clip",
+        "layer": 1,
+        "row": 0,
+        "bound": 0.1
+      },
+      {
+        "op": "clip",
+        "layer": 1,
+        "row": 0,
+        "bound": 0.25
+      },
+      {
+        "op": "clip",
+        "layer": 1,
+        "row": 0,
+        "bound": 0.5
+      },
+      {
+        "op": "clip",
+        "layer": 1,
+        "row": 0,
+        "bound": 0.75
+      }
+    ],
+    "1643fc172421361c": [
+      {
+        "op": "refit",
+        "ridge": 0.1
+      },
+      {
+        "op": "refit",
+        "ridge": 0.01
+      },
+      {
+        "op": "refit",
+        "ridge": 1
+      },
+      {
+        "op": "scale",
+        "layer": 1,
+        "row": 1,
+        "factor": 0.05
+      },
+      {
+        "op": "scale",
+        "layer": 1,
+        "row": 1,
+        "factor": 0
+      },
+      {
+        "op": "scale",
+        "layer": 1,
+        "row": 1,
+        "factor": 0.1
+      },
+      {
+        "op": "clip",
+        "layer": 1,
+        "row": 1,
+        "bound": 0.1
+      },
+      {
+        "op": "clip",
+        "layer": 1,
+        "row": 1,
+        "bound": 0.25
+      },
+      {
+        "op": "clip",
+        "layer": 1,
+        "row": 1,
+        "bound": 0.5
+      },
+      {
+        "op": "clip",
+        "layer": 1,
+        "row": 1,
+        "bound": 0.75
+      }
+    ],
+    "17de5e2ec9b68844": [],
+    "216b284c55bc80b3": [],
+    "3254f730ceccde0e": [
+      {
+        "op": "refit",
+        "ridge": 0.1
+      },
+      {
+        "op": "refit",
+        "ridge": 0.01
+      },
+      {
+        "op": "refit",
+        "ridge": 1
+      }
+    ],
+    "37f09efb27639b41": [
+      {
+        "op": "refit",
+        "ridge": 0.1
+      },
+      {
+        "op": "refit",
+        "ridge": 0.01
+      },
+      {
+        "op": "refit",
+        "ridge": 1
+      }
+    ],
+    "3850d0f1eb6d0c51": [],
+    "40d0188ba6461785": [
+      {
+        "op": "refit",
+        "ridge": 0.1
+      },
+      {
+        "op": "refit",
+        "ridge": 0.01
+      },
+      {
+        "op": "refit",
+        "ridge": 1
+      },
+      {
+        "op": "scale",
+        "layer": 1,
+        "row": 1,
+        "factor": 0.05
+      },
+      {
+        "op": "scale",
+        "layer": 1,
+        "row": 1,
+        "factor": 0
+      },
+      {
+        "op": "scale",
+        "layer": 1,
+        "row": 1,
+        "factor": 0.1
+      },
+      {
+        "op": "clip",
+        "layer": 1,
+        "row": 1,
+        "bound": 0.1
+      },
+      {
+        "op": "clip",
+        "layer": 1,
+        "row": 1,
+        "bound": 0.25
+      },
+      {
+        "op": "clip",
+        "layer": 1,
+        "row": 1,
+        "bound": 0.5
+      },
+      {
+        "op": "clip",
+        "layer": 1,
+        "row": 1,
+        "bound": 0.75
+      }
+    ],
+    "44176713e243658f": [
+      {
+        "op": "refit",
+        "ridge": 0.1
+      },
+      {
+        "op": "refit",
+        "ridge": 0.01
+      },
+      {
+        "op": "refit",
+        "ridge": 1
+      },
+      {
+        "op": "scale",
+        "layer": 1,
+        "row": 1,
+        "factor": 0.05
+      },
+      {
+        "op": "scale",
+        "layer": 1,
+        "row": 1,
+        "factor": 0
+      },
+      {
+        "op": "scale",
+        "layer": 1,
+        "row": 1,
+        "factor": 0.1
+      },
+      {
+        "op": "clip",
+        "layer": 1,
+        "row": 1,
+        "bound": 0.1
+      },
+      {
+        "op": "clip",
+        "layer": 1,
+        "row": 1,
+        "bound": 0.25
+      },
+      {
+        "op": "clip",
+        "layer": 1,
+        "row": 1,
+        "bound": 0.5
+      },
+      {
+        "op": "clip",
+        "layer": 1,
+        "row": 1,
+        "bound": 0.75
+      }
+    ],
+    "45889d2709451e2b": [
+      {
+        "op": "scale",
+        "layer": 0,
+        "row": 7,
+        "factor": 0.05
+      },
+      {
+        "op": "scale",
+        "layer": 0,
+        "row": 7,
+        "factor": 0
+      },
+      {
+        "op": "scale",
+        "layer": 0,
+        "row": 7,
+        "factor": 0.1
+      },
+      {
+        "op": "scale",
+        "layer": 0,
+        "row": 7,
+        "factor": 0.25
+      },
+      {
+        "op": "scale",
+        "layer": 0,
+        "row": 7,
+        "factor": 0.5
+      },
+      {
+        "op": "clip",
+        "layer": 0,
+        "row": 7,
+        "bound": 0.25
+      },
+      {
+        "op": "clip",
+        "layer": 0,
+        "row": 7,
+        "bound": 0.5
+      },
+      {
+        "op": "clip",
+        "layer": 0,
+        "row": 7,
+        "bound": 0.75
+      },
+      {
+        "op": "clip",
+        "layer": 0,
+        "row": 7,
+        "bound": 1
+      },
+      {
+        "op": "clip",
+        "layer": 0,
+        "row": 7,
+        "bound": 2
+      },
+      {
+        "op": "refit",
+        "ridge": 0.1
+      },
+      {
+        "op": "refit",
+        "ridge": 0.01
+      },
+      {
+        "op": "refit",
+        "ridge": 1
+      }
+    ],
+    "47fad0fca88773e3": [
+      {
+        "op": "flip",
+        "layer": 1,
+        "row": 0
+      }
+    ],
+    "53087eba5b685910": [
+      {
+        "op": "refit",
+        "ridge": 0.1
+      },
+      {
+        "op": "refit",
+        "ridge": 0.01
+      },
+      {
+        "op": "refit",
+        "ridge": 1
+      }
+    ],
+    "5ac98c798f717a51": [],
+    "6661b49805ceae72": [
+      {
+        "op": "refit",
+        "ridge": 0.1
+      },
+      {
+        "op": "refit",
+        "ridge": 0.01
+      },
+      {
+        "op": "refit",
+        "ridge": 1
+      }
+    ],
+    "6881688873ab4f6f": [
+      {
+        "op": "scale",
+        "layer": 0,
+        "row": 4,
+        "factor": 0.05
+      },
+      {
+        "op": "scale",
+        "layer": 0,
+        "row": 4,
+        "factor": 0
+      },
+      {
+        "op": "scale",
+        "layer": 0,
+        "row": 4,
+        "factor": 0.1
+      },
+      {
+        "op": "scale",
+        "layer": 0,
+        "row": 4,
+        "factor": 0.25
+      },
+      {
+        "op": "scale",
+        "layer": 0,
+        "row": 4,
+        "factor": 0.5
+      },
+      {
+        "op": "clip",
+        "layer": 0,
+        "row": 4,
+        "bound": 0.25
+      },
+      {
+        "op": "clip",
+        "layer": 0,
+        "row": 4,
+        "bound": 0.5
+      },
+      {
+        "op": "clip",
+        "layer": 0,
+        "row": 4,
+        "bound": 0.75
+      },
+      {
+        "op": "clip",
+        "layer": 0,
+        "row": 4,
+        "bound": 1
+      },
+      {
+        "op": "clip",
+        "layer": 0,
+        "row": 4,
+        "bound": 2
+      },
+      {
+        "op": "refit",
+        "ridge": 0.1
+      },
+      {
+        "op": "refit",
+        "ridge": 0.01
+      },
+      {
+        "op": "refit",
+        "ridge": 1
+      }
+    ],
+    "6c113d5c989d70c5": [
+      {
+        "op": "flip",
+        "layer": 0,
+        "row": 5
+      }
+    ],
+    "6f049902bb424d27": [
+      {
+        "op": "refit",
+        "ridge": 0.1
+      },
+      {
+        "op": "refit",
+        "ridge": 0.01
+      },
+      {
+        "op": "refit",
+        "ridge": 1
+      }
+    ],
+    "775f83ed13f90ef7": [],
+    "783cc0cc09b069f1": [
+      {
+        "op": "flip",
+        "layer": 0,
+        "row": 5
+      }
+    ],
+    "8eeecc24efbe6edd": [
+      {
+        "op": "refit",
+        "ridge": 0.1
+      },
+      {
+        "op": "refit",
+        "ridge": 0.01
+      },
+      {
+        "op": "refit",
+        "ridge": 1
+      }
+    ],
+    "92e84f783fdc985f": [
+      {
+        "op": "flip",
+        "layer": 1,
+        "row": 0
+      },
+      {
+        "op": "flip",
+        "layer": 0,
+        "row": 5
+      },
+      {
+        "op": "flip",
+        "layer": 0,
+        "row": 7
+      },
+      {
+        "op": "flip",
+        "layer": 0,
+        "row": 0
+      },
+      {
+        "op": "refit",
+        "ridge": 0.1
+      },
+      {
+        "op": "refit",
+        "ridge": 0.01
+      },
+      {
+        "op": "refit",
+        "ridge": 1
+      }
+    ],
+    "9bac2ad0f1ad136c": [
+      {
+        "op": "flip",
+        "layer": 0,
+        "row": 2
+      },
+      {
+        "op": "flip",
+        "layer": 0,
+        "row": 7
+      },
+      {
+        "op": "flip",
+        "layer": 0,
+        "row": 6
+      },
+      {
+        "op": "flip",
+        "layer": 0,
+        "row": 5
+      },
+      {
+        "op": "flip",
+        "layer": 1,
+        "row": 1
+      }
+    ],
+    "9ec9b805d96485c7": [
+      {
+        "op": "flip",
+        "layer": 0,
+        "row": 1
+      },
+      {
+        "op": "flip",
+        "layer": 0,
+        "row": 4
+      },
+      {
+        "op": "flip",
+        "layer": 0,
+        "row": 2
+      },
+      {
+        "op": "flip",
+        "layer": 0,
+        "row": 3
+      },
+      {
+        "op": "flip",
+        "layer": 1,
+        "row": 1
+      },
+      {
+        "op": "flip",
+        "layer": 1,
+        "row": 2
+      },
+      {
+        "op": "refit",
+        "ridge": 0.1
+      },
+      {
+        "op": "refit",
+        "ridge": 0.01
+      },
+      {
+        "op": "refit",
+        "ridge": 1
+      }
+    ],
+    "a0b3ddb95c56855f": [],
+    "b10270c266acd156": [
+      {
+        "op": "flip",
+        "layer": 0,
+        "row": 0
+      }
+    ],
+    "b122cebc98cc8f05": [
+      {
+        "op": "scale",
+        "layer": 0,
+        "row": 5,
+        "factor": 0.05
+      },
+      {
+        "op": "scale",
+        "layer": 0,
+        "row": 5,
+        "factor": 0
+      },
+      {
+        "op": "scale",
+        "layer": 0,
+        "row": 5,
+        "factor": 0.1
+      },
+      {
+        "op": "scale",
+        "layer": 0,
+        "row": 5,
+        "factor": 0.25
+      },
+      {
+        "op": "scale",
+        "layer": 0,
+        "row": 5,
+        "factor": 0.5
+      },
+      {
+        "op": "clip",
+        "layer": 0,
+        "row": 5,
+        "bound": 0.25
+      },
+      {
+        "op": "clip",
+        "layer": 0,
+        "row": 5,
+        "bound": 0.5
+      },
+      {
+        "op": "clip",
+        "layer": 0,
+        "row": 5,
+        "bound": 0.75
+      },
+      {
+        "op": "clip",
+        "layer": 0,
+        "row": 5,
+        "bound": 1
+      },
+      {
+        "op": "clip",
+        "layer": 0,
+        "row": 5,
+        "bound": 2
+      },
+      {
+        "op": "refit",
+        "ridge": 0.1
+      },
+      {
+        "op": "refit",
+        "ridge": 0.01
+      },
+      {
+        "op": "refit",
+        "ridge": 1
+      }
+    ],
+    "bd9eb75d025c7e1e": [
+      {
+        "op": "refit",
+        "ridge": 0.1
+      },
+      {
+        "op": "refit",
+        "ridge": 0.01
+      },
+      {
+        "op": "refit",
+        "ridge": 1
+      }
+    ],
+    "beb8c74bc48a5c8c": [],
+    "c4f95d2acf9d7d01": [
+      {
+        "op": "refit",
+        "ridge": 0.1
+      },
+      {
+        "op": "refit",
+        "ridge": 0.01
+      },
+      {
+        "op": "refit",
+        "ridge": 1
+      }
+    ],
+    "d0df5356ee256242": [
+      {
+        "op": "refit",
+        "ridge": 0.1
+      },
+      {
+        "op": "refit",
+        "ridge": 0.01
+      },
+      {
+        "op": "refit",
+        "ridge": 1
+      }
+    ],
+    "d90414f03483b939": [
+      {
+        "op": "flip",
+        "layer": 1,
+        "row": 2
+      }
+    ],
+    "d990239fe5c59562": [
+      {
+        "op": "flip",
+        "layer": 1,
+        "row": 1
+      }
+    ],
+    "e2a8654f2f2b4470": [
+      {
+        "op": "flip",
+        "layer": 1,
+        "row": 0
+      },
+      {
+        "op": "flip",
+        "layer": 0,
+        "row": 3
+      },
+      {
+        "op": "flip",
+        "layer": 0,
+        "row": 0
+      },
+      {
+        "op": "flip",
+        "layer": 0,
+        "row": 2
+      },
+      {
+        "op": "refit",
+        "ridge": 0.1
+      },
+      {
+        "op": "refit",
+        "ridge": 0.01
+      },
+      {
+        "op": "refit",
+        "ridge": 1
+      }
+    ],
+    "ebbc6c0213af102a": [
+      {
+        "op": "refit",
+        "ridge": 0.1
+      },
+      {
+        "op": "refit",
+        "ridge": 0.01
+      },
+      {
+        "op": "refit",
+        "ridge": 1
+      },
+      {
+        "op": "scale",
+        "layer": 1,
+        "row": 2,
+        "factor": 0.05
+      },
+      {
+        "op": "scale",
+        "layer": 1,
+        "row": 2,
+        "factor": 0
+      },
+      {
+        "op": "scale",
+        "layer": 1,
+        "row": 2,
+        "factor": 0.1
+      },
+      {
+        "op": "clip",
+        "layer": 1,
+        "row": 2,
+        "bound": 0.1
+      },
+      {
+        "op": "clip",
+        "layer": 1,
+        "row": 2,
+        "bound": 0.25
+      },
+      {
+        "op": "clip",
+        "layer": 1,
+        "row": 2,
+        "bound": 0.5
+      },
+      {
+        "op": "clip",
+        "layer": 1,
+        "row": 2,
+        "bound": 0.75
+      }
+    ],
+    "eea19e6a737aad01": [
+      {
+        "op": "scale",
+        "layer": 0,
+        "row": 7,
+        "factor": 0.05
+      },
+      {
+        "op": "scale",
+        "layer": 0,
+        "row": 7,
+        "factor": 0
+      },
+      {
+        "op": "scale",
+        "layer": 0,
+        "row": 7,
+        "factor": 0.1
+      },
+      {
+        "op": "scale",
+        "layer": 0,
+        "row": 7,
+        "factor": 0.25
+      },
+      {
+        "op": "scale",
+        "layer": 0,
+        "row": 7,
+        "factor": 0.5
+      },
+      {
+        "op": "clip",
+        "layer": 0,
+        "row": 7,
+        "bound": 0.25
+      },
+      {
+        "op": "clip",
+        "layer": 0,
+        "row": 7,
+        "bound": 0.5
+      },
+      {
+        "op": "clip",
+        "layer": 0,
+        "row": 7,
+        "bound": 0.75
+      },
+      {
+        "op": "clip",
+        "layer": 0,
+        "row": 7,
+        "bound": 1
+      },
+      {
+        "op": "clip",
+        "layer": 0,
+        "row": 7,
+        "bound": 2
+      },
+      {
+        "op": "refit",
+        "ridge": 0.1
+      },
+      {
+        "op": "refit",
+        "ridge": 0.01
+      },
+      {
+        "op": "refit",
+        "ridge": 1
+      }
+    ],
+    "f37402cec0944e16": [
+      {
+        "op": "scale",
+        "layer": 0,
+        "row": 3,
+        "factor": 0.05
+      },
+      {
+        "op": "scale",
+        "layer": 0,
+        "row": 3,
+        "factor": 0
+      },
+      {
+        "op": "scale",
+        "layer": 0,
+        "row": 3,
+        "factor": 0.1
+      },
+      {
+        "op": "scale",
+        "layer": 0,
+        "row": 3,
+        "factor": 0.25
+      },
+      {
+        "op": "scale",
+        "layer": 0,
+        "row": 3,
+        "factor": 0.5
+      },
+      {
+        "op": "clip",
+        "layer": 0,
+        "row": 3,
+        "bound": 0.25
+      },
+      {
+        "op": "clip",
+        "layer": 0,
+        "row": 3,
+        "bound": 0.5
+      },
+      {
+        "op": "clip",
+        "layer": 0,
+        "row": 3,
+        "bound": 0.75
+      },
+      {
+        "op": "clip",
+        "layer": 0,
+        "row": 3,
+        "bound": 1
+      },
+      {
+        "op": "clip",
+        "layer": 0,
+        "row": 3,
+        "bound": 2
+      },
+      {
+        "op": "refit",
+        "ridge": 0.1
+      },
+      {
+        "op": "refit",
+        "ridge": 0.01
+      },
+      {
+        "op": "refit",
+        "ridge": 1
+      }
+    ]
+  }
+}

@@ -103,6 +103,30 @@ No automatic promotion is implemented. Score action adherence and physical
 consistency against real observations on an unseen scenario set before choosing
 to deploy a candidate. Generating plausible video does not prove correctness.
 
+## Qwen3.5 paired CUDA smoke
+
+On a separately provisioned CUDA host, stage two materialized local copies of
+a pinned public Qwen3.5 checkpoint. Create the candidate shard with the Rust
+CLI and keep its edit receipt. The comparison requires identical checkpoint
+trees apart from that one edited Safetensors shard. Use a pinned Python
+environment with BF16 CUDA PyTorch and a Transformers build that includes
+`Qwen3_5ForConditionalGeneration`.
+
+```sh
+python3 -m unittest discover -s scripts -p test_qwen_compare.py
+python3 scripts/qwen_compare.py \
+  --baseline /models/qwen-base --candidate /models/qwen-candidate \
+  --shard "$edited_shard" --receipt /evaluation/edit-receipt.json \
+  --output /evaluation/qwen-smoke.json
+```
+
+Add `--verify-only` and use a fresh output path for a CPU verification of
+the checkpoint and exact rollback bytes. The CUDA run decodes 16 fixed
+prompts with greedy generation and records checkpoint digests, token counts,
+outputs, memory and timings. Treat these as smoke measurements. Record the
+image digest, model revision, provider quote and verified worker teardown in
+the execution receipt when using a rented host.
+
 ## Performance and deployment
 
 No full-shard allocation or mmap is used. Header length is capped at 16 MiB;

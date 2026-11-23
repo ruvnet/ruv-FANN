@@ -44,6 +44,61 @@ Restore the known original outgoing weights using a separate patch. Evaluate and
 
 This is a controlled intervention and restoration proof. Access to known original weights makes restoration possible. It is not evidence that an agent can discover repairs to arbitrary corruption or improve an unknown model autonomously.
 
+## Blind repair with independent checkpoints
+
+This separate experiment uses the same Iris and Wine splits and fits a new
+checkpoint for every case. It injects large outliers, a sign flip or an all-zero
+row into a seeded weight row. Both the hidden and readout layers are exercised.
+There are 30 damaged cases and 10 clean controls.
+
+```sh
+npm install --prefix packages/wsp --ignore-scripts --no-save --package-lock=false ruv-fann@0.1.2
+node --test scripts/wsp-benchmark.test.mjs scripts/wsp-blind-repair-controls.test.mjs
+blind_dir=$(mktemp -d)
+node scripts/wsp-blind-repair.mjs prepare "$blind_dir/input.json"
+node scripts/wsp-blind-repair.mjs score "$blind_dir/report.json" "$PWD/packages/wsp/benchmarks/blind-repair-plan.json"
+```
+
+The frozen plan records one platform agent's batch of typed proposals and
+binds the exact diagnostics by SHA-256. To run with another proposer, give it
+only the exported JSON and use its plan in the score command. The diagnostics
+contain damaged weights, activation summaries and development metrics. The
+scorer retains intact weights, fault locations, gate rows and test rows. The
+historical agent was instructed to use only the diagnostics. This was a
+procedural separation on public fixtures.
+
+Controls are no edit, fixed median clipping, scalar coordinate search, a ridge
+refit of the readout, and grouped row search. Search and agent strategies may
+submit up to 20 candidates per case. Development accuracy ranks candidates,
+with MSE as the tiebreaker. Only the top qualifying candidate sees the
+independent gate. Gate accuracy and MSE must preserve or improve the damaged
+baseline. Rejected candidates score as the baseline, including abstentions.
+Accepted patches use the WSP workspace to check stale revision rejection and
+exact rollback to the damaged checkpoint. Reports group outcomes by dataset and
+fault and include a timing independent result digest.
+
+The domain level advancement criterion is a two point mean test accuracy gain
+over the strongest control on both datasets, zero accepted agent proposals on
+clean checkpoints, and exact rollback. The overlapping data splits provide
+descriptive comparisons. Selection timing excludes external reasoning and
+inference costs.
+
+| Mean test accuracy on damaged cases | Iris | Wine |
+| --- | ---: | ---: |
+| No edit | 77.11% | 74.02% |
+| Median clipping | 77.11% | 74.53% |
+| Scalar coordinate search | 81.11% | 82.91% |
+| Grouped row search | 87.78% | 91.79% |
+| Ridge readout refit | 96.00% | 95.90% |
+| Agent proposals | 94.67% | 94.70% |
+
+The agent missed the accuracy gate, abstained on all ten clean controls and
+passed exact rollback for all 27 accepted edits. The refit passed the local
+gate on two clean controls and reduced held-out accuracy on one of them. A
+separate test of fault detection is needed before automatic activation.
+The full cohort result digest is
+`cb10f844c43b333ed98583a2d7163885fda1ca5f408c34e836ef4dd7cbdecc74`.
+
 ## Dataset attribution and integrity
 
 The original raw files under `data/` were downloaded unchanged from the official UCI server on 2026-11-10. No runtime network access is needed. Every run verifies the pinned bytes and SHA-256 values against `datasets.lock.json` and fixed identities in the benchmark helper. Iris uses the original `iris.data` version; known discrepancies documented on UCI's page have not been corrected.
